@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS reports(
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 `);
 
+try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -62,6 +63,7 @@ function ownerAuthorized(req) {
 }
 function currentPeriod() { return new Date().toISOString().slice(0, 7); } // YYYY-MM
 function voteCount(id) { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=?").get(id).c; }
+function monthlyVoteCount(id, period) { try { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=? AND substr(created_at,1,7)=?").get(id, period).c; } catch { return voteCount(id); } }
 
 function normalizeUrl(u) {
   u = String(u || "").trim();
@@ -210,7 +212,7 @@ const server = http.createServer(async (req, res) => {
       if (!row) return sendJson(res, 404, { ok: false, message: "Play not found or not yet approved." });
       const existing = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=?").get(id, voter);
       if (existing) db.prepare("DELETE FROM votes WHERE highlight_id=? AND voter_token=?").run(id, voter);
-      else db.prepare("INSERT INTO votes(highlight_id,voter_token) VALUES(?,?)").run(id, voter);
+      else db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at) VALUES(?,?,datetime('now'))").run(id, voter);
       return sendJson(res, 200, { ok: true, voteCount: voteCount(id), hasVoted: !existing });
     }
 
@@ -230,7 +232,7 @@ const server = http.createServer(async (req, res) => {
       const voter = u.searchParams.get("voterToken") || "";
       const winnerId = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period)?.highlight_id;
       const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
-        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), isWinner: r.id === winnerId }));
+        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId }));
       rows.sort((a, b) => b.voteCount - a.voteCount || a.id - b.id);
       const sportCounts = {};
       for (const r of rows) sportCounts[r.sport] = (sportCounts[r.sport] || 0) + 1;
