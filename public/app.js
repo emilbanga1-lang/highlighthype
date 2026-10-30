@@ -30,8 +30,8 @@ function cardHtml(h, inContest = false) {
     <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
     <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
-    <button onclick="enterContest(${h.id})">Enter Hype of the Month</button>
-    <button onclick="reportPlay(${h.id})">Report</button></p>
+    <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
+    <button class="report-btn" onclick="reportPlay(${h.id})">🚩 Report this play</button></p>
     ${ownerToken() && inContest ? `<button onclick="markWinner(${h.id})">Mark as winner (owner)</button>` : ""}
   </article>`;
 }
