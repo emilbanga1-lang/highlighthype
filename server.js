@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 `);
 
 try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
+try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -126,7 +127,7 @@ function publicHighlight(row, voterToken = "") {
   return {
     ...row,
     voteCount: voteCount(row.id),
-    hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=?").get(row.id, voterToken) : false,
+    hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
 }
 
@@ -210,9 +211,10 @@ const server = http.createServer(async (req, res) => {
       if (!voter) return sendJson(res, 400, { ok: false, message: "Missing voter token." });
       const row = db.prepare("SELECT * FROM highlights WHERE id=? AND status='approved'").get(id);
       if (!row) return sendJson(res, 404, { ok: false, message: "Play not found or not yet approved." });
-      const existing = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=?").get(id, voter);
-      if (existing) db.prepare("DELETE FROM votes WHERE highlight_id=? AND voter_token=?").run(id, voter);
-      else db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at) VALUES(?,?,datetime('now'))").run(id, voter);
+      const period = currentPeriod();
+      const existing = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(id, voter, period);
+      if (existing) db.prepare("DELETE FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").run(id, voter, period);
+      else db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at,period) VALUES(?,?,datetime('now'),?)").run(id, voter, period);
       return sendJson(res, 200, { ok: true, voteCount: voteCount(id), hasVoted: !existing });
     }
 
