@@ -294,7 +294,17 @@ const server = http.createServer(async (req, res) => {
       if (!fs.existsSync(file)) { res.writeHead(404); return res.end("Not found"); }
       const ext = path.extname(file).toLowerCase();
       const type = { ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp" }[ext] || "application/octet-stream";
-      res.writeHead(200, { "content-type": type, "accept-ranges": "bytes" });
+      const size = fs.statSync(file).size;
+      const range = req.headers.range;
+      if (range) {
+        const m = /bytes=(\d*)-(\d*)/.exec(range);
+        const start = m && m[1] ? Number(m[1]) : 0;
+        const end = m && m[2] ? Number(m[2]) : size - 1;
+        if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
+        res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+        return fs.createReadStream(file, { start, end }).pipe(res);
+      }
+      res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size });
       return fs.createReadStream(file).pipe(res);
     }
 
