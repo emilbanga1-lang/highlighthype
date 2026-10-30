@@ -1,0 +1,20 @@
+# Render blueprint — deploys HighlightHype as a single web service.
+# IMPORTANT: on Render's free tier the filesystem is ephemeral, so uploads and
+# votes can be lost on a restart. Attach a persistent disk (see README) for
+# any beta that matters, or use a paid instance.
+services:
+  - type: web
+    name: highlighthype
+    env: node
+    plan: free
+    buildCommand: "npm install --omit=dev || true"
+    startCommand: "node server.js"
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: highlighthype-data
+      mountPath: /var/data
+      sizeGB: 1

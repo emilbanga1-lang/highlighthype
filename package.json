@@ -1,0 +1,1 @@
+{"description":"HighlightHype — kid-safe, parent-approved sports highlights voting + Hype of the Month contest. Private beta build.","engines":{"node":">=22.5"},"license":"UNLICENSED","main":"server.js","name":"highlighthype","private":true,"scripts":{"start":"node server.js","test":"node test.js"},"type":"module","version":"1.0.0"}

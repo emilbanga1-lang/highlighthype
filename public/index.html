@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HighlightHype</title><link rel="stylesheet" href="styles.css"></head>
+<body>
+<header class="hero">
+  <div class="badges"><span>🔥 FOR PLAYERS 9–17</span><span>⭐ PARENT-APPROVED</span></div>
+  <h1>HIGHLIGHT<br><span>HYPE</span></h1>
+  <p>This is HighlightHype — post your play, let everyone vote, and chase Hype of the Month.</p>
+  <p class="handle">Official: <b>@HighlightHype_Official</b> · plain @HighlightHype is taken on Instagram, TikTok &amp; YouTube</p>
+  <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
+</header>
+<nav class="tabs">
+  <button data-tab="plays" class="active">🔥 Plays</button>
+  <button data-tab="contest">🏆 Hype of the Month</button>
+  <button data-tab="swag">🛍️ Swag Store <small>Parked</small></button>
+  <span class="spacer"></span>
+  <button id="ownerBtn">Owner view</button>
+  <button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button>
+</nav>
+<main>
+  <section id="plays" class="tab active">
+    <div class="beta-banner"><b>🔒 PRIVATE BETA — invite only, not public yet.</b>
+      <ul><li>Only your own / family-filmed clips. No TV, pro broadcast, or other-app clips.</li>
+      <li>Parent permission required under 13. First names only — no school, team + jersey, or locations.</li>
+      <li>No DMs between kids in this version. New plays stay in review until the owner approves them.</li></ul></div>
+    <div id="ownerPanel" class="hidden card">
+      <h2>Owner view</h2>
+      <p id="ownerStatus"></p>
+      <button id="claimBtn">Claim owner access on this device</button>
+      <p class="small">Already have an owner token (e.g. set as OWNER_TOKEN on the host)? Enter it here:</p>
+      <label>Owner token <input id="tokenInp" type="password" placeholder="Paste owner token"></label>
+      <button id="saveTokenBtn">Save owner token on this device</button>
+      <p class="small">Owner access is a token saved on this device only — it is not a password login. Do not clear this site's storage on the owner device, or owner controls will stop working there. Real account login is needed before a public launch.</p>
+      <h3>Moderation queue</h3><div id="queue"></div>
+      <h3>Reports</h3><div id="reports"></div>
+    </div>
+    <form id="uploadForm" class="card">
+      <h2>Post your play</h2>
+      <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
+      <div class="row">
+        <label>Sport <select name="sport">
+          <option>baseball</option><option>basketball</option><option>soccer</option><option>football</option>
+          <option>softball</option><option>hockey</option><option>lacrosse</option><option>other</option>
+        </select></label>
+        <label>Play type <input name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
+        <label>Player first name <input name="playerName" placeholder="First name only"></label>
+      </div>
+      <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
+      <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
+      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). iPhone .MOV files play in most browsers but may not preview on every device — MP4 uploads work most reliably.</p>
+      <label>Video link <input name="videoUrl" placeholder="https://…"></label>
+      <button type="submit" class="big">Post your play → in review</button>
+      <p id="uploadMsg"></p>
+    </form>
+    <div class="filters">
+      <select id="sportFilter"><option value="all">All sports</option><option>baseball</option><option>basketball</option><option>soccer</option><option>football</option><option>softball</option><option>hockey</option><option>lacrosse</option><option>other</option></select>
+      <select id="sortSel"><option value="top">Top</option><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
+      <input id="searchInp" placeholder="Search plays…">
+    </div>
+    <h2>🏆 Hall of Fame — Top 3</h2><div id="podium" class="podium"></div>
+    <h2>All plays</h2><div id="playsGrid" class="grid"></div>
+  </section>
+
+  <section id="contest" class="tab">
+    <h2>🏆 Hype of the Month — <span id="contestPeriod"></span></h2>
+    <p>One contest, all sports. Enter an approved play once per month. Votes on the main board count here too. The winner is marked by the owner only.</p>
+    <div id="contestCounts"></div>
+    <div id="contestList" class="grid"></div>
+  </section>
+
+  <section id="swag" class="tab">
+    <div class="parked"><b>🛍️ Drop 001 — Swag Store preview, PARKED till later.</b><br>
+      No real payments are taken here. Checkout opens at launch. Prices are aligned with Baseball Lifestyle 101 (BL101).</div>
+    <div id="swagGrid" class="grid"></div>
+    <div class="card" id="cartBox">
+      <h3>Your cart</h3><div id="cartItems"></div>
+      <p>Subtotal: <b id="cartSub">$0.00</b> · Shipping: <b id="cartShip">$0.00</b> (free over $50) · Total: <b id="cartTotal">$0.00</b></p>
+      <button class="big" disabled>Checkout opens at launch — no payment taken</button>
+    </div>
+  </section>
+</main>
+<footer>HighlightHype · Private beta · @HighlightHype_Official · Only your own clips. Parent permission under 13.</footer>
+<script src="app.js"></script></body></html>
