@@ -15,14 +15,15 @@ const SPORT_COLORS = { baseball: "⚾", basketball: "🏀", soccer: "⚽", footb
 function mediaHtml(h) {
   if (h.media_kind === "file") {
     if ((h.mime || "").startsWith("image/")) return `<img src="${h.media_url}" alt="">`;
-    return `<video src="${h.media_url}" controls playsinline preload="metadata"></video>`;
+    return `<div style="position:relative"><video src="${h.media_url}" controls playsinline muted loop autoplay preload="auto" onclick="tapVideo(this)"></video><button class="tap-sound" onclick="tapVideo(this.previousElementSibling)">🔊 Tap for sound</button><p class="small"><a href="${h.media_url}" target="_blank" rel="noopener">Open video ↗</a> · If the picture stays black, this is likely an iPhone .MOV (HEVC) clip — re-upload as MP4 for playback everywhere.</p></div>`;
   }
   if (h.media_kind === "link_embed") return `<iframe src="${h.embed_url}" allowfullscreen></iframe>`;
-  if (h.media_kind === "link_video") return `<video src="${h.media_url}" controls playsinline preload="metadata"></video>`;
+  if (h.media_kind === "link_video") return `<video src="${h.media_url}" controls playsinline muted loop autoplay preload="auto" onclick="tapVideo(this)"></video>`;
   return `<p><a class="big" href="${h.media_url}" target="_blank" rel="noopener">▶ Watch on ${h.host_label || "link"} ↗</a></p>`;
 }
+window.tapVideo = (v) => { if (!v) return; if (v.muted) { v.muted = false; v.currentTime = 0; v.play(); } else if (v.paused) { v.play(); } else { v.pause(); } };
 function cardHtml(h, inContest = false) {
-  return `<article class="play">
+  return `<article class="play sport-${esc(h.sport || "other")}">
     ${h.isWinner ? "<div class='tag'>🏆 HYPE OF THE MONTH WINNER</div>" : ""}
     ${mediaHtml(h)}
     <h3>${esc(h.title)}</h3>
