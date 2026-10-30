@@ -15,7 +15,7 @@ const SPORT_COLORS = { baseball: "⚾", basketball: "🏀", soccer: "⚽", footb
 function mediaHtml(h) {
   if (h.media_kind === "file") {
     if ((h.mime || "").startsWith("image/")) return `<img src="${h.media_url}" alt="">`;
-    return `<div style="position:relative"><video src="${h.media_url}" controls playsinline muted loop autoplay preload="auto" onclick="tapVideo(this)"></video><button class="tap-sound" onclick="tapVideo(this.previousElementSibling)">🔊 Tap for sound</button><p class="small"><a href="${h.media_url}" target="_blank" rel="noopener">Open video ↗</a> · If the picture stays black, this is likely an iPhone .MOV (HEVC) clip — re-upload as MP4 for playback everywhere.</p></div>`;
+    return `<div><video src="${h.media_url}" controls playsinline muted loop autoplay preload="auto" onclick="tapVideo(this)"></video><button class="tap-sound" onclick="tapVideo(this.previousElementSibling)">🔊 Tap for sound</button></div>`;
   }
   if (h.media_kind === "link_embed") return `<iframe src="${h.embed_url}" allowfullscreen></iframe>`;
   if (h.media_kind === "link_video") return `<video src="${h.media_url}" controls playsinline muted loop autoplay preload="auto" onclick="tapVideo(this)"></video>`;
@@ -41,7 +41,7 @@ async function loadPlays() {
   const sport = $("#sportFilter").value, sort = $("#sortSel").value, search = $("#searchInp").value;
   const d = await api(`/api/highlights?sport=${sport}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
   const top = d.highlights.slice(0, 3);
-  $("#podium").innerHTML = top.length ? top.map((h, i) => `<div class="play ${i === 0 ? "first" : ""}"><div>${["🥈", "🥇", "🥉"][i] || ""} #${i + 1}</div>${cardHtml(h)}</div>`).join("") : "<p>No approved plays yet. Be the first — post a play above (it will be in review first).</p>";
+  $("#podium").innerHTML = top.length ? top.map((h, i) => `<div class="${i === 0 ? "first" : ""}"><div class="small"><b>${["🥈", "🥇", "🥉"][i] || ""} #${i + 1}</b></div>${cardHtml(h)}</div>`).join("") : "<p>No approved plays yet. Be the first — post a play above (it will be in review first).</p>";
   $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h) => cardHtml(h)).join("") : "<p>No plays match yet.</p>";
 }
 async function loadContest() {
