@@ -3,6 +3,7 @@
 .hero{background:#07080F;color:#fff;padding:28px 18px 0;text-align:center;overflow:hidden;position:relative}
 .hero::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:radial-gradient(#fff 1.5px,transparent 1.6px);background-size:14px 14px}
 .hero-crown{display:block;width:110px;height:auto;margin:14px auto 2px;position:relative;z-index:1}
+.hero-logo{display:block;width:300px;max-width:85vw;height:auto;margin:10px auto 2px;position:relative;z-index:1}
 .hero h1{font-family:'Anton',Impact,sans-serif;font-size:76px;line-height:.9;letter-spacing:.02em;margin:10px 0;text-transform:uppercase}
 .hero h1 span{color:transparent;-webkit-text-stroke:2px #D8FF3E}
 .badges span{display:inline-block;padding:6px 12px;margin:3px;font-weight:900;border:2px solid rgba(0,0,0,.7);border-radius:12px;transform:rotate(-2deg)}
