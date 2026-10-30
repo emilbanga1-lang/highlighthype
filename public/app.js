@@ -69,7 +69,7 @@ async function loadOwner() {
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadPlays(); loadContest(); };
 window.deletePlay = async (id) => { if (!confirm("Delete this play permanently?")) return; await api(`/api/highlights/${id}`, { method: "DELETE" }); loadOwner(); loadPlays(); loadContest(); };
 
-$("#ownerBtn").onclick = () => { $("#ownerPanel").classList.toggle("hidden"); loadOwner(); };
+$("#ownerBtn").onclick = () => { $("#ownerPanel").classList.remove("hidden"); loadOwner(); document.getElementById("ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); };
 $("#saveTokenBtn").onclick = () => {
   const t = $("#tokenInp").value.trim();
   if (!t) return alert("Paste an owner token first.");

@@ -18,22 +18,22 @@
   <button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button>
 </nav>
 <main>
+  <div id="ownerPanel" class="hidden card">
+    <h2>Owner view</h2>
+    <p id="ownerStatus"></p>
+    <button id="claimBtn">Claim owner access on this device</button>
+    <p class="small">Already have an owner token (e.g. set as OWNER_TOKEN on the host)? Enter it here:</p>
+    <label>Owner token <input id="tokenInp" type="password" placeholder="Paste owner token"></label>
+    <button id="saveTokenBtn">Save owner token on this device</button>
+    <p class="small">Owner access is a token saved on this device only — it is not a password login. Do not clear this site's storage on the owner device, or owner controls will stop working there. Real account login is needed before a public launch.</p>
+    <h3>Moderation queue</h3><div id="queue"></div>
+    <h3>Reports</h3><div id="reports"></div>
+  </div>
   <section id="plays" class="tab active">
     <div class="beta-banner"><b>🔒 PRIVATE BETA — invite only, not public yet.</b>
       <ul><li>Only your own / family-filmed clips. No TV, pro broadcast, or other-app clips.</li>
       <li>Parent permission required under 13. First names only — no school, team + jersey, or locations.</li>
       <li>No DMs between kids in this version. New plays stay in review until the owner approves them.</li></ul></div>
-    <div id="ownerPanel" class="hidden card">
-      <h2>Owner view</h2>
-      <p id="ownerStatus"></p>
-      <button id="claimBtn">Claim owner access on this device</button>
-      <p class="small">Already have an owner token (e.g. set as OWNER_TOKEN on the host)? Enter it here:</p>
-      <label>Owner token <input id="tokenInp" type="password" placeholder="Paste owner token"></label>
-      <button id="saveTokenBtn">Save owner token on this device</button>
-      <p class="small">Owner access is a token saved on this device only — it is not a password login. Do not clear this site's storage on the owner device, or owner controls will stop working there. Real account login is needed before a public launch.</p>
-      <h3>Moderation queue</h3><div id="queue"></div>
-      <h3>Reports</h3><div id="reports"></div>
-    </div>
     <form id="uploadForm" class="card">
       <h2>Post your play</h2>
       <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
