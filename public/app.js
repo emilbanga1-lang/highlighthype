@@ -37,12 +37,26 @@ function cardHtml(h, inContest = false) {
 }
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
+let currentSport = "all", currentSort = "top";
+const SPORTS = [["all", "🏆 All Sports"], ["basketball", "🏀 Basketball"], ["baseball", "⚾ Baseball"], ["soccer", "⚽ Soccer"], ["football", "🏈 Football"], ["softball", "🥎 Softball"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"]];
+function renderSportPills() {
+  $("#sportPills").innerHTML = SPORTS.map(([v, l]) => `<button class="pill ${currentSport === v ? "active" : ""}" data-sport="${v}">${l}</button>`).join("");
+  document.querySelectorAll("#sportPills .pill").forEach((b) => b.onclick = () => { currentSport = b.dataset.sport; renderSportPills(); loadPlays(); });
+}
 async function loadPlays() {
-  const sport = $("#sportFilter").value, sort = $("#sortSel").value, search = $("#searchInp").value;
+  const sport = currentSport, sort = currentSort, search = $("#searchInp").value;
   const d = await api(`/api/highlights?sport=${sport}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
+  $("#statPlays").textContent = d.highlights.length;
+  $("#statVotes").textContent = d.highlights.reduce((s, h) => s + (h.voteCount || 0), 0);
   const top = d.highlights.slice(0, 3);
-  $("#podium").innerHTML = top.length ? top.map((h, i) => `<div class="${i === 0 ? "first" : ""}"><div class="small"><b>${["🥈", "🥇", "🥉"][i] || ""} #${i + 1}</b></div>${cardHtml(h)}</div>`).join("") : "<p>No approved plays yet. Be the first — post a play above (it will be in review first).</p>";
-  $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h) => cardHtml(h)).join("") : "<p>No plays match yet.</p>";
+  const slots = [0, 1, 2].map((i) => {
+    const h = top[i];
+    if (!h) return `<div class="open-spot"><b>Open spot — upload a play!</b><span>🚀</span></div>`;
+    if (i === 0) return `<div class="mini"><div>👑</div><h3>${esc(h.title)}</h3><p><b>${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} • ${SPORT_COLORS[h.sport] || "⭐"}</b><br>${esc(h.player_name || "")}</p><div style="height:8px;background:#2EE6FF;border-radius:4px"></div></div>`;
+    return `<div class="open-spot"><b>#${i + 1} — ${esc(h.title)}</b><span>${h.voteCount} votes • ${esc(h.player_name || "")}</span></div>`;
+  });
+  $("#podium").innerHTML = slots.join("");
+  $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h, i) => `<div>${i === 0 ? "<div class='tag' style='background:#FF4655'>● #1 PLAY RIGHT NOW</div>" : ""}${cardHtml(h)}</div>`).join("") : "<p>No plays match yet.</p>";
 }
 async function loadContest() {
   const d = await api(`/api/contest?voterToken=${voterToken}`);
@@ -97,7 +111,8 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
   b.classList.add("active"); document.getElementById(b.dataset.tab).classList.add("active");
   if (b.dataset.tab === "contest") loadContest();
 });
-$("#sportFilter").onchange = loadPlays; $("#sortSel").onchange = loadPlays; $("#searchInp").oninput = loadPlays;
+document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
+$("#searchInp").oninput = loadPlays; renderSportPills();
 
 // ---- Swag Store (parked preview only — cart is in this browser, no checkout) ----
 const PRODUCTS = [

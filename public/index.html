@@ -3,20 +3,18 @@
 <title>HighlightHype</title><link rel="stylesheet" href="styles.css"></head>
 <body>
 <header class="hero">
-  <div class="badges"><span>🔥 FOR PLAYERS 9–17</span><span>⭐ PARENT-APPROVED</span></div>
+  <div class="badges"><span>⭐ NICHOLAS'S IDEA</span><span>100% FAN-VOTED 🏆</span><span>📣 OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
   <h1>HIGHLIGHT<br><span>HYPE</span></h1>
-  <p>This is HighlightHype — post your play, let everyone vote, and chase Hype of the Month.</p>
-  <p class="handle">Official: <b>@HighlightHype_Official</b></p>
+  <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
+  <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
   <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
 </header>
 <nav class="tabs">
   <button data-tab="plays" class="active">🔥 Plays</button>
   <button data-tab="contest">🏆 Hype of the Month</button>
-  <button data-tab="swag">🛍️ Swag Store <small>Parked</small></button>
-  <span class="spacer"></span>
-  <button id="ownerBtn">Owner view</button>
-  <button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button>
+  <button data-tab="swag">🛍️ Swag Store</button>
 </nav>
+<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="ownerBtn">Owner view</button><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
 <main>
   <div id="ownerPanel" class="hidden card">
     <h2>Owner view</h2>
@@ -30,10 +28,25 @@
     <h3>Reports</h3><div id="reports"></div>
   </div>
   <section id="plays" class="tab active">
-    <div class="beta-banner"><b>🔒 PRIVATE BETA — invite only, not public yet.</b>
-      <ul><li>Only your own / family-filmed clips. No TV, pro broadcast, or other-app clips.</li>
-      <li>Parent permission required under 13. First names only — no school, team + jersey, or locations.</li>
-      <li>No DMs between kids in this version. New plays stay in review until the owner approves them.</li></ul></div>
+    <div class="beta-banner"><span class="beta-badge">🔒 PRIVATE BETA — INVITE ONLY</span>
+      <h2>PRIVATE BETA</h2>
+      <p>This is invite-only testing with Nicholas's team and friends — not a public launch. There is no public signup here.</p>
+      <ul><li>✓ Every play is <b>owner-approved before it appears</b> on the board — new posts start in review.</li>
+      <li>✓ Swag store is <b>parked</b> — browse the Drop 001 preview only, checkout is not live and nothing is for sale yet.</li>
+      <li>✓ See a play that doesn't belong? Use <b>Report</b> on any play and the owner will review it.</li></ul></div>
+    <div class="card"><h2>📋 BETA RULES — KEEP IT SAFE &amp; YOURS</h2>
+      <p><b>1. Only your own clips.</b> Post only plays you or your family filmed — no broadcast, pro, or other people's clips.</p>
+      <p><b>2. Under 13? Ask a parent first.</b> A parent or guardian must give permission before anyone under 13 posts a play.</p>
+      <p><b>3. First names only.</b> No full name + school + team together in titles or descriptions — first names or nicknames only. The owner checks this at approval.</p>
+      <p><b>4. No messages here.</b> There are no DMs or chat between kids in this app — just plays and votes.</p></div>
+    <div class="card"><h2>HOW IT WORKS</h2>
+      <p><span class="tag">Official handle: @HighlightHype_Official</span></p>
+      <p><b>1. Post your play</b> — upload a video/photo, add a player and play type.</p>
+      <p><b>2. Owner reviews it</b> — your play appears on the board once the owner approves it.</p>
+      <p><b>3. Everyone votes</b> — one vote per person per play. Tap again to remove it.</p>
+      <p><b>4. Enter Hype of the Month</b> — approved plays can enter this month's contest, across all sports. Most votes wins the month.</p>
+      <p class="small">Private beta first: we're testing with Nicholas's team and friends, collecting feedback, and fixing what they hit — before anything public. The swag store stays parked at Drop 001 prices in the meantime.</p>
+      <p><button class="big" onclick="document.querySelector('button[data-tab=contest]').click()">🏆 See this month's contest →</button></p></div>
     <form id="uploadForm" class="card">
       <h2>Post your play</h2>
       <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
@@ -53,11 +66,11 @@
       <p id="uploadMsg"></p>
     </form>
     <div class="filters">
-      <select id="sportFilter"><option value="all">All sports</option><option>baseball</option><option>basketball</option><option>soccer</option><option>football</option><option>softball</option><option>hockey</option><option>lacrosse</option><option>other</option></select>
-      <select id="sortSel"><option value="top">Top</option><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
-      <input id="searchInp" placeholder="Search plays…">
+      <input id="searchInp" placeholder="🔍 Search player, play, title…">
+      <div class="seg"><button data-sort="top" class="active">🔥 TOP</button><button data-sort="newest">✨ NEW</button></div>
     </div>
-    <h2>🏆 Hall of Fame — Top 3</h2><div id="podium" class="podium"></div>
+    <div class="filters" id="sportPills"></div>
+    <h2>👑 HALL OF FAME</h2><p><a href="#" onclick="event.preventDefault();document.querySelector('button[data-tab=contest]').click()" style="color:#D8FF3E">See Top 10 →</a></p><div id="podium" class="podium"></div>
     <h2>All plays</h2><div id="playsGrid" class="grid"></div>
     <div class="swag-teaser card">
       <div><span class="tag">Drop 001 • Parked till later</span>
@@ -85,6 +98,8 @@
     </div>
   </section>
 </main>
+<button class="float-post" onclick="document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
+<button class="float-add" onclick="document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">🎬 Add yours</button>
 <footer class="site-footer">
   <div><b>HighlightHype</b> · @HighlightHype_Official</div>
   <div class="small">Private beta — invite only, not public yet. Only your own clips. Parent permission under 13.</div>
