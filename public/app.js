@@ -37,7 +37,7 @@ function cardHtml(h, inContest = false) {
 }
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-let currentSport = "all", currentSort = "top";
+let currentSport = "all", currentSort = "top", currentDivision = "all";
 const SPORTS = [["all", "🏆 All Sports"], ["basketball", "🏀 Basketball"], ["baseball", "⚾ Baseball"], ["soccer", "⚽ Soccer"], ["football", "🏈 Football"], ["softball", "🥎 Softball"], ["gymnastics", "🤸 Gymnastics"], ["volleyball", "🏐 Volleyball"], ["fieldhockey", "🏑 Field Hockey"], ["cheer", "📣 Cheer"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"]];
 function renderSportPills() {
   $("#sportPills").innerHTML = SPORTS.map(([v, l]) => `<button class="pill ${currentSport === v ? "active" : ""}" data-sport="${v}">${l}</button>`).join("");
@@ -45,7 +45,7 @@ function renderSportPills() {
 }
 async function loadPlays() {
   const sport = currentSport, sort = currentSort, search = $("#searchInp").value;
-  const d = await api(`/api/highlights?sport=${sport}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
+  const d = await api(`/api/highlights?sport=${sport}&division=${currentDivision}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
   $("#statPlays").textContent = d.highlights.length;
   $("#statVotes").textContent = d.highlights.reduce((s, h) => s + (h.voteCount || 0), 0);
   const top = d.highlights.slice(0, 3);
@@ -57,10 +57,6 @@ async function loadPlays() {
   });
   $("#podium").innerHTML = slots.join("");
   $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h, i) => `<div>${i === 0 ? "<div class='tag' style='background:#FF4655'>● #1 PLAY RIGHT NOW</div>" : ""}${cardHtml(h)}</div>`).join("") : "<p>No plays match yet.</p>";
-}
-async function loadGirls() {
-  const d = await api(`/api/highlights?division=girls&sort=top&voterToken=${voterToken}`);
-  $("#girlsGrid").innerHTML = d.highlights.length ? d.highlights.map((h) => `<div>${cardHtml(h)}</div>`).join("") : "<p>No girls' plays yet — be the first! Post a play and choose Girls under Team / division.</p>";
 }
 async function loadContest() {
   const d = await api(`/api/contest?voterToken=${voterToken}`);
@@ -114,10 +110,11 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
   document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
   b.classList.add("active"); document.getElementById(b.dataset.tab).classList.add("active");
   if (b.dataset.tab === "contest") loadContest();
-  if (b.dataset.tab === "girls") loadGirls();
 });
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
-$("#searchInp").oninput = loadPlays; renderSportPills();
+$("#searchInp").oninput = loadPlays;
+$("#girlsFilter").onclick = () => { currentDivision = currentDivision === "girls" ? "all" : "girls"; $("#girlsFilter").classList.toggle("active", currentDivision === "girls"); $("#girlsFilter").textContent = currentDivision === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; loadPlays(); };
+renderSportPills();
 
 // ---- Swag Store (parked preview only — cart is in this browser, no checkout) ----
 const PRODUCTS = [
