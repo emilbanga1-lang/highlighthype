@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 
 try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
 try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'"); } catch {}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -154,11 +155,13 @@ const server = http.createServer(async (req, res) => {
     // ---- Public highlights ----
     if (p === "/api/highlights" && req.method === "GET") {
       const sport = u.searchParams.get("sport") || "all";
+      const division = u.searchParams.get("division") || "all";
       const search = (u.searchParams.get("search") || "").toLowerCase();
       const sort = u.searchParams.get("sort") || "top";
       const voter = u.searchParams.get("voterToken") || "";
       let rows = db.prepare("SELECT * FROM highlights WHERE status='approved'").all();
       if (sport !== "all") rows = rows.filter((r) => r.sport === sport);
+      if (division !== "all") rows = rows.filter((r) => (r.division || "coed") === division);
       if (search) rows = rows.filter((r) => [r.title, r.player_name, r.story].join(" ").toLowerCase().includes(search));
       rows = rows.map((r) => publicHighlight(r, voter));
       if (sort === "top") rows.sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
@@ -183,6 +186,7 @@ const server = http.createServer(async (req, res) => {
       const title = String(fields.title || "").trim();
       if (!title) return sendJson(res, 400, { ok: false, message: "Title is required." });
       const sport = String(fields.sport || "other").trim().toLowerCase();
+      const division = ["girls","boys","coed"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "coed";
       let media_kind, media_url, mime = "", embed_url = "", host_label = "";
       if (file && file.filename) {
         const ext = EXT[file.ctype] || path.extname(file.filename).replace(".", "").toLowerCase();
@@ -197,8 +201,8 @@ const server = http.createServer(async (req, res) => {
       } else {
         return sendJson(res, 400, { ok: false, message: "Upload a file or paste a video link." });
       }
-      const info = db.prepare(`INSERT INTO highlights(title,sport,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status)
-        VALUES(?,?,?,?,?,?,?,?,?,?,'pending')`).run(title, sport, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending')`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
