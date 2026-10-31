@@ -12,6 +12,7 @@
 <nav class="tabs">
   <button data-tab="plays" class="active">🔥 Plays</button>
   <button data-tab="contest">🏆 Hype of the Month</button>
+  <button data-tab="girls">👧 Girls</button>
   <button data-tab="swag">🛍️ Swag Store</button>
 </nav>
 <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="ownerBtn">Owner view</button><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
@@ -53,8 +54,9 @@
       <div class="row">
         <label>Sport <select name="sport">
           <option>baseball</option><option>basketball</option><option>soccer</option><option>football</option>
-          <option>softball</option><option>hockey</option><option>lacrosse</option><option>other</option>
+          <option>softball</option><option>gymnastics</option><option>volleyball</option><option>fieldhockey</option><option>cheer</option><option>hockey</option><option>lacrosse</option><option>other</option>
         </select></label>
+        <label>Team / division <select name="division"><option value="coed">Coed</option><option value="girls">Girls</option><option value="boys">Boys</option></select></label>
         <label>Play type <input name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
         <label>Player first name <input name="playerName" placeholder="First name only"></label>
       </div>
@@ -78,6 +80,13 @@
       <p class="small">Drop 001 swag is preview-only for now — no real payments yet. Browse the parked store and see what's coming.</p></div>
       <button class="big" onclick="document.querySelector('button[data-tab=swag]').click()">Shop Drop 001 →</button>
     </div>
+  </section>
+
+  <section id="girls" class="tab">
+    <h2>👧 Girls Spotlight</h2>
+    <p>Plays from girls' teams — softball, soccer, gymnastics, volleyball, field hockey, cheer, and every other sport. Post a play and choose <b>Girls</b> under Team / division, and it shows up here once the owner approves it.</p>
+    <p class="small">Suggested by Juliette — thank you! Girls' plays also appear on the main board and can enter Hype of the Month, just like everyone else.</p>
+    <div id="girlsGrid" class="grid"></div>
   </section>
 
   <section id="contest" class="tab">

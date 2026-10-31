@@ -10,7 +10,7 @@ const api = async (path, opts = {}) => {
   if (!r.ok) throw new Error(j.message || "Request failed");
   return j;
 };
-const SPORT_COLORS = { baseball: "⚾", basketball: "🏀", soccer: "⚽", football: "🏈", softball: "🥎", hockey: "🏒", lacrosse: "🥍", other: "⭐" };
+const SPORT_COLORS = { baseball: "⚾", basketball: "🏀", soccer: "⚽", football: "🏈", softball: "🥎", gymnastics: "🤸", volleyball: "🏐", fieldhockey: "🏑", cheer: "📣", hockey: "🏒", lacrosse: "🥍", other: "⭐" };
 
 function mediaHtml(h) {
   if (h.media_kind === "file") {
@@ -27,7 +27,7 @@ function cardHtml(h, inContest = false) {
     ${h.isWinner ? "<div class='tag'>🏆 HYPE OF THE MONTH WINNER</div>" : ""}
     ${mediaHtml(h)}
     <h3>${esc(h.title)}</h3>
-    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
+    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
     <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
     <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
@@ -38,7 +38,7 @@ function cardHtml(h, inContest = false) {
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 let currentSport = "all", currentSort = "top";
-const SPORTS = [["all", "🏆 All Sports"], ["basketball", "🏀 Basketball"], ["baseball", "⚾ Baseball"], ["soccer", "⚽ Soccer"], ["football", "🏈 Football"], ["softball", "🥎 Softball"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"]];
+const SPORTS = [["all", "🏆 All Sports"], ["basketball", "🏀 Basketball"], ["baseball", "⚾ Baseball"], ["soccer", "⚽ Soccer"], ["football", "🏈 Football"], ["softball", "🥎 Softball"], ["gymnastics", "🤸 Gymnastics"], ["volleyball", "🏐 Volleyball"], ["fieldhockey", "🏑 Field Hockey"], ["cheer", "📣 Cheer"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"]];
 function renderSportPills() {
   $("#sportPills").innerHTML = SPORTS.map(([v, l]) => `<button class="pill ${currentSport === v ? "active" : ""}" data-sport="${v}">${l}</button>`).join("");
   document.querySelectorAll("#sportPills .pill").forEach((b) => b.onclick = () => { currentSport = b.dataset.sport; renderSportPills(); loadPlays(); });
@@ -57,6 +57,10 @@ async function loadPlays() {
   });
   $("#podium").innerHTML = slots.join("");
   $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h, i) => `<div>${i === 0 ? "<div class='tag' style='background:#FF4655'>● #1 PLAY RIGHT NOW</div>" : ""}${cardHtml(h)}</div>`).join("") : "<p>No plays match yet.</p>";
+}
+async function loadGirls() {
+  const d = await api(`/api/highlights?division=girls&sort=top&voterToken=${voterToken}`);
+  $("#girlsGrid").innerHTML = d.highlights.length ? d.highlights.map((h) => `<div>${cardHtml(h)}</div>`).join("") : "<p>No girls' plays yet — be the first! Post a play and choose Girls under Team / division.</p>";
 }
 async function loadContest() {
   const d = await api(`/api/contest?voterToken=${voterToken}`);
@@ -110,6 +114,7 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
   document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
   b.classList.add("active"); document.getElementById(b.dataset.tab).classList.add("active");
   if (b.dataset.tab === "contest") loadContest();
+  if (b.dataset.tab === "girls") loadGirls();
 });
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
 $("#searchInp").oninput = loadPlays; renderSportPills();
@@ -117,7 +122,8 @@ $("#searchInp").oninput = loadPlays; renderSportPills();
 // ---- Swag Store (parked preview only — cart is in this browser, no checkout) ----
 const PRODUCTS = [
   { name: "The Hype Starts Here Tee", price: 32, desc: "Black tee. HYPE / THE HYPE STARTS HERE." },
-  { name: "Don't Believe The Hype Tee", price: 32, desc: "White tee. Don't believe the hype." },
+  { name: "Hype Is Earned Tee", price: 32, desc: "Black tee. HYPE IS EARNED — crown on top." },
+  { name: "Girls Line — Hype Starts Here Tee", price: 32, desc: "Girls line, Drop 001. Black tee. THE HYPE STARTS HERE." },
   { name: "Hype All Day Hoodie", price: 65, desc: "Navy hoodie. Hype all day." },
   { name: "HH Snapback", price: 35, desc: "Black snapback. HH HYPE." },
   { name: "Hype All Day Cap", price: 32, desc: "Coral cap. Hype all day." },
