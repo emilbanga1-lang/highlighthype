@@ -320,7 +320,18 @@ const server = http.createServer(async (req, res) => {
     let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p);
     if (!filePath.startsWith(path.join(__dirname, "public")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory())
       filePath = path.join(__dirname, "public", "index.html");
-    res.writeHead(200, { "content-type": MIME[path.extname(filePath)] || "text/plain" });
+    const type = MIME[path.extname(filePath)] || "text/plain";
+    const size = fs.statSync(filePath).size;
+    const range = req.headers.range;
+    if (range) {
+      const m = /bytes=(\d*)-(\d*)/.exec(range);
+      const start = m && m[1] ? Number(m[1]) : 0;
+      const end = m && m[2] ? Number(m[2]) : size - 1;
+      if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
+      res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+      return fs.createReadStream(filePath, { start, end }).pipe(res);
+    }
+    res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size });
     fs.createReadStream(filePath).pipe(res);
   } catch (e) {
     console.error(e);
