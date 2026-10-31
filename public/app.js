@@ -112,7 +112,12 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
   if (b.dataset.tab === "contest") loadContest();
 });
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
+const heroVideo = () => document.getElementById("heroVideo");
+const heroSoundBtn = () => document.getElementById("heroSound");
+window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted = !v.muted; if (!v.muted) v.play(); const b = heroSoundBtn(); if (b) b.textContent = v.muted ? "🔊 Sound off — tap for sound" : "🔊 Sound on"; };
+document.getElementById("heroSound")?.addEventListener("click", window.toggleHeroSound);
 window.chooseDivision = (d) => {
+  const v = heroVideo(); if (v) { v.muted = false; v.play(); const b = heroSoundBtn(); if (b) b.textContent = "🔊 Sound on"; }
   currentDivision = d;
   const gf = $("#girlsFilter");
   if (gf) { gf.classList.toggle("active", d === "girls"); gf.textContent = d === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; }
