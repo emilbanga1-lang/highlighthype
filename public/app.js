@@ -116,6 +116,13 @@ const heroVideo = () => document.getElementById("heroVideo");
 const heroSoundBtn = () => document.getElementById("heroSound");
 window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted = !v.muted; if (!v.muted) v.play(); const b = heroSoundBtn(); if (b) b.textContent = v.muted ? "🔊 Sound off — tap for sound" : "🔊 Sound on"; };
 document.getElementById("heroSound")?.addEventListener("click", window.toggleHeroSound);
+const heroPlayBtn = document.getElementById("heroPlay");
+const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.style.display = v && !v.paused ? "none" : "block"; };
+heroPlayBtn?.addEventListener("click", () => { const v = heroVideo(); if (v) { v.play().catch(() => {}); syncHeroPlay(); } });
+heroVideo()?.addEventListener("click", () => { const v = heroVideo(); if (v.paused) v.play().catch(() => {}); else v.pause(); syncHeroPlay(); });
+heroVideo()?.addEventListener("play", syncHeroPlay);
+heroVideo()?.addEventListener("pause", syncHeroPlay);
+syncHeroPlay();
 window.chooseDivision = (d) => {
   const v = heroVideo(); if (v) { v.muted = false; v.play(); const b = heroSoundBtn(); if (b) b.textContent = "🔊 Sound on"; }
   currentDivision = d;

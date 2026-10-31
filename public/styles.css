@@ -75,3 +75,7 @@ footer{text-align:center;padding:20px;color:#A9ADC9}
 #ownerPanel{border:2px dashed #30365A}
 
 .hero-video{display:block;width:100%;max-width:720px;height:auto;margin:10px auto;border-radius:16px;position:relative;z-index:1}
+
+.hero-video-wrap{position:relative;max-width:720px;margin:10px auto;z-index:1}
+.hero-video-wrap .hero-video{margin:0}
+.hero-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#D8FF3E;color:#000;border:0;border-radius:999px;padding:12px 20px;font-weight:800;cursor:pointer}
