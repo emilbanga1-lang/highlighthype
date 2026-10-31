@@ -68,7 +68,7 @@ function notifyPending(title, sport, id) {
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new play pending approval — ${title}`,
-    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n\nOpen highlighthype.com → Owner view → Moderation queue to approve or hide it.\n` })
+    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n\nApprove it here: https://highlighthype.com/#owner (opens Owner view, then Moderation queue).\n` })
     .catch((e) => console.error("notifyPending failed:", e.message));
 }
 
