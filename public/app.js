@@ -118,8 +118,7 @@ window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted 
 document.getElementById("heroSound")?.addEventListener("click", window.toggleHeroSound);
 const heroPlayBtn = document.getElementById("heroPlay");
 const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.style.display = v && !v.paused ? "none" : "block"; };
-heroPlayBtn?.addEventListener("click", () => { const v = heroVideo(); if (v) { v.play().catch(() => {}); syncHeroPlay(); } });
-heroVideo()?.addEventListener("click", () => { const v = heroVideo(); if (v.paused) v.play().catch(() => {}); else v.pause(); syncHeroPlay(); });
+heroPlayBtn?.addEventListener("click", async () => { const v = heroVideo(); if (!v) return; v.muted = true; try { await v.play(); syncHeroPlay(); } catch (e) { v.controls = true; if (heroPlayBtn) heroPlayBtn.textContent = "▶ Tap the video to play"; } });
 heroVideo()?.addEventListener("play", syncHeroPlay);
 heroVideo()?.addEventListener("pause", syncHeroPlay);
 syncHeroPlay();
