@@ -11,6 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import tls from "node:tls";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -18,6 +19,58 @@ const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+
+// ---- Pending-approval email notification (zero-dependency SMTP) ----
+// Set in Render env vars to enable: SMTP_USER (e.g. hello@highlighthype.com),
+// SMTP_PASS (mailbox password, never committed), SMTP_HOST (default
+// mail.privateemail.com), SMTP_PORT (default 465), NOTIFY_TO (default
+// hello@highlighthype.com). If SMTP_USER/SMTP_PASS are unset, this is a
+// silent no-op and uploads still succeed.
+function smtpSend({ host, port, user, pass, from, to, subject, body }) {
+  return new Promise((resolve, reject) => {
+    const sock = tls.connect(port, host, { servername: host });
+    let buf = ""; const queue = []; let waiting = null;
+    const readLine = () => new Promise((res) => { waiting = res; pump(); });
+    function pump() {
+      let i;
+      while (waiting && (i = buf.indexOf("\r\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 2);
+        if (/^\d{3}-/.test(line)) continue;
+        const w = waiting; waiting = null; w(line);
+      }
+    }
+    sock.on("data", (d) => { buf += d.toString("utf8"); pump(); });
+    sock.on("error", reject);
+    sock.setTimeout(15000, () => sock.destroy(new Error("SMTP timeout")));
+    (async () => {
+      try {
+        await readLine();
+        const cmd = async (c, expect) => { sock.write(c + "\r\n"); const r = await readLine(); if (expect && !r.startsWith(expect)) throw new Error("SMTP: " + r); return r; };
+        await cmd(`EHLO highlighthype.com`, "250");
+        await cmd(`AUTH LOGIN`, "334");
+        await cmd(Buffer.from(user).toString("base64"), "334");
+        await cmd(Buffer.from(pass).toString("base64"), "235");
+        await cmd(`MAIL FROM:<${from}>`, "250");
+        await cmd(`RCPT TO:<${to}>`, "250");
+        await cmd("DATA", "354");
+        sock.write(`From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}\r\n.\r\n`);
+        await readLine();
+        await cmd("QUIT", "221");
+        sock.end(); resolve();
+      } catch (e) { try { sock.destroy(); } catch {} reject(e); }
+    })();
+  });
+}
+function notifyPending(title, sport, id) {
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass) return;
+  const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
+  smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+    subject: `HighlightHype: new play pending approval — ${title}`,
+    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n\nOpen highlighthype.com → Owner view → Moderation queue to approve or hide it.\n` })
+    .catch((e) => console.error("notifyPending failed:", e.message));
+}
 
 const db = new DatabaseSync(path.join(DATA_DIR, "highlighthype.db"));
 db.exec(`
@@ -203,6 +256,7 @@ const server = http.createServer(async (req, res) => {
       }
       const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending')`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label);
+      notifyPending(title, sport, Number(info.lastInsertRowid));
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
