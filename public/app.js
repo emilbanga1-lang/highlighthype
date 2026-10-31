@@ -112,6 +112,13 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
   if (b.dataset.tab === "contest") loadContest();
 });
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
+window.chooseDivision = (d) => {
+  currentDivision = d;
+  const gf = $("#girlsFilter");
+  if (gf) { gf.classList.toggle("active", d === "girls"); gf.textContent = d === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; }
+  loadPlays();
+  document.getElementById("playsGrid").scrollIntoView({ behavior: "smooth" });
+};
 $("#searchInp").oninput = loadPlays;
 $("#girlsFilter").onclick = () => { currentDivision = currentDivision === "girls" ? "all" : "girls"; $("#girlsFilter").classList.toggle("active", currentDivision === "girls"); $("#girlsFilter").textContent = currentDivision === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; loadPlays(); };
 renderSportPills();

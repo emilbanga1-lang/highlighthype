@@ -4,8 +4,15 @@
 <body>
 <header class="hero">
   <div class="badges"><span>100% FAN-VOTED 🏆</span><span>📣 OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
+  <video class="hero-video" src="/hero.mp4" autoplay muted loop playsinline></video>
   <img class="hero-logo" src="/dyanna-logo.png" alt="HighlightHype">
   <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
+  <div class="hero-pick"><span>Who are you here for?</span>
+    <button class="big" onclick="chooseDivision('girls')">👧 Girls</button>
+    <button class="big" onclick="chooseDivision('boys')">👦 Boys</button>
+    <button class="big" onclick="chooseDivision('all')">🏆 All sports</button>
+  </div>
+  <p class="small">Picking Girls or Boys filters the board below — tap Girls only again to clear it. Video plays muted; tap it for sound.</p>
   <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
   <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
 </header>
