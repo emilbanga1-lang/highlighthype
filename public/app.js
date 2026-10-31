@@ -170,3 +170,4 @@ window.cartQty = (idx, d) => { cart[idx].qty += d; if (cart[idx].qty <= 0) cart.
 $("#cartBtn").onclick = () => { document.querySelectorAll(".tabs button[data-tab]").forEach((x) => x.classList.remove("active")); document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active")); document.querySelector('button[data-tab="swag"]').classList.add("active"); document.getElementById("swag").classList.add("active"); };
 
 loadPlays(); renderSwag();
+if (location.hash === "#owner") { const p = document.getElementById("ownerPanel"); if (p) { p.classList.remove("hidden"); loadOwner(); p.scrollIntoView({ behavior: "smooth", block: "start" }); } }
