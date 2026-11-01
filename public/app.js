@@ -27,7 +27,7 @@ function cardHtml(h, inContest = false) {
     ${h.isWinner ? "<div class='tag'>🏆 HYPE OF THE MONTH WINNER</div>" : ""}
     ${mediaHtml(h)}
     <h3>${esc(h.title)}</h3>
-    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">👦 Boys</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
+    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${cap(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">👦 Boys</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
     <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
     <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
@@ -36,6 +36,7 @@ function cardHtml(h, inContest = false) {
   </article>`;
 }
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 
 let currentSport = "all", currentSort = "top", currentDivision = "boys";
 const SPORTS = [["all", "🏆 All Sports"], ["baseball", "⚾ Baseball"], ["basketball", "🏀 Basketball"], ["cheer", "📣 Cheer"], ["fieldhockey", "🏑 Field Hockey"], ["football", "🏈 Football"], ["gymnastics", "🤸 Gymnastics"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"], ["soccer", "⚽ Soccer"], ["softball", "🥎 Softball"], ["volleyball", "🏐 Volleyball"]];
@@ -61,7 +62,7 @@ async function loadPlays() {
 async function loadContest() {
   const d = await api(`/api/contest?voterToken=${voterToken}`);
   $("#contestPeriod").textContent = d.period;
-  $("#contestCounts").innerHTML = "<p>" + Object.entries(d.sportCounts).map(([s, c]) => `${SPORT_COLORS[s] || "⭐"} ${s}: ${c}`).join(" · ") + (d.totalEntries ? "" : " — no entries yet") + "</p>";
+  $("#contestCounts").innerHTML = "<p>" + Object.entries(d.sportCounts).map(([s, c]) => `${SPORT_COLORS[s] || "⭐"} ${cap(s)}: ${c}`).join(" · ") + (d.totalEntries ? "" : " — no entries yet") + "</p>";
   $("#contestList").innerHTML = d.entries.length ? d.entries.map((h, i) => `<div><div class="tag">#${i + 1}</div>${cardHtml(h, true)}</div>`).join("") : "<p>No entries this month yet. Enter an approved play from the Plays tab.</p>";
 }
 window.toggleVote = async (id) => { await api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) }); loadPlays(); loadContest(); };
