@@ -129,6 +129,8 @@ try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE v
 try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN review TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN team TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''"); } catch {}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -201,13 +203,23 @@ function parseMultipart(buf, boundary) {
 }
 const EXT = { "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov", "video/x-msvideo": "avi", "image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp" };
 
+function notifyApproved(title, id, to) {
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass || !to) return;
+  smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+    subject: `HighlightHype: your play is live — ${title}`,
+    body: `Good news — your play "${title}" was approved and is now live on HighlightHype!\n\nSee it here: https://highlighthype.com/#play-${id}\n\nThanks for posting!\n` })
+    .catch((e) => console.error("notifyApproved failed:", e.message));
+}
 function publicHighlight(row, voterToken = "") {
+  const { notify_email, ...safe } = row;
   return {
-    ...row,
+    ...safe,
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
 }
+function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 
 const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
 
@@ -233,6 +245,7 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/highlights" && req.method === "GET") {
       const sport = u.searchParams.get("sport") || "all";
       const division = u.searchParams.get("division") || "all";
+      const team = u.searchParams.get("team") || "all";
       const search = (u.searchParams.get("search") || "").toLowerCase();
       const sort = u.searchParams.get("sort") || "top";
       const voter = u.searchParams.get("voterToken") || "";
@@ -241,6 +254,7 @@ const server = http.createServer(async (req, res) => {
       // No Coed option any more, but older plays stored as coed still show
       // on both boards until they are re-tagged.
       if (division !== "all") rows = rows.filter((r) => (r.division || "coed") === division || (r.division || "coed") === "coed");
+      if (team !== "all") rows = rows.filter((r) => slugify(r.team) === team || (r.team || "").toLowerCase() === team.toLowerCase());
       if (search) rows = rows.filter((r) => [r.title, r.player_name, r.story].join(" ").toLowerCase().includes(search));
       rows = rows.map((r) => publicHighlight(r, voter));
       if (sort === "top") rows.sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
@@ -281,8 +295,8 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, message: "Upload a file or paste a video link." });
       }
       const review = preReview({ title, sport, playType: fields.playType || "", playerName: fields.playerName || "", story: fields.story || "", mediaKind: media_kind, mime, fileSize: file ? file.data.length : 0 });
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review));
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim());
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -366,7 +380,9 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
       if (!["approved", "hidden", "pending"].includes(body.status)) return sendJson(res, 400, { ok: false, message: "Invalid status." });
+      const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(statusMatch[1]));
       db.prepare("UPDATE highlights SET status=? WHERE id=?").run(body.status, Number(statusMatch[1]));
+      if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       return sendJson(res, 200, { ok: true, status: body.status });
     }
     const delMatch = p.match(/^\/api\/highlights\/(\d+)$/);
