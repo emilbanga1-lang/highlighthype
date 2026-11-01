@@ -27,7 +27,7 @@ function cardHtml(h, inContest = false) {
     ${h.isWinner ? "<div class='tag'>🏆 HYPE OF THE MONTH WINNER</div>" : ""}
     ${mediaHtml(h)}
     <h3>${esc(h.title)}</h3>
-    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
+    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${esc(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">👦 Boys</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
     <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
     <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
@@ -37,8 +37,8 @@ function cardHtml(h, inContest = false) {
 }
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-let currentSport = "all", currentSort = "top", currentDivision = "all";
-const SPORTS = [["all", "🏆 All Sports"], ["basketball", "🏀 Basketball"], ["baseball", "⚾ Baseball"], ["soccer", "⚽ Soccer"], ["football", "🏈 Football"], ["softball", "🥎 Softball"], ["gymnastics", "🤸 Gymnastics"], ["volleyball", "🏐 Volleyball"], ["fieldhockey", "🏑 Field Hockey"], ["cheer", "📣 Cheer"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"]];
+let currentSport = "all", currentSort = "top", currentDivision = "boys";
+const SPORTS = [["all", "🏆 All Sports"], ["baseball", "⚾ Baseball"], ["basketball", "🏀 Basketball"], ["cheer", "📣 Cheer"], ["fieldhockey", "🏑 Field Hockey"], ["football", "🏈 Football"], ["gymnastics", "🤸 Gymnastics"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"], ["soccer", "⚽ Soccer"], ["softball", "🥎 Softball"], ["volleyball", "🏐 Volleyball"]];
 function renderSportPills() {
   $("#sportPills").innerHTML = SPORTS.map(([v, l]) => `<button class="pill ${currentSport === v ? "active" : ""}" data-sport="${v}">${l}</button>`).join("");
   document.querySelectorAll("#sportPills .pill").forEach((b) => b.onclick = () => { currentSport = b.dataset.sport; renderSportPills(); loadPlays(); });
@@ -118,21 +118,35 @@ const heroSoundBtn = () => document.getElementById("heroSound");
 window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted = !v.muted; if (!v.muted) v.play(); const b = heroSoundBtn(); if (b) b.textContent = v.muted ? "🔊 Sound off — tap for sound" : "🔊 Sound on"; };
 document.getElementById("heroSound")?.addEventListener("click", window.toggleHeroSound);
 const heroPlayBtn = document.getElementById("heroPlay");
-const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.style.display = v && !v.paused ? "none" : "block"; };
-heroPlayBtn?.addEventListener("click", async () => { const v = heroVideo(); if (!v) return; v.muted = true; try { await v.play(); syncHeroPlay(); } catch (e) { v.controls = true; if (heroPlayBtn) heroPlayBtn.textContent = "▶ Tap the video to play"; } });
+const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.textContent = v && !v.paused ? "⏸ Pause video" : "▶ Play video"; };
+heroPlayBtn?.addEventListener("click", async () => { const v = heroVideo(); if (!v) return; if (v.paused) { try { await v.play(); } catch (e) { v.controls = true; } } else { v.pause(); } syncHeroPlay(); });
 heroVideo()?.addEventListener("play", syncHeroPlay);
 heroVideo()?.addEventListener("pause", syncHeroPlay);
 syncHeroPlay();
+function syncDivisionPills() {
+  const bf = $("#boysFilter"), gf = $("#girlsFilter");
+  if (bf) bf.classList.toggle("active", currentDivision === "boys");
+  if (gf) gf.classList.toggle("active", currentDivision === "girls");
+}
+function showPlaysTab() {
+  document.querySelectorAll(".tabs button[data-tab]").forEach((x) => x.classList.remove("active"));
+  document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+  document.querySelector('button[data-tab="plays"]')?.classList.add("active");
+  document.getElementById("plays")?.classList.add("active");
+}
 window.chooseDivision = (d) => {
-  const v = heroVideo(); if (v) { v.muted = false; v.play(); const b = heroSoundBtn(); if (b) b.textContent = "🔊 Sound on"; }
+  // BUG FIX: picking a board must NOT touch the hero video's sound.
+  // Sound is controlled only by the sound button (and the video controls).
   currentDivision = d;
-  const gf = $("#girlsFilter");
-  if (gf) { gf.classList.toggle("active", d === "girls"); gf.textContent = d === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; }
+  syncDivisionPills();
+  showPlaysTab();
   loadPlays();
-  document.getElementById("playsGrid").scrollIntoView({ behavior: "smooth" });
+  document.querySelector(".filters")?.scrollIntoView({ behavior: "smooth" });
 };
 $("#searchInp").oninput = loadPlays;
-$("#girlsFilter").onclick = () => { currentDivision = currentDivision === "girls" ? "all" : "girls"; $("#girlsFilter").classList.toggle("active", currentDivision === "girls"); $("#girlsFilter").textContent = currentDivision === "girls" ? "👧 Girls only ✓" : "👧 Girls only"; loadPlays(); };
+$("#boysFilter").onclick = () => { currentDivision = "boys"; syncDivisionPills(); loadPlays(); };
+$("#girlsFilter").onclick = () => { currentDivision = "girls"; syncDivisionPills(); loadPlays(); };
+syncDivisionPills();
 renderSportPills();
 
 // ---- Swag Store (parked preview only — cart is in this browser, no checkout) ----
