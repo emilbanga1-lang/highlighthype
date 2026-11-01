@@ -75,6 +75,7 @@ async function loadOwner() {
     const q = await api("/api/owner/queue");
     $("#ownerStatus").textContent = "Owner access active on this device.";
     $("#queue").innerHTML = q.queue.map((h) => `<div class="play"><b>${esc(h.title)}</b> — ${h.sport} — status: <b>${h.status}</b> — ${h.voteCount} votes
+      ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>This is a first-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       <p><button onclick="setStatus(${h.id},'approved')">Approve</button> <button onclick="setStatus(${h.id},'hidden')">Hide</button> <button onclick="setStatus(${h.id},'pending')">Back to review</button> <button onclick="deletePlay(${h.id})">Delete</button></p></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${r.created_at})</p>`).join("") || "<p>No reports.</p>";
