@@ -238,7 +238,9 @@ const server = http.createServer(async (req, res) => {
       const voter = u.searchParams.get("voterToken") || "";
       let rows = db.prepare("SELECT * FROM highlights WHERE status='approved'").all();
       if (sport !== "all") rows = rows.filter((r) => r.sport === sport);
-      if (division !== "all") rows = rows.filter((r) => (r.division || "coed") === division);
+      // No Coed option any more, but older plays stored as coed still show
+      // on both boards until they are re-tagged.
+      if (division !== "all") rows = rows.filter((r) => (r.division || "coed") === division || (r.division || "coed") === "coed");
       if (search) rows = rows.filter((r) => [r.title, r.player_name, r.story].join(" ").toLowerCase().includes(search));
       rows = rows.map((r) => publicHighlight(r, voter));
       if (sort === "top") rows.sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
@@ -263,7 +265,7 @@ const server = http.createServer(async (req, res) => {
       const title = String(fields.title || "").trim();
       if (!title) return sendJson(res, 400, { ok: false, message: "Title is required." });
       const sport = String(fields.sport || "other").trim().toLowerCase();
-      const division = ["girls","boys","coed"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "coed";
+      const division = ["girls","boys"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "boys";
       let media_kind, media_url, mime = "", embed_url = "", host_label = "";
       if (file && file.filename) {
         const ext = EXT[file.ctype] || path.extname(file.filename).replace(".", "").toLowerCase();
