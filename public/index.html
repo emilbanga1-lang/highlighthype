@@ -67,6 +67,11 @@
         <label>Player first name <input name="playerName" placeholder="First name only"></label>
       </div>
       <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
+      <div class="row">
+        <label>Team (optional) <input name="team" placeholder="e.g. Plainview Hawks"></label>
+        <label>Email (optional, to be told when approved) <input name="notifyEmail" type="email" placeholder="parent/guardian email"></label>
+      </div>
+      <p class="small">Team is used for the team-board prototype only. Email is only used to tell you when your play is approved — it is never shown on the site.</p>
       <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
       <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV (HEVC) clips may play with a black picture in Chrome — if that happens, re-upload the same clip as MP4.</p>
       <label>Video link <input name="videoUrl" placeholder="https://…"></label>
@@ -77,10 +82,11 @@
       <input id="searchInp" placeholder="🔍 Search player, play, title…">
       <button id="boysFilter" class="pill">Boys</button>
       <button id="girlsFilter" class="pill">Girls</button>
+      <label>Team <select id="teamFilter"><option value="all">All teams</option></select></label>
       <div class="seg"><button data-sort="top" class="active">🔥 TOP</button><button data-sort="newest">✨ NEW</button></div>
     </div>
     <div class="filters" id="sportPills"></div>
-    <h2>👑 HALL OF FAME</h2><p><a href="#" onclick="event.preventDefault();document.querySelector('button[data-tab=contest]').click()" style="color:#D8FF3E">See Top 10 →</a></p><div id="podium" class="podium"></div>
+    <h2>👑 HALL OF FAME</h2><div id="podium" class="podium"></div><div id="hofList"></div>
     <h2>All plays</h2><div id="playsGrid" class="grid"></div>
     <div class="swag-teaser card">
       <div><span class="tag">Drop 001 • Parked till later</span>
@@ -92,6 +98,7 @@
 
   <section id="contest" class="tab">
     <h2>🏆 Hype of the Month — <span id="contestPeriod"></span></h2>
+    <p id="contestCountdown"></p>
     <p>One contest, all sports. Enter an approved play once per month. Votes on the main board count here too. The winner is marked by the owner only.</p>
     <div id="contestCounts"></div>
     <div id="contestList" class="grid"></div>

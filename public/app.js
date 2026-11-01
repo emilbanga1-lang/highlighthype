@@ -22,15 +22,21 @@ function mediaHtml(h) {
   return `<p><a class="big" href="${h.media_url}" target="_blank" rel="noopener">▶ Watch on ${h.host_label || "link"} ↗</a></p>`;
 }
 window.tapVideo = (v) => { if (!v) return; if (v.muted) { v.muted = false; v.currentTime = 0; v.play(); } else if (v.paused) { v.play(); } else { v.pause(); } };
+window.sharePlay = async (id) => {
+  const url = `${location.origin}${location.pathname}#play-${id}`;
+  try { await navigator.clipboard.writeText(url); alert("Link copied! Share it anywhere."); }
+  catch { prompt("Copy this play link:", url); }
+};
 function cardHtml(h, inContest = false) {
-  return `<article class="play sport-${esc(h.sport || "other")}">
+  return `<article class="play sport-${esc(h.sport || "other")}" data-play-id="${h.id}">
     ${h.isWinner ? "<div class='tag'>🏆 HYPE OF THE MONTH WINNER</div>" : ""}
     ${mediaHtml(h)}
     <h3>${esc(h.title)}</h3>
-    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${cap(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">👧 Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">👦 Boys</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
+    <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${cap(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">Boys</span>` : ""}${h.team ? `<span class="tag">🏟️ ${esc(h.team)}</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
     <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
     <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
+    <button onclick="sharePlay(${h.id})">🔗 Share this play</button>
     <button class="report-btn" onclick="reportPlay(${h.id})">🚩 Report this play</button></p>
     ${ownerToken() && inContest ? `<button onclick="markWinner(${h.id})">Mark as winner (owner)</button>` : ""}
   </article>`;
@@ -38,7 +44,8 @@ function cardHtml(h, inContest = false) {
 function esc(s) { return String(s || "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 
-let currentSport = "all", currentSort = "top", currentDivision = "boys";
+let currentSport = "all", currentSort = "top", currentDivision = "boys", currentTeam = "all";
+const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const SPORTS = [["all", "🏆 All Sports"], ["baseball", "⚾ Baseball"], ["basketball", "🏀 Basketball"], ["cheer", "📣 Cheer"], ["fieldhockey", "🏑 Field Hockey"], ["football", "🏈 Football"], ["gymnastics", "🤸 Gymnastics"], ["hockey", "🏒 Hockey"], ["lacrosse", "🥍 Lacrosse"], ["other", "⭐ Other"], ["soccer", "⚽ Soccer"], ["softball", "🥎 Softball"], ["volleyball", "🏐 Volleyball"]];
 function renderSportPills() {
   $("#sportPills").innerHTML = SPORTS.map(([v, l]) => `<button class="pill ${currentSport === v ? "active" : ""}" data-sport="${v}">${l}</button>`).join("");
@@ -46,7 +53,18 @@ function renderSportPills() {
 }
 async function loadPlays() {
   const sport = currentSport, sort = currentSort, search = $("#searchInp").value;
-  const d = await api(`/api/highlights?sport=${sport}&division=${currentDivision}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
+  const d = await api(`/api/highlights?sport=${sport}&division=${currentDivision}&team=${encodeURIComponent(currentTeam)}&sort=${sort}&search=${encodeURIComponent(search)}&voterToken=${voterToken}`);
+  // Team filter options (prototype): from all approved plays, so filtering
+  // to one team does not hide the other teams from the dropdown.
+  const tf = $("#teamFilter");
+  if (tf) {
+    try {
+      const all = await api(`/api/highlights?division=all&voterToken=${voterToken}`);
+      const teams = [...new Set(all.highlights.map((h) => h.team).filter(Boolean))];
+      tf.innerHTML = `<option value="all">All teams</option>` + teams.map((t) => `<option value="${slugify(t)}">${esc(t)}</option>`).join("");
+      tf.value = teams.some((t) => slugify(t) === currentTeam) ? currentTeam : "all";
+    } catch {}
+  }
   $("#statPlays").textContent = d.highlights.length;
   $("#statVotes").textContent = d.highlights.reduce((s, h) => s + (h.voteCount || 0), 0);
   const top = d.highlights.slice(0, 3);
@@ -57,11 +75,32 @@ async function loadPlays() {
     return `<div class="open-spot"><b>#${i + 1} — ${esc(h.title)}</b><span>${h.voteCount} votes • ${esc(h.player_name || "")}</span></div>`;
   });
   $("#podium").innerHTML = slots.join("");
+  const hof = $("#hofList");
+  if (hof) {
+    const ranked = [...d.highlights].sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
+    hof.innerHTML = ranked.length > 3
+      ? `<h3>Top 10 — all time</h3>` + ranked.slice(3).map((h, i) => `<p><b>#${i + 4}</b> — ${esc(h.title)} — ${h.voteCount} votes${h.team ? ` • ${esc(h.team)}` : ""}</p>`).join("")
+      : `<p class="small">Top 10 fills in as more plays are posted — the podium above shows the Top 3 so far.</p>`;
+  }
   $("#playsGrid").innerHTML = d.highlights.length ? d.highlights.map((h, i) => `<div>${i === 0 ? "<div class='tag' style='background:#FF4655'>● #1 PLAY RIGHT NOW</div>" : ""}${cardHtml(h)}</div>`).join("") : "<p>No plays match yet.</p>";
+  // Shareable play link: #play-<id> scrolls to that card and highlights it.
+  const pm = location.hash.match(/^#play-(\d+)$/);
+  if (pm) {
+    const el = document.querySelector(`[data-play-id="${pm[1]}"]`);
+    if (el) { setTimeout(() => { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.style.outline = "3px solid #D8FF3E"; }, 100); }
+  }
 }
 async function loadContest() {
   const d = await api(`/api/contest?voterToken=${voterToken}`);
   $("#contestPeriod").textContent = d.period;
+  const cd = $("#contestCountdown");
+  if (cd && /^\d{4}-\d{2}$/.test(d.period)) {
+    const [y, m] = d.period.split("-").map(Number);
+    const last = new Date(y, m, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const days = Math.max(0, Math.round((last - today) / 86400000));
+    cd.textContent = days === 0 ? "⏰ Last day of this month's contest!" : `⏰ ${days} day${days === 1 ? "" : "s"} left in this month's contest — votes close at month-end.`;
+  }
   $("#contestCounts").innerHTML = "<p>" + Object.entries(d.sportCounts).map(([s, c]) => `${SPORT_COLORS[s] || "⭐"} ${cap(s)}: ${c}`).join(" · ") + (d.totalEntries ? "" : " — no entries yet") + "</p>";
   $("#contestList").innerHTML = d.entries.length ? d.entries.map((h, i) => `<div><div class="tag">#${i + 1}</div>${cardHtml(h, true)}</div>`).join("") : "<p>No entries this month yet. Enter an approved play from the Plays tab.</p>";
 }
@@ -147,7 +186,11 @@ window.chooseDivision = (d) => {
 $("#searchInp").oninput = loadPlays;
 $("#boysFilter").onclick = () => { currentDivision = "boys"; syncDivisionPills(); loadPlays(); };
 $("#girlsFilter").onclick = () => { currentDivision = "girls"; syncDivisionPills(); loadPlays(); };
+$("#teamFilter").onchange = (e) => { currentTeam = e.target.value; if (currentTeam !== "all") history.replaceState(null, "", `#team-${currentTeam}`); else history.replaceState(null, "", location.pathname); loadPlays(); };
 syncDivisionPills();
+// Team-board prototype link: #team-<slug> filters the board to that team.
+const tm = location.hash.match(/^#team-(.+)$/);
+if (tm) { currentTeam = tm[1]; }
 renderSportPills();
 
 // ---- Swag Store (parked preview only — cart is in this browser, no checkout) ----
