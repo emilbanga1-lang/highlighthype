@@ -4,16 +4,11 @@
 <body>
 <header class="hero">
   <div class="badges"><span>100% FAN-VOTED 🏆</span><span>📣 OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
-  <div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="auto" autoplay muted loop playsinline controls></video></div><button id="heroPlay" class="hero-play">▶ Play video</button>
-  <button id="heroSound" class="pill">🔊 Sound off — tap for sound</button>
+  <div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="auto" autoplay muted loop playsinline controls></video></div>
   <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype">
   <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
-  <p><button class="big" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button></p>
-  <div class="hero-pick"><span>Who are you here for?</span>
-    <button class="big" onclick="chooseDivision('boys')">Boys</button>
-    <button class="big" onclick="chooseDivision('girls')">Girls</button>
-  </div>
-  <p class="small">Picking Boys or Girls filters the board below to that board. Video starts muted; tap the sound button above for sound — picking a board no longer changes the sound.</p>
+  <p><button class="big hero-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button></p>
+  <p class="small">Video starts muted — use the video controls for play and sound. Use the Boys/Girls filters in Plays to switch boards.</p>
   <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
   <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
 </header>
