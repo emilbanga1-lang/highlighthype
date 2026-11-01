@@ -62,14 +62,37 @@ function smtpSend({ host, port, user, pass, from, to, subject, body }) {
     })();
   });
 }
-function notifyPending(title, sport, id) {
+function notifyPending(title, sport, id, review) {
   const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
   if (!user || !pass) return;
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
+  const reviewLine = review ? `\nPre-review: ${review.verdict}${review.flags.length ? " — " + review.flags.join("; ") : " — no flags found"}\n(Pre-review is a first-pass check only. It does NOT approve the play — you still approve or hide it in Owner view.)\n` : "";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new play pending approval — ${title}`,
-    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n\nApprove it here: https://highlighthype.com/#owner (opens Owner view, then Moderation queue).\n` })
+    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n${reviewLine}\nApprove it here: https://highlighthype.com/#owner (opens Owner view, then Moderation queue).\n` })
     .catch((e) => console.error("notifyPending failed:", e.message));
+}
+
+// ---- Agent pre-review (first-pass check, NOT an approval) ----
+// Runs on every new upload/link before it reaches the owner queue.
+// It only checks what the server can see: the submitted text, the media
+// type/size, and whether it is an uploaded file or an external link.
+// It cannot judge the video itself (faces, age, context) — that is why
+// every play still starts PENDING and needs a human owner decision.
+function preReview({ title, sport, playType, playerName, story, mediaKind, mime, fileSize }) {
+  const flags = [];
+  const text = [title, playerName, story].join(" ").toLowerCase();
+  if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test([title, playerName, story].join(" "))) flags.push("Contact info (email) in title/name/story — remove before approving");
+  if (/\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b/.test(text)) flags.push("Phone number in title/name/story — remove before approving");
+  const hasFullName = /\S+\s+\S+/.test(String(playerName || "").trim());
+  if (hasFullName && /(school|team|plainview|pasadena|hawks)/.test(text)) flags.push("Possible full name + school/team — check the site safety rule (first names only, no full name + school + team)");
+  const bad = ["fuck", "shit", "bitch", "asshole", "damn", "hell"];
+  if (bad.some((w) => new RegExp(`\\b${w}\\b`).test(text))) flags.push("Strong language in title/name/story — check before approving");
+  if (String(story || "").length > 500) flags.push("Very long story — check it before approving");
+  if (mediaKind === "file" && mime === "video/quicktime") flags.push("MOV upload — plays in Safari but may not play in all browsers; an MP4 version is safer");
+  if (mediaKind && mediaKind.startsWith("link")) flags.push("External link, not an uploaded file — check the source before approving");
+  if (fileSize && fileSize > 100 * 1024 * 1024) flags.push("Very large file (over 100 MB)");
+  return { verdict: flags.length ? "FLAGGED — needs a closer look" : "Clean — no flags found", flags, checkedAt: new Date().toISOString() };
 }
 
 const db = new DatabaseSync(path.join(DATA_DIR, "highlighthype.db"));
@@ -105,6 +128,7 @@ CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
 try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN review TEXT DEFAULT ''"); } catch {}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -254,9 +278,10 @@ const server = http.createServer(async (req, res) => {
       } else {
         return sendJson(res, 400, { ok: false, message: "Upload a file or paste a video link." });
       }
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending')`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label);
-      notifyPending(title, sport, Number(info.lastInsertRowid));
+      const review = preReview({ title, sport, playType: fields.playType || "", playerName: fields.playerName || "", story: fields.story || "", mediaKind: media_kind, mime, fileSize: file ? file.data.length : 0 });
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review));
+      notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
@@ -324,7 +349,10 @@ const server = http.createServer(async (req, res) => {
     // ---- Owner moderation ----
     if (p === "/api/owner/queue" && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
-      const rows = db.prepare("SELECT * FROM highlights ORDER BY id DESC").all().map((r) => publicHighlight(r));
+      const rows = db.prepare("SELECT * FROM highlights ORDER BY id DESC").all().map((r) => {
+        let review = null; try { review = r.review ? JSON.parse(r.review) : null; } catch {}
+        return { ...publicHighlight(r), review };
+      });
       return sendJson(res, 200, { queue: rows });
     }
     if (p === "/api/owner/reports" && req.method === "GET") {
