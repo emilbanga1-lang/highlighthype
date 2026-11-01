@@ -8,6 +8,7 @@
   <button id="heroSound" class="pill">🔊 Sound off — tap for sound</button>
   <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype">
   <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
+  <p><button class="big" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button></p>
   <div class="hero-pick"><span>Who are you here for?</span>
     <button class="big" onclick="chooseDivision('boys')">Boys</button>
     <button class="big" onclick="chooseDivision('girls')">Girls</button>
@@ -21,7 +22,7 @@
   <button data-tab="contest">🏆 Hype of the Month</button>
   <button data-tab="swag">🛍️ Swag Store</button>
 </nav>
-<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="ownerBtn">Owner view</button><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
 <main>
   <div id="ownerPanel" class="hidden card">
     <h2>Owner view</h2>
@@ -56,25 +57,25 @@
       <p><button class="big" onclick="document.querySelector('button[data-tab=contest]').click()">🏆 See this month's contest →</button></p></div>
     <form id="uploadForm" class="card">
       <h2>Post your play</h2>
+      <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
+      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV (HEVC) clips may play with a black picture in Chrome — if that happens, re-upload the same clip as MP4.</p>
+      <label>Video link <input name="videoUrl" placeholder="https://…"></label>
       <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
       <div class="row">
         <label>Sport <select name="sport">
           <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
           <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
         </select></label>
-        <label>Team / division <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
+        <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
         <label>Play type <input name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
         <label>Player first name <input name="playerName" placeholder="First name only"></label>
       </div>
       <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
       <div class="row">
-        <label>Team (optional) <input name="team" placeholder="e.g. Plainview Hawks"></label>
+        <label>Team name (optional) <input name="team" placeholder="e.g. Plainview Hawks"></label>
         <label>Email (optional, to be told when approved) <input name="notifyEmail" type="email" placeholder="parent/guardian email"></label>
       </div>
-      <p class="small">Team is used for the team-board prototype only. Email is only used to tell you when your play is approved — it is never shown on the site.</p>
-      <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
-      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV (HEVC) clips may play with a black picture in Chrome — if that happens, re-upload the same clip as MP4.</p>
-      <label>Video link <input name="videoUrl" placeholder="https://…"></label>
+      <p class="small">Team name is used for the team-board prototype only. Email is only used to tell you when your play is approved — it is never shown on the site.</p>
       <button type="submit" class="big">Post your play → in review</button>
       <p id="uploadMsg"></p>
     </form>
@@ -115,11 +116,12 @@
     </div>
   </section>
 </main>
-<button class="float-post" onclick="document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
-<button class="float-add" onclick="document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">🎬 Add yours</button>
+<button class="float-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
+<button class="float-add" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">🎬 Add yours</button>
 <footer class="site-footer">
   <div><b>HighlightHype</b> · @HighlightHype_Official</div>
   <div class="small">Private beta — invite only, not public yet. Only your own clips. Parent permission under 13.</div>
   <div><a href="mailto:hello@highlighthype.com">Contact us</a> — questions, or to report a play / ask for a removal, email <a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a></div>
+  <div><button id="ownerBtn">Owner view</button></div>
 </footer>
 <script src="app.js"></script></body></html>

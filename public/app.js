@@ -34,7 +34,7 @@ function cardHtml(h, inContest = false) {
     <h3>${esc(h.title)}</h3>
     <div><span class="tag">${SPORT_COLORS[h.sport] || "⭐"} ${cap(h.sport)}</span>${h.play_type ? `<span class="tag">${esc(h.play_type)}</span>` : ""}${h.division === "girls" ? `<span class="tag">Girls</span>` : ""}${h.division === "boys" ? `<span class="tag">Boys</span>` : ""}${h.team ? `<span class="tag">🏟️ ${esc(h.team)}</span>` : ""}${h.player_name ? `<span class="tag">${esc(h.player_name)}</span>` : ""}</div>
     ${h.story ? `<p>${esc(h.story)}</p>` : ""}
-    <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>
+    <p><button class="vote ${h.hasVoted ? "on" : ""}" onclick="toggleVote(${h.id})" title="${h.hasVoted ? "You voted — tap to remove your vote" : "Tap to vote"}">${h.hasVoted ? "♥" : "♡"} ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}${h.hasVoted ? " • You voted — tap to remove" : ""}</button>
     <button class="enter-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
     <button onclick="sharePlay(${h.id})">🔗 Share this play</button>
     <button class="report-btn" onclick="reportPlay(${h.id})">🚩 Report this play</button></p>
