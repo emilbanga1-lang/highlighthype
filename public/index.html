@@ -1,133 +1,79 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HighlightHype</title><link rel="preload" as="image" href="/brand-logo.png" fetchpriority="high"><link rel="stylesheet" href="styles.css"></head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#090b0a">
+<meta name="description" content="Your play. Your moment. Your hype. Discover and vote for the best athlete highlights on HighlightHype.">
+<title>HighlightHype — Your Play. Your Moment. Your Hype.</title>
+<style>
+:root{--bg:#090b0a;--panel:#111512;--panel2:#171d19;--line:#273129;--lime:#c8ff38;--lime2:#a9e91d;--white:#f5f7f3;--muted:#9ba69c;--orange:#ff8b42;--radius:18px;--max:1200px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--white);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.5}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}.wrap{width:min(var(--max),calc(100% - 40px));margin:auto}.topline{height:4px;background:linear-gradient(90deg,var(--lime),#72d8a2,var(--lime))}.header{position:sticky;top:0;z-index:20;background:rgba(9,11,10,.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.08)}.nav{height:76px;display:flex;align-items:center;justify-content:space-between;gap:24px}.brand{font-weight:950;letter-spacing:-1.5px;font-size:25px;display:flex;align-items:center;gap:9px}.brand-logo{display:block;width:210px;height:auto;max-height:58px;object-fit:contain}.footer .brand-logo{width:230px;max-height:64px}@media(max-width:760px){.brand-logo{width:175px;max-height:48px}.footer .brand-logo{width:200px}}.brand-mark{width:29px;height:29px;background:var(--lime);color:#10150b;display:grid;place-items:center;border-radius:8px;font-weight:1000;font-size:17px;transform:skew(-8deg)}.brand span:last-child{color:var(--lime)}.navlinks{display:flex;gap:27px;align-items:center;color:#d3dbd3;font-size:13px;font-weight:750}.navlinks a:hover{color:var(--lime)}.nav-cta,.btn-primary{background:var(--lime);color:#11170b;border:0;border-radius:999px;padding:12px 19px;font-weight:900;font-size:13px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.2s}.nav-cta:hover,.btn-primary:hover{background:#dcff83;transform:translateY(-2px)}.menu{display:none;background:none;color:white;border:1px solid var(--line);border-radius:10px;padding:8px 11px;font-size:20px}
+.hero{padding:72px 0 55px;overflow:hidden;position:relative}.hero:before{content:"";position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(177,255,42,.12),transparent 68%);right:-190px;top:-180px;pointer-events:none}.hero-grid{display:grid;grid-template-columns:1.03fr .97fr;gap:46px;align-items:center;position:relative}.eyebrow{color:var(--lime);font-size:11px;font-weight:950;letter-spacing:2.4px;text-transform:uppercase;display:flex;align-items:center;gap:9px}.eyebrow:before{content:"";width:25px;height:2px;background:var(--lime)}h1{font-size:clamp(46px,6.2vw,79px);line-height:.98;letter-spacing:-4.5px;margin:19px 0 20px;font-weight:1000;text-transform:uppercase;max-width:650px}h1 em{font-style:normal;color:var(--lime)}.hero-copy{color:#aeb8af;font-size:16px;max-width:470px;line-height:1.75}.hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.btn-secondary{border:1px solid #465047;color:white;border-radius:999px;padding:12px 19px;font-size:13px;font-weight:850;background:rgba(255,255,255,.03)}.btn-secondary:hover{border-color:var(--lime);color:var(--lime)}.hero-note{display:flex;align-items:center;gap:12px;color:#8f9a91;font-size:11px;margin-top:28px}.avatars{display:flex}.avatars i{width:25px;height:25px;border-radius:50%;border:2px solid var(--bg);margin-left:-7px;background:linear-gradient(135deg,#d6a06c,#293c2a)}.avatars i:first-child{margin-left:0;background:linear-gradient(135deg,#e9c39b,#71513c)}.avatars i:nth-child(2){background:linear-gradient(135deg,#b6d3a0,#344e3a)}.avatars i:nth-child(3){background:linear-gradient(135deg,#d69b82,#563e35)}
+.feature-visual{min-height:420px;position:relative;display:grid;place-items:center}.feature-frame{width:100%;height:390px;border:1px solid #354238;border-radius:24px;overflow:hidden;position:relative;background:linear-gradient(145deg,#253b2b 0%,#15231a 38%,#101513 72%);box-shadow:0 28px 90px #0009}.court-lines{position:absolute;inset:0;opacity:.23;background:repeating-linear-gradient(0deg,transparent 0 65px,#d8f4d2 66px 67px),linear-gradient(90deg,transparent 49.7%,#d8f4d2 50%,transparent 50.3%)}.glow-ball{position:absolute;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f4bd78,#b45b23 55%,#452713);right:17%;top:22%;box-shadow:0 0 70px #f19b3b55}.player-shape{position:absolute;bottom:0;left:28%;width:175px;height:310px;background:linear-gradient(110deg,#202b25,#080b09);clip-path:polygon(34% 0,65% 0,73% 19%,100% 43%,82% 53%,68% 39%,77% 100%,15% 100%,28% 43%,8% 55%,0 43%,25% 18%);filter:drop-shadow(0 0 20px #000)}.player-shape:after{content:"";position:absolute;inset:30% 18% 0;background:var(--lime);opacity:.75;clip-path:polygon(30% 0,70% 0,100% 100%,0 100%)}.feature-tag{position:absolute;left:22px;top:22px;background:#0b100ddd;border:1px solid #53604e;border-radius:999px;padding:8px 12px;font-size:10px;font-weight:900;letter-spacing:1px}.play-button{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:62px;height:62px;border-radius:50%;background:var(--lime);color:#111;display:grid;place-items:center;font-size:22px;box-shadow:0 0 0 12px #c8ff3820}.feature-caption{position:absolute;bottom:0;left:0;right:0;padding:65px 24px 22px;background:linear-gradient(transparent,#070a08 75%)}.feature-caption small{color:var(--lime);font-size:10px;font-weight:900;letter-spacing:1.6px}.feature-caption h3{margin:5px 0;font-size:24px;letter-spacing:-.8px}.feature-caption p{margin:0;color:#aab4aa;font-size:12px}.float-stat{position:absolute;right:-18px;bottom:25px;background:var(--lime);color:#10150b;padding:14px 18px;border-radius:14px;box-shadow:0 15px 40px #0008}.float-stat strong{font-size:25px;display:block;line-height:1}.float-stat span{font-size:9px;font-weight:950;letter-spacing:1px}
+.ticker{border-block:1px solid #28312a;background:#0e120f;overflow:hidden}.ticker-inner{display:flex;justify-content:space-around;gap:25px;padding:15px 0;white-space:nowrap;color:#9eaaa0;font-size:10px;font-weight:950;letter-spacing:2px}.ticker b{color:var(--lime);font-size:15px}
+section{padding:72px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:27px}.kicker{color:var(--lime);font-size:10px;font-weight:950;letter-spacing:2px;text-transform:uppercase}.section-head h2{font-size:clamp(28px,4vw,40px);letter-spacing:-1.8px;line-height:1.1;margin:8px 0 0}.section-head p{color:var(--muted);font-size:13px;margin:8px 0 0}.text-link{color:var(--lime);font-size:12px;font-weight:900;white-space:nowrap}
+.filters{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}.filter{border:1px solid #303a32;background:transparent;color:#aeb8ae;border-radius:999px;padding:8px 15px;font-size:11px;font-weight:850}.filter.active,.filter:hover{background:var(--lime);border-color:var(--lime);color:#11170b}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:17px}.highlight-card{background:var(--panel);border:1px solid #252e27;border-radius:16px;overflow:hidden;transition:.25s}.highlight-card:hover{transform:translateY(-5px);border-color:#6c8b42}.thumb{height:205px;position:relative;overflow:hidden;background:linear-gradient(135deg,#273c2c,#111a14)}.thumb:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 35%,#b5e94a55,transparent 32%),repeating-linear-gradient(120deg,transparent 0 30px,#ffffff08 31px 32px)}.thumb.basket{background:linear-gradient(135deg,#503b2b,#172018)}.thumb.soccer{background:linear-gradient(135deg,#1d4935,#101b15)}.thumb.volleyball{background:linear-gradient(135deg,#34415c,#151923)}.thumb .sport-icon{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);font-size:67px;filter:drop-shadow(0 8px 12px #0009)}.thumb .play{position:absolute;right:14px;bottom:14px;width:34px;height:34px;border-radius:50%;background:var(--lime);color:#111;display:grid;place-items:center;font-size:13px}.tag{position:absolute;top:13px;left:13px;background:#090d0bdc;color:var(--lime);border:1px solid #59694d;border-radius:5px;padding:5px 8px;font-size:9px;font-weight:950;letter-spacing:1px}.card-body{padding:16px}.card-top{display:flex;justify-content:space-between;gap:8px;align-items:center}.card-top strong{font-size:14px}.rank{font-size:10px;color:var(--lime);font-weight:950}.card-meta{color:#87938a;font-size:11px;margin-top:4px}.card-bottom{border-top:1px solid #29322b;margin-top:14px;padding-top:12px;display:flex;justify-content:space-between;align-items:center}.vote{background:#202a20;color:var(--lime);border:1px solid #40513a;border-radius:8px;padding:7px 11px;font-size:11px;font-weight:900}.vote.voted{background:var(--lime);color:#111}.votes{color:#9ba69c;font-size:10px}
+.leaderboard{background:linear-gradient(120deg,#121913,#0c100d);border:1px solid #2a352b;border-radius:20px;padding:25px}.board-tabs{display:flex;gap:8px;margin:18px 0}.board-tab{padding:9px 15px;border:1px solid #39443b;border-radius:9px;color:#aab5aa;background:transparent;font-size:11px;font-weight:900}.board-tab.active{background:var(--lime);color:#10150b;border-color:var(--lime)}.leader-row{display:grid;grid-template-columns:35px 1fr auto auto;align-items:center;gap:14px;padding:13px 3px;border-bottom:1px solid #263027}.leader-row:last-child{border:0}.position{font-size:15px;color:#778378;font-weight:950}.leader-name{font-size:13px;font-weight:850}.leader-sub{font-size:10px;color:#849087}.leader-score{font-size:12px;font-weight:950;color:var(--lime)}.trend{font-size:10px;color:#a9e96b}
+.month-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.month-card{border-radius:20px;overflow:hidden;min-height:290px;background:linear-gradient(120deg,#31482e,#111a13);position:relative;padding:28px;display:flex;flex-direction:column;justify-content:end}.month-card:before{content:"🏆";position:absolute;right:9%;top:9%;font-size:115px;opacity:.23;transform:rotate(12deg)}.month-card .kicker{color:var(--lime)}.month-card h3{font-size:30px;letter-spacing:-1px;margin:8px 0 2px}.month-card p{color:#c1cbbf;font-size:12px;margin:0}.month-side{background:var(--panel);border:1px solid #283229;border-radius:20px;padding:25px;display:flex;flex-direction:column;justify-content:center}.month-side h3{font-size:23px;margin:0 0 10px}.month-side p{color:var(--muted);font-size:13px;line-height:1.7}.store-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.store-item{background:var(--panel);border:1px solid #29332b;border-radius:15px;padding:22px;text-align:center}.product-art{height:110px;display:grid;place-items:center;font-size:62px;background:linear-gradient(135deg,#202a21,#101511);border-radius:11px;margin-bottom:15px}.store-item strong{font-size:13px}.store-item p{color:#8d998f;font-size:10px;margin:5px 0 0}
+.upload-band{background:var(--lime);color:#10150b;border-radius:22px;padding:38px;display:flex;justify-content:space-between;align-items:center;gap:24px}.upload-band .kicker{color:#3e5910}.upload-band h2{font-size:clamp(28px,4vw,42px);letter-spacing:-1.7px;line-height:1.05;margin:8px 0}.upload-band p{font-size:13px;color:#3b4c24;max-width:520px;margin:0}.upload-band .btn-dark{background:#10150b;color:white;border:0;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:900;white-space:nowrap}
+.footer{margin-top:70px;border-top:1px solid #263027;padding:35px 0;color:#829087}.footer-inner{display:flex;justify-content:space-between;gap:20px;align-items:center}.footer p{font-size:10px}.footer-links{display:flex;gap:18px;font-size:11px}
+.modal{display:none;position:fixed;inset:0;z-index:50;background:#000b;align-items:center;justify-content:center;padding:20px}.modal.open{display:flex}.modal-box{background:#111712;border:1px solid #3a493c;border-radius:18px;padding:25px;width:min(480px,100%);position:relative}.modal-box h3{margin:0 0 7px;font-size:23px}.modal-box p{color:#9eaa9f;font-size:12px}.close{position:absolute;right:15px;top:13px;background:none;color:white;border:0;font-size:23px}.field{display:block;margin:13px 0;color:#b8c2b8;font-size:11px;font-weight:800}.field input,.field select{display:block;width:100%;margin-top:6px;background:#0a0e0b;border:1px solid #344036;border-radius:9px;padding:12px;color:white}.file-preview{color:var(--lime);font-size:11px;margin-top:8px}
+@media(max-width:850px){.hero-grid{grid-template-columns:1fr;gap:25px}.hero{padding-top:55px}.feature-visual{min-height:350px}.feature-frame{height:340px}.float-stat{right:0}.cards{grid-template-columns:repeat(2,1fr)}.navlinks{gap:14px}.month-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.wrap{width:min(100% - 30px,var(--max))}.nav{height:66px}.menu{display:block}.nav-cta{display:none}.navlinks{display:none;position:absolute;top:66px;left:0;right:0;background:#0d120e;border-bottom:1px solid var(--line);padding:18px 22px 22px;flex-direction:column;align-items:stretch;gap:18px}.navlinks.open{display:flex}.navlinks a{padding:4px 0}.hero{padding:43px 0 38px}h1{font-size:48px;letter-spacing:-3px}.hero-copy{font-size:14px}.feature-visual{min-height:300px}.feature-frame{height:300px}.player-shape{left:23%;transform:scale(.82);transform-origin:bottom}.glow-ball{width:115px;height:115px}.float-stat{right:4px;bottom:9px;padding:10px 13px}.float-stat strong{font-size:20px}.ticker-inner{justify-content:flex-start;padding-left:15px}.ticker-inner span{min-width:max-content}section{padding:52px 0}.section-head{align-items:start;flex-direction:column;gap:12px}.cards{grid-template-columns:1fr}.thumb{height:210px}.month-grid{grid-template-columns:1fr}.month-card{min-height:250px}.store-grid{grid-template-columns:1fr 1fr}.store-item:last-child{display:none}.upload-band{padding:27px;align-items:flex-start;flex-direction:column}.upload-band .btn-dark{width:100%}.footer-inner{align-items:flex-start;flex-direction:column}.footer-links{flex-wrap:wrap}.leaderboard{padding:17px}.leader-row{grid-template-columns:25px 1fr auto;gap:8px}.leader-row .trend{display:none}}
+</style>
+</head>
 <body>
-<header class="hero">
-  <div class="hero-inner">
-    <div class="hero-copy">
-      <div class="badges"><span>PRIVATE BETA</span><span>OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
-      <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype" fetchpriority="high" width="900" height="374">
-      <p class="hero-kicker">YOUR PLAY. YOUR MOMENT. YOUR HYPE.</p>
-      <p class="hero-description">The home for next-level youth sports highlights. Share the moment, rally your supporters, and climb the leaderboard.</p>
-      <div class="hero-actions">
-        <button class="big hero-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
-        <button class="hero-secondary" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('playsGrid').scrollIntoView({behavior:'smooth'})">Explore highlights ↓</button>
-      </div>
-      <p class="small">Video starts muted. Use the player controls for sound.</p>
-    </div>
-    <div class="hero-feature">
-      <div class="feature-label"><span class="live-dot"></span> FEATURED HIGHLIGHT</div>
-      <div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="metadata" autoplay muted loop playsinline controls></video></div>
-      <div class="feature-caption"><b>THE NEXT BIG PLAY STARTS HERE</b><span>Watch. Vote. Bring the Hype.</span></div>
-    </div>
-  </div>
-  <div class="stats"><div class="stat"><b id="statPlays">0</b><span>PLAYS POSTED</span></div><div class="stat lime"><b id="statVotes">0</b><span>VOTES CAST</span></div></div>
+<div class="topline"></div>
+<header class="header">
+ <div class="wrap nav">
+  <a class="brand" href="#home" aria-label="HighlightHype home"><img class="brand-logo" src="/brand-logo.png" alt="HighlightHype — gold crown, white HIGHLIGHT, green HYPE"></a>
+  <button class="menu" id="menuBtn" aria-label="Open navigation" aria-expanded="false">☰</button>
+  <nav class="navlinks" id="navLinks"><a href="#highlights">HIGHLIGHTS</a><a href="#rankings">RANKINGS</a><a href="#hype">HYPE OF THE MONTH</a><a href="#store">SWAG STORE</a><a href="#upload">UPLOAD</a></nav>
+  <a class="nav-cta" href="#upload">POST YOUR PLAY ↗</a>
+ </div>
 </header>
-<nav class="tabs">
-  <button data-tab="plays" class="active">🔥 Plays</button>
-  <button data-tab="contest">🏆 Hype of the Month</button>
-  <button data-tab="swag">🛍️ Swag Store</button>
-</nav>
-<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
-<main>
-  <div id="ownerPanel" class="hidden card">
-    <h2>Owner view</h2>
-    <p id="ownerStatus"></p>
-    <button id="claimBtn">Claim owner access on this device</button>
-    <p class="small">Already have an owner token (e.g. set as OWNER_TOKEN on the host)? Enter it here:</p>
-    <label>Owner token <input id="tokenInp" type="password" placeholder="Paste owner token"></label>
-    <button id="saveTokenBtn">Save owner token on this device</button>
-    <p class="small">Owner access is a token saved on this device only — it is not a password login. Do not clear this site's storage on the owner device, or owner controls will stop working there. Real account login is needed before a public launch.</p>
-    <h3>Moderation queue</h3><div id="queue"></div>
-    <h3>Reports</h3><div id="reports"></div>
-  </div>
-  <section id="plays" class="tab active">
-    <div class="beta-banner"><span class="beta-badge">🔒 PRIVATE BETA — INVITE ONLY</span>
-      <h2>PRIVATE BETA</h2>
-      <p>This is invite-only testing with Nicholas's team and friends — not a public launch. There is no public signup here.</p>
-      <ul><li>✓ Every play is <b>owner-approved before it appears</b> on the board — new posts start in review.</li>
-      <li>✓ Swag store is <b>parked</b> — browse the Drop 001 preview only, checkout is not live and nothing is for sale yet.</li>
-      <li>✓ See a play that doesn't belong? Use <b>Report</b> on any play and the owner will review it.</li></ul></div>
-    <div class="card"><h2>📋 BETA RULES — KEEP IT SAFE &amp; YOURS</h2>
-      <p><b>1. Only your own clips.</b> Post only plays you or your family filmed — no broadcast, pro, or other people's clips.</p>
-      <p><b>2. Under 13? Ask a parent first.</b> A parent or guardian must give permission before anyone under 13 posts a play.</p>
-      <p><b>3. First names only.</b> No full name + school + team together in titles or descriptions — first names or nicknames only. The owner checks this at approval.</p>
-      <p><b>4. No messages here.</b> There are no DMs or chat between kids in this app — just plays and votes.</p></div>
-    <div class="card"><h2>HOW IT WORKS</h2>
-      <p><span class="tag">Official handle: @HighlightHype_Official</span></p>
-      <p><b>1. Post your play</b> — upload a video/photo, add a player and play type.</p>
-      <p><b>2. Owner reviews it</b> — your play appears on the board once the owner approves it.</p>
-      <p><b>3. Everyone votes</b> — one vote per person per play. Tap again to remove it.</p>
-      <p><b>4. Enter Hype of the Month</b> — approved plays can enter this month's contest, across all sports. Most votes wins the month.</p>
-      <p class="small">Private beta first: we're testing with Nicholas's team and friends, collecting feedback, and fixing what they hit — before anything public. The swag store stays parked at Drop 001 prices in the meantime.</p>
-      <p><button class="big" onclick="document.querySelector('button[data-tab=contest]').click()">🏆 See this month's contest →</button></p></div>
-    <form id="uploadForm" class="card">
-      <h2>Post your play</h2>
-      <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
-      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV (HEVC) clips may play with a black picture in Chrome — if that happens, re-upload the same clip as MP4.</p>
-      <label>Video link <input name="videoUrl" placeholder="https://…"></label>
-      <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
-      <div class="row">
-        <label>Sport <select name="sport">
-          <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
-          <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
-        </select></label>
-        <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-        <label>Play type <input name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
-        <label>Player first name <input name="playerName" placeholder="First name only"></label>
-      </div>
-      <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
-      <div class="row">
-        <label>Team name (optional) <input name="team" placeholder="e.g. Plainview Hawks"></label>
-        <label>Email (optional, to be told when approved) <input name="notifyEmail" type="email" placeholder="parent/guardian email"></label>
-      </div>
-      <p class="small">Team name is used for the team-board prototype only. Email is only used to tell you when your play is approved — it is never shown on the site.</p>
-      <button type="submit" class="big">Post your play → in review</button>
-      <p id="uploadMsg"></p>
-    </form>
-    <div class="filters">
-      <input id="searchInp" placeholder="🔍 Search player, play, title…">
-      <button id="boysFilter" class="pill">Boys</button>
-      <button id="girlsFilter" class="pill">Girls</button>
-      <label>Team <select id="teamFilter"><option value="all">All teams</option></select></label>
-      <div class="seg"><button data-sort="top" class="active">🔥 TOP</button><button data-sort="newest">✨ NEW</button></div>
-    </div>
-    <div class="filters" id="sportPills"></div>
-    <h2>👑 HALL OF FAME</h2><div id="podium" class="podium"></div><div id="hofList"></div>
-    <h2>All plays</h2><div id="playsGrid" class="grid"></div>
-    <div class="swag-teaser card">
-      <div><span class="tag">Drop 001 • Parked till later</span>
-      <h3>The hype starts here</h3>
-      <p class="small">Drop 001 swag is preview-only for now — no real payments yet. Browse the parked store and see what's coming.</p></div>
-      <button class="big" onclick="document.querySelector('button[data-tab=swag]').click()">Shop Drop 001 →</button>
-    </div>
-  </section>
-
-  <section id="contest" class="tab">
-    <h2>🏆 Hype of the Month — <span id="contestPeriod"></span></h2>
-    <p id="contestCountdown"></p>
-    <p>One contest, all sports. Enter an approved play once per month. Votes on the main board count here too. The winner is marked by the owner only.</p>
-    <div id="contestCounts"></div>
-    <div id="contestList" class="grid"></div>
-  </section>
-
-  <section id="swag" class="tab">
-    <div class="parked"><b>🛍️ Drop 001 — Swag Store preview, PARKED till later.</b><br>
-      No real payments are taken here. Checkout opens at launch. Prices are aligned with Baseball Lifestyle 101 (BL101).</div>
-    <div id="swagGrid" class="grid"></div>
-    <div class="card" id="cartBox">
-      <h3>Your cart</h3><div id="cartItems"></div>
-      <p>Subtotal: <b id="cartSub">$0.00</b> · Shipping: <b id="cartShip">$0.00</b> (free over $50) · Total: <b id="cartTotal">$0.00</b></p>
-      <button class="big" disabled>Checkout opens at launch — no payment taken</button>
-    </div>
-  </section>
+<main id="home">
+<section class="hero">
+ <div class="wrap hero-grid">
+  <div><div class="eyebrow">THE HOME OF ATHLETE HIGHLIGHTS</div><h1>YOUR PLAY.<br>YOUR MOMENT.<br><em>YOUR HYPE.</em></h1><p class="hero-copy">Big plays deserve big recognition. Share your best moments, get the votes, climb the rankings, and let the world see what you can do.</p><div class="hero-actions"><a class="btn-primary" href="#highlights">▶ &nbsp; WATCH HIGHLIGHTS</a><a class="btn-secondary" href="#upload">＋ &nbsp; POST YOUR PLAY</a></div><div class="hero-note"><div class="avatars"><i></i><i></i><i></i></div><span>Athletes. Fans. Big-time moments.</span></div></div>
+  <div class="feature-visual"><div class="feature-frame"><div class="court-lines"></div><div class="glow-ball"></div><div class="player-shape"></div><div class="feature-tag">✦ FEATURED MOMENT</div><div class="play-button">▶</div><div class="feature-caption"><small>PLAY OF THE WEEK</small><h3>MAKE THE MOMENT COUNT.</h3><p>Every highlight has a story. What's yours?</p></div></div><div class="float-stat"><strong>01</strong><span>MAKE YOUR MARK</span></div></div>
+ </div>
+</section>
+<div class="ticker"><div class="wrap ticker-inner"><span>⚡ BIG PLAYS</span><b>✳</b><span>REAL ATHLETES</span><b>✳</b><span>FAN VOTES</span><b>✳</b><span>WEEKLY RANKINGS</span><b>✳</b><span>ALL HYPE</span></div></div>
+<section id="highlights"><div class="wrap">
+ <div class="section-head"><div><div class="kicker">THE LATEST & GREATEST</div><h2>Trending Highlights<span style="color:var(--lime)">.</span></h2><p>Catch the plays everyone's talking about.</p></div><a class="text-link" href="#upload">GOT A HIGHLIGHT? POST IT ↗</a></div>
+ <div class="filters" id="filters"><button class="filter active" data-filter="all">ALL SPORTS</button><button class="filter" data-filter="basketball">BASKETBALL</button><button class="filter" data-filter="soccer">SOCCER</button><button class="filter" data-filter="volleyball">VOLLEYBALL</button></div>
+ <div class="cards" id="highlightCards">
+  <article class="highlight-card" data-sport="basketball"><div class="thumb basket"><span class="tag">BASKETBALL</span><span class="sport-icon">🏀</span><span class="play">▶</span></div><div class="card-body"><div class="card-top"><strong>THE POSTER FINISH</strong><span class="rank">#01 TRENDING</span></div><div class="card-meta">Jordan M. · Varsity Boys</div><div class="card-bottom"><span class="votes" data-count="248">248 HYPE VOTES</span><button class="vote">▲ HYPE IT</button></div></div></article>
+  <article class="highlight-card" data-sport="soccer"><div class="thumb soccer"><span class="tag">SOCCER</span><span class="sport-icon">⚽</span><span class="play">▶</span></div><div class="card-body"><div class="card-top"><strong>TOP CORNER MAGIC</strong><span class="rank">#02 TRENDING</span></div><div class="card-meta">Aaliyah R. · Varsity Girls</div><div class="card-bottom"><span class="votes" data-count="196">196 HYPE VOTES</span><button class="vote">▲ HYPE IT</button></div></div></article>
+  <article class="highlight-card" data-sport="volleyball"><div class="thumb volleyball"><span class="tag">VOLLEYBALL</span><span class="sport-icon">🏐</span><span class="play">▶</span></div><div class="card-body"><div class="card-top"><strong>NO WAY SHE GOT THAT</strong><span class="rank">#03 TRENDING</span></div><div class="card-meta">Mia T. · Varsity Girls</div><div class="card-bottom"><span class="votes" data-count="174">174 HYPE VOTES</span><button class="vote">▲ HYPE IT</button></div></div></article>
+ </div>
+</div></section>
+<section id="rankings" style="background:#0d110e;border-block:1px solid #202920"><div class="wrap">
+ <div class="section-head"><div><div class="kicker">THE PEOPLE HAVE SPOKEN</div><h2>Who's Bringing The Hype<span style="color:var(--lime)">?</span></h2><p>See who's making moves on the leaderboard.</p></div></div>
+ <div class="leaderboard"><div class="board-tabs"><button class="board-tab active" data-board="boys">BOYS RANKINGS</button><button class="board-tab" data-board="girls">GIRLS RANKINGS</button></div><div id="leaderRows"></div></div>
+</div></section>
+<section id="hype"><div class="wrap"><div class="section-head"><div><div class="kicker">ONE ATHLETE. ONE BIG MOMENT.</div><h2>Hype of the Month<span style="color:var(--lime)">.</span></h2></div></div><div class="month-grid"><div class="month-card"><div class="kicker">✦ ATHLETE SPOTLIGHT</div><h3>The next big name<br>could be you.</h3><p>Bring your best play. Earn the spotlight.</p></div><div class="month-side"><div class="kicker">YOUR MOMENT STARTS HERE</div><h3>Put your talent on the map.</h3><p>HighlightHype celebrates the athletes putting in the work and making unforgettable plays. Submit a highlight and rally your supporters.</p><a class="text-link" href="#upload">SUBMIT YOUR HIGHLIGHT ↗</a></div></div></div></section>
+<section id="store" style="background:#0d110e;border-block:1px solid #202920"><div class="wrap"><div class="section-head"><div><div class="kicker">REP THE MOVEMENT</div><h2>The Swag Store<span style="color:var(--lime)">.</span><p>Bring the hype off the court, field, and screen.</p></div><a class="text-link" href="#upload">EXPLORE THE STORE ↗</a></div><div class="store-grid"><div class="store-item"><div class="product-art">👕</div><strong>HIGHLIGHTHYPE TEE</strong><p>THE OFFICIAL LOOK</p></div><div class="store-item"><div class="product-art">🧢</div><strong>HYPE CAP</strong><p>REP YOUR GAME</p></div><div class="store-item"><div class="product-art">🎒</div><strong>ATHLETE GEAR</strong><p>MADE FOR THE GRIND</p></div></div></div></section>
+<section id="upload"><div class="wrap"><div class="upload-band"><div><div class="kicker">DON'T JUST WATCH THE HYPE. MAKE IT.</div><h2>Your highlight deserves<br>the spotlight.</h2><p>Upload your best play and give fans a chance to show you love. Your next big moment starts here.</p></div><button class="btn-dark" id="uploadBtn">＋ &nbsp; SUBMIT YOUR HIGHLIGHT</button></div></div></section>
 </main>
-<button class="float-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
-<button class="float-add" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">🎬 Add yours</button>
-<footer class="site-footer">
-  <div><b>HighlightHype</b> · @HighlightHype_Official</div>
-  <div class="small">Private beta — invite only, not public yet. Only your own clips. Parent permission under 13.</div>
-  <div><a href="mailto:hello@highlighthype.com">Contact us</a> — questions, or to report a play / ask for a removal, email <a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a></div>
-  <div><button id="ownerBtn">Owner view</button></div>
-</footer>
-<script src="app.js"></script></body></html>
+<footer class="footer"><div class="wrap footer-inner"><div><a class="brand" href="#home"><img class="brand-logo" src="/brand-logo.png" alt="HighlightHype — gold crown, white HIGHLIGHT, green HYPE"></a><p>YOUR PLAY. YOUR MOMENT. YOUR HYPE. © <span id="year"></span> HIGHLIGHTHYPE.</p></div><div class="footer-links"><a href="#highlights">Highlights</a><a href="#rankings">Rankings</a><a href="#upload">Submit a Play</a><a href="#store">Store</a></div></div></footer>
+<div class="modal" id="uploadModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-box"><button class="close" id="closeModal" aria-label="Close">×</button><div class="kicker">PUT YOURSELF IN THE GAME</div><h3 id="modalTitle">Submit your highlight.</h3><p>This is a front-end demo form. Connect it to your upload service and moderation workflow before accepting real submissions.</p><form id="uploadForm"><label class="field">Athlete name<input required name="athlete" placeholder="Your name"></label><label class="field">Sport<select name="sport"><option>Basketball</option><option>Soccer</option><option>Volleyball</option><option>Other</option></select></label><label class="field">Highlight video<input required id="videoFile" type="file" accept="video/*"></label><div class="file-preview" id="filePreview"></div><button class="btn-primary" type="submit" style="width:100%;margin-top:12px">PREVIEW SUBMISSION ↗</button></form><p id="formMessage" aria-live="polite"></p></div></div>
+<script>
+const menuBtn=document.getElementById('menuBtn'),nav=document.getElementById('navLinks');
+menuBtn.addEventListener('click',()=>{const open=nav.classList.toggle('open');menuBtn.setAttribute('aria-expanded',open);menuBtn.textContent=open?'×':'☰'});
+nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');menuBtn.setAttribute('aria-expanded','false');menuBtn.textContent='☰'}));
+document.querySelectorAll('.filter').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.highlight-card').forEach(card=>card.style.display=btn.dataset.filter==='all'||card.dataset.sport===btn.dataset.filter?'':'none')}));
+document.querySelectorAll('.vote').forEach(btn=>btn.addEventListener('click',()=>{if(btn.classList.contains('voted'))return;btn.classList.add('voted');btn.textContent='✓ HYPED';const count=btn.parentElement.querySelector('.votes');const n=Number(count.dataset.count)+1;count.dataset.count=n;count.textContent=n+' HYPE VOTES'}));
+const boards={boys:[['01','Jordan M.','Basketball · Varsity','1,248'],['02','Cameron D.','Football · Varsity','1,086'],['03','Ethan R.','Soccer · Varsity','942'],['04','Noah B.','Basketball · JV','817']],girls:[['01','Aaliyah R.','Soccer · Varsity','1,396'],['02','Mia T.','Volleyball · Varsity','1,174'],['03','Sofia L.','Basketball · Varsity','1,022'],['04','Chloe W.','Lacrosse · Varsity','889']]};
+function renderBoard(key){document.getElementById('leaderRows').innerHTML=boards[key].map((r,i)=>`<div class="leader-row"><span class="position">${r[0]}</span><div><div class="leader-name">${r[1]}</div><div class="leader-sub">${r[2]}</div></div><span class="leader-score">${r[3]} HYPE</span><span class="trend">${i===0?'▲ TOP SPOT':'▲ RISING'}</span></div>`).join('')}
+renderBoard('boys');document.querySelectorAll('.board-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.board-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderBoard(b.dataset.board)}));
+const modal=document.getElementById('uploadModal');document.getElementById('uploadBtn').addEventListener('click',()=>modal.classList.add('open'));document.getElementById('closeModal').addEventListener('click',()=>modal.classList.remove('open'));modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
+document.getElementById('videoFile').addEventListener('change',e=>{document.getElementById('filePreview').textContent=e.target.files[0]?`Selected: ${e.target.files[0].name}`:''});
+document.getElementById('uploadForm').addEventListener('submit',e=>{e.preventDefault();document.getElementById('formMessage').textContent='Demo preview ready. Connect a secure upload backend to receive submissions.'});
+document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
