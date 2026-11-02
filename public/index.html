@@ -39,14 +39,24 @@ section{padding:38px 0}.section-head{display:flex;justify-content:space-between;
 @media(max-width:620px){.store-promo{align-items:flex-start;flex-direction:column;padding:18px}.store-promo .btn-primary{width:100%;white-space:normal}.upload-actions{align-items:stretch}.upload-actions .text-link{text-align:center}section{padding:30px 0!important}.section-head{margin-bottom:17px}.section-head h2{font-size:30px;line-height:1.08}.section-head p{font-size:13px;line-height:1.55}.cards{gap:13px}.highlight-card{margin:0}.thumb{height:190px}.leaderboard{padding:15px}.board-help{margin:0 0 12px}.month-card{min-height:270px}.month-side{min-height:0}.store-grid{gap:10px}.store-item{padding:15px}.product-art{height:85px}.upload-band{padding:22px;gap:14px}.upload-band p{line-height:1.6}.footer{margin-top:20px;padding:25px 0}.footer-inner{gap:14px}.footer-links{display:grid;grid-template-columns:1fr 1fr;gap:12px}.sound-toggle{margin-bottom:0}.hall-feature-inner{gap:14px}.hall-feature .btn-primary{white-space:normal}}\n@media(max-width:420px){.navlinks{gap:10px 12px}.nav-cta{width:100%;margin:0}.ticker-inner{gap:9px 12px}.ticker-inner b{display:none}}
 
 /* Stadium atmosphere, player sound control, and persistent upload CTA */
-.hero{background:radial-gradient(ellipse at 50% 0%,rgba(111,146,116,.16),transparent 58%);isolation:isolate}
-.hero:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:.5;background:radial-gradient(ellipse at 12% 12%,rgba(235,255,231,.45) 0 1px,transparent 5%),radial-gradient(ellipse at 88% 12%,rgba(235,255,231,.4) 0 1px,transparent 5%),linear-gradient(180deg,rgba(10,16,12,.12) 0%,rgba(8,12,9,.62) 58%,#090b0a 100%),repeating-linear-gradient(90deg,transparent 0 5.5%,rgba(205,226,204,.035) 5.6% 5.8%,transparent 5.9% 11.1%),linear-gradient(180deg,#263b30 0%,#142219 40%,#0b100c 100%)}
-.hero:before{width:100%;height:100%;right:0;top:0;border-radius:0;background:radial-gradient(ellipse at 12% 5%,rgba(224,255,228,.22),transparent 22%),radial-gradient(ellipse at 88% 5%,rgba(224,255,228,.2),transparent 22%),linear-gradient(180deg,transparent 55%,rgba(4,8,5,.72))}
+.hero{background:#090e0b;isolation:isolate}
+.hero:after{content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;opacity:.94;background:
+ radial-gradient(ellipse 5% 13% at 3% 35%,rgba(255,255,245,.95),rgba(255,255,255,.22) 35%,transparent 78%),
+ radial-gradient(ellipse 5% 13% at 97% 34%,rgba(255,255,245,.9),rgba(255,255,255,.2) 35%,transparent 78%),
+ repeating-conic-gradient(from 250deg at 3% 35%,transparent 0deg 5deg,rgba(238,255,232,.07) 5.5deg 6deg,transparent 7deg 12deg),
+ repeating-conic-gradient(from 285deg at 97% 34%,transparent 0deg 5deg,rgba(238,255,232,.06) 5.5deg 6deg,transparent 7deg 12deg),
+ linear-gradient(180deg,rgba(3,7,5,.12) 0%,rgba(3,7,5,.18) 48%,rgba(3,7,5,.76) 78%,#090b0a 100%),
+ repeating-linear-gradient(90deg,transparent 0 8%,rgba(214,238,211,.035) 8.2% 8.35%,transparent 8.5% 16%),
+ linear-gradient(180deg,#17251d 0%,#111b15 43%,#263b25 68%,#101810 100%)}
+.hero:before{width:100%;height:100%;right:0;top:0;border-radius:0;background:
+ radial-gradient(ellipse at 50% 100%,rgba(153,207,92,.22),transparent 43%),
+ repeating-linear-gradient(174deg,transparent 0 31px,rgba(216,255,202,.055) 32px 33px,transparent 34px 68px),
+ linear-gradient(180deg,transparent 48%,rgba(6,11,7,.24) 70%,rgba(4,8,5,.88) 100%)}
 .sound-toggle{display:flex;position:absolute;z-index:5;right:16px;bottom:58px;align-items:center;gap:7px;border:1px solid #c8ff3880;border-radius:999px;padding:9px 13px;background:#090d0be8;color:var(--lime);font-size:10px;font-weight:950;letter-spacing:.8px;box-shadow:0 5px 20px #0008}
 .sound-toggle:hover{background:#1b2819}.sound-icon{font-size:15px;line-height:1}
-.floating-post-cta{position:fixed;z-index:30;right:24px;bottom:24px;display:inline-flex;align-items:center;gap:9px;background:var(--lime);color:#10150b;border:1px solid #e1ff9b;border-radius:999px;padding:14px 20px;font-size:12px;font-weight:1000;letter-spacing:.5px;box-shadow:0 10px 35px #0009,0 0 0 5px #c8ff3818;transition:transform .2s,box-shadow .2s}
+.floating-post-cta{position:fixed;z-index:30;right:18px;bottom:18px;display:inline-flex;align-items:center;gap:7px;background:var(--lime);color:#10150b;border:1px solid #e1ff9b;border-radius:999px;padding:9px 14px;font-size:10px;font-weight:1000;letter-spacing:.35px;box-shadow:0 7px 22px #0009,0 0 0 3px #c8ff3818;transition:transform .2s,box-shadow .2s}
 .floating-post-cta:hover{transform:translateY(-3px);box-shadow:0 14px 40px #000b,0 0 0 7px #c8ff3822}
-@media(max-width:620px){.sound-toggle{right:10px;bottom:52px;padding:8px 10px;font-size:9px}.floating-post-cta{right:12px;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));justify-content:center;padding:13px 18px;box-shadow:0 8px 28px #000b,0 0 0 4px #c8ff3818}.footer{padding-bottom:86px}}
+@media(max-width:620px){.sound-toggle{right:10px;bottom:52px;padding:8px 10px;font-size:9px}.floating-post-cta{right:12px;left:auto;bottom:calc(14px + env(safe-area-inset-bottom));justify-content:center;padding:9px 13px;font-size:9px;box-shadow:0 6px 20px #000b,0 0 0 3px #c8ff3818}.floating-post-cta span{font-size:13px}.footer{padding-bottom:68px}}
 
 
 /* Give the store a stronger, unmistakable brand moment */
