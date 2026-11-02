@@ -107,3 +107,14 @@ footer{text-align:center;padding:20px;color:#A9ADC9}
 main{max-width:1160px}
 @media(max-width:750px){.hero{padding:24px 18px 32px}.hero-inner{grid-template-columns:1fr;gap:26px}.hero-copy{text-align:center}.hero .hero-logo{margin:20px auto 14px}.hero-lead{margin:0 auto}.hero-actions,.hero .stats{justify-content:center}.hero-media{max-width:330px}.hero-video-wrap{max-height:460px}.hero h1{font-size:clamp(46px,11vw,70px)}.video-label{right:0}}
 @media(prefers-reduced-motion:reduce){.hero-video{animation:none}}
+
+
+/* Polished, accessible hero video controls */
+.hero-video-wrap{border-radius:24px;border:1px solid #ffffff29;box-shadow:0 28px 70px #0009,0 0 0 5px #ffffff08}
+.hero-video-controls{position:absolute;bottom:18px;left:18px;display:flex;gap:8px;z-index:2}
+.video-control{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 15px;border:1px solid #ffffff4d;border-radius:12px;background:#0b1125dc;color:white;font:700 12px 'Archivo',sans-serif;letter-spacing:.01em;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 6px 18px #0005;cursor:pointer;transition:background .18s,transform .18s,border-color .18s}
+.video-control:hover{background:#29314b;border-color:#d8ff3e;transform:translateY(-2px)}
+.video-control:focus-visible,.hero-secondary:focus-visible,.hero-post:focus-visible{outline:3px solid #d8ff3e;outline-offset:3px}
+.video-label{right:12px;top:16px;border-radius:9px;padding:10px 12px;box-shadow:0 5px 20px #0006}
+@media(max-width:420px){.hero-video-controls{left:12px;bottom:12px}.video-control{padding:10px 12px}.video-label{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.video-control{transition:none}.video-control:hover{transform:none}}
