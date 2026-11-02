@@ -3,14 +3,18 @@
 <title>HighlightHype</title><link rel="preload" as="image" href="/brand-logo.png" fetchpriority="high"><link rel="stylesheet" href="styles.css"></head>
 <body>
 <header class="hero">
-  <div class="badges"><span>100% FAN-VOTED 🏆</span><span>📣 OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
-  <div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="auto" autoplay muted loop playsinline controls></video></div>
-  <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype" fetchpriority="high" width="900" height="374">
-  <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
-  <p><button class="big hero-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button></p>
-  <p class="small">Video starts muted — use the video controls for play and sound. Use the Boys/Girls filters in Plays to switch boards.</p>
-  <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
-  <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="badges"><span>PRIVATE BETA</span><span>🏆 100% FAN-VOTED</span></div>
+      <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype" width="900" height="374" fetchpriority="high">
+      <h1>YOUR PLAY.<br><span>YOUR MOMENT.</span></h1>
+      <p class="hero-lead">The home for the plays worth replaying. Upload your best sports highlight, cheer on your favorites, and climb the leaderboard.</p>
+      <div class="hero-actions"><button class="big hero-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button><button class="hero-secondary" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('playsGrid').scrollIntoView({behavior:'smooth'})">Explore highlights →</button></div>
+      <p class="small">🔒 Invite-only beta · Parent permission required under 13</p>
+      <div class="stats"><div class="stat"><b id="statPlays">0</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">0</b> VOTES CAST 🔥</div></div>
+    </div>
+    <div class="hero-media"><div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="metadata" autoplay muted loop playsinline></video></div><button id="heroSound" class="hero-sound" type="button">🔊 Turn sound on</button><span class="video-label">THE HYPE STARTS HERE</span></div>
+  </div>
 </header>
 <nav class="tabs">
   <button data-tab="plays" class="active">🔥 Plays</button>
