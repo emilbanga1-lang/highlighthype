@@ -118,3 +118,10 @@ main{max-width:1160px}
 .video-label{right:12px;top:16px;border-radius:9px;padding:10px 12px;box-shadow:0 5px 20px #0006}
 @media(max-width:420px){.hero-video-controls{left:12px;bottom:12px}.video-control{padding:10px 12px}.video-label{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.video-control{transition:none}.video-control:hover{transform:none}}
+
+
+/* Minimal icon-only playback controls */
+.hero-video-controls{gap:8px;left:16px;bottom:16px}
+.video-control{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;font-size:19px;line-height:1;box-shadow:0 6px 20px #0008}
+.video-control span{display:block}
+@media(max-width:420px){.video-control{width:44px;height:44px;padding:0}}
