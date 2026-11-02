@@ -125,3 +125,12 @@ main{max-width:1160px}
 .video-control{width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;font-size:19px;line-height:1;box-shadow:0 6px 20px #0008}
 .video-control span{display:block}
 @media(max-width:420px){.video-control{width:44px;height:44px;padding:0}}
+
+
+/* Bring working app closer to the approved desktop/mobile preview */
+.hero h1{font-family:Arial,Helvetica,sans-serif;font-style:italic;font-weight:1000;letter-spacing:-.035em;line-height:.94;text-transform:uppercase}
+.hero h1 span{color:#c5ff00}
+.hero-lead{font-size:17px;line-height:1.5;color:#f2f4ed}
+.hero-post{background:#c5ff00;color:#101500;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:850;letter-spacing:0;border:0;border-radius:13px;padding:16px 24px}
+.hero-secondary{font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:800;border-radius:13px}
+@media(max-width:750px){.hero h1{font-size:clamp(42px,10vw,64px)}}
