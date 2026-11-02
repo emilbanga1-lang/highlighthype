@@ -67,9 +67,11 @@ function notifyPending(title, sport, id, review) {
   if (!user || !pass) return;
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   const reviewLine = review ? `\nPre-review: ${review.verdict}${review.flags.length ? " — " + review.flags.join("; ") : " — no flags found"}\n(Pre-review is a first-pass check only. It does NOT approve the play — you still approve or hide it in Owner view.)\n` : "";
+  let modLink = "";
+  try { modLink = `https://highlighthype.com/moderate?id=${id}&token=${moderateToken()}`; } catch {}
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new play pending approval — ${title}`,
-    body: `A new play is waiting in the moderation queue on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n${reviewLine}\nApprove it here: https://highlighthype.com/#owner (opens Owner view, then Moderation queue).\n` })
+    body: `A new play is waiting for approval on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n${reviewLine}\nView it and approve or decline here (works on any device, no Owner token needed):\n${modLink}\n\nOr open Owner view on the device where you claimed ownership: https://highlighthype.com/#owner\n\nPrivate beta only: anyone with the moderation link can approve or decline. Do not forward it.\n` })
     .catch((e) => console.error("notifyPending failed:", e.message));
 }
 
@@ -142,6 +144,72 @@ function ownerAuthorized(req) {
   const stored = getSetting("owner_token_hash");
   return !!stored && sha(token) === stored;
 }
+// ---- Email moderation (private beta) ----
+// Why this exists: Owner view relies on a token in ONE browser's
+// localStorage, so an email link opened on another device (e.g. a phone)
+// shows an empty queue. Email moderation links carry a dedicated token
+// instead, so the owner can view and approve/hide from any device.
+// SECURITY: anyone with a moderation link can moderate. Keep the
+// hello@ mailbox private. Set MODERATE_TOKEN in Render env vars to
+// choose/rotate the token; it takes precedence over the stored one.
+// Never put MODERATE_TOKEN in git.
+function moderateToken() {
+  if (process.env.MODERATE_TOKEN) return String(process.env.MODERATE_TOKEN);
+  let t = getSetting("moderate_token");
+  if (!t) { t = crypto.randomBytes(24).toString("hex"); setSetting("moderate_token", t); }
+  return t;
+}
+function moderateAuthorized(token) {
+  return !!token && sha(String(token)) === sha(moderateToken());
+}
+const escHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function moderateMediaHtml(row) {
+  const url = row.embed_url || row.media_url || "";
+  if (row.media_kind === "file" && /\.(mp4|webm|mov)$/i.test(row.media_url))
+    return `<video controls playsinline style="max-width:100%;max-height:60vh"><source src="${escHtml(row.media_url)}"></video>`;
+  if (row.media_kind === "file" && /\.(jpg|jpeg|png|gif|webp)$/i.test(row.media_url))
+    return `<img src="${escHtml(row.media_url)}" style="max-width:100%" alt="">`;
+  if (url) return `<p><a href="${escHtml(url)}" target="_blank" rel="noopener">Open the play media</a> (${escHtml(row.host_label || "external link")})</p>`;
+  return `<p>No media preview available.</p>`;
+}
+function moderatePage(row, token, message = "") {
+  let review = null; try { review = row.review ? JSON.parse(row.review) : null; } catch {}
+  const flags = review?.flags?.length ? `<p><b>Pre-review:</b> ${escHtml(review.verdict)} — ${escHtml(review.flags.join("; "))}</p>` : "";
+  const statusNote = row.status !== "pending"
+    ? `<p><b>This play is already ${escHtml(row.status)}.</b>${row.status === "approved" ? ` <a href="https://highlighthype.com/#play-${row.id}">View it on the board</a>` : ""}</p>`
+    : "";
+  const forms = row.status === "pending" ? `
+    <form method="POST" action="/moderate" style="display:inline">
+      <input type="hidden" name="id" value="${row.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+      <input type="hidden" name="action" value="approve">
+      <button type="submit" style="font-size:18px;padding:12px 20px">Approve</button>
+    </form>
+    <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
+      <input type="hidden" name="id" value="${row.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+      <input type="hidden" name="action" value="hide">
+      <button type="submit" style="font-size:18px;padding:12px 20px">Decline (hide)</button>
+    </form>` : "";
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderate: ${escHtml(row.title)}</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
+<h1>Moderate this play</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}
+<p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}</p>
+${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
+<p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
+</body></html>`;
+}
+function moderateQueuePage(rows, token, message = "") {
+  const items = rows.length ? rows.map((r) => `
+    <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
+      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)} — Play ID ${r.id}
+      <p><a href="/moderate?id=${r.id}&token=${escHtml(token)}">View and approve / decline this play</a></p>
+    </div>`).join("") : "<p>No plays are pending right now.</p>";
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderation queue</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
+<h1>Plays waiting for approval</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}${items}
+<p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
+</body></html>`;
+}
+function sendHtml(res, code, html) { res.writeHead(code, { "content-type": "text/html; charset=utf-8" }); res.end(html); }
 function currentPeriod() { return new Date().toISOString().slice(0, 7); } // YYYY-MM
 function voteCount(id) { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=?").get(id).c; }
 function monthlyVoteCount(id, period) { try { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=? AND substr(created_at,1,7)=?").get(id, period).c; } catch { return voteCount(id); } }
@@ -360,6 +428,49 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, message: "That play is not entered in this month's contest." });
       db.prepare("INSERT INTO contest_winners(period,highlight_id) VALUES(?,?) ON CONFLICT(period) DO UPDATE SET highlight_id=excluded.highlight_id").run(period, id);
       return sendJson(res, 200, { ok: true, period, highlightId: id });
+    }
+
+    // ---- Email moderation (works on any device; see moderateToken) ----
+    if (p === "/moderate" && req.method === "GET") {
+      const token = u.searchParams.get("token") || "";
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p>");
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(u.searchParams.get("id") || 0));
+      if (!row) return sendHtml(res, 404, "<h1>Play not found</h1>");
+      return sendHtml(res, 200, moderatePage(row, token));
+    }
+    if (p === "/moderate" && req.method === "POST") {
+      const params = new URLSearchParams((await readBody(req)).toString("utf8"));
+      const token = params.get("token") || "";
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1>");
+      const id = Number(params.get("id") || 0);
+      const action = params.get("action");
+      if (!["approve", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1>");
+      const status = action === "approve" ? "approved" : "hidden";
+      const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!before) return sendHtml(res, 404, "<h1>Play not found</h1>");
+      db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
+      if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
+      const after = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      return sendHtml(res, 200, moderatePage(after, token, status === "approved" ? "Approved — this play is now live on the board." : "Declined — this play is hidden and will not appear on the board."));
+    }
+    if (p === "/moderate-queue" && req.method === "GET") {
+      const token = u.searchParams.get("token") || "";
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p>");
+      const rows = db.prepare("SELECT * FROM highlights WHERE status='pending' ORDER BY id DESC").all();
+      return sendHtml(res, 200, moderateQueuePage(rows, token));
+    }
+    if (p === "/api/moderate/request" && req.method === "GET") {
+      // Emails a fresh moderation-queue link to the owner's mailbox only.
+      // Anyone can trigger it, but the link itself goes to NOTIFY_TO, not
+      // to the requester, so it cannot hand moderation to a stranger.
+      const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+      if (!user || !pass) return sendJson(res, 500, { ok: false, message: "Email is not configured on this server." });
+      const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
+      const link = `https://highlighthype.com/moderate-queue?token=${moderateToken()}`;
+      await smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+        subject: "HighlightHype: moderation queue link",
+        body: `Here is a fresh link to the plays waiting for approval. It works on any device, no Owner token needed:\n\n${link}\n\nPrivate beta only: anyone with this link can approve or decline. Do not forward it.\n` });
+      return sendJson(res, 200, { ok: true, message: "Moderation link emailed to the owner's mailbox." });
     }
 
     // ---- Owner moderation ----
