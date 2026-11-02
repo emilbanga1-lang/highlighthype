@@ -134,3 +134,10 @@ main{max-width:1160px}
 .hero-post{background:#c5ff00;color:#101500;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:850;letter-spacing:0;border:0;border-radius:13px;padding:16px 24px}
 .hero-secondary{font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:800;border-radius:13px}
 @media(max-width:750px){.hero h1{font-size:clamp(42px,10vw,64px)}}
+
+
+/* Approved preview: compact circular video controls anchored bottom-right */
+.hero-media .hero-video-controls{left:auto;right:18px;bottom:18px;gap:8px}
+.hero-media .video-control{width:40px;height:40px;min-width:40px;min-height:40px;padding:0;border-radius:50%;background:rgba(6,12,10,.76);border:1px solid rgba(255,255,255,.34);box-shadow:0 5px 18px #0008}
+.hero-media .video-control svg{display:block}
+@media(max-width:420px){.hero-media .hero-video-controls{left:auto;right:16px;bottom:16px}}
