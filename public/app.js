@@ -155,10 +155,10 @@ document.querySelectorAll(".tabs button[data-tab]").forEach((b) => b.onclick = (
 document.querySelectorAll(".seg button").forEach((b) => b.onclick = () => { document.querySelectorAll(".seg button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); currentSort = b.dataset.sort; loadPlays(); });
 const heroVideo = () => document.getElementById("heroVideo");
 const heroSoundBtn = () => document.getElementById("heroSound");
-window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted = !v.muted; if (!v.muted) v.play(); const b = heroSoundBtn(); if (b) b.textContent = v.muted ? "🔊 Sound off — tap for sound" : "🔊 Sound on"; };
+window.toggleHeroSound = () => { const v = heroVideo(); if (!v) return; v.muted = !v.muted; if (!v.muted) v.play(); const b = heroSoundBtn(); if (b) b.innerHTML = v.muted ? "🔊 <span>Sound off</span>" : "🔈 <span>Sound on</span>"; b.setAttribute("aria-label", v.muted ? "Turn sound on" : "Mute video"); };
 document.getElementById("heroSound")?.addEventListener("click", window.toggleHeroSound);
 const heroPlayBtn = document.getElementById("heroPlay");
-const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.textContent = v && !v.paused ? "⏸ Pause video" : "▶ Play video"; };
+const syncHeroPlay = () => { const v = heroVideo(); if (heroPlayBtn) heroPlayBtn.innerHTML = v && !v.paused ? "⏸ <span>Pause</span>" : "▶ <span>Play</span>"; if (heroPlayBtn) heroPlayBtn.setAttribute("aria-label", v && !v.paused ? "Pause video" : "Play video"); };
 heroPlayBtn?.addEventListener("click", async () => { const v = heroVideo(); if (!v) return; if (v.paused) { try { await v.play(); } catch (e) { v.controls = true; } } else { v.pause(); } syncHeroPlay(); });
 heroVideo()?.addEventListener("play", syncHeroPlay);
 heroVideo()?.addEventListener("pause", syncHeroPlay);
