@@ -187,3 +187,39 @@ main{max-width:1180px}
 .hero .mission-pillars{margin-top:20px}
 .hero .ticker{background:#d8ff3e}
 @media(max-width:800px){.hh-hero-stage{min-height:600px;align-items:flex-end;margin-top:12px}.hh-stage-media .hero-video{object-position:60% center;filter:grayscale(1) contrast(1.1) brightness(.65)}.hh-stage-shade{background:linear-gradient(0deg,#080b09 0%,rgba(8,11,9,.97) 20%,rgba(8,11,9,.7) 56%,rgba(8,11,9,.25) 100%)}.hh-stage-content{width:100%;padding:28px 20px 34px}.hh-stage-content .brand-mission{font-size:clamp(45px,11vw,76px)!important}.hh-stage-content .hero-actions{gap:9px}.hh-stage-content .hero-actions .big{font-size:16px}.hh-stage-content .hero-story{font-size:15px}.hero .badges{gap:6px}.hero .badges span{font-size:9px}}
+
+
+/* Complete the 2.0 design across the legacy application sections */
+main{max-width:1180px;padding:24px clamp(14px,3vw,30px) 70px}
+.tabs{position:relative;top:auto;background:#101513;border:1px solid #354039;padding:7px;gap:6px;box-shadow:none}
+.tabs button{font-family:'Archivo',sans-serif;font-size:clamp(11px,1.5vw,14px);font-weight:900;letter-spacing:.015em;color:#d5ded6;padding:15px 10px;border-radius:3px;line-height:1.25}
+.tabs button.active{background:#d8ff3e;color:#11160c;box-shadow:none}
+#cartBtn,#ownerBtn{border:1px solid #455248;border-radius:4px;background:#141b17;color:#e5eee6;box-shadow:none;font-size:12px;padding:10px 14px}
+.card{background:#131a16;border:1px solid #344238;border-radius:5px;padding:clamp(18px,3vw,30px);margin:18px 0;box-shadow:none}
+.card h2,.card h3,main>section>h2{font-family:'Anton',Impact,sans-serif;text-transform:uppercase;letter-spacing:.025em}
+.card h2{font-size:clamp(25px,3.6vw,39px);line-height:1.05;margin:0 0 18px}
+.card p,.card li{line-height:1.6;color:#d4dcd5}
+.beta-banner{background:#111a13!important;color:#f1f5ee!important;border:1px solid #3b523a!important;border-left:5px solid #d8ff3e!important;border-radius:5px!important;box-shadow:none!important;padding:clamp(20px,3vw,30px)!important}
+.beta-banner .beta-badge{transform:none;background:#d8ff3e;color:#10140d;border-radius:2px;padding:8px 12px;font-size:11px;letter-spacing:.12em}
+.beta-banner h2{font-size:clamp(30px,4vw,48px);color:#fff;margin:14px 0}
+.beta-banner p,.beta-banner li{color:#d3ddd3;line-height:1.55;font-size:clamp(14px,1.8vw,17px)}
+.beta-banner ul{padding-left:22px}
+.beta-banner b{color:#fff}
+.big{border-radius:3px;box-shadow:none;font-size:16px}
+.pill,.seg,.seg button,.filters input,.filters select{border-radius:4px}
+.pill{background:#151d18;border-color:#3c493e}
+.seg{background:#151d18;border-color:#3c493e}
+.seg button.active{border-radius:2px}
+.play{border:1px solid #39483b;border-radius:5px;background:#141c16;box-shadow:none;padding:12px}
+.play h3{font-size:25px}
+.play button,.play .vote,.play .tap-sound,.play .enter-btn{border-radius:3px;box-shadow:none}
+.play::before{margin:-12px -12px 12px;border-radius:0}
+.swag-teaser{background:#d8ff3e;color:#10160e;border:0;border-radius:5px;box-shadow:none}
+.swag-teaser p{color:#25311e}
+.parked{background:#1a2016;color:#e5eddf;border:1px solid #45513d;border-left:4px solid #d8ff3e;border-radius:5px}
+.float-post,.float-add{animation:none!important;box-shadow:0 8px 30px #0008;border:1px solid #d8ff3e;border-radius:3px;font-family:'Archivo',sans-serif;font-size:12px;font-weight:900;letter-spacing:.04em;padding:13px 16px}
+.float-add{background:#151c17;border-color:#566556}
+.site-footer{background:#101612;border-top:1px solid #3b493e;padding:36px 20px;line-height:1.8}
+input,select,textarea{background:#0a100c;border:1px solid #4a5b4c;border-radius:3px}
+input:focus,select:focus,textarea:focus{outline:2px solid #d8ff3e;outline-offset:1px}
+@media(max-width:700px){.tabs{margin:12px 14px 0;gap:3px}.tabs button{padding:12px 5px;font-size:11px}.beta-banner{padding:18px!important}.beta-banner h2{font-size:33px}.beta-banner p,.beta-banner li{font-size:14px}.float-post{right:12px;bottom:14px;padding:12px 14px;font-size:11px}.card{padding:18px}.hh-section-head{margin-bottom:16px}}
