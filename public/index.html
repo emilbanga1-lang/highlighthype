@@ -2,8 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>HighlightHype</title><link rel="preload" as="image" href="/brand-logo.png" fetchpriority="high"><link rel="stylesheet" href="styles.css"></head>
 <body>
+<div class="hh-topbar"><a class="hh-wordmark" href="/" aria-label="HighlightHype home"><span class="hh-mark">H<span>H</span></span><span>HIGHLIGHT<span>HYPE</span></span></a><nav class="hh-links" aria-label="Main navigation"><a href="#featured-moments">Highlights</a><a href="#how-it-works">How it works</a><a href="#swag-preview">Swag</a></nav><a class="hh-topcta" href="#uploadForm">SUBMIT A MOMENT ↗</a></div>
 <header class="hero">
-  <div class="badges"><span>⚡ EVERY ATHLETE DESERVES THE HYPE</span><span>🔒 PRIVATE BETA · PARENT PERMISSION REQUIRED</span></div>
+  <div class="badges"><span>THE HOME OF YOUTH SPORTS CULTURE</span><span>PRIVATE BETA · PARENT PERMISSION REQUIRED</span></div>
+  <div class="hh-hero-eyebrow">REAL ATHLETES. REAL MOMENTS. ALL THE HYPE.</div>
   <div class="hero-video-wrap" aria-label="HighlightHype original hero film"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="metadata" autoplay muted loop playsinline controls aria-label="HighlightHype sports hero video"></video><div class="hero-video-label" aria-hidden="true"><span class="hero-film-eyebrow">THE MOMENTS THAT MAKE US</span><strong>YOUR MOMENT. <em>YOUR HYPE.</em></strong></div></div>
   <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype" fetchpriority="high" width="900" height="374">
   <h1 class="brand-mission">EVERY ATHLETE <span>DESERVES THE HYPE.</span></h1>
@@ -16,6 +18,7 @@
   <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
   <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
 </header>
+<div class="hh-section-head" id="featured-moments"><span>01 / THE HIGHLIGHTS</span><h2>THE MOMENTS <em>THAT MATTER.</em></h2><p>Every highlight has a story. Discover the moments worth celebrating.</p></div>
 <nav class="tabs">
   <button data-tab="plays" class="active">🔥 Plays</button>
   <button data-tab="contest">🏆 Hype of the Month</button>
@@ -46,7 +49,7 @@
       <p><b>2. Under 13? Ask a parent first.</b> A parent or guardian must give permission before anyone under 13 posts a play.</p>
       <p><b>3. First names only.</b> No full name + school + team together in titles or descriptions — first names or nicknames only. The owner checks this at approval.</p>
       <p><b>4. No messages here.</b> There are no DMs or chat between kids in this app — just plays and votes.</p></div>
-    <div class="card"><h2>HOW IT WORKS</h2>
+    <div class="card" id="how-it-works"><h2>HOW IT WORKS</h2>
       <p><span class="tag">Official handle: @HighlightHype_Official</span></p>
       <p><b>1. Post your play</b> — upload a video/photo, add a player and play type.</p>
       <p><b>2. Owner reviews it</b> — your play appears on the board once the owner approves it.</p>
@@ -88,7 +91,7 @@
     <div class="filters" id="sportPills"></div>
     <h2>👑 HALL OF FAME</h2><div id="podium" class="podium"></div><div id="hofList"></div>
     <h2>All plays</h2><div id="playsGrid" class="grid"></div>
-    <div class="swag-teaser card">
+    <div class="swag-teaser card" id="swag-preview">
       <div><span class="tag">Drop 001 • Parked till later</span>
       <h3>The hype starts here</h3>
       <p class="small">Drop 001 swag is preview-only for now — no real payments yet. Browse the parked store and see what's coming.</p></div>
