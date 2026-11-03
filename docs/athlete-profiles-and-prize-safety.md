@@ -46,3 +46,15 @@ Use encrypted storage and retention limits for contact/shipping data. Do not put
 Current server.js stores highlights.player_name as free text and optional notify_email. These are NOT verified athlete IDs or verified parent contacts. Current public/app.js uses browser-local voter/owner tokens. Do not treat these as secure accounts. Existing contest winner endpoint does not implement verified guardian prize notification.
 
 No automatic migration of legacy player_name strings into verified athlete identities. Legacy records require manual review and parent confirmation.
+
+## Parent notification center — email and optional SMS (planned)
+- Verified parent/guardian accounts may configure email and SMS independently. Email is the first-release baseline; SMS is a later opt-in rollout after provider, compliance, and security checks.
+- Events: video moderation decisions; new athlete-tag requests awaiting guardian approval; monthly prize winner and secure claim reminders; security alerts; optional apparel announcements.
+- Marketing SMS consent is separate, optional, recorded with timestamp/source/disclosure version, and never a condition of account use or contest eligibility. Operational SMS requires its own appropriate consent and clear opt-out controls.
+- Verify phone ownership before use; store normalized phone numbers securely and restrict access. Never contact children directly.
+- Support STOP/HELP, suppression lists, quiet hours, rate limits, delivery failures, and provider webhooks; respect opt-outs across all send paths.
+- Texts must avoid sensitive athlete details, private video links, and shipping addresses. Link to authenticated account pages instead.
+- Prize claim requires authenticated guardian confirmation and an expiring, single-use token; an SMS alone must never authorize prize fulfillment.
+- Proposed schema: guardian_phones(guardian_id, phone_encrypted, verified_at); notification_preferences(guardian_id, event_type, email_enabled, sms_enabled); notification_consents(guardian_id, channel, purpose, disclosure_version, captured_at, revoked_at); notification_deliveries(id, guardian_id, event_type, channel, provider_message_id, status, created_at).
+- Evaluate an SMS provider (e.g. Twilio), US A2P/10DLC registration as applicable, TCPA and carrier requirements, COPPA/privacy implications, message costs, and retention policies before enabling.
+- Tests: duplicate notifications, opt-out enforcement, unverified numbers, expired prize links, unauthorized preference changes, provider errors, and child-data leakage in message content.
