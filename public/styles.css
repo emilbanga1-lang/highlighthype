@@ -223,3 +223,25 @@ main{max-width:1180px;padding:24px clamp(14px,3vw,30px) 70px}
 input,select,textarea{background:#0a100c;border:1px solid #4a5b4c;border-radius:3px}
 input:focus,select:focus,textarea:focus{outline:2px solid #d8ff3e;outline-offset:1px}
 @media(max-width:700px){.tabs{margin:12px 14px 0;gap:3px}.tabs button{padding:12px 5px;font-size:11px}.beta-banner{padding:18px!important}.beta-banner h2{font-size:33px}.beta-banner p,.beta-banner li{font-size:14px}.float-post{right:12px;bottom:14px;padding:12px 14px;font-size:11px}.card{padding:18px}.hh-section-head{margin-bottom:16px}}
+
+
+/* Mobile review corrections: footage clarity, uncluttered layout and controls */
+.hero::after{display:none}
+.hh-stage-media .hero-video{filter:grayscale(1) contrast(1.05) brightness(1.05)!important;object-fit:cover}
+.hh-stage-shade{background:linear-gradient(90deg,rgba(5,8,7,.86) 0%,rgba(5,8,7,.55) 40%,rgba(5,8,7,.06) 100%)!important}
+.hh-hero-stage{min-height:650px}
+.hh-stage-content{width:min(740px,68%);background:linear-gradient(90deg,rgba(5,8,7,.55),transparent)}
+.hero .badges{display:none}
+.float-post,.float-add{display:none!important}
+.hero .hero-trust{display:none}
+@media(max-width:800px){
+.hh-hero-stage{display:flex;flex-direction:column;min-height:0;align-items:stretch}
+.hh-stage-media{position:relative;inset:auto;z-index:auto;order:0;height:auto;aspect-ratio:16/9;background:#090c0a}
+.hh-stage-media .hero-video{position:relative;width:100%;height:100%;object-fit:contain;filter:none!important;background:#080b09}
+.hh-stage-shade{display:none}
+.hh-stage-content{order:1;width:100%;background:#0d130f;padding:25px 20px 28px}
+.hh-stage-content .brand-mission{font-size:clamp(44px,10vw,70px)!important}
+.hh-stage-content .hh-hero-eyebrow{font-size:9px;margin-bottom:16px}
+.hh-stage-content .hero-actions .big{font-size:15px}
+.hero>.small{padding:0 14px;font-size:11px}
+}
