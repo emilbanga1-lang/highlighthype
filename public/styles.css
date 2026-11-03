@@ -101,3 +101,13 @@ footer{text-align:center;padding:20px;color:#A9ADC9}
 .mission-pillars span{display:block;font-size:13px;color:#D3D6E7;margin-top:4px}
 @media(max-width:650px){.hero{padding:20px 12px 0}.brand-mission{font-size:clamp(36px,11vw,54px)!important}.mission-pillars{grid-template-columns:1fr;gap:8px}.hero-actions{flex-direction:column;align-items:stretch}.hero-actions .big{width:100%}.hero-trust{line-height:1.5}}
 @media(prefers-reduced-motion:reduce){.ticker-in{animation:none}.float-post{animation:none}}
+
+
+/* Original hero film: branded cinema frame without altering source media */
+.hero-video-wrap{max-width:1040px;margin:22px auto 16px;overflow:hidden;border:1px solid #34383D;border-radius:18px;background:#08090C;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.hero-video-wrap .hero-video{width:100%;max-width:none;aspect-ratio:16/9;object-fit:contain;max-height:min(66vh,650px);background:#050505}
+.hero-video-label{position:absolute;top:16px;left:18px;z-index:2;display:flex;flex-direction:column;gap:5px;align-items:flex-start;pointer-events:none;text-align:left;text-shadow:0 2px 12px #000,0 1px 4px #000}
+.hero-film-eyebrow{font-size:10px;letter-spacing:.2em;font-weight:900;color:#fff}
+.hero-video-label strong{font-family:'Anton',Impact,sans-serif;font-size:clamp(15px,2.4vw,29px);font-style:normal;letter-spacing:.03em;color:#fff}
+.hero-video-label em{font-style:normal;color:#D8FF3E}
+@media(max-width:650px){.hero-video-wrap{margin:14px auto;border-radius:12px}.hero-video-label{top:9px;left:10px;gap:2px}.hero-film-eyebrow{font-size:8px;letter-spacing:.09em}.hero-video-label strong{font-size:15px}}
