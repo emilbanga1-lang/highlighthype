@@ -296,14 +296,14 @@ const server = http.createServer(async (req, res) => {
     const u = new URL(req.url, "http://localhost");
     const p = u.pathname;
     // Optional staging-only HTTP Basic authentication. Disabled on production unless explicitly configured.
-    if (process.env.STAGING_ACCESS_PASSWORD) {
-      const expected = Buffer.from("hype-preview:" + process.env.STAGING_ACCESS_PASSWORD);
+    if (process.env.STAGING_MODE === "true" || process.env.STAGING_ACCESS_PASSWORD) {
+      const expected = Buffer.from("hype-preview:" + (process.env.STAGING_ACCESS_PASSWORD || ""));
       const header = req.headers.authorization || "";
       let provided = Buffer.alloc(0);
       if (header.startsWith("Basic ")) {
         try { provided = Buffer.from(header.slice(6), "base64"); } catch {}
       }
-      if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
+      if (!process.env.STAGING_ACCESS_PASSWORD || provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
         res.writeHead(401, { "WWW-Authenticate": 'Basic realm="HighlightHype Private Preview"', "Cache-Control": "no-store" });
         return res.end("Private HighlightHype preview. Sign in to continue.");
       }
