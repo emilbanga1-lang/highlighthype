@@ -57,17 +57,30 @@ try {
      rule .hf-garment{display:block} outranks the UA [hidden]{display:none},
      so hfSetApparel's hidden toggling never hid either garment — both
      SVGs stacked and the shared print overlay landed on the hoodie in
-     both modes. Fix: .hf-garment[hidden]{display:none}. */
+     both modes. Fix: .hf-garment[hidden]{display:none}.
+     Regression 2 (2026-11-04, after the placement build): switching
+     apparel updated aria-pressed, data-apparel and the placement, but
+     the garment graphic stayed on the hoodie. Root cause: hfSetApparel
+     toggled visibility via the `hidden` IDL *property* on the two
+     garment SVGs — on SVG elements that property does not reliably
+     reflect to the `hidden` content attribute, so the attribute (the
+     only thing the CSS rule keys off) never changed and the initial
+     markup state (hoodie shown, tee hidden) persisted. Fix: toggle the
+     attribute itself with toggleAttribute(), which is an Element
+     method and works on SVG elements in every engine. */
   assert(/\.hf-garment\[hidden\]\s*\{\s*display:\s*none/.test(css), "inactive garment is actually hidden (.hf-garment[hidden]{display:none} present)");
   for (const a of ["hoodie", "tee"]) {
     const rule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\] \\.hf-print\\s*\\{[^}]*left:[^}]*top:[^}]*width:`);
     assert(rule.test(css), `${a} branch positions the shared print layer in its chest print area`);
   }
-  assert(appJs.includes('$(".hf-garment-hoodie").hidden = a !== "hoodie"') && appJs.includes('$(".hf-garment-tee").hidden = a !== "tee"'), "apparel switch toggles hidden on both garments");
+  assert(appJs.includes('$(".hf-garment-hoodie").toggleAttribute("hidden", a !== "hoodie")') && appJs.includes('$(".hf-garment-tee").toggleAttribute("hidden", a !== "tee")'), "apparel switch toggles the hidden ATTRIBUTE on both garments");
+  assert(!appJs.includes('$(".hf-garment-hoodie").hidden =') && !appJs.includes('$(".hf-garment-tee").hidden ='), "apparel switch does not rely on the hidden IDL property for the garment SVGs (it does not reflect to the attribute on SVG elements)");
   assert(appJs.includes('$("#hfMock").dataset.apparel = a'), "apparel switch sets the mock's data-apparel so the matching print-area rule applies");
   assert((home.match(/id="hfPrint"/g) || []).length === 1, "exactly one shared print layer serves both garments");
   const mockHtml = home.slice(home.indexOf('id="hfMock"'), home.indexOf('id="hfOrderForm"'));
   assert(mockHtml.indexOf("hf-garment-tee") > -1 && mockHtml.indexOf('id="hfPrint"') > mockHtml.indexOf("hf-garment-tee"), "print layer follows both garment SVGs in the mock, so it paints above the active garment");
+  assert((mockHtml.match(/<svg class="hf-garment /g) || []).length === 2, "mock contains exactly two garment SVGs (one per apparel)");
+  assert(/<svg class="hf-garment hf-garment-tee"[^>]*hidden>/.test(mockHtml) && !/<svg class="hf-garment hf-garment-hoodie"[^>]*hidden>/.test(mockHtml), "markup opens with only the tee garment hidden, so the first apparel switch has a state to flip");
   const storeSection = home.slice(home.indexOf('id="shop"'));
   assert(!storeSection.includes("$"), "no prices anywhere in the Store section (Hype Frame included)");
 
