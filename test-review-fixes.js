@@ -3,6 +3,8 @@
 // 2. Upload form is file-only (no video-link field) and file upload works.
 // 3. Modernized upload form keeps every field id/name + the dropzone.
 // 4. Hype Frame: pause-overlay scene map hits the right Store targets.
+// 5. Store redesign: filterable product grid with real lookbook photos.
+// 6. Store v2: full-bleed cinematic film hero + photo nav tiles.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -90,7 +92,10 @@ try {
   // (The studio-side assertions live in test-hype-frame.js.)
   assert(home.includes("⏸ Pause to shop the look") && !home.includes("Hype Frame — pause to shop the look"), "film hint reads 'Pause to shop the look' (no Hype Frame name on the film)");
   assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"') && home.includes('<p class="ssc-kicker">In this scene</p>') && !home.includes("Hype Frame · In this scene"), "pause card present with plain 'In this scene' kicker");
-  assert(home.includes('id="swagVideo"') && /id="swagVideo"[^>]*controls/.test(home), "swag film has native controls so it can be paused");
+  // Store v2 (2026-11-04): Emil asked for Overtime's chrome-free hero,
+  // so the native control bar is GONE — tapping the film or the round
+  // outline button toggles playback instead (wiring asserted in §6).
+  assert(home.includes('id="swagVideo"') && !/id="swagVideo"[^>]*\bcontrols\b/.test(home), "swag film has NO native controls (v2 cinematic hero)");
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
   assert(sceneRe("2.5", "hype-girls").test(appJs), "scene 0–2.5s (Girls) maps to #hype-girls");
   assert(sceneRe("5\\.0", "hype-boys").test(appJs), "scene 2.5–5s (Boys) maps to #hype-boys");
@@ -100,6 +105,59 @@ try {
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
   assert(!storeSection.includes("$"), "no prices anywhere in the Store section");
+
+  /* ---- 5. Store redesign: product grid with real lookbook photos ----
+     Emil (2026-11-04): the six stacked illustrated boards became one
+     filterable product grid using photos cropped from the Drop 001
+     lookbook. The scene targets above keep their names but now drive
+     the grid (division filter + highlight), so the old board markup
+     assertions were replaced by the grid assertions below. */
+  const SLUGS = ["girls-street", "girls-athletics", "girls-essentials", "boys-street", "boys-athletics", "boys-unleashed"];
+  assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
+  for (const slug of SLUGS) {
+    assert(home.includes(`data-slug="${slug}"`), `grid card present: ${slug}`);
+    for (const kind of ["front", "back", "flat"]) {
+      assert(home.includes(`/swag/${slug}-${kind}.jpg`), `card ${slug} references its ${kind} lookbook crop`);
+      const r = await fetch(`${base}/swag/${slug}-${kind}.jpg`);
+      const buf = await r.arrayBuffer();
+      assert(r.status === 200 && buf.byteLength > 5000, `crop serves and is non-trivial: /swag/${slug}-${kind}.jpg (${buf.byteLength} bytes)`);
+    }
+  }
+  assert(!home.includes("/swag-boards/"), "illustrated board SVGs are no longer referenced by the Store");
+  assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
+  assert(home.includes('data-store-div="girls"') && home.includes('data-store-div="boys"'), "Girls/Boys division toggle present");
+  for (const chip of ["all", "street", "athletics", "essentials", "unleashed"]) assert(home.includes(`data-store-chip="${chip}"`), `collection filter chip present: ${chip}`);
+  assert(home.includes('id="quickView"') && home.includes('id="qvFront"') && home.includes('id="qvBack"') && home.includes('id="qvFlat"'), "quick-view overlay present with front/back/flat images");
+  assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
+  assert(appJs.includes("applyStoreFilter") && appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "grid filtering + quick view wired in app.js");
+  assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button drives the grid (filter + highlight)");
+  assert(home.includes('class="hf-steps-strip"'), "Hype Frame section compressed into a slim steps strip under the grid");
+
+  /* ---- 6. Store v2: full-bleed cinematic hero + photo nav tiles ----
+     Emil (2026-11-04, with Overtime shop screenshots): the film leads
+     the Store as an edge-to-edge autoplay hero — bold italic title,
+     underlined Shop Girls / Shop Boys link-buttons, one round outline
+     pause/play button, no native controls — and two full-width photo
+     tiles cropped from the lookbook's sunset banner act as navigation
+     (whole tile tappable -> division filter + scroll to grid). */
+  const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
+  assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
+  assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
+  const css = await text("/styles.css");
+  assert(css.includes(".swag-film-hero") && css.includes("100vw"), "styles.css bleeds the hero edge-to-edge (100vw)");
+  assert(css.includes(".film-toggle") && css.includes(".store-tile"), "styles.css carries the round toggle button + nav tile rules");
+  assert(home.includes('data-hero-shop="girls"') && home.includes('data-hero-shop="boys"'), "hero overlay has Shop Girls / Shop Boys link-buttons");
+  assert(home.includes("Shop Girls") && home.includes("Shop Boys"), "hero shop links are labelled Shop Girls / Shop Boys");
+  assert(home.includes('id="swagPlayBtn"') && home.includes('class="film-toggle"'), "round outline pause/play button present in the hero");
+  assert(appJs.includes("swagPlayBtn"), "pause/play button wired in app.js");
+  assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"'), "pause-to-shop scene card still present under the hero");
+  for (const side of ["girls", "boys"]) {
+    assert(home.includes(`data-store-tile="${side}"`) && home.includes(`/swag/tile-${side}.jpg`), `nav tile present with lookbook crop: ${side}`);
+    const r = await fetch(`${base}/swag/tile-${side}.jpg`);
+    const buf = await r.arrayBuffer();
+    assert(r.status === 200 && buf.byteLength > 5000, `tile crop serves and is non-trivial: /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
+  }
+  assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-tile]") && appJs.includes("goToStoreScene"), "hero links + tiles wired to the division filter + grid scroll in app.js");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
