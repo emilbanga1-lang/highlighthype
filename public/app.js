@@ -369,7 +369,19 @@ const HF_COLORWAYS = {
     { name: "Navy", hex: "#14264a" }, { name: "Pink", hex: "#f3a8c4" },
   ],
 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "" };
+// Print areas per garment, as % of the mock box (the garment SVGs share a
+// 640x720 viewBox). The print — frame + caption band + branding lockup,
+// treated as ONE unit — must stay inside its garment's print area.
+const HF_AREAS = {
+  hoodie: { left: 25, top: 30, width: 50, height: 48 },
+  tee: { left: 25, top: 22, width: 50, height: 52 },
+};
+// Placement is stored as percentages RELATIVE to the print area
+// (cx/cy = the print's center, size = print width as % of the area's
+// width), so it maps proportionally when switching garments, and the
+// order request carries it to the server for the printer to reproduce.
+const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 66 };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT } };
 const hfCrown = new Image();
 let hfCrownReady = false;
 hfCrown.onload = () => { hfCrownReady = true; if (hfState.frozen) composeHfPrint(); };
@@ -387,6 +399,11 @@ function initHfStudio(play) {
   hfState.play = play;
   hfState.frozen = false;
   hfState.printDataUrl = "";
+  hfState.printAspect = 0;
+  hfState.placement = { ...HF_PLACEMENT_DEFAULT };
+  $("#hfSize").value = HF_PLACEMENT_DEFAULT.size;
+  $("#hfSizeVal").textContent = HF_PLACEMENT_DEFAULT.size + "%";
+  $("#hfPlace").hidden = true;
   $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, preview it on apparel, and send the request. A parent or guardian confirms before anything is printed.`;
   $("#hfName").value = play.athlete_label || play.player_name || "";
   $("#hfJersey").value = play.jersey || "";
@@ -395,6 +412,7 @@ function initHfStudio(play) {
   $("#hfStillWrap").hidden = true;
   $("#hfPrintImg").hidden = true;
   $("#hfPrintEmpty").hidden = false;
+  hfApplyPlacement();
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
   v.pause(); v.removeAttribute("src"); v.load();
   photo.removeAttribute("src");
@@ -446,7 +464,7 @@ function freezeHfFrame() {
 // both use this exact image — what they see is what would print.
 function composeHfPrint() {
   const img = $("#hfPrintImg"), empty = $("#hfPrintEmpty");
-  if (!hfState.frozen) { hfState.printDataUrl = ""; img.hidden = true; empty.hidden = false; return; }
+  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; img.hidden = true; empty.hidden = false; $("#hfPlace").hidden = true; hfApplyPlacement(); return; }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
@@ -486,8 +504,51 @@ function composeHfPrint() {
     x.fillStyle = "#ffffff"; x.fillText(caption, W / 2, cy);
   }
   hfState.printDataUrl = c.toDataURL("image/png");
+  hfState.printAspect = c.height / c.width;
   img.src = hfState.printDataUrl;
   img.hidden = false; empty.hidden = true;
+  $("#hfPlace").hidden = false;
+  hfApplyPlacement();
+}
+// Position the print layer inside the mock from hfState.placement.
+// Pixel math against the rendered mock, stored back as print-area
+// percentages. When the print fits the area on an axis its center is
+// clamped so it stays fully inside; when it can't fit (a tall portrait
+// print at a big size), it stays centered on that axis instead. With no
+// frozen frame, inline geometry is cleared and the CSS per-garment
+// rules position the empty-state placeholder, exactly as before.
+function hfApplyPlacement() {
+  const mock = $("#hfMock"), print = $("#hfPrint");
+  if (!mock || !print) return;
+  if (!hfState.frozen || !hfState.printAspect) { print.style.left = ""; print.style.top = ""; print.style.width = ""; return; }
+  const r = mock.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const area = HF_AREAS[hfState.apparel] || HF_AREAS.hoodie;
+  const ax = r.width * area.left / 100, ay = r.height * area.top / 100;
+  const aw = r.width * area.width / 100, ah = r.height * area.height / 100;
+  const pw = aw * hfState.placement.size / 100;
+  const ph = pw * hfState.printAspect;
+  let cxp = ax + aw * hfState.placement.cx / 100;
+  let cyp = ay + ah * hfState.placement.cy / 100;
+  cxp = pw >= aw ? ax + aw / 2 : Math.min(Math.max(cxp, ax + pw / 2), ax + aw - pw / 2);
+  cyp = ph >= ah ? ay + ah / 2 : Math.min(Math.max(cyp, ay + ph / 2), ay + ah - ph / 2);
+  hfState.placement.cx = Math.round((cxp - ax) / aw * 1000) / 10;
+  hfState.placement.cy = Math.round((cyp - ay) / ah * 1000) / 10;
+  print.style.width = pw + "px";
+  print.style.left = (cxp - pw / 2) + "px";
+  print.style.top = (cyp - ph / 2) + "px";
+}
+function hfSetPlacementSize(size) {
+  hfState.placement.size = Math.min(100, Math.max(30, Math.round(Number(size) || HF_PLACEMENT_DEFAULT.size)));
+  $("#hfSize").value = hfState.placement.size;
+  $("#hfSizeVal").textContent = hfState.placement.size + "%";
+  hfApplyPlacement();
+}
+function hfResetPlacement() {
+  hfState.placement = { ...HF_PLACEMENT_DEFAULT };
+  $("#hfSize").value = HF_PLACEMENT_DEFAULT.size;
+  $("#hfSizeVal").textContent = HF_PLACEMENT_DEFAULT.size + "%";
+  hfApplyPlacement();
 }
 function hfSetApparel(a) {
   hfState.apparel = a;
@@ -501,6 +562,7 @@ function hfSetApparel(a) {
   $("#hfSwatches").innerHTML = list.map((c) => `<button type="button" class="pill hf-swatch" data-colorway="${esc(c.name)}" aria-pressed="${hfState.colorway === c.name}"><span class="swatch" style="--sw:${c.hex}"></span>${esc(c.name)}</button>`).join("");
   $$("#hfSwatches .hf-swatch").forEach((b) => b.addEventListener("click", () => hfSetColorway(b.dataset.colorway)));
   hfSetColorway(hfState.colorway);
+  hfApplyPlacement();
 }
 function hfSetColorway(name) {
   const c = (HF_COLORWAYS[hfState.apparel] || []).find((k) => k.name === name) || HF_COLORWAYS[hfState.apparel][0];
@@ -519,6 +581,34 @@ function hfSetColorway(name) {
   $("#hfBranding").addEventListener("change", () => { if (hfState.frozen) composeHfPrint(); });
   $("#hfAppHoodie").addEventListener("click", () => hfSetApparel("hoodie"));
   $("#hfAppTee").addEventListener("click", () => hfSetApparel("tee"));
+  // Print placement: drag the print on the garment (pointer events, so
+  // mouse + touch both work; touch-action:none on the print layer keeps
+  // the drag from fighting page scroll), size slider + steppers, reset.
+  const hfPrintEl = $("#hfPrint");
+  let hfDrag = null;
+  hfPrintEl.addEventListener("pointerdown", (e) => {
+    if (!hfState.frozen) return;
+    e.preventDefault();
+    try { hfPrintEl.setPointerCapture(e.pointerId); } catch {}
+    hfDrag = { x: e.clientX, y: e.clientY, cx: hfState.placement.cx, cy: hfState.placement.cy };
+  });
+  hfPrintEl.addEventListener("pointermove", (e) => {
+    if (!hfDrag) return;
+    const r = $("#hfMock").getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const area = HF_AREAS[hfState.apparel] || HF_AREAS.hoodie;
+    const aw = r.width * area.width / 100, ah = r.height * area.height / 100;
+    hfState.placement.cx = Math.min(100, Math.max(0, hfDrag.cx + (e.clientX - hfDrag.x) / aw * 100));
+    hfState.placement.cy = Math.min(100, Math.max(0, hfDrag.cy + (e.clientY - hfDrag.y) / ah * 100));
+    hfApplyPlacement();
+  });
+  ["pointerup", "pointercancel"].forEach((ev) => hfPrintEl.addEventListener(ev, () => { hfDrag = null; }));
+  hfPrintEl.addEventListener("dragstart", (e) => e.preventDefault());
+  $("#hfSize").addEventListener("input", (e) => hfSetPlacementSize(e.target.value));
+  $("#hfSizeMinus").addEventListener("click", () => hfSetPlacementSize(hfState.placement.size - 4));
+  $("#hfSizePlus").addEventListener("click", () => hfSetPlacementSize(hfState.placement.size + 4));
+  $("#hfPlaceReset").addEventListener("click", hfResetPlacement);
+  window.addEventListener("resize", hfApplyPlacement);
   $("#hfOrderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = $("#hfMsg");
@@ -535,6 +625,7 @@ function hfSetColorway(name) {
         branding: $("#hfBranding").checked,
         apparel: hfState.apparel,
         colorway: hfState.colorway,
+        placement: hfState.placement,
         guardianName: $("#hfGuardianName").value.trim(),
         guardianEmail,
         image: hfState.printDataUrl,
@@ -584,8 +675,11 @@ function hfSetColorway(name) {
   function showFile() {
     const f = input.files && input.files[0];
     dz.classList.toggle("has-file", !!f);
-    if (f) { fileLine.textContent = `✓ ${f.name} · ${fmtSize(f.size)} — ready below, hit Submit when the details are in.`; fileLine.hidden = false; }
+    if (f) { fileLine.textContent = `✓ ${f.name} · ${fmtSize(f.size)} — ready. Hit Continue below to add the details.`; fileLine.hidden = false; }
     else { fileLine.textContent = ""; fileLine.hidden = true; }
+    // Picking a (new) file clears any Step 1 wizard message (e.g. the
+    // mirrored confirmation from a just-finished submit).
+    if (typeof uploadStepError === "function") uploadStepError(1, "");
   }
   window.resetDropzone = () => { input.value = ""; showFile(); };
   dz.addEventListener("click", (e) => { if (e.target !== input) input.click(); });
@@ -596,6 +690,67 @@ function hfSetColorway(name) {
   dz.addEventListener("drop", (e) => {
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) { try { input.files = e.dataTransfer.files; } catch { /* picker still works */ } showFile(); }
+  });
+})();
+
+/* ---------------- upload wizard (3 steps) ---------------- */
+// Presentation only (Emil, 2026-11-04): the SAME form, fields, payload
+// and submit handler — the wizard just shows one section at a time and
+// gates Continue on what each step needs. Submit-time rules are
+// unchanged from the single-page form: the guardian email stays
+// OPTIONAL, and the athlete "same athlete?" prompt still runs at
+// submit — when it fires, the wizard jumps back to Step 2 (where the
+// prompt now lives) and returns to Step 3 on the prompt's Continue, so
+// no entered data or chosen file is ever lost.
+let uploadStep = 1;
+const UPLOAD_STEP_NAMES = { 1: "Your video", 2: "The athlete", 3: "Parent/guardian (private)" };
+function showUploadStep(n) {
+  uploadStep = n;
+  $$("#uploadForm .form-step").forEach((s) => { s.hidden = Number(s.dataset.step) !== n; });
+  const label = $("#uploadStepLabel"), fill = $("#uploadBarFill");
+  if (label) label.textContent = `Step ${n} of 3 — ${UPLOAD_STEP_NAMES[n]}`;
+  if (fill) fill.style.width = (n / 3 * 100) + "%";
+  const back = $("#upBack"), next = $("#upNext");
+  if (back) back.hidden = n === 1;
+  if (next) next.hidden = n === 3;
+}
+function uploadStepError(n, text) {
+  const el = $("#stepMsg" + n);
+  if (el) { el.textContent = text || ""; el.hidden = !text; }
+}
+function validUploadStep(n) {
+  const form = $("#uploadForm");
+  if (!form) return true;
+  if (n === 1) {
+    const f = form.elements.file;
+    if (!f || !f.files || !f.files.length) { uploadStepError(1, "Add your video or photo first — drop the clip in the box above."); return false; }
+    if (!String(form.elements.title.value || "").trim()) { uploadStepError(1, "Give the play a title — that's what shows on the board."); form.elements.title.focus(); return false; }
+  }
+  if (n === 2) {
+    if (!String(form.elements.playerName.value || "").trim()) { uploadStepError(2, "Add the athlete's first name — every hype needs its athlete."); form.elements.playerName.focus(); return false; }
+    if (!form.elements.division.value) { uploadStepError(2, "Pick the division — Boys or Girls."); return false; }
+  }
+  uploadStepError(n, "");
+  return true;
+}
+(function initUploadWizard() {
+  const form = $("#uploadForm");
+  if (!form) return;
+  showUploadStep(1);
+  $("#upNext").addEventListener("click", () => { if (validUploadStep(uploadStep)) showUploadStep(uploadStep + 1); });
+  $("#upBack").addEventListener("click", () => showUploadStep(uploadStep - 1));
+  // Enter advances through Steps 1-2 instead of submitting early; on
+  // Step 3 it submits as usual. Textareas keep Enter for new lines, and
+  // the dropzone keeps Enter for opening the file picker.
+  form.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || uploadStep >= 3) return;
+    const t = e.target;
+    if (!t || t.tagName === "TEXTAREA" || t.tagName === "BUTTON") return;
+    if (t.closest && t.closest("#dropzone")) return;
+    if (t.type === "checkbox" || t.type === "radio" || t.type === "file") return;
+    if (!$("#athletePrompt").hidden) return;
+    e.preventDefault();
+    if (validUploadStep(uploadStep)) showUploadStep(uploadStep + 1);
   });
 })();
 
@@ -620,7 +775,14 @@ $("#uploadForm").addEventListener("submit", async (e) => {
           ${chk.matches.map((a) => `<label><input type="radio" name="athletePick" value="${esc(a.athleteKey)}"> Same athlete — ${esc(a.displayName)}${a.team ? ` · ${esc(a.team)}` : ""} <span class="tagchip">${esc(a.tag)}</span> · ${a.playCount} play${a.playCount === 1 ? "" : "s"} so far</label>`).join("")}
           <label><input type="radio" name="athletePick" value="__new"> A different athlete with the same name</label>
           <p style="margin-top:10px"><button type="button" class="mini-btn" id="athleteContinue">Continue →</button></p>`;
+        // The prompt lives in Step 2 of the wizard: jump back there to
+        // show it (hiding the wizard nav so its Continue isn't confused
+        // with the prompt's), then return to Step 3 on the prompt's
+        // Continue so the upload result shows where Submit was pressed.
+        showUploadStep(2);
         box.hidden = false;
+        $("#upNext").hidden = true;
+        $("#upBack").hidden = true;
         box.scrollIntoView({ behavior: "smooth", block: "center" });
         $("#athleteContinue").onclick = () => {
           const pick = box.querySelector("input[name='athletePick']:checked");
@@ -629,6 +791,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
           else { form.elements.athleteChoice.value = "same"; form.elements.athleteKey.value = pick.value; }
           athleteCheckDoneFor = name.toLowerCase();
           box.hidden = true;
+          showUploadStep(3);
           form.requestSubmit();
         };
         return;
@@ -646,6 +809,12 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     form.elements.athleteChoice.value = ""; form.elements.athleteKey.value = "";
     athleteCheckDoneFor = "";
     $("#athletePrompt").hidden = true;
+    uploadStepError(2, "");
+    showUploadStep(1);
+    // The wizard resets to Step 1 with the form cleared (today's reset
+    // behavior); mirror the server's confirmation at Step 1 so the step
+    // change doesn't swallow it.
+    uploadStepError(1, j.message);
   } catch (err) { msg.textContent = "Error: " + err.message; }
 });
 
@@ -680,6 +849,7 @@ async function loadOwner() {
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
             Apparel: ${esc(o.apparel)} · ${esc(o.colorway)}<br>
+            ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
             <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>
           </div>

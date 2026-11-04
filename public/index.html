@@ -154,10 +154,15 @@
 
     <form id="uploadForm" class="upload-card">
       <h3 id="post">Post a play</h3>
-      <p>Video first — clip first, details second. Your play goes to the owner for review and appears once approved.</p>
+      <p>Video first — clip first, details second. Three quick steps. Your play goes to the owner for review and appears once approved.</p>
 
-      <div class="form-section">
-        <h4 class="form-sec-title">The play</h4>
+      <div class="wizard-progress" id="uploadProgress">
+        <p class="wizard-steplabel" id="uploadStepLabel">Step 1 of 3 — Your video</p>
+        <div class="wizard-track"><div class="wizard-fill" id="uploadBarFill"></div></div>
+      </div>
+
+      <div class="form-section form-step" data-step="1">
+        <h4 class="form-sec-title">Your video</h4>
         <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — drop a file here, or tap to browse">
           <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
           <p class="dz-big">Drop your clip here</p>
@@ -167,40 +172,44 @@
         </div>
         <p class="small">File upload only. <b>MP4 uploads work most reliably.</b> iPhone .MOV clips may show a black picture in Chrome — re-upload as MP4 if that happens.</p>
         <label>Title * <input type="text" name="title" required placeholder="e.g. Walk-off home run"></label>
-        <div class="row2">
-          <label>Sport <select name="sport">
-            <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
-            <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
-          </select></label>
-          <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-        </div>
+        <label>Sport <select name="sport">
+          <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
+          <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
+        </select></label>
         <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
         <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
+        <p class="step-msg" id="stepMsg1" role="alert" hidden></p>
       </div>
 
-      <div class="form-section">
+      <div class="form-section form-step" data-step="2" hidden>
         <h4 class="form-sec-title">The athlete</h4>
         <div class="row2">
           <label>Player first name <input type="text" name="playerName" placeholder="First name only"></label>
           <label>Jersey number (optional) <input type="text" name="jersey" placeholder="e.g. 13"></label>
         </div>
         <label>Team name (optional) <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
+        <label>Division <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
+        <div id="athletePrompt" class="athlete-prompt" hidden></div>
+        <p class="step-msg" id="stepMsg2" role="alert" hidden></p>
       </div>
 
-      <div class="form-section">
+      <div class="form-section form-step" data-step="3" hidden>
         <h4 class="form-sec-title">Parent/guardian (private)</h4>
         <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
         <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month.</p>
         <label>Parent/guardian mobile (optional) <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
         <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
         <p class="small">Private — never shown on the site. Your number is only used for texts if you check the box above; without the check it is kept for owner contact only and never texted. A play entered in the contest is prize-eligible only if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
+        <button type="submit" class="btn btn-lime submit-btn">Submit a Hype → in review</button>
+        <p id="uploadMsg"></p>
       </div>
 
-      <div id="athletePrompt" class="athlete-prompt" hidden></div>
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
-      <button type="submit" class="btn btn-lime submit-btn">Submit a Hype → in review</button>
-      <p id="uploadMsg"></p>
+      <div class="wizard-nav">
+        <button type="button" class="btn btn-ghost" id="upBack" hidden>← Back</button>
+        <button type="button" class="btn btn-lime" id="upNext">Continue →</button>
+      </div>
     </form>
   </div>
 
@@ -340,9 +349,22 @@
               <path d="M200 330 L192 636 M440 330 L448 636" stroke="rgba(255,255,255,.10)" stroke-width="3"/>
             </svg>
             <div class="hf-print" id="hfPrint">
-              <img id="hfPrintImg" alt="Your Hype Frame print, on the apparel" hidden>
+              <img id="hfPrintImg" alt="Your Hype Frame print, on the apparel" draggable="false" hidden>
               <p class="hf-print-empty" id="hfPrintEmpty">Freeze a frame to see it here</p>
             </div>
+          </div>
+          <div class="hf-place" id="hfPlace" hidden>
+            <div class="hf-place-row">
+              <span class="hf-place-sizewrap">
+                <label class="hf-place-label" for="hfSize">Print size</label>
+                <button type="button" class="mini-btn hf-place-btn" id="hfSizeMinus" aria-label="Make the print smaller">−</button>
+                <input type="range" id="hfSize" min="30" max="100" step="1" value="66" aria-label="Print size">
+                <button type="button" class="mini-btn hf-place-btn" id="hfSizePlus" aria-label="Make the print bigger">+</button>
+                <span class="hf-place-val" id="hfSizeVal">66%</span>
+              </span>
+              <button type="button" class="mini-btn" id="hfPlaceReset">Reset placement</button>
+            </div>
+            <p class="small" style="margin:8px 0 0">Drag the print on the garment to move it, slide to size it. It stays inside the printable area — and where you put it is exactly how it gets printed.</p>
           </div>
           <p class="small">The preview shows the actual print image — branding included when it's on — exactly as it would be sent to print.</p>
 

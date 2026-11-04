@@ -669,6 +669,22 @@
   .upload-card .small{color:var(--muted2);font-size:12.5px;font-weight:600;margin:-6px 0 14px;line-height:1.5}
   .upload-card .submit-btn{width:100%;padding:16px;font-size:16.5px;margin-top:2px;border-radius:999px}
   #uploadMsg{font-weight:700;margin:12px 0 0}
+  /* Upload wizard (3 steps): progress chrome + one-section-at-a-time.
+     .form-step[hidden] is spelled out because an author display rule on
+     sections would outrank the UA [hidden] rule (same trap as the
+     Hype Frame garment fix). */
+  .wizard-progress{margin:0 0 22px}
+  .wizard-steplabel{font-weight:800;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+  .wizard-track{height:6px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden}
+  .wizard-fill{height:100%;width:33.333%;background:var(--volt);border-radius:999px;transition:width .25s ease}
+  .form-step[hidden]{display:none}
+  .form-step{margin-bottom:0}
+  .form-step + .form-step{border-top:0;padding-top:0}
+  .step-msg{font-weight:700;color:var(--volt);margin:14px 0 0;font-size:14.5px}
+  .step-msg[hidden]{display:none}
+  .wizard-nav{display:flex;gap:12px;margin-top:24px}
+  .wizard-nav .btn{flex:1;padding:15px 20px;font-size:16px}
+  .wizard-nav .btn[hidden]{display:none}
   /* Drag-and-drop dropzone (wired in app.js to the same name="file" input) */
   .dropzone{border:1.5px dashed var(--line2);border-radius:16px;background:rgba(255,255,255,.02);padding:34px 20px 28px;text-align:center;cursor:pointer;margin:0 0 14px;transition:border-color .15s ease,background .15s ease}
   .dropzone:hover,.dropzone:focus-visible{border-color:#55554a;background:rgba(255,255,255,.04);outline:none}
@@ -747,6 +763,20 @@
   .hf-mock[data-apparel="tee"] .hf-print{left:34.4%;top:32.5%;width:31.2%}
   .hf-print img{width:100%;height:auto;display:block;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
   .hf-print-empty{margin:0;border:1.5px dashed rgba(255,255,255,.4);border-radius:8px;background:rgba(127,127,127,.20);color:#fff;font-size:12.5px;font-weight:700;text-align:center;padding:18px 10px}
+  /* Print placement (drag + size): touch-action:none ONLY on the print
+     layer, so dragging the print never fights page scroll; the rest of
+     the mock/studio scrolls normally. */
+  .hf-print{cursor:grab;touch-action:none}
+  .hf-print:active{cursor:grabbing}
+  .hf-print img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
+  .hf-place{margin:14px 0 4px}
+  .hf-place[hidden]{display:none}
+  .hf-place-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .hf-place-sizewrap{display:flex;align-items:center;gap:9px;flex:1 1 260px;min-width:0}
+  .hf-place-label{display:inline;margin:0;font-weight:700;font-size:14px;color:#fff;white-space:nowrap}
+  .hf-place-sizewrap input[type="range"]{flex:1;min-width:90px;accent-color:var(--volt);height:34px;cursor:pointer;margin:0}
+  .hf-place-btn{width:38px;height:38px;padding:0;font-size:19px;line-height:1;flex:0 0 auto}
+  .hf-place-val{font-weight:800;color:#fff;font-size:14px;min-width:42px}
   .hf-studio #hfMsg{margin:12px 0 0;font-weight:700}
   .hf-req{display:flex;gap:16px;align-items:flex-start}
   .hf-req-img{width:150px;max-width:40%;border-radius:10px;border:1px solid var(--line2)}
