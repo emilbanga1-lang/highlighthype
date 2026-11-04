@@ -133,6 +133,66 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'");
 try { db.exec("ALTER TABLE highlights ADD COLUMN review TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN team TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''"); } catch {}
+// ---- Athlete identity (same-name differentiation) ----
+// Two different youths can post under the same name. A play's athlete is
+// NEVER identified by the name string alone: each athlete gets a stable
+// athlete_id plus a short public tag (HH-####). Identity resolution at
+// upload time, in order: (1) the uploader explicitly picks "same athlete"
+// from the duplicate-check prompt (athleteChoice=same + athleteKey);
+// (2) same normalized name + team AND the same guardian email hash as an
+// existing athlete -> same athlete; (3) otherwise a NEW athlete is created
+// — a matching name with a different (or missing) guardian email is a
+// different athlete, never silently merged.
+db.exec(`CREATE TABLE IF NOT EXISTS athletes(
+  athlete_key TEXT PRIMARY KEY, tag TEXT UNIQUE NOT NULL,
+  name_norm TEXT NOT NULL, team_norm TEXT NOT NULL DEFAULT '',
+  email_hash TEXT NOT NULL DEFAULT '', display_name TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
+try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_id TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_tag TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_group TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE athletes ADD COLUMN division TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE athletes ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
+const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
+function athleteDisplayName(raw) {
+  const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
+function newAthleteTag() {
+  for (let i = 0; i < 50; i++) {
+    const tag = "HH-" + Math.floor(1000 + Math.random() * 9000);
+    if (!db.prepare("SELECT 1 FROM athletes WHERE tag=?").get(tag)) return tag;
+  }
+  return "HH-" + crypto.randomBytes(3).toString("hex").toUpperCase();
+}
+function resolveAthlete({ playerName, team, division = "", jersey = "", notifyEmail, athleteChoice, athleteKey }) {
+  const nameNorm = normIdentity(playerName), teamNorm = normIdentity(team);
+  if (!nameNorm) return { athlete_id: "", athlete_tag: "", athlete_group: "" };
+  const group = nameNorm + "|" + teamNorm;
+  const emailHash = notifyEmail ? sha(normIdentity(notifyEmail)) : "";
+  if (athleteChoice === "same" && athleteKey) {
+    const a = db.prepare("SELECT * FROM athletes WHERE athlete_key=? AND name_norm=?").get(String(athleteKey), nameNorm);
+    if (a) return { athlete_id: a.athlete_key, athlete_tag: a.tag, athlete_group: group };
+  }
+  if (emailHash) {
+    const a = db.prepare("SELECT * FROM athletes WHERE name_norm=? AND team_norm=? AND email_hash=? AND email_hash<>''").get(nameNorm, teamNorm, emailHash);
+    if (a) return { athlete_id: a.athlete_key, athlete_tag: a.tag, athlete_group: group };
+  }
+  const key = crypto.randomBytes(8).toString("hex");
+  const tag = newAthleteTag();
+  db.prepare("INSERT INTO athletes(athlete_key,tag,name_norm,team_norm,email_hash,display_name,division,jersey) VALUES(?,?,?,?,?,?,?,?)")
+    .run(key, tag, nameNorm, teamNorm, emailHash, athleteDisplayName(playerName), String(division || ""), String(jersey || ""));
+  return { athlete_id: key, athlete_tag: tag, athlete_group: group };
+}
+function athleteCollision(group) {
+  if (!group) return false;
+  const r = db.prepare("SELECT COUNT(DISTINCT athlete_id) c FROM highlights WHERE athlete_group=? AND athlete_id<>''").get(group);
+  return (r?.c || 0) > 1;
+}
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
@@ -192,7 +252,7 @@ function moderatePage(row, token, message = "") {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderate: ${escHtml(row.title)}</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
 <h1>Moderate this play</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}
-<p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}</p>
+<p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}${row.athlete_tag ? ` — athlete ${escHtml(row.athlete_tag)}` : ""}</p>
 ${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
@@ -281,15 +341,27 @@ function notifyApproved(title, id, to) {
 }
 function publicHighlight(row, voterToken = "") {
   const { notify_email, ...safe } = row;
+  // Athlete display: first name + last initial (+ team in the UI). The
+  // HH-#### tag is only exposed when two different athletes share the
+  // same name+team group, so it appears exactly when disambiguation is
+  // needed and stays out of the way otherwise.
+  const collision = athleteCollision(row.athlete_group || "");
   return {
     ...safe,
+    athlete_label: row.player_name ? athleteDisplayName(row.player_name) : "",
+    athlete_tag: collision ? (row.athlete_tag || "") : "",
+    athlete_collision: collision,
+    // Boolean only — the guardian email itself is never exposed publicly.
+    // Used to mark contest prize eligibility (winners are contacted
+    // through the parent/guardian, never the child directly).
+    hasGuardianEmail: !!row.notify_email,
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 
-const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
+const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -309,6 +381,23 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, token, warning: "Save this token: it is shown only once. It is stored in this browser automatically." });
     }
 
+    // ---- Athlete duplicate check (upload form) ----
+    // Returns existing athletes whose normalized name matches, so the
+    // uploader can say "same athlete" vs "a different athlete with the
+    // same name" instead of the server silently merging by name string.
+    // Exposes only public facts: display label, team, tag, play count.
+    if (p === "/api/athletes/check" && req.method === "GET") {
+      const nameNorm = normIdentity(u.searchParams.get("name") || "");
+      if (!nameNorm) return sendJson(res, 200, { matches: [] });
+      const rows = db.prepare("SELECT * FROM athletes WHERE name_norm=? ORDER BY created_at").all(nameNorm);
+      const matches = rows.map((a) => ({
+        athleteKey: a.athlete_key, tag: a.tag, displayName: a.display_name,
+        team: db.prepare("SELECT team FROM highlights WHERE athlete_id=? AND team<>'' LIMIT 1").get(a.athlete_key)?.team || "",
+        playCount: db.prepare("SELECT COUNT(*) c FROM highlights WHERE athlete_id=?").get(a.athlete_key).c,
+      }));
+      return sendJson(res, 200, { matches });
+    }
+
     // ---- Public highlights ----
     if (p === "/api/highlights" && req.method === "GET") {
       const sport = u.searchParams.get("sport") || "all";
@@ -318,6 +407,8 @@ const server = http.createServer(async (req, res) => {
       const sort = u.searchParams.get("sort") || "top";
       const voter = u.searchParams.get("voterToken") || "";
       let rows = db.prepare("SELECT * FROM highlights WHERE status='approved'").all();
+      const athleteId = u.searchParams.get("athlete_id") || "";
+      if (athleteId) rows = rows.filter((r) => r.athlete_id === athleteId);
       if (sport !== "all") rows = rows.filter((r) => r.sport === sport);
       // No Coed option any more, but older plays stored as coed still show
       // on both boards until they are re-tagged.
@@ -363,8 +454,9 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, message: "Upload a file or paste a video link." });
       }
       const review = preReview({ title, sport, playType: fields.playType || "", playerName: fields.playerName || "", story: fields.story || "", mediaKind: media_kind, mime, fileSize: file ? file.data.length : 0 });
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim());
+      const athlete = resolveAthlete({ playerName: fields.playerName || "", team: String(fields.team || "").trim(), division, jersey: String(fields.jersey || "").trim(), notifyEmail: String(fields.notifyEmail || "").trim(), athleteChoice: String(fields.athleteChoice || ""), athleteKey: String(fields.athleteKey || "") });
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim());
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -401,7 +493,7 @@ const server = http.createServer(async (req, res) => {
       const voter = u.searchParams.get("voterToken") || "";
       const winnerId = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period)?.highlight_id;
       const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
-        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId }));
+        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: !!r.notify_email }));
       rows.sort((a, b) => b.voteCount - a.voteCount || a.id - b.id);
       const sportCounts = {};
       for (const r of rows) sportCounts[r.sport] = (sportCounts[r.sport] || 0) + 1;
@@ -427,7 +519,8 @@ const server = http.createServer(async (req, res) => {
       if (!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period))
         return sendJson(res, 400, { ok: false, message: "That play is not entered in this month's contest." });
       db.prepare("INSERT INTO contest_winners(period,highlight_id) VALUES(?,?) ON CONFLICT(period) DO UPDATE SET highlight_id=excluded.highlight_id").run(period, id);
-      return sendJson(res, 200, { ok: true, period, highlightId: id });
+      const wrow = db.prepare("SELECT notify_email FROM highlights WHERE id=?").get(id);
+      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: wrow && wrow.notify_email ? "" : "This play has no parent/guardian email on file, so the winner's parent/guardian cannot be contacted — it is not prize-eligible until one is added." });
     }
 
     // ---- Email moderation (works on any device; see moderateToken) ----
@@ -478,7 +571,10 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const rows = db.prepare("SELECT * FROM highlights ORDER BY id DESC").all().map((r) => {
         let review = null; try { review = r.review ? JSON.parse(r.review) : null; } catch {}
-        return { ...publicHighlight(r), review };
+        // Owner-only: the guardian email is included HERE (owner-authorized
+        // endpoint) so the owner can contact a winner's parent/guardian.
+        // It stays stripped from every public response.
+        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "" };
       });
       return sendJson(res, 200, { queue: rows });
     }
