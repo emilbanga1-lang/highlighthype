@@ -266,6 +266,101 @@
   </div>
 </section>
 
+<!-- ============ HYPE FRAME STUDIO ============ -->
+<section class="panel" id="hypeframe" data-panel="hypeframe">
+  <div class="wrap">
+    <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
+    <div class="sec-head">
+      <span class="sec-tag">Hype Frame · Studio</span>
+      <h2>Your moment. <span class="lime">Your swag.</span></h2>
+      <p id="hfPlayLine">Freeze a real frame from the highlight, put it on premium youth apparel, and send the request — a parent or guardian confirms before anything is printed.</p>
+    </div>
+
+    <div class="hf-studio upload-card" id="hfStudio">
+      <div class="hf-grid">
+        <div class="hf-col">
+          <h4 class="form-sec-title">Freeze your frame</h4>
+          <video id="hfVideo" controls playsinline preload="metadata"></video>
+          <img id="hfPhoto" alt="The play's photo" hidden>
+          <div class="hf-scrubrow" id="hfScrubRow">
+            <input type="range" id="hfScrub" min="0" max="0" step="0.01" value="0" aria-label="Video timeline — scrub to your favorite moment">
+            <span id="hfTime">0:00 / 0:00</span>
+          </div>
+          <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
+          <p class="small">Play or scrub the video, pause on the moment, then freeze it. Not the one? Scrub and freeze again — as many times as you like, until it's the shot.</p>
+          <div id="hfLinkNote" hidden>
+            <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
+          </div>
+          <div id="hfStillWrap" hidden>
+            <h4 class="form-sec-title" style="margin-top:22px">Your frozen frame</h4>
+            <img id="hfStill" alt="Your frozen frame — the still you picked">
+            <p class="small">This is the actual still that goes on the print, at the video's full resolution.</p>
+          </div>
+        </div>
+
+        <div class="hf-col">
+          <h4 class="form-sec-title">Make it yours</h4>
+          <label>Name on the print <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
+          <div class="row2">
+            <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
+          </div>
+          <label class="checkline"><input type="checkbox" id="hfBranding" checked> Add the HYPE FRAME branding — crown + wordmark in the corner of the print</label>
+
+          <h4 class="form-sec-title" style="margin-top:22px">Preview it on apparel</h4>
+          <div class="seg" role="group" aria-label="Apparel">
+            <button type="button" id="hfAppHoodie" aria-pressed="true">Hoodie</button>
+            <button type="button" id="hfAppTee" aria-pressed="false">T-Shirt</button>
+          </div>
+          <div class="hf-swatches" id="hfSwatches" role="group" aria-label="Colorway"></div>
+          <div class="hf-mock" id="hfMock" data-apparel="hoodie">
+            <svg class="hf-garment hf-garment-hoodie" viewBox="0 0 640 720" role="img" aria-label="Hoodie preview">
+              <g class="hf-fabric-g" stroke="rgba(0,0,0,.34)" stroke-width="3">
+                <path class="hf-fabric" d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+                <path class="hf-fabric" d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+                <path class="hf-fabric" d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+              </g>
+              <ellipse cx="260" cy="300" rx="180" ry="220" fill="#fff" opacity=".05"/>
+              <ellipse cx="405" cy="580" rx="180" ry="200" fill="#000" opacity=".07"/>
+              <path class="hf-fabric" d="M224 218 C235 141 277 105 320 105 C363 105 405 141 416 218 C396 245 362 260 320 260 C278 260 244 245 224 218 Z" stroke="rgba(0,0,0,.28)" stroke-width="3"/>
+              <path d="M258 190 C276 224 296 240 320 240 C344 240 364 224 382 190 C374 252 350 278 320 278 C290 278 266 252 258 190 Z" fill="rgba(0,0,0,.30)"/>
+              <path d="M291 252 L282 395 M349 252 L358 395" stroke="rgba(20,20,20,.45)" stroke-width="7" stroke-linecap="round"/>
+              <circle cx="282" cy="402" r="6" fill="rgba(255,255,255,.75)"/><circle cx="358" cy="402" r="6" fill="rgba(255,255,255,.75)"/>
+              <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+              <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+              <path d="M232 518 L408 518 L431 636 L209 636 Z" fill="rgba(0,0,0,.10)" stroke="rgba(0,0,0,.25)" stroke-width="3"/>
+            </svg>
+            <svg class="hf-garment hf-garment-tee" viewBox="0 0 640 720" role="img" aria-label="T-shirt preview" hidden>
+              <g class="hf-fabric-g" stroke="rgba(0,0,0,.34)" stroke-width="3">
+                <path class="hf-fabric" d="M208 198 L92 296 C84 303 84 312 92 320 L148 372 C155 378 164 376 168 368 L196 318 L196 640 C196 660 206 668 226 668 L414 668 C434 668 444 660 444 640 L444 318 L472 368 C476 376 485 378 492 372 L548 320 C556 312 556 303 548 296 L432 198 C398 216 362 224 320 224 C278 224 242 216 208 198 Z"/>
+              </g>
+              <ellipse cx="270" cy="330" rx="170" ry="210" fill="#fff" opacity=".05"/>
+              <ellipse cx="400" cy="580" rx="180" ry="180" fill="#000" opacity=".07"/>
+              <path d="M272 200 C288 232 352 232 368 200 C352 214 288 214 272 200 Z" fill="rgba(0,0,0,.30)"/>
+              <path d="M196 620 L444 620 M196 644 L444 644" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+              <path d="M200 330 L192 636 M440 330 L448 636" stroke="rgba(255,255,255,.10)" stroke-width="3"/>
+            </svg>
+            <div class="hf-print" id="hfPrint">
+              <img id="hfPrintImg" alt="Your Hype Frame print, on the apparel" hidden>
+              <p class="hf-print-empty" id="hfPrintEmpty">Freeze a frame to see it here</p>
+            </div>
+          </div>
+          <p class="small">The preview shows the actual print image — branding included when it's on — exactly as it would be sent to print.</p>
+
+          <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
+          <form id="hfOrderForm">
+            <label>Parent/guardian name (optional) <input type="text" id="hfGuardianName" maxlength="80" autocomplete="name"></label>
+            <label>Parent/guardian email * <input type="email" id="hfGuardianEmail" required placeholder="parent/guardian email" autocomplete="email"></label>
+            <p class="small">Private — never shown on the site. There is no payment and no price: submitting sends a request, and we email the parent/guardian to confirm before anything is printed.</p>
+            <button type="submit" class="btn btn-lime submit-btn">Send order request</button>
+            <p id="hfMsg"></p>
+          </form>
+        </div>
+      </div>
+      <canvas id="hfCanvas" hidden></canvas>
+    </div>
+  </div>
+</section>
+
 <!-- ============ HOW IT WORKS ============ -->
 <section class="how-sec panel" id="how" data-panel="how">
   <div class="wrap">
@@ -349,6 +444,7 @@
       <p style="color:var(--muted2);font-size:13px">Already have an owner token? Paste it here — it is saved on this device only, it is not a password login.</p>
       <p><input id="tokenInp" type="password" placeholder="Paste owner token" size="36"> <button type="button" class="mini-btn" id="saveTokenBtn">Save owner token</button></p>
       <h3 style="margin-top:22px">Moderation queue</h3><div id="queue"></div>
+      <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
     </div>
   </div>
@@ -398,7 +494,7 @@
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
       <span class="dur">0:10</span>
-      <span class="swag-film-hint" id="swagHint">⏸ Hype Frame — pause to shop the look</span>
+      <span class="swag-film-hint" id="swagHint">⏸ Pause to shop the look</span>
       <div class="swag-film-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
@@ -409,7 +505,7 @@
         </div>
       </div>
       <div class="swag-shop-card" id="swagShopCard" hidden>
-        <p class="ssc-kicker">Hype Frame · In this scene</p>
+        <p class="ssc-kicker">In this scene</p>
         <h4 id="sscTitle">The Hype Girls hoodies</h4>
         <p class="ssc-sub" id="sscSub"></p>
         <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
@@ -430,6 +526,23 @@
       <div class="ln"><h4>Hype Athletics</h4><p class="slogan">Hype Is Earned</p><p class="side">Hype Girls · Hype Boys</p></div>
       <div class="ln"><h4>Hype Essentials</h4><p class="slogan">The Hype Starts Here</p><p class="side">Hype Girls</p></div>
       <div class="ln"><h4>Hype Unleashed</h4><p class="slogan">It&rsquo;s Hype or Nothing</p><p class="side">Hype Boys</p></div>
+    </div>
+
+    <div class="hypeframe-sec" id="hype-frame">
+      <div class="sec-head" style="margin-bottom:14px">
+        <span class="sec-tag">New · Hype Frame</span>
+        <h3 class="hf-store-title">HYPE FRAME — Your moment. Your swag.</h3>
+        <p>A real freeze-frame from the athlete's own highlight, printed on premium youth apparel. Not a stock design — their moment, their name, their number.</p>
+      </div>
+      <div class="hf-steps">
+        <div class="hf-step"><div class="num">01</div><p>Select your highlight from an uploaded video.</p></div>
+        <div class="hf-step"><div class="num">02</div><p>Freeze your favorite frame using a video timeline.</p></div>
+        <div class="hf-step"><div class="num">03</div><p>Customize with your name, jersey number, and optional HYPE FRAME branding.</p></div>
+        <div class="hf-step"><div class="num">04</div><p>Preview the actual image on a hoodie or T-shirt.</p></div>
+        <div class="hf-step"><div class="num">05</div><p>Order with parent or guardian approval.</p></div>
+      </div>
+      <p class="hf-start-note">Hype Frame starts from any approved play on the board — find the play, tap <b>📸 Create a Hype Frame</b> on its card, and the studio opens with that highlight loaded. No payment today: a parent or guardian confirms by email before anything is printed.</p>
+      <a class="btn btn-lime" href="#deck" data-tablink="plays">Pick a play on the board</a>
     </div>
 
     <div class="collection" id="hype-girls">

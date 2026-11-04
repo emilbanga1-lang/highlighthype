@@ -71,6 +71,7 @@ function cardHtml(h, opts = {}) {
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
       </div>
       <div class="card-actions">
+        <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
         <button type="button" class="mini-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id})">🔗 Share</button>
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -254,6 +255,8 @@ $$(".brand").forEach((b) => b.addEventListener("click", () => showHome()));
 window.addEventListener("hashchange", () => {
   if (location.hash === "#shop") showStore();
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
+  const hm = location.hash.match(/^#hype-frame-(\d+)$/);
+  if (hm) openHypeFrame(Number(hm[1]));
 });
 function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
 $("#floatSubmit").addEventListener("click", goSubmit);
@@ -290,34 +293,36 @@ function syncFilterUI() {
 $("#teamFilter").addEventListener("change", (e) => { allTeam = e.target.value; if (allTeam !== "all") history.replaceState(null, "", `#team-${allTeam}`); renderAll2(); });
 $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; renderAll2(); });
 
-/* ---------------- Hype Frame (shop the look) ---------------- */
+/* ---------------- Swag film: pause to shop the look ---------------- */
 // Emil's vision (2026-11-04): a kid pauses the Drop 001 film and can jump
-// to the swag in the frame they paused on. Scene cuts verified from the
-// actual media with ffmpeg scene detection: the 9.504s film cuts at
-// exactly 2.5s, 5.0s and 7.5s —
+// to the swag in the scene they paused on. (This film overlay was briefly
+// called "Hype Frame"; Emil moved that name to the freeze-frame studio
+// below the same day, so the film keeps the plain description.) Scene
+// cuts verified from the actual media with ffmpeg scene detection: the
+// 9.504s film cuts at exactly 2.5s, 5.0s and 7.5s —
 //   0.0–2.5  Girls hoodies      -> #hype-girls
 //   2.5–5.0  Boys hoodies       -> #hype-boys
 //   5.0–7.5  Hype All Day hoodie -> #coordinating (coordinating tees area)
 //   7.5–end  End card           -> #collections (the full Drop 001 boards)
 // Preview only: the button says "View this look" — no prices, no cart,
 // no checkout anywhere in this flow.
-const HYPE_FRAME_SCENES = [
+const FILM_SCENES = [
   { until: 2.5, title: "The Hype Girls hoodies", sub: "You paused on the Girls scene — Hype Street, Hype Athletics & Hype Essentials.", btn: "View the Girls look", target: "hype-girls" },
   { until: 5.0, title: "The Hype Boys hoodies", sub: "You paused on the Boys scene — Hype Street, Hype Athletics & Hype Unleashed.", btn: "View the Boys look", target: "hype-boys" },
   { until: 7.5, title: "The Hype All Day hoodie", sub: "You paused on the statement hoodie — see the coordinating pieces below.", btn: "View this look", target: "coordinating" },
   { until: Infinity, title: "Drop 001 — the full drop", sub: "Both collections, six boards. Preview — products are finalizing.", btn: "Shop Drop 001", target: "collections" },
 ];
-function hypeFrameSceneAt(t) {
-  return HYPE_FRAME_SCENES.find((s) => t < s.until) || HYPE_FRAME_SCENES[HYPE_FRAME_SCENES.length - 1];
+function filmSceneAt(t) {
+  return FILM_SCENES.find((s) => t < s.until) || FILM_SCENES[FILM_SCENES.length - 1];
 }
 (function () {
   const v = $("#swagVideo"), card = $("#swagShopCard");
   if (!v || !card) return;
   const film = v.closest(".swag-film");
   const title = $("#sscTitle"), sub = $("#sscSub"), btn = $("#sscBtn");
-  let scene = HYPE_FRAME_SCENES[0];
+  let scene = FILM_SCENES[0];
   function showCard() {
-    scene = hypeFrameSceneAt(v.currentTime || 0);
+    scene = filmSceneAt(v.currentTime || 0);
     title.textContent = scene.title;
     sub.textContent = scene.sub;
     btn.textContent = scene.btn;
@@ -335,6 +340,207 @@ function hypeFrameSceneAt(t) {
   btn.addEventListener("click", () => {
     const el = document.getElementById(scene.target);
     if (el) el.scrollIntoView({ behavior: "smooth" });
+  });
+})();
+
+/* ---------------- Hype Frame studio ---------------- */
+// Emil's product concept (2026-11-04): a real freeze-frame from the
+// athlete's OWN highlight, printed on premium youth apparel.
+//   1. Select your highlight from an uploaded video (the play card button).
+//   2. Freeze your favorite frame using a video timeline (scrub + freeze).
+//   3. Customize with your name, jersey number, and optional HYPE FRAME
+//      branding (drawn onto the print image itself, not just the preview).
+//   4. Preview the actual image on a hoodie or T-shirt.
+//   5. Order with parent or guardian approval (an order REQUEST — no
+//      payment, no price; the owner confirms with the guardian first).
+// Capture is client-side canvas work: play videos are same-origin hosted
+// files, so drawImage + toDataURL work. Link-posted plays can't be
+// captured (cross-origin embeds) — the studio says so instead of failing.
+const HF_COLORWAYS = {
+  hoodie: [
+    { name: "Black", hex: "#17171a" }, { name: "Cream", hex: "#f3e7cf" },
+    { name: "Pink", hex: "#f3a8c4" }, { name: "Navy", hex: "#14264a" },
+    { name: "Forest Green", hex: "#14532d" }, { name: "Heather Gray", hex: "#a8abb0" },
+    { name: "Light Blue", hex: "#a9d7f0" }, { name: "Olive", hex: "#66704a" },
+  ],
+  tee: [
+    { name: "Black", hex: "#17171a" }, { name: "White", hex: "#f5f5f2" },
+    { name: "Cream", hex: "#f3e7cf" }, { name: "Heather Gray", hex: "#a8abb0" },
+    { name: "Navy", hex: "#14264a" }, { name: "Pink", hex: "#f3a8c4" },
+  ],
+};
+const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "" };
+const hfCrown = new Image();
+let hfCrownReady = false;
+hfCrown.onload = () => { hfCrownReady = true; if (hfState.frozen) composeHfPrint(); };
+hfCrown.src = "/crown.png";
+
+window.openHypeFrame = (id) => {
+  const play = ALL_PLAYS.find((p) => p.id === id) || (CONTEST.entries || []).find((p) => p.id === id);
+  if (!play) { alert("That play isn't on the board anymore."); return; }
+  showHome(); closeMenu(false); showPanel("hypeframe");
+  history.replaceState(null, "", `#hype-frame-${id}`);
+  initHfStudio(play);
+  document.getElementById("hypeframe").scrollIntoView({ behavior: "smooth" });
+};
+function initHfStudio(play) {
+  hfState.play = play;
+  hfState.frozen = false;
+  hfState.printDataUrl = "";
+  $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, preview it on apparel, and send the request. A parent or guardian confirms before anything is printed.`;
+  $("#hfName").value = play.athlete_label || play.player_name || "";
+  $("#hfJersey").value = play.jersey || "";
+  $("#hfBranding").checked = true;
+  $("#hfMsg").textContent = "";
+  $("#hfStillWrap").hidden = true;
+  $("#hfPrintImg").hidden = true;
+  $("#hfPrintEmpty").hidden = false;
+  const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
+  v.pause(); v.removeAttribute("src"); v.load();
+  photo.removeAttribute("src");
+  if (play.media_kind === "file" && (play.mime || "").startsWith("image/")) {
+    hfState.mediaType = "image";
+    photo.src = play.media_url; photo.hidden = false;
+    v.hidden = true; scrubRow.style.display = "none"; linkNote.hidden = true; freezeBtn.disabled = false;
+  } else if (play.media_kind === "file") {
+    hfState.mediaType = "video";
+    v.src = play.media_url; v.hidden = false;
+    photo.hidden = true; scrubRow.style.display = ""; linkNote.hidden = true; freezeBtn.disabled = false;
+  } else {
+    hfState.mediaType = "link";
+    v.hidden = true; photo.hidden = true; scrubRow.style.display = "none";
+    linkNote.hidden = false; freezeBtn.disabled = true;
+  }
+  hfSetApparel("hoodie");
+}
+function hfFmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+function hfUpdateTime() {
+  const v = $("#hfVideo");
+  $("#hfTime").textContent = `${hfFmtTime(v.currentTime)} / ${hfFmtTime(v.duration)}`;
+}
+function freezeHfFrame() {
+  if (!hfState.play) { alert("Pick a play on the board first."); return; }
+  const c = $("#hfCanvas"), x = c.getContext("2d");
+  if (hfState.mediaType === "video") {
+    const v = $("#hfVideo");
+    if (!v.videoWidth || v.readyState < 2) { alert("Give the video a moment to load, then freeze again."); return; }
+    c.width = v.videoWidth; c.height = v.videoHeight;
+    x.drawImage(v, 0, 0, c.width, c.height);
+  } else if (hfState.mediaType === "image") {
+    const im = $("#hfPhoto");
+    if (!im.naturalWidth) { alert("Give the photo a moment to load, then freeze again."); return; }
+    c.width = im.naturalWidth; c.height = im.naturalHeight;
+    x.drawImage(im, 0, 0, c.width, c.height);
+  } else {
+    alert("This play was posted as a link, so a frame can't be frozen from it here.");
+    return;
+  }
+  hfState.frozen = true;
+  $("#hfStill").src = c.toDataURL("image/png");
+  $("#hfStillWrap").hidden = false;
+  composeHfPrint();
+}
+// Compose the FINAL print image: the frozen frame, the optional HYPE
+// FRAME lockup drawn into the frame's corner, and the name / jersey
+// caption under the frame. The apparel preview and the submitted order
+// both use this exact image — what they see is what would print.
+function composeHfPrint() {
+  const img = $("#hfPrintImg"), empty = $("#hfPrintEmpty");
+  if (!hfState.frozen) { hfState.printDataUrl = ""; img.hidden = true; empty.hidden = false; return; }
+  const fc = $("#hfCanvas");
+  const W = fc.width, H = fc.height;
+  const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
+  const branding = $("#hfBranding").checked;
+  const caption = [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ");
+  const bandH = caption ? Math.round(W * 0.17) : 0;
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H + bandH;
+  const x = c.getContext("2d");
+  x.drawImage(fc, 0, 0);
+  if (branding) {
+    const m = Math.round(W * 0.03);
+    const cw = Math.round(W * 0.17), ch = Math.round(cw * 290 / 518);
+    if (hfCrownReady) x.drawImage(hfCrown, W - cw - m, m, cw, ch);
+    else { // fallback crown if the image hasn't loaded: simple gold spikes
+      x.save(); x.fillStyle = "#e3b93e"; x.beginPath();
+      const bx = W - cw - m, by = m + ch * 0.25;
+      x.moveTo(bx, by + ch * 0.6); x.lineTo(bx + cw * 0.08, by); x.lineTo(bx + cw * 0.3, by + ch * 0.38); x.lineTo(bx + cw * 0.5, by - ch * 0.22); x.lineTo(bx + cw * 0.7, by + ch * 0.38); x.lineTo(bx + cw * 0.92, by); x.lineTo(bx + cw, by + ch * 0.6); x.closePath(); x.fill(); x.restore();
+    }
+    const fs = Math.max(14, Math.round(W * 0.034));
+    x.font = `800 ${fs}px Archivo, Arial, sans-serif`;
+    x.textAlign = "right"; x.textBaseline = "top";
+    try { x.letterSpacing = "2px"; } catch {}
+    x.lineWidth = Math.max(2, fs / 6); x.strokeStyle = "rgba(0,0,0,.6)";
+    const ly = m + ch + Math.round(W * 0.008);
+    x.strokeText("HYPE FRAME", W - m, ly);
+    x.fillStyle = "#ffffff"; x.fillText("HYPE FRAME", W - m, ly);
+  }
+  if (caption) {
+    const fs = Math.round(W * 0.072);
+    x.font = `800 ${fs}px Archivo, Arial, sans-serif`;
+    x.textAlign = "center"; x.textBaseline = "middle";
+    try { x.letterSpacing = "3px"; } catch {}
+    x.lineWidth = Math.max(3, fs / 7); x.strokeStyle = "rgba(0,0,0,.65)";
+    const cy = H + bandH / 2;
+    x.strokeText(caption, W / 2, cy);
+    x.fillStyle = "#ffffff"; x.fillText(caption, W / 2, cy);
+  }
+  hfState.printDataUrl = c.toDataURL("image/png");
+  img.src = hfState.printDataUrl;
+  img.hidden = false; empty.hidden = true;
+}
+function hfSetApparel(a) {
+  hfState.apparel = a;
+  $("#hfAppHoodie").setAttribute("aria-pressed", String(a === "hoodie"));
+  $("#hfAppTee").setAttribute("aria-pressed", String(a === "tee"));
+  $("#hfMock").dataset.apparel = a;
+  $(".hf-garment-hoodie").hidden = a !== "hoodie";
+  $(".hf-garment-tee").hidden = a !== "tee";
+  const list = HF_COLORWAYS[a];
+  if (!list.some((c) => c.name === hfState.colorway)) hfState.colorway = list[0].name;
+  $("#hfSwatches").innerHTML = list.map((c) => `<button type="button" class="pill hf-swatch" data-colorway="${esc(c.name)}" aria-pressed="${hfState.colorway === c.name}"><span class="swatch" style="--sw:${c.hex}"></span>${esc(c.name)}</button>`).join("");
+  $$("#hfSwatches .hf-swatch").forEach((b) => b.addEventListener("click", () => hfSetColorway(b.dataset.colorway)));
+  hfSetColorway(hfState.colorway);
+}
+function hfSetColorway(name) {
+  const c = (HF_COLORWAYS[hfState.apparel] || []).find((k) => k.name === name) || HF_COLORWAYS[hfState.apparel][0];
+  hfState.colorway = c.name;
+  $$("#hfMock .hf-fabric").forEach((p) => p.setAttribute("fill", c.hex));
+  $$("#hfSwatches .hf-swatch").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.colorway === c.name)));
+}
+(function () {
+  const v = $("#hfVideo");
+  if (!v) return;
+  v.addEventListener("loadedmetadata", () => { $("#hfScrub").max = v.duration || 0; hfUpdateTime(); });
+  v.addEventListener("timeupdate", () => { $("#hfScrub").value = v.currentTime || 0; hfUpdateTime(); });
+  $("#hfScrub").addEventListener("input", (e) => { if (v.duration) { v.currentTime = Number(e.target.value); hfUpdateTime(); } });
+  $("#hfFreeze").addEventListener("click", freezeHfFrame);
+  ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
+  $("#hfBranding").addEventListener("change", () => { if (hfState.frozen) composeHfPrint(); });
+  $("#hfAppHoodie").addEventListener("click", () => hfSetApparel("hoodie"));
+  $("#hfAppTee").addEventListener("click", () => hfSetApparel("tee"));
+  $("#hfOrderForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("#hfMsg");
+    if (!hfState.play) { msg.textContent = "Pick a play on the board first — Hype Frame starts from an approved play."; return; }
+    if (!hfState.frozen || !hfState.printDataUrl) { msg.textContent = "Freeze a frame first — the print starts from your frozen still."; return; }
+    const guardianEmail = $("#hfGuardianEmail").value.trim();
+    if (!guardianEmail) { msg.textContent = "A parent/guardian email is required so we can confirm before printing."; return; }
+    msg.textContent = "Sending your request…";
+    try {
+      const r = await api("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+        highlightId: hfState.play.id,
+        customName: $("#hfName").value.trim(),
+        jersey: $("#hfJersey").value.trim(),
+        branding: $("#hfBranding").checked,
+        apparel: hfState.apparel,
+        colorway: hfState.colorway,
+        guardianName: $("#hfGuardianName").value.trim(),
+        guardianEmail,
+        image: hfState.printDataUrl,
+      }) });
+      msg.textContent = r.message;
+    } catch (err) { msg.textContent = "Error: " + err.message; }
   });
 })();
 
@@ -459,6 +665,28 @@ async function loadOwner() {
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button></div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${esc(r.created_at)})</p>`).join("") || "<p>No reports.</p>";
+    // Hype Frame requests (owner only): print image thumbnails are fetched
+    // as blobs through the owner-authorized image endpoint — the images
+    // are never publicly served. Guardian email is owner-visible here only.
+    try {
+      const hf = await api("/api/owner/hype-frames");
+      let hfHtml = "";
+      for (const o of hf.requests) {
+        let src = "";
+        try { const ir = await fetch(o.imageUrl, { headers: { "x-owner-token": ownerToken() } }); if (ir.ok) src = URL.createObjectURL(await ir.blob()); } catch {}
+        hfHtml += `<div class="queue-item hf-req">
+          ${src ? `<img class="hf-req-img" src="${src}" alt="Hype Frame print image">` : `<p><i>Print image on file (preview unavailable here).</i></p>`}
+          <div class="hf-req-body">
+            <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
+            Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
+            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)}<br>
+            Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
+            <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>
+          </div>
+        </div>`;
+      }
+      $("#hfRequests").innerHTML = hfHtml || "<p>No Hype Frame requests yet.</p>";
+    } catch { $("#hfRequests").innerHTML = "<p>Could not load Hype Frame requests.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
 }
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
@@ -473,8 +701,9 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   const tm = location.hash.match(/^#team-(.+)$/);
   if (tm) { allTeam = tm[1]; switchView("all"); }
   const am = location.hash.match(/^#athlete-(.+)$/);
+  const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   syncFilterUI();
-  loadData().then(() => { if (am) openAthlete(am[1]); });
+  loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); });
   if (location.hash === "#shop") showStore();
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
   if (location.hash === "#owner") { $("#ownerPanel").classList.remove("hidden"); loadOwner(); }

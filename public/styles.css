@@ -714,3 +714,40 @@
   /* Store: in-page shop links behave like the prototype's */
   .shop a.shop-anchor{color:var(--volt);font-weight:800;text-decoration:none}
   .shop a.shop-anchor:hover{text-decoration:underline;text-underline-offset:3px}
+
+  /* ---------- Hype Frame (Store section + studio + owner requests) ---------- */
+  /* Hype Frame = the freeze-frame studio (Emil, 2026-11-04). The name
+     lives here and on the play cards — NOT on the swag film any more. */
+  .hypeframe-sec{margin:46px 0 6px;padding-top:36px;border-top:1px solid var(--line)}
+  .hf-store-title{font-family:"Anton",sans-serif;font-size:clamp(28px,4.4vw,44px);line-height:1.02;margin:0;text-transform:uppercase;letter-spacing:.01em}
+  .hf-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin:20px 0 18px}
+  .hf-step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .hf-step .num{font-family:"Anton",sans-serif;font-size:22px;color:var(--volt);line-height:1}
+  .hf-step p{margin:7px 0 0;color:var(--muted);font-weight:600;font-size:14px}
+  @media (max-width:980px){ .hf-steps{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:520px){ .hf-steps{grid-template-columns:1fr} }
+  .hf-start-note{color:var(--muted);font-weight:600;max-width:760px}
+  .hf-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  @media (max-width:900px){ .hf-grid{grid-template-columns:1fr} }
+  .hf-studio video{width:100%;border-radius:14px;background:#000;display:block}
+  .hf-studio img#hfPhoto,.hf-studio img#hfStill{width:100%;border-radius:14px;display:block}
+  .hf-studio img#hfStill{border:1px solid var(--line2)}
+  .hf-scrubrow{display:flex;gap:12px;align-items:center;margin:12px 0 14px}
+  .hf-scrubrow input[type="range"]{flex:1;accent-color:var(--volt);cursor:pointer}
+  .hf-scrubrow span{font-weight:700;color:var(--muted);font-size:13.5px;white-space:nowrap}
+  #hfFreeze{width:100%;padding:14px;font-size:15.5px}
+  .hf-swatches{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px}
+  .hf-swatch{display:inline-flex;align-items:center;gap:8px}
+  .hf-swatch .swatch{width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+  .hf-mock{position:relative;max-width:430px;margin:16px auto 6px}
+  .hf-garment{width:100%;height:auto;display:block}
+  .hf-print{position:absolute;display:block}
+  .hf-mock[data-apparel="hoodie"] .hf-print{left:33.4%;top:40.5%;width:33.2%}
+  .hf-mock[data-apparel="tee"] .hf-print{left:34.4%;top:32.5%;width:31.2%}
+  .hf-print img{width:100%;height:auto;display:block;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
+  .hf-print-empty{margin:0;border:1.5px dashed rgba(255,255,255,.4);border-radius:8px;background:rgba(127,127,127,.20);color:#fff;font-size:12.5px;font-weight:700;text-align:center;padding:18px 10px}
+  .hf-studio #hfMsg{margin:12px 0 0;font-weight:700}
+  .hf-req{display:flex;gap:16px;align-items:flex-start}
+  .hf-req-img{width:150px;max-width:40%;border-radius:10px;border:1px solid var(--line2)}
+  .hf-req-body{flex:1;min-width:0}
+  @media (max-width:560px){ .hf-req{flex-direction:column} .hf-req-img{max-width:230px} }
