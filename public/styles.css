@@ -599,7 +599,9 @@
   .upload-card h3{font-family:"Anton",sans-serif;font-size:24px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.02em}
   .upload-card>p{color:var(--muted);font-size:14.5px;margin:0 0 18px;font-weight:500}
   .upload-card label{display:block;font-weight:700;font-size:14px;margin:0 0 14px;color:#fff}
-  .upload-card input[type="text"],.upload-card input[type="email"],.upload-card input:not([type]),.upload-card select,.upload-card textarea{width:100%;margin-top:6px;background:#0d0d0d;border:1px solid var(--line2);border-radius:10px;color:#fff;font:inherit;font-size:15px;padding:11px 13px}
+  .upload-card input[type="text"],.upload-card input[type="email"],.upload-card input[type="tel"],.upload-card input:not([type]),.upload-card select,.upload-card textarea{width:100%;margin-top:6px;background:#0d0d0d;border:1px solid var(--line2);border-radius:10px;color:#fff;font:inherit;font-size:15px;padding:11px 13px}
+  .upload-card label.checkline{display:flex;gap:9px;align-items:flex-start;font-weight:600;font-size:14px;cursor:pointer}
+  .upload-card label.checkline input{margin-top:2px;width:17px;height:17px;flex:0 0 auto;accent-color:var(--volt)}
   .upload-card textarea{min-height:74px;resize:vertical}
   .upload-card input[type="file"]{margin-top:6px;color:var(--muted);font:inherit;font-size:14px}
   .upload-card .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}

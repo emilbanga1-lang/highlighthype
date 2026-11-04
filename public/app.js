@@ -65,7 +65,7 @@ function cardHtml(h, opts = {}) {
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
       ${athleteLine(h)}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
-      ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Not prize-eligible — no parent/guardian email on file</span></p>` : ""}
+      ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Not prize-eligible — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
         <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id})">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
@@ -82,7 +82,7 @@ function cardHtml(h, opts = {}) {
 window.toggleVote = async (id) => { try { await api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) }); await loadData(); } catch (e) { alert(e.message); } };
 window.enterContest = async (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
-  if (play && !play.hasGuardianEmail && !confirm("Heads up: this play has no parent/guardian email on file, so it won't be prize-eligible — winners are contacted through a parent/guardian only. Enter anyway?")) return;
+  if (play && !play.hasGuardianEmail && !play.hasGuardianText && !confirm("Heads up: this play has no parent/guardian email and no consented guardian text number on file, so it won't be prize-eligible — winners are contacted through a parent/guardian only. Enter anyway?")) return;
   try { const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); alert(r.message); await loadData(); } catch (e) { alert(e.message); }
 };
 window.reportPlay = async (id) => { const reason = prompt("Why are you reporting this play? (optional)") || "Reported by a user"; try { const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) }); alert(r.message); } catch (e) { alert(e.message); } };
@@ -356,7 +356,10 @@ async function loadOwner() {
     $("#ownerStatus").textContent = "Owner access active on this device.";
     $("#queue").innerHTML = q.queue.map((h) => `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b> — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
-      ${h.guardian_email ? `<br>Parent/guardian (owner only): ${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>` : `<br><span style="color:var(--muted)">No parent/guardian email on file — not prize-eligible.</span>`}
+      ${(() => { const bits = [];
+        if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
+        if (h.guardian_phone) bits.push(`${esc(h.guardian_phone)} <a class="mini-btn" style="text-decoration:none" href="tel:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">📞 Call</a> <a class="mini-btn" style="text-decoration:none" href="sms:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">💬 Text</a> ${h.text_consent ? `<span class="tagchip">Text opt-in: YES</span>` : `<span class="tagchip warn">No text opt-in — do not text</span>`}`);
+        return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — not prize-eligible.</span>`; })()}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button></div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");

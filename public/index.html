@@ -176,7 +176,10 @@
       </div>
       <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
       <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
-      <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month. A play entered in the contest without a parent/guardian email is not prize-eligible.</p>
+      <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month.</p>
+      <label>Parent/guardian mobile (optional) <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
+      <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+      <p class="small">Private — never shown on the site. Your number is only used for texts if you check the box above; without the check it is kept for owner contact only and never texted. A play entered in the contest is prize-eligible only if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
       <div id="athletePrompt" class="athlete-prompt" hidden></div>
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
@@ -494,6 +497,7 @@
       <div>Only your own clips. Parent permission under 13. Winners are contacted through a parent/guardian.</div>
       <div style="margin-top:9px"><a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a> — questions, play reports, removal requests.</div>
       <div style="margin-top:9px"><a href="#shop" data-store-link style="font-weight:800">Rep The Hype — open the Store →</a></div>
+      <div style="margin-top:9px"><a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a></div>
       <div class="owner-row">
         <button type="button" class="mini-btn" id="ownerBtn">Owner view</button>
         <button type="button" class="mini-btn" id="modLinkBtn">Email me a moderation link</button>
