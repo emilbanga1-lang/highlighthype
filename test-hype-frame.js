@@ -29,6 +29,7 @@ try {
   for (let i = 0; i < 50; i++) { try { await fetch(base + "/api/health"); break; } catch { await wait(200); } }
   const home = await text("/");
   const appJs = await text("/app.js");
+  const css = await text("/styles.css");
 
   /* ---- 1. Naming: film vs studio ---- */
   const hint = (home.match(/id="swagHint"[^>]*>([^<]*)</) || [])[1] || "";
@@ -46,6 +47,24 @@ try {
   assert(appJs.includes("Create a Hype Frame"), "play cards get a 'Create a Hype Frame' button");
   assert(home.includes('id="hypeframe"') && home.includes('id="hfVideo"') && home.includes('id="hfScrub"') && home.includes('id="hfFreeze"') && home.includes('id="hfOrderForm"'), "studio markup present (video, timeline, freeze button, order form)");
   assert(appJs.includes("/api/hype-frame/orders") && appJs.includes("composeHfPrint"), "studio wires freeze -> compose -> order request");
+
+  /* ---- 1b. Apparel preview: BOTH garment branches show the print ----
+     Regression (2026-11-04 live bug): the T-Shirt preview showed the
+     hoodie carrying the print above a plain tee. Root cause: the author
+     rule .hf-garment{display:block} outranks the UA [hidden]{display:none},
+     so hfSetApparel's hidden toggling never hid either garment — both
+     SVGs stacked and the shared print overlay landed on the hoodie in
+     both modes. Fix: .hf-garment[hidden]{display:none}. */
+  assert(/\.hf-garment\[hidden\]\s*\{\s*display:\s*none/.test(css), "inactive garment is actually hidden (.hf-garment[hidden]{display:none} present)");
+  for (const a of ["hoodie", "tee"]) {
+    const rule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\] \\.hf-print\\s*\\{[^}]*left:[^}]*top:[^}]*width:`);
+    assert(rule.test(css), `${a} branch positions the shared print layer in its chest print area`);
+  }
+  assert(appJs.includes('$(".hf-garment-hoodie").hidden = a !== "hoodie"') && appJs.includes('$(".hf-garment-tee").hidden = a !== "tee"'), "apparel switch toggles hidden on both garments");
+  assert(appJs.includes('$("#hfMock").dataset.apparel = a'), "apparel switch sets the mock's data-apparel so the matching print-area rule applies");
+  assert((home.match(/id="hfPrint"/g) || []).length === 1, "exactly one shared print layer serves both garments");
+  const mockHtml = home.slice(home.indexOf('id="hfMock"'), home.indexOf('id="hfOrderForm"'));
+  assert(mockHtml.indexOf("hf-garment-tee") > -1 && mockHtml.indexOf('id="hfPrint"') > mockHtml.indexOf("hf-garment-tee"), "print layer follows both garment SVGs in the mock, so it paints above the active garment");
   const storeSection = home.slice(home.indexOf('id="shop"'));
   assert(!storeSection.includes("$"), "no prices anywhere in the Store section (Hype Frame included)");
 
