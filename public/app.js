@@ -425,7 +425,7 @@ $$(".prod-card").forEach((card) => {
   if (flip) flip.addEventListener("click", (e) => {
     e.stopPropagation();
     const back = card.classList.toggle("show-back");
-    flip.textContent = back ? "⇄ Front" : "⇄ Back";
+    flip.textContent = back ? "View front ⇄" : "View back ⇄";
     flip.setAttribute("aria-label", `Flip ${card.querySelector("h4").textContent} card to the ${back ? "front" : "back"} view`);
   });
   card.addEventListener("click", () => openQuickView(card));
