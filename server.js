@@ -229,6 +229,12 @@ db.exec(`CREATE TABLE IF NOT EXISTS hype_frame_orders(
   status TEXT NOT NULL DEFAULT 'pending-guardian',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );`);
+// Print placement (2026-11-04): where the print sits on the garment, as
+// percentages relative to the garment's print area — {cx, cy, size}
+// (center across, center down, width as % of the print-area width).
+// Stored as a JSON string so the owner (and any printer) can reproduce
+// exactly what the family previewed. Added additively for existing DBs.
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN placement TEXT DEFAULT ''"); } catch {}
 const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
 function athleteDisplayName(raw) {
   const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
@@ -421,7 +427,7 @@ function notifyHypeFrameRequest(order, play) {
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway}\nParent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n\nSee the request and the print image in Owner view: https://highlighthype.com/#owner\n` })
+    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n\nSee the request and the print image in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
 function publicHighlight(row, voterToken = "") {
@@ -605,6 +611,17 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, message: "The print image must be a PNG — try freezing the frame again." });
       const imgName = `hf-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.png`;
       fs.writeFileSync(path.join(HYPEFRAME_DIR, imgName), imgBuf);
+      // Placement: percentages relative to the garment print area.
+      // Clamp to sane ranges; a missing/partial placement falls back to
+      // the studio defaults (centered, default size) so every order on
+      // file carries a reproducible placement.
+      const plIn = body.placement && typeof body.placement === "object" ? body.placement : {};
+      const clampPct = (v, lo, hi, dflt) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, Math.round(n * 10) / 10)) : dflt; };
+      const placement = JSON.stringify({
+        cx: clampPct(plIn.cx, 0, 100, 50),
+        cy: clampPct(plIn.cy, 0, 100, 42),
+        size: clampPct(plIn.size, 10, 100, 66),
+      });
       const order = {
         highlight_id: play.id,
         athlete_id: play.athlete_id || "",
@@ -616,9 +633,10 @@ const server = http.createServer(async (req, res) => {
         colorway: String(body.colorway || "").trim().slice(0, 40),
         guardian_name: String(body.guardianName || "").trim().slice(0, 80),
         guardian_email: guardianEmail,
+        placement,
       };
-      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,colorway,guardian_name,guardian_email)
-        VALUES(?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.colorway, order.guardian_name, order.guardian_email);
+      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,colorway,guardian_name,guardian_email,placement)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.colorway, order.guardian_name, order.guardian_email, order.placement);
       notifyHypeFrameRequest({ ...order, id: Number(info.lastInsertRowid) }, play);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
     }

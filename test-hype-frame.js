@@ -6,6 +6,9 @@
 //    image stored; status starts "pending-guardian"; no payment/price.
 // 3. Guardian email never appears in any public endpoint response.
 // 4. Owner endpoints: list + print image require owner auth.
+// 5. Print placement (2026-11-04): the studio's drag/size placement is
+//    carried on the order (defaults when unadjusted, clamped when out
+//    of range), shows on the owner API, and never leaks publicly.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -120,6 +123,35 @@ try {
   assert(img.status === 200 && (img.headers.get("content-type") || "").includes("image/png"), "print image serves as PNG with owner auth");
   const imgBytes = Buffer.from(await img.arrayBuffer());
   assert(imgBytes.subarray(0, 4).toString("hex") === "89504e47", "stored print image bytes are the submitted PNG");
+
+  /* ---- 5. Print placement: controls, defaults, round-trip, clamping ---- */
+  for (const id of ["hfPlace", "hfSize", "hfSizeMinus", "hfSizePlus", "hfSizeVal", "hfPlaceReset"]) assert(home.includes(`id="${id}"`), `placement control present: #${id}`);
+  assert(appJs.includes("function hfApplyPlacement") && appJs.includes("placement: hfState.placement"), "studio applies placement and sends it with the order");
+  assert(appJs.includes("Placement:") && appJs.includes("% size"), "Owner view displays each request's placement for the printer");
+  // Unadjusted order -> studio defaults are stored.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });
+  assert(r.status === 201, "order without placement is created (defaults apply)");
+  const defId = r.body.id;
+  // Custom placement round-trips.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { placement: { cx: 35.5, cy: 60, size: 92 } })) });
+  assert(r.status === 201, "order with a custom placement is created");
+  const customId = r.body.id;
+  // Out-of-range placement is clamped server-side.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { placement: { cx: 250, cy: -5, size: 500 } })) });
+  assert(r.status === 201, "order with an out-of-range placement is created (clamped)");
+  const clampedId = r.body.id;
+  r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
+  const byId = (id) => r.body.requests.find((q) => q.id === id);
+  const pDef = JSON.parse(byId(defId).placement);
+  assert(pDef.cx === 50 && pDef.cy === 42 && pDef.size === 66, "default placement stored on an unadjusted order (50 / 42 · 66% size)");
+  const pCustom = JSON.parse(byId(customId).placement);
+  assert(pCustom.cx === 35.5 && pCustom.cy === 60 && pCustom.size === 92, "custom placement round-trips to the owner API exactly");
+  const pClamp = JSON.parse(byId(clampedId).placement);
+  assert(pClamp.cx === 100 && pClamp.cy === 0 && pClamp.size === 100, "out-of-range placement is clamped to the print-area bounds");
+  const pubH2 = await text("/api/highlights?division=all");
+  assert(!pubH2.includes('"placement"'), "placement absent from the public highlights API");
+  const pubC2 = await text("/api/contest");
+  assert(!pubC2.includes('"placement"'), "placement absent from the public contest API");
 
   console.log("\nALL HYPE FRAME CHECKS PASSED");
 } finally {

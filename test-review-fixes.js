@@ -28,7 +28,22 @@ try {
   for (const f of FIELDS) assert(home.includes(`name="${f}"`), `upload form keeps field name="${f}"`);
   assert(home.includes('id="dropzone"') && home.includes('id="fileInput"') && home.includes('id="dzFile"'), "dropzone markup present (dropzone/fileInput/dzFile)");
   assert(home.includes('accept="video/*,image/*"'), "file input keeps the same accept types");
-  for (const label of ["The play", "The athlete", "Parent/guardian (private)"]) assert(home.includes(label), `form section label present: ${label}`);
+  // Stepped form (Emil, 2026-11-04): the old single-page section title
+  // "The play" became Step 1 "Your video"; the other two section titles
+  // carry over unchanged as Steps 2 and 3.
+  for (const label of ["Your video", "The athlete", "Parent/guardian (private)"]) assert(home.includes(label), `form section label present: ${label}`);
+
+  /* ---- 3b. Wizard structure: 3 steps, progress, fields exactly once -- */
+  assert((home.match(/class="form-section form-step"/g) || []).length === 3, "upload form has exactly 3 wizard steps");
+  for (const n of ["1", "2", "3"]) assert(home.includes(`data-step="${n}"`), `wizard step ${n} present`);
+  assert(home.includes('id="uploadProgress"') && home.includes('id="uploadStepLabel"') && home.includes('id="uploadBarFill"'), "wizard progress chrome present (label + bar)");
+  assert(home.includes('id="upBack"') && home.includes('id="upNext"'), "wizard Back/Continue buttons present");
+  for (const f of FIELDS) assert((home.split(`name="${f}"`).length - 1) === 1, `field name="${f}" appears exactly once in the stepped form`);
+  const step2At = home.indexOf('data-step="2"'), step3At = home.indexOf('data-step="3"');
+  assert(home.indexOf('name="division"') > step2At && home.indexOf('name="division"') < step3At, "division select lives in Step 2 (The athlete)");
+  assert(home.indexOf('id="athletePrompt"') > step2At && home.indexOf('id="athletePrompt"') < step3At, "athlete prompt lives inside Step 2");
+  assert(home.indexOf('id="uploadMsg"') > step3At, "upload messages show in Step 3 with the Submit button");
+  assert(appJs.includes("function showUploadStep") && appJs.includes("function validUploadStep"), "wizard navigation + per-step validation wired in app.js");
   assert(home.includes("Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete."), "text opt-in copy is EXACTLY the current copy");
   assert(!/name="textConsent"[^>]*checked/.test(home), "text opt-in checkbox is unchecked by default");
   assert(home.includes('id="athletePrompt"'), "athlete disambiguation prompt container preserved");
