@@ -474,6 +474,40 @@
   .cw h4{font-family:"Anton",sans-serif;font-size:20px;margin:6px 0 3px;text-transform:uppercase;letter-spacing:.02em;line-height:1.05}
   .cw p{margin:0;color:var(--muted);font-size:13.5px;font-weight:600}
   @media (max-width:640px){ .colorways{grid-template-columns:1fr} .cw{border-left:0;border-top:1px solid var(--line)} .cw:first-child{border-top:0} }
+  /* ---------- Drop 001 lookbook boards: six front/back collection boards ---------- */
+  .look-boards{display:grid;gap:22px}
+  .look-board{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .look-board-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding:22px 24px 18px;border-bottom:1px solid var(--line)}
+  .look-board-kicker{display:block;color:var(--muted2);font-size:11.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;margin-bottom:7px}
+  .look-board-head h4{font-family:"Anton",sans-serif;font-size:clamp(28px,4vw,40px);line-height:1;margin:0;text-transform:uppercase;letter-spacing:.02em}
+  .look-board-slogan{margin:7px 0 0;color:var(--volt);font-size:16px;font-weight:800}
+  #hype-girls .look-board-slogan{color:#ff8fc0}
+  .look-board-descriptor{margin:4px 0 0;color:var(--muted);font-size:14.5px;font-weight:600}
+  .preview-note{flex:none;border:1px solid var(--line2);border-radius:999px;color:#fff;font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:7px 11px;background:rgba(255,255,255,.04)}
+  .board-visuals{display:grid;grid-template-columns:1fr 1fr;background:#000}
+  .board-visuals figure{margin:0;position:relative;border-left:1px solid var(--line)}
+  .board-visuals figure:first-child{border-left:0}
+  .board-visuals img{display:block;width:100%;aspect-ratio:8/9;object-fit:cover}
+  .board-visuals figcaption{padding:13px 16px 15px;background:#0b0b0b;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px;font-weight:650;line-height:1.4}
+  .board-colors{padding:18px 24px 22px;border-top:1px solid var(--line)}
+  .board-colors h5{margin:0 0 12px;color:#fff;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+  .board-colors ul{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;list-style:none;margin:0;padding:0}
+  .board-colors li{display:flex;align-items:center;gap:9px;min-width:0;color:var(--muted);font-size:13.5px;font-weight:700;line-height:1.25}
+  .board-colors .swatch{width:28px;height:28px;flex:0 0 auto;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+  @media (max-width:760px){
+    .look-board-head{padding:19px 18px 16px}
+    .preview-note{font-size:10.5px;padding:6px 9px}
+    .board-colors{padding:16px 18px 19px}
+    .board-colors ul{grid-template-columns:repeat(2,1fr)}
+  }
+  @media (max-width:520px){
+    .look-board-head{display:block}
+    .preview-note{display:inline-flex;margin-top:13px}
+    .board-visuals{grid-template-columns:1fr}
+    .board-visuals figure{border-left:0;border-top:1px solid var(--line)}
+    .board-visuals figure:first-child{border-top:0}
+    .board-visuals img{aspect-ratio:8/8.4}
+  }
   .coord-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 20px;margin:42px 0 16px}
   .coord-head h3{font-family:"Anton",sans-serif;font-size:27px;margin:0;text-transform:uppercase;letter-spacing:.02em}
   .coord-head p{margin:0;color:var(--muted);font-weight:500;font-size:14.5px}

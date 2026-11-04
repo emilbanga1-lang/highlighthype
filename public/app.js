@@ -251,7 +251,10 @@ function showHome() {
 $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); closeMenu(false); showStore(a.dataset.storeTarget || null); }));
 $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => { showHome(); window.scrollTo(0, 0); }));
 $$(".brand").forEach((b) => b.addEventListener("click", () => showHome()));
-window.addEventListener("hashchange", () => { if (location.hash === "#shop") showStore(); });
+window.addEventListener("hashchange", () => {
+  if (location.hash === "#shop") showStore();
+  if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
+});
 function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
 $("#floatSubmit").addEventListener("click", goSubmit);
 $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); goSubmit(); }));
@@ -381,5 +384,6 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   syncFilterUI();
   loadData().then(() => { if (am) openAthlete(am[1]); });
   if (location.hash === "#shop") showStore();
+  if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
   if (location.hash === "#owner") { $("#ownerPanel").classList.remove("hidden"); loadOwner(); }
 })();
