@@ -555,8 +555,13 @@ function hfSetApparel(a) {
   $("#hfAppHoodie").setAttribute("aria-pressed", String(a === "hoodie"));
   $("#hfAppTee").setAttribute("aria-pressed", String(a === "tee"));
   $("#hfMock").dataset.apparel = a;
-  $(".hf-garment-hoodie").hidden = a !== "hoodie";
-  $(".hf-garment-tee").hidden = a !== "tee";
+  // Toggle the hidden ATTRIBUTE, not the .hidden property: the garments
+  // are SVG elements, where the IDL property does not reliably reflect
+  // to the content attribute — and the CSS rule (.hf-garment[hidden])
+  // keys off the attribute. toggleAttribute is an Element method, so it
+  // works on SVG in every engine.
+  $(".hf-garment-hoodie").toggleAttribute("hidden", a !== "hoodie");
+  $(".hf-garment-tee").toggleAttribute("hidden", a !== "tee");
   const list = HF_COLORWAYS[a];
   if (!list.some((c) => c.name === hfState.colorway)) hfState.colorway = list[0].name;
   $("#hfSwatches").innerHTML = list.map((c) => `<button type="button" class="pill hf-swatch" data-colorway="${esc(c.name)}" aria-pressed="${hfState.colorway === c.name}"><span class="swatch" style="--sw:${c.hex}"></span>${esc(c.name)}</button>`).join("");
