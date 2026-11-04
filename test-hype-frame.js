@@ -39,14 +39,19 @@ try {
   assert(hint.includes("Pause to shop the look") && !hint.includes("Hype Frame"), "film hint says 'Pause to shop the look' with no Hype Frame name");
   const kicker = (home.match(/<p class="ssc-kicker">([^<]*)<\/p>/) || [])[1] || "";
   assert(kicker === "In this scene", "film pause-card kicker is exactly 'In this scene'");
-  assert(home.includes("HYPE FRAME — Your moment. Your swag."), "Store section carries the HYPE FRAME header");
+  // Store v3 (2026-11-04): the slim banner's "HYPE FRAME — Your moment.
+  // Your swag." header and its five full-sentence steps were replaced by
+  // the designed creative section — the manifesto headline plus the five
+  // steps as ONE minimal numbered line (detailed assertions live in
+  // test-review-fixes.js §7). The studio itself keeps the full flow.
+  assert(home.includes('class="hf-creative"') && home.includes("Your moment.") && home.includes("Your hype."), "Store creative carries the manifesto headline");
   for (const step of [
-    "Select your highlight from an uploaded video.",
-    "Freeze your favorite frame using a video timeline.",
-    "Customize with your name, jersey number, and optional HYPE FRAME branding.",
-    "Preview the actual image on a hoodie or T-shirt.",
-    "Order with parent or guardian approval.",
-  ]) assert(home.includes(step), `Store how-it-works step present: ${step}`);
+    "Pick your play",
+    "Freeze the frame",
+    "Make it yours",
+    "Preview it",
+    "Guardian approves",
+  ]) assert(home.includes(step), `Store creative steps line includes: ${step}`);
   assert(appJs.includes("Create a Hype Frame"), "play cards get a 'Create a Hype Frame' button");
   assert(home.includes('id="hypeframe"') && home.includes('id="hfVideo"') && home.includes('id="hfScrub"') && home.includes('id="hfFreeze"') && home.includes('id="hfOrderForm"'), "studio markup present (video, timeline, freeze button, order form)");
   assert(appJs.includes("/api/hype-frame/orders") && appJs.includes("composeHfPrint"), "studio wires freeze -> compose -> order request");

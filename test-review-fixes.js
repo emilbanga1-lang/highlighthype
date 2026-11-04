@@ -5,6 +5,8 @@
 // 4. Hype Frame: pause-overlay scene map hits the right Store targets.
 // 5. Store redesign: filterable product grid with real lookbook photos.
 // 6. Store v2: full-bleed cinematic film hero + photo nav tiles.
+// 7. Store v3: Suitsupply editorial — light canvas, framed-print cards
+//    and tiles, text-tab controls, designed Hype Frame creative.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -131,7 +133,8 @@ try {
   assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
   assert(appJs.includes("applyStoreFilter") && appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "grid filtering + quick view wired in app.js");
   assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button drives the grid (filter + highlight)");
-  assert(home.includes('class="hf-steps-strip"'), "Hype Frame section compressed into a slim steps strip under the grid");
+  // Store v3 (2026-11-04): the slim Hype Frame banner + steps strip were
+  // replaced by a designed creative section — asserted in §7 below.
 
   /* ---- 6. Store v2: full-bleed cinematic hero + photo nav tiles ----
      Emil (2026-11-04, with Overtime shop screenshots): the film leads
@@ -158,6 +161,37 @@ try {
     assert(r.status === 200 && buf.byteLength > 5000, `tile crop serves and is non-trivial: /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
   }
   assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-tile]") && appJs.includes("goToStoreScene"), "hero links + tiles wired to the division filter + grid scroll in app.js");
+
+  /* ---- 7. Store v3: Suitsupply editorial ----
+     Emil (2026-11-04, with a Suitsupply email creative): light warm
+     off-white canvas, photos as overlapping white-bordered prints,
+     minimal black type. Scoped to the Store via .store-light; the
+     film hero and all store functionality are unchanged (§§4–6). */
+  assert(home.includes('class="shop store-light"'), "store section carries the light-canvas scope class");
+  assert(css.includes(".shop.store-light") && css.includes("#f4f1ea"), "styles.css paints the store on the warm off-white canvas (#f4f1ea)");
+  assert((home.match(/class="prod-print prod-print-front"/g) || []).length === 6, "every card's front photo sits in a white-matted print");
+  assert((home.match(/class="prod-print prod-print-back"/g) || []).length === 6, "every card's back photo is a second layered print");
+  assert(css.includes(".prod-print-back") && css.includes("rotate(-2deg)"), "back print peeks out behind the front print (offset + rotated)");
+  assert(css.includes(".prod-card.show-back .prod-print-back") && css.includes(".prod-card:hover .prod-print-back"), "flip brings the back print forward (touch class + desktop hover)");
+  assert((home.match(/View back ⇄/g) || []).length === 6, "flip control reads 'View back ⇄' on every card");
+  assert(appJs.includes('"View front ⇄"') && appJs.includes('"View back ⇄"'), "flip toggle cycles the View back / View front labels in app.js");
+  assert(css.includes(".store-light .store-chip") && css.includes('.store-chip[aria-pressed="true"]'), "collection filters are text tabs (active = underlined) on the light canvas");
+  assert(css.includes(".store-light .divseg-girls") && css.includes(".store-light .divseg-boys"), "Girls/Boys toggle uses the same text-tab treatment");
+  assert((home.match(/class="tile-print"/g) || []).length === 2 && (home.match(/class="tile-caption"/g) || []).length === 2, "nav tiles are framed prints with an editorial caption inside the mat");
+  assert(css.includes(".store-light .qv-panel") && css.includes(".store-light .qv-media figure"), "quick view restyled light (white panel, matted prints)");
+  /* Hype Frame creative (the headline deliverable): layered prints,
+     manifesto headline, one numbered steps line, CTA to the plays. */
+  assert(home.includes('class="hf-creative"') && !home.includes("hypeframe-banner") && !home.includes("hf-steps-strip"), "Hype Frame creative section replaces the slim banner");
+  assert(home.includes('class="hfc-print hfc-print-moment"') && home.includes('class="hfc-print hfc-print-hoodie"'), "creative layers a moment print over a hoodie print");
+  assert(home.includes('class="hfc-printbox"') && home.includes('class="hfc-garment"'), "hoodie print reuses the studio garment mock with a composed print in its print area");
+  assert((home.split("/swag/boys-unleashed-front.jpg").length - 1) >= 3, "the same dynamic lookbook moment appears on the card, the moment print, and the hoodie print");
+  assert(home.includes("Your moment.") && home.includes("Your hype.") && css.includes(".hfc-title"), "creative headline is the manifesto line (set in big italic ink)");
+  assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "creative subline: freeze a frame from your own highlight video — and wear it");
+  for (const step of ["Pick your play", "Freeze the frame", "Make it yours", "Preview it", "Guardian approves"]) assert(home.includes(step), `creative steps line includes: ${step}`);
+  assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
+  const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
+  assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
+  assert(hfCreative.includes("parent or guardian confirms by email before anything is printed"), "creative keeps the guardian-approval framing (no payment/checkout language)");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
