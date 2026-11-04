@@ -1,122 +1,508 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HighlightHype</title><link rel="preload" as="image" href="/brand-logo.png" fetchpriority="high"><link rel="stylesheet" href="styles.css"></head>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>HighlightHype — Every Athlete Deserves The Hype</title>
+<link rel="preload" as="image" href="/logo.jpg" fetchpriority="high">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
 <body>
-<header class="hero">
-  <div class="badges"><span>100% FAN-VOTED 🏆</span><span>📣 OFFICIAL: @HIGHLIGHTHYPE_OFFICIAL</span></div>
-  <div class="hero-video-wrap"><video id="heroVideo" class="hero-video" src="/hero.mp4" poster="/hero-poster.jpg" preload="auto" autoplay muted loop playsinline controls></video></div>
-  <img class="hero-logo" src="/brand-logo.png" alt="HighlightHype" fetchpriority="high" width="900" height="374">
-  <p>This is <b>HighlightHype</b> — drop your best <b>dunk, dinger or golazo</b>, everyone votes, and the sickest play climbs to <b>#1</b>. 👑</p>
-  <p><button class="big hero-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button></p>
-  <p class="small">Video starts muted — use the video controls for play and sound. Use the Boys/Girls filters in Plays to switch boards.</p>
-  <div class="stats"><div class="stat"><b id="statPlays">1</b> PLAYS POSTED 🎬</div><div class="stat lime"><b id="statVotes">1</b> VOTES CAST 🔥</div></div>
-  <div class="ticker" aria-hidden="true"><div class="ticker-in">🔥 HIGHLIGHTHYPE &nbsp;•&nbsp; POST YOUR PLAY &nbsp;•&nbsp; VOTE FOR THE BEST &nbsp;•&nbsp; HYPE OF THE MONTH &nbsp;•&nbsp; THE HYPE STARTS HERE &nbsp;•&nbsp;</div></div>
-</header>
-<nav class="tabs">
-  <button data-tab="plays" class="active">🔥 Plays</button>
-  <button data-tab="contest">🏆 Hype of the Month</button>
-  <button data-tab="swag">🛍️ Swag Store</button>
-</nav>
-<div style="display:flex;gap:8px;justify-content:flex-end;padding:0 18px"><button id="cartBtn">🛒 Cart (<span id="cartCount">0</span>)</button></div>
-<main>
-  <div id="ownerPanel" class="hidden card">
-    <h2>Owner view</h2>
-    <p id="ownerStatus"></p>
-    <button id="claimBtn">Claim owner access on this device</button>
-    <p class="small">Already have an owner token (e.g. set as OWNER_TOKEN on the host)? Enter it here:</p>
-    <label>Owner token <input id="tokenInp" type="password" placeholder="Paste owner token"></label>
-    <button id="saveTokenBtn">Save owner token on this device</button>
-    <p class="small">Owner access is a token saved on this device only — it is not a password login. Do not clear this site's storage on the owner device, or owner controls will stop working there. Real account login is needed before a public launch.</p>
-    <h3>Moderation queue</h3><div id="queue"></div>
-    <h3>Reports</h3><div id="reports"></div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="HighlightHype home">
+      <img class="brand-logo" src="/logo.jpg" alt="HighlightHype" width="1244" height="420" fetchpriority="high" />
+    </a>
+    <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
+    <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
+      <button type="button" data-panel-btn="plays" aria-current="true">Plays</button>
+      <button type="button" id="menuAllHypes">All Hypes</button>
+      <button type="button" data-panel-btn="mine" aria-current="false">My Highlights</button>
+      <button type="button" data-panel-btn="how" aria-current="false">How it works</button>
+      <button type="button" data-panel-btn="proof" aria-current="false">What's on the line</button>
+      <a class="nav-swag" href="#shop" data-store-link>Swag Shop — Rep The Hype</a>
+    </nav>
   </div>
-  <section id="plays" class="tab active">
-    <div class="beta-banner"><span class="beta-badge">🔒 PRIVATE BETA — INVITE ONLY</span>
-      <h2>PRIVATE BETA</h2>
-      <p>This is invite-only testing with Nicholas's team and friends — not a public launch. There is no public signup here.</p>
-      <ul><li>✓ Every play is <b>owner-approved before it appears</b> on the board — new posts start in review.</li>
-      <li>✓ Swag store is <b>parked</b> — browse the Drop 001 preview only, checkout is not live and nothing is for sale yet.</li>
-      <li>✓ See a play that doesn't belong? Use <b>Report</b> on any play and the owner will review it.</li></ul></div>
-    <div class="card"><h2>📋 BETA RULES — KEEP IT SAFE &amp; YOURS</h2>
-      <p><b>1. Only your own clips.</b> Post only plays you or your family filmed — no broadcast, pro, or other people's clips.</p>
-      <p><b>2. Under 13? Ask a parent first.</b> A parent or guardian must give permission before anyone under 13 posts a play.</p>
-      <p><b>3. First names only.</b> No full name + school + team together in titles or descriptions — first names or nicknames only. The owner checks this at approval.</p>
-      <p><b>4. No messages here.</b> There are no DMs or chat between kids in this app — just plays and votes.</p></div>
-    <div class="card"><h2>HOW IT WORKS</h2>
-      <p><span class="tag">Official handle: @HighlightHype_Official</span></p>
-      <p><b>1. Post your play</b> — upload a video/photo, add a player and play type.</p>
-      <p><b>2. Owner reviews it</b> — your play appears on the board once the owner approves it.</p>
-      <p><b>3. Everyone votes</b> — one vote per person per play. Tap again to remove it.</p>
-      <p><b>4. Enter Hype of the Month</b> — approved plays can enter this month's contest, across all sports. Most votes wins the month.</p>
-      <p class="small">Private beta first: we're testing with Nicholas's team and friends, collecting feedback, and fixing what they hit — before anything public. The swag store stays parked at Drop 001 prices in the meantime.</p>
-      <p><button class="big" onclick="document.querySelector('button[data-tab=contest]').click()">🏆 See this month's contest →</button></p></div>
-    <form id="uploadForm" class="card">
-      <h2>Post your play</h2>
+</header>
+
+<button type="button" class="float-submit" id="floatSubmit" aria-label="Submit a Hype — go to the upload form">＋ Submit a Hype</button>
+
+<!-- ============ HERO ============ -->
+<div class="hero view-home" id="top">
+  <div class="hero-media">
+    <video id="heroVideo" src="/hero.mp4" poster="/hero-poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="HighlightHype hero film — a fast-cut montage of youth sports highlights closing on the HighlightHype logo"></video>
+  </div>
+  <div class="hero-scrim"></div>
+  <div class="wrap hero-content">
+    <h1>Every athlete deserves the <span class="lime">hype.</span></h1>
+    <p class="hero-sub">The home of youth sports culture. Big plays. First wins. Team moments — a place to celebrate the athletes and memories that make youth sports so special.</p>
+    <p class="hero-tagline">Your moment. Your hype.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
+      <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Submit a Hype</a>
+    </div>
+  </div>
+  <div class="wrap hero-controls">
+    <div class="p-bar">
+      <div class="p-track"><div class="p-fill" id="heroFill"></div></div>
+      <div class="p-time"><span class="p-cur" id="heroCur">0:00</span> <span id="heroTotal">/ 0:11</span></div>
+      <button type="button" class="sound-btn" id="heroSound">🔊 Tap for sound</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TRUST STRIP ============ -->
+<div class="trust view-home">
+  <div class="wrap">
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>
+      <div>
+        <h3>Every Athlete Has a Moment</h3>
+        <p>The first goal, the diving catch, the personal best — not only the tournament MVP.</p>
+      </div>
+    </div>
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19.5c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><circle cx="17" cy="9" r="2.7"/><path d="M15.8 14.9c2.3.2 4 1.6 4.6 4.1"/></svg>
+      <div>
+        <h3>The Hype Generation</h3>
+        <p>A community young athletes are excited to wear, share, and belong to.</p>
+      </div>
+    </div>
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 2.6v5.2c0 4.6-3 8-7 9.7-4-1.7-7-5.1-7-9.7V5.6z"/><path d="M9 11.8l2.2 2.2 4-4.2"/></svg>
+      <div>
+        <h3>Moments That Last</h3>
+        <p>A safe, parent-managed place to preserve highlights and the memories behind them.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DECK ============ -->
+<div class="deck view-home" id="deck">
+
+<!-- ============ BOARD ============ -->
+<section class="panel active" id="plays" data-panel="plays">
+  <div class="wrap">
+    <div class="beta-note">
+      <b>🔒 Private beta — invite only.</b> Testing with Nicholas's team and friends — not a public launch.
+      <ul>
+        <li>Every play is <b>owner-approved before it appears</b> — new posts start in review.</li>
+        <li><b>Only your own clips</b>, and <b>first names only</b> — no full name + school + team together.</li>
+        <li><b>Under 13? A parent or guardian gives permission first.</b> Winners are contacted through the parent/guardian — never the child directly.</li>
+        <li>See a play that doesn't belong? Use <b>Report</b> on any play.</li>
+      </ul>
+    </div>
+
+    <div class="sec-head">
+      <span class="sec-tag" id="boardTag">The board</span>
+      <div class="sec-head-row">
+        <h2 id="boardTitle">This month's <span class="lime">plays</span></h2>
+        <div class="count-chip" id="chipMonth">Voting ends in <b id="countdown">—</b></div>
+      </div>
+      <p id="boardIntro">Votes cast this month decide Hype of the Month. All-time votes build the Hall of Fame. One vote per person, per play, per month.</p>
+    </div>
+
+    <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
+      <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
+      <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
+      <button type="button" data-view="all" aria-pressed="false">All Hypes</button>
+    </div>
+
+    <div id="viewMonth">
+      <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
+      <div class="filters" id="boardFilters">
+        <div class="seg" role="group" aria-label="Division" id="monthDivSeg">
+          <button type="button" data-div="boys" aria-pressed="true">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
+        <div class="pills" role="group" aria-label="Sport" id="monthSportPills"></div>
+      </div>
+      <div class="board" id="board"></div>
+      <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
+      <p class="board-note">This is the live board: every play here was uploaded by a family and approved by the owner. Tap a player's name on any card to see all of that athlete's plays.</p>
+    </div>
+
+    <div id="viewFame" hidden>
+      <div class="fame-list" id="fameList" aria-label="Hall of Fame — Top 10, ranked by all-time votes"></div>
+      <p class="board-note">The Hall of Fame is the Top 10 of all time, ranked by all-time votes. The list fills in as more plays are posted.</p>
+    </div>
+
+    <div id="viewAll" hidden>
+      <div class="filters" id="allFilters">
+        <div class="seg" role="group" aria-label="Board" id="allDivSeg">
+          <button type="button" data-div="all" aria-pressed="true">All boards</button>
+          <button type="button" data-div="boys" aria-pressed="false">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
+        <div class="pills" role="group" aria-label="Sport" id="allSportPills"></div>
+        <span class="tool-label" id="teamLabel">Team</span>
+        <select class="team-select" id="teamFilter" aria-labelledby="teamLabel">
+          <option value="all">All teams</option>
+        </select>
+        <input class="search-input" id="allSearch" type="search" placeholder="Search plays, sports, teams…" aria-label="Search all plays" />
+      </div>
+      <p class="all-count" id="allCount"></p>
+      <div class="board" id="allBoard"></div>
+      <div class="empty" id="allEmpty">No plays match — try a different board, sport, team, or search.</div>
+    </div>
+
+    <form id="uploadForm" class="upload-card">
+      <h3 id="post">Post a play</h3>
+      <p>Video first — clip first, details second. Your play goes to the owner for review and appears once approved.</p>
       <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
-      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV (HEVC) clips may play with a black picture in Chrome — if that happens, re-upload the same clip as MP4.</p>
-      <label>Video link <input name="videoUrl" placeholder="https://…"></label>
-      <label>Title * <input name="title" required placeholder="e.g. Walk-off home run"></label>
-      <div class="row">
+      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV clips may show a black picture in Chrome — re-upload as MP4 if that happens.</p>
+      <label>Video link <input type="text" name="videoUrl" placeholder="https://…"></label>
+      <label>Title * <input type="text" name="title" required placeholder="e.g. Walk-off home run"></label>
+      <div class="row2">
         <label>Sport <select name="sport">
           <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
           <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
         </select></label>
         <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-        <label>Play type <input name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
-        <label>Player first name <input name="playerName" placeholder="First name only"></label>
+      </div>
+      <div class="row2">
+        <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
+        <label>Player first name <input type="text" name="playerName" placeholder="First name only"></label>
+      </div>
+      <div class="row2">
+        <label>Team name (optional) <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
+        <label>Jersey number (optional) <input type="text" name="jersey" placeholder="e.g. 13"></label>
       </div>
       <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
-      <div class="row">
-        <label>Team name (optional) <input name="team" placeholder="e.g. Plainview Hawks"></label>
-        <label>Email (optional, to be told when approved) <input name="notifyEmail" type="email" placeholder="parent/guardian email"></label>
-      </div>
-      <p class="small">Team name is used for the team-board prototype only. Email is only used to tell you when your play is approved — it is never shown on the site.</p>
-      <button type="submit" class="big">Post your play → in review</button>
+      <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
+      <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month. A play entered in the contest without a parent/guardian email is not prize-eligible.</p>
+      <div id="athletePrompt" class="athlete-prompt" hidden></div>
+      <input type="hidden" name="athleteChoice" value="">
+      <input type="hidden" name="athleteKey" value="">
+      <button type="submit" class="btn btn-lime submit-btn">Submit a Hype → in review</button>
       <p id="uploadMsg"></p>
     </form>
-    <div class="filters">
-      <input id="searchInp" placeholder="🔍 Search player, play, title…">
-      <button id="boysFilter" class="pill">Boys</button>
-      <button id="girlsFilter" class="pill">Girls</button>
-      <label>Team <select id="teamFilter"><option value="all">All teams</option></select></label>
-      <div class="seg"><button data-sort="top" class="active">🔥 TOP</button><button data-sort="newest">✨ NEW</button></div>
-    </div>
-    <div class="filters" id="sportPills"></div>
-    <h2>👑 HALL OF FAME</h2><div id="podium" class="podium"></div><div id="hofList"></div>
-    <h2>All plays</h2><div id="playsGrid" class="grid"></div>
-    <div class="swag-teaser card">
-      <div><span class="tag">Drop 001 • Parked till later</span>
-      <h3>The hype starts here</h3>
-      <p class="small">Drop 001 swag is preview-only for now — no real payments yet. Browse the parked store and see what's coming.</p></div>
-      <button class="big" onclick="document.querySelector('button[data-tab=swag]').click()">Shop Drop 001 →</button>
-    </div>
-  </section>
+  </div>
 
-  <section id="contest" class="tab">
-    <h2>🏆 Hype of the Month — <span id="contestPeriod"></span></h2>
-    <p id="contestCountdown"></p>
-    <p>One contest, all sports. Enter an approved play once per month. Votes on the main board count here too. The winner is marked by the owner only.</p>
-    <div id="contestCounts"></div>
-    <div id="contestList" class="grid"></div>
-  </section>
-
-  <section id="swag" class="tab">
-    <div class="parked"><b>🛍️ Drop 001 — Swag Store preview, PARKED till later.</b><br>
-      No real payments are taken here. Checkout opens at launch. Prices are aligned with Baseball Lifestyle 101 (BL101).</div>
-    <div id="swagGrid" class="grid"></div>
-    <div class="card" id="cartBox">
-      <h3>Your cart</h3><div id="cartItems"></div>
-      <p>Subtotal: <b id="cartSub">$0.00</b> · Shipping: <b id="cartShip">$0.00</b> (free over $50) · Total: <b id="cartTotal">$0.00</b></p>
-      <button class="big" disabled>Checkout opens at launch — no payment taken</button>
+  <!-- ============ MONTAGE (energy strip) ============ -->
+  <div class="wrap">
+    <div class="montage" aria-label="Sports video montage — auto-playing muted clips">
+      <figure>
+        <video src="/play-baseball.mp4" poster="/play-baseball.webp" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>▶ Baseball · Video</figcaption>
+      </figure>
+      <figure>
+        <video src="/play-basketball.mp4" poster="/play-basketball.webp" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>▶ Basketball · Video</figcaption>
+      </figure>
+      <figure>
+        <video src="/play-soccer.mp4" poster="/play-soccer.webp" autoplay muted loop playsinline preload="metadata"></video>
+        <figcaption>▶ Soccer · Video</figcaption>
+      </figure>
     </div>
-  </section>
-</main>
-<button class="float-post" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">⚡ Post your play</button>
-<button class="float-add" onclick="document.querySelector('button[data-tab=plays]').click();document.getElementById('uploadForm').scrollIntoView({behavior:'smooth'})">🎬 Add yours</button>
-<footer class="site-footer">
-  <div><b>HighlightHype</b> · @HighlightHype_Official</div>
-  <div class="small">Private beta — invite only, not public yet. Only your own clips. Parent permission under 13.</div>
-  <div><a href="mailto:hello@highlighthype.com">Contact us</a> — questions, or to report a play / ask for a removal, email <a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a></div>
-  <div><button id="ownerBtn">Owner view</button></div>
+  </div>
+</section>
+
+<!-- ============ MY HIGHLIGHTS ============ -->
+<section class="panel" id="mine" data-panel="mine">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">My Highlights · Private</span>
+      <h2>Every moment, <span class="lime">kept</span></h2>
+      <p>A private, lasting home for your athlete's videos — managed by a parent or guardian, and separate from the public board. The monthly contest moves on; these stay.</p>
+    </div>
+
+    <p class="mine-note"><b>Where it stands today:</b> you can already see <b>all of an athlete's public plays in one place</b> — tap the player's name on any play card. A truly private archive (pending clips, originals, invited-only viewing) needs parent/guardian sign-in, which is the next build — it is not faked here.</p>
+
+    <div class="sec-head" style="margin-bottom:14px">
+      <span class="sec-tag">Athletes on the board</span>
+      <p style="margin-top:0">Every athlete with an approved play, grouped by athlete — never by name alone. Two athletes can share a name; each keeps their own collection.</p>
+    </div>
+    <div id="mineAthletes"></div>
+
+    <div class="mine-points">
+      <div class="mp"><h4>Private by default</h4><p>Nothing here sits on the public board unless a parent chooses to post it. No public profile, no public link.</p></div>
+      <div class="mp"><h4>Parent-managed</h4><p>Verified parents and guardians run the space — what gets saved, and who gets invited to watch it.</p></div>
+      <div class="mp"><h4>Built to last</h4><p>Seasons end and phones get replaced. The first goal and the diving catch stay here, season after season.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ATHLETE COLLECTION ============ -->
+<section class="panel" id="athlete" data-panel="athlete">
+  <div class="wrap">
+    <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
+    <div class="athlete-head">
+      <div class="athlete-avatar" id="athleteAvatar" aria-hidden="true">?</div>
+      <div>
+        <h2 id="athleteName" style="font-family:Anton,sans-serif;text-transform:uppercase;margin:0;font-size:clamp(30px,5vw,46px)">Athlete</h2>
+        <p id="athleteMeta" style="margin:4px 0 0;color:var(--muted);font-weight:600"></p>
+      </div>
+      <div class="mine-count"><b id="athleteCount">0</b><span>Public plays</span></div>
+    </div>
+    <div class="board" id="athleteBoard"></div>
+    <div class="empty" id="athleteEmpty">No approved public plays for this athlete yet.</div>
+    <p class="board-note">This collection shows only this athlete's <b>approved, public</b> plays — across months and teams. Pending or private clips never appear here.</p>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="how-sec panel" id="how" data-panel="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">How it works</span>
+      <h2>Post. Share. <span class="lime">Get hyped.</span></h2>
+      <p>Three steps, about a minute. If you can send a clip to the group chat, you already know how this works.</p>
+    </div>
+    <div class="how-grid">
+      <div>
+        <div class="steps">
+          <div class="step"><div class="num">01</div><div><h3>Post your play</h3><p>Film it, or find it in your camera roll. <b>Video first</b> — upload the clip, then add the sport and team. The moment is the content; no editing needed.</p></div></div>
+          <div class="step"><div class="num">02</div><div><h3>Share your link</h3><p>Every approved play gets <b>its own link</b>. Send it to family, drop it in the group chat — that's where the votes come from.</p></div></div>
+          <div class="step"><div class="num">03</div><div><h3>Get hyped</h3><p>One vote per person, per play, per month. <b>Most votes this month takes Hype of the Month.</b> All-time votes climb to the Top 10 Hall of Fame.</p></div></div>
+        </div>
+        <div class="review-note">
+          <p><b>Reviewed before it's live.</b> Every upload is checked by a person before it reaches the board — nothing posts automatically.</p>
+        </div>
+      </div>
+      <aside class="upload-mock" aria-label="Upload form preview">
+        <h3>Post a play</h3>
+        <p>Video-first, like the real upload — clip first, details second.</p>
+        <div class="drop">
+          <div class="drop-thumb"><video src="/play-baseball.mp4" poster="/play-baseball.webp" muted playsinline preload="metadata" aria-label="Example clip — baseball play, shown as a video thumbnail"></video><span class="drop-cap">▶ Your clip · Video</span></div>
+          <span class="big">Drop your clip here</span>or tap to pick from your camera roll</div>
+        <div class="field">Sport — <b>your pick</b></div>
+        <div class="field">Board — <b>Boys / Girls</b></div>
+        <div class="field">Team <span>(optional)</span></div>
+        <div class="field">Play title — <b>yours</b></div>
+        <a class="btn btn-lime" href="#post" data-submit-link>Submit a Hype</a>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ WHAT'S ON THE LINE ============ -->
+<section class="panel" id="proof" data-panel="proof">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">What's on the line</span>
+      <h2>Proof, not <span class="lime">promises</span></h2>
+      <p>The contest, the all-time board, and the team pilot — three cards, one tab.</p>
+    </div>
+    <div class="proof-grid">
+      <div class="proof">
+        <div class="proof-media"><video src="/play-baseball.mp4" poster="/play-baseball.webp" muted playsinline preload="metadata" aria-label="Baseball play — video thumbnail"></video></div>
+        <div class="tag">Contest · Live now</div>
+        <h3>Hype of the Month</h3>
+        <p>A monthly contest across <b>all sports</b>. Only votes cast that month count — every play starts the month even. Winners are contacted through a <b>parent or guardian</b>.</p>
+        <div class="stat"><span id="proofContestStat">—</span><small id="proofContestSub">This month's contest</small></div>
+      </div>
+      <div class="proof">
+        <div class="proof-media"><video src="/play-soccer.mp4" poster="/play-soccer.webp" muted playsinline preload="metadata" aria-label="Soccer play — video thumbnail"></video></div>
+        <div class="tag">All-time</div>
+        <h3>Hall of Fame</h3>
+        <p>The <b>Top 10 of all time</b>, plus a Top 3 podium on the board. Monthly winners fade; Hall of Fame votes never reset.</p>
+        <div class="stat"><span id="proofFameStat">TOP 10</span><small>All-time leaderboard, ranked by lifetime votes</small></div>
+      </div>
+      <div class="proof">
+        <div class="proof-media"><video src="/play-basketball.mp4" poster="/play-basketball.webp" muted playsinline preload="metadata" aria-label="Basketball play — video thumbnail"></video></div>
+        <div class="tag">Team boards · Pilot</div>
+        <h3>Plainview Hawks</h3>
+        <p>Tag a play with your team and it lands on your <b>team board</b> too. The Hawks are the pilot team — their board fills with the first approved Hawks-tagged play.</p>
+        <div class="stat"><span id="proofHawksStat">1 TEAM</span><small>Pilot starts with one team, done right — then leagues</small></div>
+      </div>
+    </div>
+    <div class="sayings" aria-label="Drop 001 sayings">
+      <span>The hype starts here</span><span>Hype all day</span><span>Hype is earned</span>
+    </div>
+  </div>
+</section>
+</div><!-- /deck -->
+
+<!-- ============ OWNER PANEL ============ -->
+<div class="view-home">
+  <div class="wrap">
+    <div id="ownerPanel" class="owner-card hidden">
+      <h3>Owner view</h3>
+      <p id="ownerStatus"></p>
+      <button type="button" class="mini-btn" id="claimBtn">Claim owner access on this device</button>
+      <p style="color:var(--muted2);font-size:13px">Already have an owner token? Paste it here — it is saved on this device only, it is not a password login.</p>
+      <p><input id="tokenInp" type="password" placeholder="Paste owner token" size="36"> <button type="button" class="mini-btn" id="saveTokenBtn">Save owner token</button></p>
+      <h3 style="margin-top:22px">Moderation queue</h3><div id="queue"></div>
+      <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STORE ENTRY CARD ============ -->
+<div class="store-cta view-home">
+  <div class="wrap">
+    <article class="store-card" aria-label="Wear The Hype — the Drop 001 store">
+      <div class="store-card-media">
+        <video src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — the Hype Girls and Hype Boys hoodies, with Wear The Hype on the film"></video>
+        <span class="store-card-badge"><span class="dot"></span> Drop 001 · The Film</span>
+      </div>
+      <div class="store-card-body">
+        <span class="sec-tag" style="margin-bottom:0">Rep The Hype · Drop 001</span>
+        <h2>Rep the <span class="lime">hype</span></h2>
+        <p>Bold, youth-first apparel that turns community into identity. The Drop 001 film, the lookbook, and both collections live in the Store — and Drop 001 is a limited drop, so tap through while it's here.</p>
+        <div class="store-cta-actions">
+          <a class="btn btn-lime btn-hero" href="#shop" data-store-link>Enter the Store</a>
+          <div class="store-cta-sub">
+            <a class="girls-link" href="#hype-girls" data-store-link data-store-target="hype-girls">Hype Girls</a>
+            <span aria-hidden="true">·</span>
+            <a href="#hype-boys" data-store-link data-store-target="hype-boys">Hype Boys</a>
+          </div>
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+
+<!-- ============ THE STORE ============ -->
+<section class="shop" id="shop">
+  <div class="wrap">
+    <div class="store-bar">
+      <button type="button" class="back-link" data-home-link>← Back to homepage</button>
+      <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
+    </div>
+    <div class="shop-head">
+      <div>
+        <span class="sec-tag">Rep The Hype · Drop 001</span>
+        <h2>Rep the <span class="lime">hype</span></h2>
+      </div>
+      <p>Rep The Hype is bold, youth-first apparel that turns community into identity. Drop 001 is two youth collections — <b style="color:#fff">Hype Girls</b> and <b style="color:#fff">Hype Boys</b> — six hoodie colorways with coordinating tees, crown on everything. It's a <b style="color:#fff">limited drop</b> — when it's gone, it's gone.</p>
+    </div>
+
+    <div class="swag-film" aria-label="Drop 001 swag film — Wear The Hype">
+      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
+      <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
+      <span class="dur">0:10</span>
+      <div class="swag-film-overlay">
+        <p class="kicker">Drop 001 · Limited Drop</p>
+        <h3>Wear the <span class="lime">hype</span></h3>
+        <p class="sub">Drop 001 in motion — both collections and the Hype All Day hoodie. Pick your side:</p>
+        <div class="swag-film-ctas">
+          <a class="btn btn-girls" href="#hype-girls">Shop Hype Girls</a>
+          <a class="btn btn-boys" href="#hype-boys">Shop Hype Boys</a>
+        </div>
+      </div>
+    </div>
+
+    <figure class="shop-hero">
+      <img src="/lookbook-drop001.jpg" alt="HighlightHype Drop 001 lookbook — the Girls Collection (Hype Street, Hype Athletics, Hype Essentials) and Boys Collection (Hype Street, Hype Athletics, Hype Unleashed) hoodies, under the header “Your Moment. Your Hype.”" />
+      <figcaption><b>Drop 001 Lookbook</b><span>Girls Collection · Boys Collection</span><span class="gold">Your moment. Your hype.</span></figcaption>
+    </figure>
+
+    <div class="lines-head">
+      <h3>The collections</h3>
+      <p>The Drop 001 plan — four collections, each with its own slogan.</p>
+    </div>
+    <div class="lines">
+      <div class="ln"><h4>Hype Street</h4><p class="slogan">Hype Is Life</p><p class="side">Hype Girls · Hype Boys</p></div>
+      <div class="ln"><h4>Hype Athletics</h4><p class="slogan">Hype Is Earned</p><p class="side">Hype Girls · Hype Boys</p></div>
+      <div class="ln"><h4>Hype Essentials</h4><p class="slogan">The Hype Starts Here</p><p class="side">Hype Girls</p></div>
+      <div class="ln"><h4>Hype Unleashed</h4><p class="slogan">It&rsquo;s Hype or Nothing</p><p class="side">Hype Boys</p></div>
+    </div>
+
+    <div class="collection" id="hype-girls">
+      <div class="collection-head">
+        <h3>Hype <span class="pink">Girls</span></h3>
+        <p>Hype Street · Hype Athletics · Hype Essentials</p>
+        <a class="girls-link" href="#hype-girls">Shop Hype Girls →</a>
+      </div>
+      <div class="collection-card">
+        <div class="collection-media">
+          <img src="/swag-girls.webp" alt="Illustrated Hype Girls Drop 001 hoodies — Hot Pink, Purple and Orange, and Pastel Blue and Lavender colorways under a spotlight" />
+        </div>
+        <div class="colorways">
+          <div class="cw"><span class="n">Colorway 02</span><h4>Hot Pink</h4><p>Confident. Creative. Unstoppable.</p></div>
+          <div class="cw"><span class="n">Colorway 03</span><h4>Purple + Orange</h4><p>Vibrant. Bold. Different.</p></div>
+          <div class="cw"><span class="n">Colorway 06</span><h4>Pastel Blue + Lavender</h4><p>Fresh. Stylish. For every athlete.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="collection" id="hype-boys">
+      <div class="collection-head">
+        <h3>Hype <span class="lime">Boys</span></h3>
+        <p>Hype Street · Hype Athletics · Hype Unleashed</p>
+        <a href="#hype-boys">Shop Hype Boys →</a>
+      </div>
+      <div class="collection-card">
+        <div class="collection-media">
+          <img src="/swag-boys.webp" alt="Illustrated Hype Boys Drop 001 hoodies — Electric Blue, Cream and Green Varsity, and Black and Chrome colorways under a spotlight" />
+        </div>
+        <div class="colorways">
+          <div class="cw"><span class="n">Colorway 01</span><h4>Electric Blue</h4><p>Bold. Athletic. High energy.</p></div>
+          <div class="cw"><span class="n">Colorway 04</span><h4>Cream + Green Varsity</h4><p>Classic. Premium. All-sport.</p></div>
+          <div class="cw"><span class="n">Colorway 05</span><h4>Black + Chrome</h4><p>Modern. Edgy. Next level.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coord-head">
+      <h3>Coordinating tees</h3>
+      <p>Made to match the colorways — Drop 001, both collections.</p>
+    </div>
+
+    <div class="shop-grid">
+      <article class="swag-card">
+        <div class="swag-visual">
+          <img src="/swag-tee.webp" alt="Illustrated black tee with a graffiti HYPE design and gold crown, paint splatters behind it" style="object-position:center 30%" />
+          <span class="sv-type">Tee</span>
+        </div>
+        <div class="swag-body">
+          <h3>Graffiti HYPE Tee</h3>
+          <p>Dyanna's <b>graffiti logo</b> — reserved for Drop 001 clothing only.</p>
+          <p class="small" style="color:var(--muted2);font-weight:600">Preview — products are being finalized; checkout opens once they are.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="swag-meta" aria-label="Swag details">
+      <div class="m"><h4>Crown on everything</h4><p>Same crown, same wordmark — on the hero, the cards, the team boards, and every piece in this drop.</p></div>
+      <div class="m"><h4>Three sayings, locked</h4><p>“The hype starts here” · “Hype all day” · “Hype is earned” — the Drop 001 voice.</p></div>
+      <div class="m"><h4>Free shipping</h4><p>Free shipping on qualifying orders — full details here in the store, where the buying happens, once checkout opens.</p></div>
+    </div>
+
+    <div class="swag-cta">
+      <p>This is the Drop 001 storefront preview — products are being finalized, and the rest of this page (sizes, prices, checkout) gets worked out once they are.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<div class="final view-home">
+  <video class="bg" src="/play-baseball.mp4" poster="/play-baseball.webp" muted playsinline preload="metadata" aria-hidden="true"></video>
+  <div class="wrap">
+    <h2>Hype is earned.</h2>
+    <p>Post the play. Share the link. Let this month decide.</p>
+    <a class="btn btn-lime btn-final" href="#post" data-submit-link>Submit a Hype</a>
+    <p class="vision">Not just a website. Not just apparel. Where youth sports culture lives.</p>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <a class="brand" href="#top" style="margin-bottom:12px">
+        <img class="brand-logo brand-logo-lg" src="/logo.jpg" alt="HighlightHype" width="1244" height="420" />
+      </a>
+      <div>HighlightHype · @HighlightHype_Official · Private beta — invite only, not public yet.</div>
+      <div>Only your own clips. Parent permission under 13. Winners are contacted through a parent/guardian.</div>
+      <div style="margin-top:9px"><a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a> — questions, play reports, removal requests.</div>
+      <div style="margin-top:9px"><a href="#shop" data-store-link style="font-weight:800">Rep The Hype — open the Store →</a></div>
+      <div class="owner-row">
+        <button type="button" class="mini-btn" id="ownerBtn">Owner view</button>
+        <button type="button" class="mini-btn" id="modLinkBtn">Email me a moderation link</button>
+        <span id="modLinkMsg" style="align-self:center"></span>
+      </div>
+    </div>
+  </div>
 </footer>
-<script src="app.js"></script></body></html>
+
+<script src="app.js"></script>
+</body>
+</html>
