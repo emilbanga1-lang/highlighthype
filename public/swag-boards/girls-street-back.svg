@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="girls street hoodie back illustration">
+  <defs>
+    <radialGradient id="girls-street-back-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="girls-street-back-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#45454b"/><stop offset=".55" stop-color="#2d2d31"/><stop offset="1" stop-color="#17171a"/></linearGradient>
+    <clipPath id="girls-street-back-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#girls-street-back-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#girls-street-back-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#girls-street-back-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#girls-street-back-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    
+    
+    <g transform="rotate(0 255 382)"><ellipse cx="255.0" cy="338.5" rx="39.68" ry="24.32" transform="rotate(-90 255.0 338.5)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="296.4" cy="368.6" rx="39.68" ry="24.32" transform="rotate(-18 296.4 368.6)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="280.6" cy="417.2" rx="39.68" ry="24.32" transform="rotate(54 280.6 417.2)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="229.4" cy="417.2" rx="39.68" ry="24.32" transform="rotate(126 229.4 417.2)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="213.6" cy="368.6" rx="39.68" ry="24.32" transform="rotate(198 213.6 368.6)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><circle cx="255" cy="382" r="14.08" fill="#ffd166" stroke="#ffd3e6" stroke-width="1.3"/></g><g transform="rotate(0 398 322)"><ellipse cx="398.0" cy="295.5" rx="24.18" ry="14.82" transform="rotate(-90 398.0 295.5)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="423.2" cy="313.8" rx="24.18" ry="14.82" transform="rotate(-18 423.2 313.8)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="413.6" cy="343.5" rx="24.18" ry="14.82" transform="rotate(54 413.6 343.5)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="382.4" cy="343.5" rx="24.18" ry="14.82" transform="rotate(126 382.4 343.5)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="372.8" cy="313.8" rx="24.18" ry="14.82" transform="rotate(198 372.8 313.8)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><circle cx="398" cy="322" r="8.58" fill="#ffd166" stroke="#ffd3e6" stroke-width="1.3"/></g><g transform="rotate(0 414 486)"><ellipse cx="414.0" cy="454.7" rx="28.52" ry="17.48" transform="rotate(-90 414.0 454.7)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="443.7" cy="476.3" rx="28.52" ry="17.48" transform="rotate(-18 443.7 476.3)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="432.4" cy="511.3" rx="28.52" ry="17.48" transform="rotate(54 432.4 511.3)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="395.6" cy="511.3" rx="28.52" ry="17.48" transform="rotate(126 395.6 511.3)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><ellipse cx="384.3" cy="476.3" rx="28.52" ry="17.48" transform="rotate(198 384.3 476.3)" fill="#f28bb4" fill-opacity="0.92" stroke="#ffd3e6" stroke-width="2"/><circle cx="414" cy="486" r="10.120000000000001" fill="#ffd166" stroke="#ffd3e6" stroke-width="1.3"/></g><text x="325" y="535" text-anchor="middle" transform="rotate(-10 325 535)" font-family="'Brush Script MT','Segoe Script',cursive" font-size="82" fill="#fff" stroke="rgba(0,0,0,.16)" stroke-width="1">HYPE</text>
+  </g>
+  
+          <path d="M222 224 C228 137 272 92 320 92 C368 92 412 137 418 224 C393 252 360 266 320 266 C280 266 247 252 222 224 Z" fill="url(#girls-street-back-fabric)" stroke="rgba(0,0,0,.30)" stroke-width="3"/>
+          <path d="M252 205 C282 232 358 232 388 205" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="5"/>
+          <path d="M320 100 C303 140 297 180 299 224 M320 100 C337 140 343 180 341 224" fill="none" stroke="rgba(0,0,0,.15)" stroke-width="4"/>
+          <path d="M320 266 L320 642" stroke="rgba(0,0,0,.10)" stroke-width="3"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      
+    
+</svg>

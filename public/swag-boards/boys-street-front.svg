@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="boys street hoodie front illustration">
+  <defs>
+    <radialGradient id="boys-street-front-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="boys-street-front-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#48484d"/><stop offset=".55" stop-color="#2e2e31"/><stop offset="1" stop-color="#151517"/></linearGradient>
+    <clipPath id="boys-street-front-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#boys-street-front-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#boys-street-front-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#boys-street-front-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#boys-street-front-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    <g opacity=".16" fill="#d4d4d8"><ellipse cx="250" cy="330" rx="130" ry="46" transform="rotate(-14 250 330)"/><ellipse cx="400" cy="520" rx="150" ry="52" transform="rotate(10 400 520)"/><ellipse cx="300" cy="170" rx="120" ry="34"/></g>
+    
+    <g opacity="1"><polygon points="219.0,352.9 214.1,319.4 236.4,338.0 245.1,316.9 255.0,309.5 264.9,316.9 273.6,338.0 295.9,319.4 291.0,352.9" fill="#f5f5f5" stroke="#111" stroke-width="1" stroke-linejoin="round"/><rect x="220.9" y="351.64" width="68.2" height="4.96" rx="2.48" fill="#f5f5f5" stroke="#111" stroke-width="1"/></g><text x="255" y="392" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="24" letter-spacing="3" fill="#fff">HYPE</text>
+  </g>
+  
+          <path d="M224 218 C235 141 277 105 320 105 C363 105 405 141 416 218 C396 245 362 260 320 260 C278 260 244 245 224 218 Z" fill="url(#boys-street-front-fabric)" stroke="rgba(0,0,0,.28)" stroke-width="3"/>
+          <path d="M258 190 C276 224 296 240 320 240 C344 240 364 224 382 190 C374 252 350 278 320 278 C290 278 266 252 258 190 Z" fill="rgba(0,0,0,.30)"/>
+          <path d="M291 252 L282 395 M349 252 L358 395" stroke="rgba(20,20,20,.62)" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="282" cy="402" r="6" fill="rgba(255,255,255,.75)"/><circle cx="358" cy="402" r="6" fill="rgba(255,255,255,.75)"/>
+          <path d="M320 112 C302 150 296 190 298 232 M320 112 C338 150 344 190 342 232" fill="none" stroke="rgba(0,0,0,.16)" stroke-width="4"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      <path d="M232 518 L408 518 L431 636 L209 636 Z" fill="rgba(0,0,0,.10)" stroke="rgba(0,0,0,.25)" stroke-width="3"/>
+    
+</svg>
