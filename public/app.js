@@ -241,7 +241,13 @@ function showStore(target) {
   window.scrollTo(0, 0);
   $$(".view-home video").forEach((v) => v.pause());
   const sv = $("#swagVideo"); if (sv) { const p = sv.play(); if (p && p.catch) p.catch(() => {}); }
-  if (target) { const el = document.getElementById(target); if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 60); }
+  // Store redesign (2026-11-04): #hype-girls / #hype-boys are no longer
+  // stacked board sections — they select the grid's division filter and
+  // land on the product grid. Other targets scroll as before.
+  if (target === "hype-girls" || target === "hype-boys") {
+    setStoreDivision(target === "hype-girls" ? "girls" : "boys", "all");
+    setTimeout(() => document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }), 60);
+  } else if (target) { const el = document.getElementById(target); if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 60); }
 }
 function showHome() {
   if (!document.body.classList.contains("store-open")) return;
@@ -337,11 +343,95 @@ function filmSceneAt(t) {
   v.addEventListener("seeked", () => { if (v.paused) showCard(); });
   v.addEventListener("play", hideCard);
   v.addEventListener("playing", hideCard);
-  btn.addEventListener("click", () => {
-    const el = document.getElementById(scene.target);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  });
+  btn.addEventListener("click", () => goToStoreScene(scene.target));
 })();
+
+/* ---------------- Store: product grid (Drop 001 redesign) ----------------
+   Emil (2026-11-04): the Store is now a compact product grid with real
+   lookbook photography instead of six stacked illustrated boards.
+   - Girls/Boys toggle + collection chips filter the grid in place.
+   - Cards flip front/back (hover on desktop, ⇄ toggle on touch) and
+     open a quick-view overlay. Preview only: no prices, no checkout.
+   - The film's scene targets keep their names (hype-girls, hype-boys,
+     coordinating, collections) but now drive the grid: division scenes
+     set the filter and flash-highlight that side's cards; the other
+     scenes land on the grid and flash the visible cards. */
+const storeState = { division: "girls", chip: "all" };
+function applyStoreFilter() {
+  $$(".prod-card").forEach((c) => {
+    const ok = c.dataset.division === storeState.division && (storeState.chip === "all" || c.dataset.collection === storeState.chip);
+    c.hidden = !ok;
+  });
+  $$("[data-store-div]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.storeDiv === storeState.division)));
+  $$("[data-store-chip]").forEach((b) => {
+    if (b.dataset.chipDiv) b.hidden = b.dataset.chipDiv !== storeState.division;
+    b.setAttribute("aria-pressed", String(b.dataset.storeChip === storeState.chip));
+  });
+}
+function setStoreDivision(division, chip) {
+  storeState.division = division;
+  if (chip) storeState.chip = chip;
+  // A chip that only exists on the other side (Essentials/Unleashed)
+  // cannot survive a division switch.
+  if (storeState.chip !== "all") {
+    const chipBtn = $(`[data-store-chip="${storeState.chip}"]`);
+    if (chipBtn && chipBtn.dataset.chipDiv && chipBtn.dataset.chipDiv !== division) storeState.chip = "all";
+  }
+  applyStoreFilter();
+}
+function flashStoreCards(selector) {
+  const cards = $$(selector || ".prod-card:not([hidden])");
+  cards.forEach((c) => { c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); });
+  setTimeout(() => cards.forEach((c) => c.classList.remove("flash")), 2400);
+}
+function goToStoreScene(target) {
+  if (target === "hype-girls" || target === "hype-boys") {
+    const div = target === "hype-girls" ? "girls" : "boys";
+    setStoreDivision(div, "all");
+    document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
+    flashStoreCards(`.prod-card[data-division="${div}"]`);
+  } else {
+    // "coordinating" / "collections": the whole grid is the destination.
+    storeState.chip = "all"; applyStoreFilter();
+    document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
+    flashStoreCards();
+  }
+}
+$$("[data-store-div]").forEach((b) => b.addEventListener("click", () => setStoreDivision(b.dataset.storeDiv)));
+$$("[data-store-chip]").forEach((b) => b.addEventListener("click", () => { storeState.chip = b.dataset.storeChip; applyStoreFilter(); }));
+$$(".prod-card").forEach((card) => {
+  const flip = card.querySelector("[data-flip]");
+  if (flip) flip.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const back = card.classList.toggle("show-back");
+    flip.textContent = back ? "⇄ Front" : "⇄ Back";
+    flip.setAttribute("aria-label", `Flip ${card.querySelector("h4").textContent} card to the ${back ? "front" : "back"} view`);
+  });
+  card.addEventListener("click", () => openQuickView(card));
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openQuickView(card); } });
+});
+function openQuickView(card) {
+  const qv = $("#quickView"); if (!qv) return;
+  const front = card.querySelector(".prod-front"), back = card.querySelector(".prod-back"), flat = card.querySelector(".prod-flat");
+  const qf = $("#qvFront"), qb = $("#qvBack"), qfl = $("#qvFlat");
+  qf.src = front.src; qf.alt = front.alt; qb.src = back.src; qb.alt = back.alt; qfl.src = flat.src; qfl.alt = flat.alt;
+  $("#qvSide").textContent = card.querySelector(".prod-side").textContent;
+  $("#qvTitle").textContent = card.querySelector("h4").textContent;
+  $("#qvSlogan").textContent = card.querySelector(".prod-slogan").textContent;
+  $("#qvDesc").textContent = card.querySelector(".prod-desc").textContent;
+  $("#qvColors").textContent = card.querySelector(".prod-colors").textContent;
+  qv.hidden = false;
+  document.body.classList.add("qv-open");
+  qv.querySelector(".qv-close")?.focus();
+}
+function closeQuickView() {
+  const qv = $("#quickView"); if (!qv) return;
+  qv.hidden = true;
+  document.body.classList.remove("qv-open");
+}
+$$("[data-qv-close]").forEach((el) => el.addEventListener("click", closeQuickView));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuickView(); });
+applyStoreFilter();
 
 /* ---------------- Hype Frame studio ---------------- */
 // Emil's product concept (2026-11-04): a real freeze-frame from the

@@ -504,15 +504,15 @@
       <button type="button" class="back-link" data-home-link>← Back to homepage</button>
       <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
     </div>
-    <div class="shop-head">
+    <div class="shop-head shop-head-slim">
       <div>
         <span class="sec-tag">Rep The Hype · Drop 001</span>
         <h2>Rep the <span class="lime">hype</span></h2>
       </div>
-      <p>Rep The Hype is bold, youth-first apparel that turns community into identity. Drop 001 is two youth collections — <b style="color:#fff">Hype Girls</b> and <b style="color:#fff">Hype Boys</b> — six front-and-back hoodie boards with coordinating tees. It's a <b style="color:#fff">limited drop</b> — when it's gone, it's gone.</p>
+      <p>Bold, youth-first apparel — six hoodies, two collections, one <b style="color:#fff">limited drop</b>. Preview only — products are finalizing, no checkout yet.</p>
     </div>
 
-    <div class="swag-film" aria-label="Drop 001 swag film — Wear The Hype">
+    <div class="swag-film swag-film-banner" aria-label="Drop 001 swag film — Wear The Hype">
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
       <span class="dur">0:10</span>
@@ -520,7 +520,6 @@
       <div class="swag-film-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
-        <p class="sub">Drop 001 in motion — both collections and the Hype All Day hoodie. Pick your side:</p>
         <div class="swag-film-ctas">
           <a class="btn btn-girls" href="#hype-girls">Shop Hype Girls</a>
           <a class="btn btn-boys" href="#hype-boys">Shop Hype Boys</a>
@@ -534,272 +533,158 @@
       </div>
     </div>
 
-    <figure class="shop-hero">
-      <img src="/lookbook-drop001.jpg" alt="HighlightHype Drop 001 lookbook — the Girls Collection (Hype Street, Hype Athletics, Hype Essentials) and Boys Collection (Hype Street, Hype Athletics, Hype Unleashed) hoodies, under the header “Your Moment. Your Hype.”" />
-      <figcaption><b>Drop 001 Lookbook</b><span>Girls Collection · Boys Collection</span><span class="gold">Your moment. Your hype.</span></figcaption>
-    </figure>
-
-    <div class="lines-head" id="collections">
-      <h3>The collections</h3>
-      <p>The Drop 001 plan — four collections, each with its own slogan.</p>
-    </div>
-    <div class="lines">
-      <div class="ln"><h4>Hype Street</h4><p class="slogan">Hype Is Life</p><p class="side">Hype Girls · Hype Boys</p></div>
-      <div class="ln"><h4>Hype Athletics</h4><p class="slogan">Hype Is Earned</p><p class="side">Hype Girls · Hype Boys</p></div>
-      <div class="ln"><h4>Hype Essentials</h4><p class="slogan">The Hype Starts Here</p><p class="side">Hype Girls</p></div>
-      <div class="ln"><h4>Hype Unleashed</h4><p class="slogan">It&rsquo;s Hype or Nothing</p><p class="side">Hype Boys</p></div>
-    </div>
-
-    <div class="hypeframe-sec" id="hype-frame">
-      <div class="sec-head" style="margin-bottom:14px">
-        <span class="sec-tag">New · Hype Frame</span>
-        <h3 class="hf-store-title">HYPE FRAME — Your moment. Your swag.</h3>
-        <p>A real freeze-frame from the athlete's own highlight, printed on premium youth apparel. Not a stock design — their moment, their name, their number.</p>
+    <div class="store-controls" id="storeControls">
+      <div class="store-divseg" role="group" aria-label="Choose a collection side">
+        <button type="button" id="hype-girls" class="divseg-btn divseg-girls" data-store-div="girls" aria-pressed="true">Hype Girls</button>
+        <button type="button" id="hype-boys" class="divseg-btn divseg-boys" data-store-div="boys" aria-pressed="false">Hype Boys</button>
       </div>
-      <div class="hf-steps">
-        <div class="hf-step"><div class="num">01</div><p>Select your highlight from an uploaded video.</p></div>
-        <div class="hf-step"><div class="num">02</div><p>Freeze your favorite frame using a video timeline.</p></div>
-        <div class="hf-step"><div class="num">03</div><p>Customize with your name, jersey number, and optional HYPE FRAME branding.</p></div>
-        <div class="hf-step"><div class="num">04</div><p>Preview the actual image on a hoodie or T-shirt.</p></div>
-        <div class="hf-step"><div class="num">05</div><p>Order with parent or guardian approval.</p></div>
+      <div class="store-chips" role="group" aria-label="Filter by collection">
+        <button type="button" class="store-chip" data-store-chip="all" aria-pressed="true">All</button>
+        <button type="button" class="store-chip" data-store-chip="street" aria-pressed="false">Street</button>
+        <button type="button" class="store-chip" data-store-chip="athletics" aria-pressed="false">Athletics</button>
+        <button type="button" class="store-chip" data-store-chip="essentials" data-chip-div="girls" aria-pressed="false">Essentials</button>
+        <button type="button" class="store-chip" data-store-chip="unleashed" data-chip-div="boys" aria-pressed="false" hidden>Unleashed</button>
       </div>
-      <p class="hf-start-note">Hype Frame starts from any approved play on the board — find the play, tap <b>📸 Create a Hype Frame</b> on its card, and the studio opens with that highlight loaded. No payment today: a parent or guardian confirms by email before anything is printed.</p>
-      <a class="btn btn-lime" href="#deck" data-tablink="plays">Pick a play on the board</a>
+      <span id="coordinating" class="store-anchor" aria-hidden="true"></span>
     </div>
 
-    <div class="collection" id="hype-girls">
-      <div class="collection-head">
-        <h3>Hype <span class="pink">Girls</span></h3>
-        <p>Three hoodie boards · tiara motif</p>
-        <a class="girls-link" href="#hype-girls">Shop Hype Girls →</a>
-      </div>
-
-      <div class="look-boards">
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Girls Collection · Tiara motif</span>
-              <h4>Hype Street</h4>
-              <p class="look-board-slogan">Hype Is Life</p>
-              <p class="look-board-descriptor">Everyday style. Youth culture.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/girls-street-front.svg" alt="Illustrated front of the Girls Hype Street charcoal hoodie with a small crown-HYPE chest mark" loading="lazy" decoding="async" />
-              <figcaption>Front · Charcoal hoodie · small crown-HYPE chest mark</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/girls-street-back.svg" alt="Illustrated back of the Girls Hype Street charcoal hoodie with pink hibiscus flowers and white HYPE script" loading="lazy" decoding="async" />
-              <figcaption>Back · Pink hibiscus flowers · white HYPE script</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Street Girls colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:#17171a"></span><span>Black</span></li>
-              <li><span class="swatch" style="--sw:#f3a8c4"></span><span>Pink</span></li>
-              <li><span class="swatch" style="--sw:#f3e7cf"></span><span>Cream</span></li>
-              <li><span class="swatch" style="--sw:#a9d7f0"></span><span>Light Blue</span></li>
-            </ul>
-          </div>
-        </article>
-
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Girls Collection · Tiara motif</span>
-              <h4>Hype Athletics</h4>
-              <p class="look-board-slogan">Hype Is Earned</p>
-              <p class="look-board-descriptor">Performance. Pride. Community.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/girls-athletics-front.svg" alt="Illustrated front of the Girls Hype Athletics cream hoodie with green sleeve stripes and a small H-crest" loading="lazy" decoding="async" />
-              <figcaption>Front · Cream hoodie · green sleeve stripes · small H-crest</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/girls-athletics-back.svg" alt="Illustrated back of the Girls Hype Athletics cream hoodie with a green HYPE H Athletic Club design" loading="lazy" decoding="async" />
-              <figcaption>Back · Green “HYPE (H) Athletic Club”</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Athletics Girls colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:#f3e7cf"></span><span>Cream</span></li>
-              <li><span class="swatch" style="--sw:#14532d"></span><span>Forest Green</span></li>
-              <li><span class="swatch" style="--sw:#14264a"></span><span>Navy</span></li>
-              <li><span class="swatch" style="--sw:#a8abb0"></span><span>Heather Gray</span></li>
-            </ul>
-          </div>
-        </article>
-
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Girls Collection · Tiara motif</span>
-              <h4>Hype Essentials</h4>
-              <p class="look-board-slogan">The Hype Starts Here</p>
-              <p class="look-board-descriptor">Comfort. Creativity. Confidence.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/girls-essentials-front.svg" alt="Illustrated front of the Girls Hype Essentials pink hoodie with a small tiara-HYPE chest mark" loading="lazy" decoding="async" />
-              <figcaption>Front · Pink hoodie · small tiara-HYPE chest</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/girls-essentials-back.svg" alt="Illustrated back of the Girls Hype Essentials pink hoodie with a large outlined hibiscus" loading="lazy" decoding="async" />
-              <figcaption>Back · Large outlined hibiscus</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Essentials Girls colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:#9fd3f2"></span><span>Sky Blue</span></li>
-              <li><span class="swatch" style="--sw:#f3e7cf"></span><span>Cream</span></li>
-              <li><span class="swatch" style="--sw:#f3a8c4"></span><span>Pink</span></li>
-              <li><span class="swatch" style="--sw:#c4aee8"></span><span>Lavender</span></li>
-            </ul>
-          </div>
-        </article>
-      </div>
-    </div>
-
-    <div class="collection" id="hype-boys">
-      <div class="collection-head">
-        <h3>Hype <span class="lime">Boys</span></h3>
-        <p>Three hoodie boards · crown motif</p>
-        <a href="#hype-boys">Shop Hype Boys →</a>
-      </div>
-
-      <div class="look-boards">
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Boys Collection · Crown motif</span>
-              <h4>Hype Street</h4>
-              <p class="look-board-slogan">Hype Is Life</p>
-              <p class="look-board-descriptor">Everyday style. Youth culture.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/boys-street-front.svg" alt="Illustrated front of the Boys Hype Street washed black hoodie with a small crown chest mark" loading="lazy" decoding="async" />
-              <figcaption>Front · Washed black hoodie · small crown chest</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/boys-street-back.svg" alt="Illustrated back of the Boys Hype Street washed black hoodie with a large white crown and diagonal HYPE script" loading="lazy" decoding="async" />
-              <figcaption>Back · Large white crown · diagonal HYPE script</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Street Boys colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:#17171a"></span><span>Black</span></li>
-              <li><span class="swatch" style="--sw:#315d88"></span><span>Denim Blue</span></li>
-              <li><span class="swatch" style="--sw:#898d92"></span><span>Gray</span></li>
-              <li><span class="swatch" style="--sw:#66704a"></span><span>Olive</span></li>
-            </ul>
-          </div>
-        </article>
-
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Boys Collection · Crown motif</span>
-              <h4>Hype Athletics</h4>
-              <p class="look-board-slogan">Hype Is Earned</p>
-              <p class="look-board-descriptor">Performance. Pride. Community.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/boys-athletics-front.svg" alt="Illustrated front of the Boys Hype Athletics cream hoodie with green sleeve stripes and an H-crest" loading="lazy" decoding="async" />
-              <figcaption>Front · Cream hoodie · green sleeve stripes · H-crest chest</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/boys-athletics-back.svg" alt="Illustrated back of the Boys Hype Athletics cream hoodie with a green HYPE H Athletic Club design" loading="lazy" decoding="async" />
-              <figcaption>Back · Green “HYPE (H) Athletic Club”</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Athletics Boys colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:#f3e7cf"></span><span>Cream</span></li>
-              <li><span class="swatch" style="--sw:#a8abb0"></span><span>Heather Gray</span></li>
-              <li><span class="swatch" style="--sw:#14532d"></span><span>Forest Green</span></li>
-              <li><span class="swatch" style="--sw:#14264a"></span><span>Navy</span></li>
-            </ul>
-          </div>
-        </article>
-
-        <article class="look-board">
-          <div class="look-board-head">
-            <div>
-              <span class="look-board-kicker">Boys Collection · Crown motif</span>
-              <h4>Hype Unleashed</h4>
-              <p class="look-board-slogan">It&rsquo;s Hype or Nothing</p>
-              <p class="look-board-descriptor">Bold designs. High energy. No limits.</p>
-            </div>
-            <span class="preview-note">Preview — products finalizing</span>
-          </div>
-          <div class="board-visuals">
-            <figure>
-              <img src="/swag-boards/boys-unleashed-front.svg" alt="Illustrated front of the Boys Hype Unleashed blue and yellow lightning-print hoodie with a gold crown" loading="lazy" decoding="async" />
-              <figcaption>Front · Blue/yellow lightning all-over print · gold crown</figcaption>
-            </figure>
-            <figure>
-              <img src="/swag-boards/boys-unleashed-back.svg" alt="Illustrated back of the Boys Hype Unleashed purple lightning-print hoodie with a neon crown outline" loading="lazy" decoding="async" />
-              <figcaption>Back · Purple lightning · neon crown outline</figcaption>
-            </figure>
-          </div>
-          <div class="board-colors" aria-label="Hype Unleashed Boys colorways">
-            <h5>Colorways</h5>
-            <ul>
-              <li><span class="swatch" style="--sw:linear-gradient(135deg,#ffe45c 0%,#37b6ff 55%,#136bd8 100%)"></span><span>Blue Lightning</span></li>
-              <li><span class="swatch" style="--sw:linear-gradient(135deg,#ff3d00,#ffb300)"></span><span>Fire Orange</span></li>
-              <li><span class="swatch" style="--sw:linear-gradient(135deg,#7e22ce,#2e1065)"></span><span>Purple Lightning</span></li>
-              <li><span class="swatch" style="--sw:linear-gradient(135deg,#0ea5a4,#164e63)"></span><span>Teal Lightning</span></li>
-            </ul>
-          </div>
-        </article>
-      </div>
-    </div>
-
-    <div class="coord-head" id="coordinating">
-      <h3>Coordinating tees</h3>
-      <p>Made to match the colorways — Drop 001, both collections.</p>
-    </div>
-
-    <div class="shop-grid">
-      <article class="swag-card">
-        <div class="swag-visual">
-          <img src="/swag-tee.webp" alt="Illustrated black tee with a graffiti HYPE design and gold crown, paint splatters behind it" style="object-position:center 30%" />
-          <span class="sv-type">Tee</span>
+    <div class="prod-grid" id="collections" aria-label="Drop 001 products">
+      <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie">
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/girls-street-front.jpg" alt="Girls Hype Street charcoal hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back with pink hibiscus flowers and white HYPE script, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Street card to the back view">⇄ Back</button>
         </div>
-        <div class="swag-body">
-          <h3>Graffiti HYPE Tee</h3>
-          <p>Dyanna's <b>graffiti logo</b> — reserved for Drop 001 clothing only.</p>
-          <p class="small" style="color:var(--muted2);font-weight:600">Preview — products are being finalized; checkout opens once they are.</p>
+        <div class="prod-body">
+          <p class="prod-side">Girls Collection · Tiara motif</p>
+          <h4>Hype Street</h4>
+          <p class="prod-slogan">Hype Is Life</p>
+          <p class="prod-desc">Everyday style. Youth culture.</p>
+          <img class="prod-flat" src="/swag/girls-street-flat.jpg" alt="Girls Hype Street hoodie in all four colorways: Black, Pink, Cream, Light Blue" loading="lazy" decoding="async" />
+          <p class="prod-colors">Black · Pink · Cream · Light Blue</p>
+        </div>
+      </article>
+
+      <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie">
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/girls-athletics-front.jpg" alt="Girls Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/girls-athletics-back.jpg" alt="Girls Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Athletics card to the back view">⇄ Back</button>
+        </div>
+        <div class="prod-body">
+          <p class="prod-side">Girls Collection · Tiara motif</p>
+          <h4>Hype Athletics</h4>
+          <p class="prod-slogan">Hype Is Earned</p>
+          <p class="prod-desc">Performance. Pride. Community.</p>
+          <img class="prod-flat" src="/swag/girls-athletics-flat.jpg" alt="Girls Hype Athletics hoodie in all four colorways: Cream, Forest Green, Navy, Heather Gray" loading="lazy" decoding="async" />
+          <p class="prod-colors">Cream · Forest Green · Navy · Heather Gray</p>
+        </div>
+      </article>
+
+      <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie">
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/girls-essentials-front.jpg" alt="Girls Hype Essentials pink hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/girls-essentials-back.jpg" alt="Girls Hype Essentials pink hoodie — back with a large hibiscus, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Essentials card to the back view">⇄ Back</button>
+        </div>
+        <div class="prod-body">
+          <p class="prod-side">Girls Collection · Tiara motif</p>
+          <h4>Hype Essentials</h4>
+          <p class="prod-slogan">The Hype Starts Here</p>
+          <p class="prod-desc">Comfort. Creativity. Confidence.</p>
+          <img class="prod-flat" src="/swag/girls-essentials-flat.jpg" alt="Girls Hype Essentials hoodie in all four colorways: Sky Blue, Cream, Pink, Lavender" loading="lazy" decoding="async" />
+          <p class="prod-colors">Sky Blue · Cream · Pink · Lavender</p>
+        </div>
+      </article>
+
+      <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie" hidden>
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/boys-street-front.jpg" alt="Boys Hype Street washed black hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/boys-street-back.jpg" alt="Boys Hype Street washed black hoodie — back with a large white crown and diagonal HYPE script, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Street card to the back view">⇄ Back</button>
+        </div>
+        <div class="prod-body">
+          <p class="prod-side">Boys Collection · Crown motif</p>
+          <h4>Hype Street</h4>
+          <p class="prod-slogan">Hype Is Life</p>
+          <p class="prod-desc">Everyday style. Youth culture.</p>
+          <img class="prod-flat" src="/swag/boys-street-flat.jpg" alt="Boys Hype Street hoodie in all four colorways: Black, Denim Blue, Gray, Olive" loading="lazy" decoding="async" />
+          <p class="prod-colors">Black · Denim Blue · Gray · Olive</p>
+        </div>
+      </article>
+
+      <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie" hidden>
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/boys-athletics-front.jpg" alt="Boys Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/boys-athletics-back.jpg" alt="Boys Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Athletics card to the back view">⇄ Back</button>
+        </div>
+        <div class="prod-body">
+          <p class="prod-side">Boys Collection · Crown motif</p>
+          <h4>Hype Athletics</h4>
+          <p class="prod-slogan">Hype Is Earned</p>
+          <p class="prod-desc">Performance. Pride. Community.</p>
+          <img class="prod-flat" src="/swag/boys-athletics-flat.jpg" alt="Boys Hype Athletics hoodie in all four colorways: Cream, Heather Gray, Forest Green, Navy" loading="lazy" decoding="async" />
+          <p class="prod-colors">Cream · Heather Gray · Forest Green · Navy</p>
+        </div>
+      </article>
+
+      <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie" hidden>
+        <div class="prod-media">
+          <img class="prod-img prod-front" src="/swag/boys-unleashed-front.jpg" alt="Boys Hype Unleashed blue and yellow lightning-print hoodie — front, worn" loading="lazy" decoding="async" />
+          <img class="prod-img prod-back" src="/swag/boys-unleashed-back.jpg" alt="Boys Hype Unleashed purple lightning-print hoodie — back with a neon crown outline, worn" loading="lazy" decoding="async" />
+          <span class="preview-note">Preview</span>
+          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Unleashed card to the back view">⇄ Back</button>
+        </div>
+        <div class="prod-body">
+          <p class="prod-side">Boys Collection · Crown motif</p>
+          <h4>Hype Unleashed</h4>
+          <p class="prod-slogan">It&rsquo;s Hype or Nothing</p>
+          <p class="prod-desc">Bold designs. High energy. No limits.</p>
+          <img class="prod-flat" src="/swag/boys-unleashed-flat.jpg" alt="Boys Hype Unleashed hoodie in all four colorways: Blue Lightning, Fire Orange, Purple Lightning, Teal Lightning" loading="lazy" decoding="async" />
+          <p class="prod-colors">Blue Lightning · Fire Orange · Purple Lightning · Teal Lightning</p>
         </div>
       </article>
     </div>
 
-    <div class="swag-meta" aria-label="Swag details">
-      <div class="m"><h4>Crown on everything</h4><p>Same crown, same wordmark — on the hero, the cards, the team boards, and every piece in this drop.</p></div>
-      <div class="m"><h4>Three sayings, locked</h4><p>“The hype starts here” · “Hype all day” · “Hype is earned” — the Drop 001 voice.</p></div>
-      <div class="m"><h4>Free shipping</h4><p>Free shipping on qualifying orders — full details here in the store, where the buying happens, once checkout opens.</p></div>
+    <div class="hypeframe-sec hypeframe-banner" id="hype-frame">
+      <div class="hf-banner-main">
+        <span class="sec-tag">New · Hype Frame</span>
+        <h3 class="hf-store-title">HYPE FRAME — Your moment. Your swag.</h3>
+        <p class="hf-banner-sub">A real freeze-frame from the athlete's own highlight, printed on premium youth apparel — their moment, their name, their number. No payment today: a parent or guardian confirms by email before anything is printed.</p>
+        <a class="btn btn-lime" href="#deck" data-tablink="plays">Pick a play on the board</a>
+      </div>
+      <ol class="hf-steps-strip">
+        <li><span class="num">01</span>Select your highlight from an uploaded video.</li>
+        <li><span class="num">02</span>Freeze your favorite frame using a video timeline.</li>
+        <li><span class="num">03</span>Customize with your name, jersey number, and optional HYPE FRAME branding.</li>
+        <li><span class="num">04</span>Preview the actual image on a hoodie or T-shirt.</li>
+        <li><span class="num">05</span>Order with parent or guardian approval.</li>
+      </ol>
     </div>
 
-    <div class="swag-cta">
-      <p>This is the Drop 001 storefront preview — products are being finalized, and the rest of this page (sizes, prices, checkout) gets worked out once they are.</p>
+    <div class="qv" id="quickView" hidden role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+      <div class="qv-backdrop" data-qv-close></div>
+      <div class="qv-panel">
+        <button type="button" class="qv-close" data-qv-close aria-label="Close quick view">✕</button>
+        <div class="qv-media">
+          <figure><img id="qvFront" src="" alt="" /><figcaption>Front</figcaption></figure>
+          <figure><img id="qvBack" src="" alt="" /><figcaption>Back</figcaption></figure>
+        </div>
+        <img class="qv-flat" id="qvFlat" src="" alt="" />
+        <p class="prod-side" id="qvSide"></p>
+        <h4 id="qvTitle"></h4>
+        <p class="prod-slogan" id="qvSlogan"></p>
+        <p class="prod-desc" id="qvDesc"></p>
+        <p class="qv-colors-label">Colorways</p>
+        <p class="qv-colors" id="qvColors"></p>
+        <p class="qv-note">Preview — products are being finalized; checkout opens once they are.</p>
+      </div>
     </div>
   </div>
 </section>

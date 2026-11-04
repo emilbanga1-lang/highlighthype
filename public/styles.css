@@ -782,3 +782,64 @@
   .hf-req-img{width:150px;max-width:40%;border-radius:10px;border:1px solid var(--line2)}
   .hf-req-body{flex:1;min-width:0}
   @media (max-width:560px){ .hf-req{flex-direction:column} .hf-req-img{max-width:230px} }
+
+  /* ===== Store redesign (2026-11-04): compact banner hero, sticky
+     controls, real-photo product grid, quick view, slim Hype Frame
+     banner. Replaces the stacked illustrated lookbook boards. ===== */
+  .shop-head-slim{align-items:end}
+  .shop-head-slim p{max-width:520px}
+  .swag-film-banner{aspect-ratio:21/9;max-height:430px;margin-bottom:18px}
+  .swag-film-banner .swag-film-overlay{padding:18px 22px 16px}
+  .swag-film-banner .swag-film-overlay h3{font-size:clamp(30px,4.5vw,54px)}
+  @media (max-width:640px){ .swag-film-banner{aspect-ratio:16/10} }
+  .store-controls{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 2px;background:rgba(5,5,5,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-bottom:18px}
+  .store-anchor{position:absolute;width:1px;height:1px;overflow:hidden}
+  .store-divseg{display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden}
+  .divseg-btn{appearance:none;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:800;font-size:14px;padding:9px 18px;cursor:pointer}
+  .divseg-girls[aria-pressed="true"]{background:#ec2c8c;color:#fff}
+  .divseg-boys[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink)}
+  .store-chips{display:inline-flex;flex-wrap:wrap;gap:8px}
+  .store-chip{appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;cursor:pointer}
+  .store-chip[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
+  .prod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media (min-width:900px){ .prod-grid{grid-template-columns:repeat(3,1fr);gap:20px} }
+  .prod-card{background:#0d0d0f;border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;text-align:left}
+  .prod-card:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .prod-card.flash{animation:prodFlash 1.1s ease-in-out 2}
+  @keyframes prodFlash{0%,100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}50%{box-shadow:0 0 0 3px var(--volt)}}
+  .prod-media{position:relative;aspect-ratio:4/5;background:#111;overflow:hidden}
+  .prod-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+  .prod-img.prod-back{opacity:0;transition:opacity .25s ease}
+  @media (hover:hover){ .prod-card:hover .prod-img.prod-back{opacity:1} }
+  .prod-card.show-back .prod-img.prod-back{opacity:1}
+  .prod-media .preview-note{position:absolute;top:10px;left:10px;z-index:2;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+  .prod-flip{position:absolute;right:10px;bottom:10px;z-index:2;appearance:none;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.6);color:#fff;font:inherit;font-size:12.5px;font-weight:800;padding:7px 12px;border-radius:999px;cursor:pointer}
+  .prod-body{padding:14px 16px 16px}
+  .prod-side{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:0 0 6px}
+  .prod-body h4{font-family:"Anton",sans-serif;font-size:24px;letter-spacing:.02em;text-transform:uppercase;margin:0;color:#fff}
+  .prod-slogan{font-weight:800;color:var(--volt);margin:4px 0 2px}
+  [data-division="girls"] .prod-slogan{color:#ff8fc0}
+  .prod-desc{color:var(--muted);margin:0 0 12px;font-size:14px}
+  .prod-flat{width:100%;border-radius:10px;display:block;border:1px solid var(--line)}
+  .prod-colors{color:var(--muted2);font-size:12.5px;font-weight:600;margin:8px 0 0}
+  .hypeframe-banner{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin:34px 0 6px;padding:22px 0 4px}
+  .hf-banner-main{flex:1 1 320px;min-width:260px}
+  .hf-banner-sub{color:var(--muted);margin:8px 0 14px;max-width:560px}
+  .hf-steps-strip{flex:2 1 420px;display:flex;flex-wrap:wrap;gap:8px 18px;list-style:none;margin:4px 0 0;padding:0}
+  .hf-steps-strip li{flex:1 1 150px;font-size:13px;color:var(--muted);line-height:1.45;border-top:2px solid var(--line2);padding-top:8px}
+  .hf-steps-strip .num{display:block;font-family:"Anton",sans-serif;color:var(--volt);font-size:15px;margin-bottom:2px}
+  .qv{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center}
+  .qv[hidden]{display:none}
+  .qv-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+  .qv-panel{position:relative;background:#0d0d0f;border:1px solid var(--line2);border-radius:18px;max-width:560px;width:calc(100% - 32px);max-height:88vh;overflow:auto;padding:20px}
+  .qv-close{position:absolute;top:12px;right:12px;z-index:2;appearance:none;border:1px solid var(--line2);background:rgba(0,0,0,.55);color:#fff;width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer}
+  .qv-media{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .qv-media figure{margin:0}
+  .qv-media img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 18%;border-radius:12px;display:block}
+  .qv-media figcaption{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);margin-top:6px;text-align:center}
+  .qv-flat{width:100%;border-radius:10px;margin:14px 0 4px;border:1px solid var(--line);display:block}
+  .qv-panel h4{font-family:"Anton",sans-serif;font-size:30px;text-transform:uppercase;margin:2px 0 0;color:#fff}
+  .qv-colors-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:14px 0 2px}
+  .qv-colors{color:#e8e8e8;font-weight:600;margin:0}
+  .qv-note{color:var(--muted2);font-size:13px;margin:14px 0 0}
+  body.qv-open{overflow:hidden}
