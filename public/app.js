@@ -344,6 +344,21 @@ function filmSceneAt(t) {
   v.addEventListener("play", hideCard);
   v.addEventListener("playing", hideCard);
   btn.addEventListener("click", () => goToStoreScene(scene.target));
+  // Store v2 hero (2026-11-04): no native controls — tapping the film
+  // toggles playback, and a round outline button (Overtime style,
+  // bottom-right) does the same. Pausing still surfaces the scene card
+  // above via the pause listener; the button icon just mirrors state.
+  const playBtn = $("#swagPlayBtn");
+  function syncPlayBtn() {
+    if (!playBtn) return;
+    playBtn.classList.toggle("is-paused", v.paused);
+    playBtn.setAttribute("aria-label", v.paused ? "Play the Drop 001 film" : "Pause the Drop 001 film");
+  }
+  v.addEventListener("click", () => { if (v.paused) v.play(); else v.pause(); });
+  if (playBtn) playBtn.addEventListener("click", (e) => { e.stopPropagation(); if (v.paused) v.play(); else v.pause(); });
+  v.addEventListener("play", syncPlayBtn);
+  v.addEventListener("pause", syncPlayBtn);
+  syncPlayBtn();
 })();
 
 /* ---------------- Store: product grid (Drop 001 redesign) ----------------
@@ -399,6 +414,12 @@ function goToStoreScene(target) {
 }
 $$("[data-store-div]").forEach((b) => b.addEventListener("click", () => setStoreDivision(b.dataset.storeDiv)));
 $$("[data-store-chip]").forEach((b) => b.addEventListener("click", () => { storeState.chip = b.dataset.storeChip; applyStoreFilter(); }));
+// Store v2 (2026-11-04): the hero's underlined Shop Girls / Shop Boys
+// links and the full-width photo tiles are navigation too — same
+// destination as the film's division scenes (set filter, scroll to the
+// grid, flash that side's cards).
+$$("[data-hero-shop]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.heroShop === "girls" ? "hype-girls" : "hype-boys")));
+$$("[data-store-tile]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.storeTile === "girls" ? "hype-girls" : "hype-boys")));
 $$(".prod-card").forEach((card) => {
   const flip = card.querySelector("[data-flip]");
   if (flip) flip.addEventListener("click", (e) => {

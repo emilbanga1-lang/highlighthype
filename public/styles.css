@@ -445,7 +445,7 @@
   @media (max-width:700px){ .swag-film-hint{top:58px} }
   .swag-film-overlay{transition:opacity .25s ease}
   .swag-film.film-paused .swag-film-overlay{opacity:0;pointer-events:none}
-  .swag-film.film-paused .swag-film-overlay .swag-film-ctas{pointer-events:none}
+  .swag-film.film-paused .swag-film-overlay .swag-film-ctas,.swag-film.film-paused .swag-film-overlay .swag-hero-links{pointer-events:none}
   .swag-film.film-paused .swag-film-hint{opacity:0}
   .swag-shop-card{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:4;width:min(430px,calc(100% - 32px));background:rgba(10,10,10,.85);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px);border-radius:16px;padding:18px 20px 20px;text-align:center;pointer-events:none;box-shadow:0 18px 44px rgba(0,0,0,.55)}
   .swag-shop-card[hidden]{display:none}
@@ -783,15 +783,49 @@
   .hf-req-body{flex:1;min-width:0}
   @media (max-width:560px){ .hf-req{flex-direction:column} .hf-req-img{max-width:230px} }
 
-  /* ===== Store redesign (2026-11-04): compact banner hero, sticky
-     controls, real-photo product grid, quick view, slim Hype Frame
-     banner. Replaces the stacked illustrated lookbook boards. ===== */
+  /* ===== Store redesign (2026-11-04): full-bleed cinematic hero
+     (v2, below), sticky controls, real-photo product grid, quick view,
+     slim Hype Frame banner. Replaces the stacked illustrated boards. */
   .shop-head-slim{align-items:end}
   .shop-head-slim p{max-width:520px}
-  .swag-film-banner{aspect-ratio:21/9;max-height:430px;margin-bottom:18px}
-  .swag-film-banner .swag-film-overlay{padding:18px 22px 16px}
-  .swag-film-banner .swag-film-overlay h3{font-size:clamp(30px,4.5vw,54px)}
-  @media (max-width:640px){ .swag-film-banner{aspect-ratio:16/10} }
+  /* Store v2 (2026-11-04): the film is a full-bleed cinematic hero in
+     Overtime's style — edge-to-edge, no card frame, no native controls;
+     bold italic title + underlined shop links bottom-left over the
+     gradient, one round outline pause/play button bottom-right. Below
+     it, full-width photo tiles act as navigation (Girls / Boys). */
+  .swag-film-hero{width:100vw;margin-left:calc(50% - 50vw);border:0;border-radius:0;aspect-ratio:21/9;margin-bottom:22px}
+  @media (max-width:640px){ .swag-film-hero{aspect-ratio:4/5;max-height:84vh} }
+  .swag-film-hero video{cursor:pointer}
+  .swag-hero-overlay{padding:30px max(20px, calc((100vw - 1180px)/2)) 26px}
+  .swag-film-hero .swag-film-overlay h3{font-style:italic}
+  .swag-hero-links{display:flex;flex-wrap:wrap;gap:14px 36px;margin-top:18px;pointer-events:auto}
+  .hero-shop-link{appearance:none;background:none;border:0;padding:0 0 3px;font:inherit;font-weight:800;font-size:18.5px;letter-spacing:.02em;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;cursor:pointer}
+  .hero-shop-link .chev{font-weight:900;text-decoration:none;display:inline-block}
+  .hero-shop-girls{color:#ff8fc0}
+  .hero-shop-boys{color:var(--volt)}
+  .hero-shop-link:hover{filter:brightness(1.18)}
+  .film-toggle{position:absolute;right:18px;bottom:18px;z-index:5;width:54px;height:54px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);background:rgba(0,0,0,.25);backdrop-filter:blur(4px);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .film-toggle:hover{background:rgba(0,0,0,.48)}
+  .film-toggle:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .film-toggle .ic-pause{display:block;width:16px;height:18px;background:linear-gradient(90deg,#fff 0 5px,transparent 5px 11px,#fff 11px 16px)}
+  .film-toggle .ic-play{display:none;width:0;height:0;border-left:15px solid #fff;border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px}
+  .film-toggle.is-paused .ic-pause{display:none}
+  .film-toggle.is-paused .ic-play{display:block}
+  .swag-film-hero .swag-shop-card{bottom:88px}
+  .store-tiles{display:flex;flex-direction:column;gap:14px;margin:0 0 22px}
+  .store-tile{appearance:none;position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#000;cursor:pointer;text-align:left;font:inherit;aspect-ratio:21/10}
+  @media (max-width:640px){ .store-tile{aspect-ratio:4/3} }
+  .store-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .store-tile-girls img{object-position:center 24%}
+  .store-tile-boys img{object-position:center 32%}
+  .store-tile::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(0,0,0,.8) 100%);pointer-events:none}
+  .store-tile .tile-copy{position:absolute;left:22px;bottom:18px;z-index:2;display:flex;flex-direction:column;gap:3px}
+  .store-tile .tile-label{font-family:"Anton",sans-serif;font-style:italic;font-size:clamp(38px,6vw,58px);line-height:1;text-transform:uppercase;letter-spacing:.01em;text-shadow:0 2px 18px rgba(0,0,0,.45)}
+  .store-tile .tile-link{font-weight:800;font-size:17.5px;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+  .store-tile .tile-link .chev{text-decoration:none;display:inline-block}
+  .store-tile-girls .tile-label,.store-tile-girls .tile-link{color:#ff8fc0}
+  .store-tile-boys .tile-label,.store-tile-boys .tile-link{color:var(--volt)}
+  .store-tile:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .store-controls{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 2px;background:rgba(5,5,5,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-bottom:18px}
   .store-anchor{position:absolute;width:1px;height:1px;overflow:hidden}
   .store-divseg{display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden}

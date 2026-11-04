@@ -512,25 +512,45 @@
       <p>Bold, youth-first apparel — six hoodies, two collections, one <b style="color:#fff">limited drop</b>. Preview only — products are finalizing, no checkout yet.</p>
     </div>
 
-    <div class="swag-film swag-film-banner" aria-label="Drop 001 swag film — Wear The Hype">
-      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
+    <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
+      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      <span class="dur">0:10</span>
       <span class="swag-film-hint" id="swagHint">⏸ Pause to shop the look</span>
-      <div class="swag-film-overlay">
+      <div class="swag-film-overlay swag-hero-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
-        <div class="swag-film-ctas">
-          <a class="btn btn-girls" href="#hype-girls">Shop Hype Girls</a>
-          <a class="btn btn-boys" href="#hype-boys">Shop Hype Boys</a>
+        <div class="swag-hero-links">
+          <button type="button" class="hero-shop-link hero-shop-girls" data-hero-shop="girls">Shop Girls <span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="hero-shop-link hero-shop-boys" data-hero-shop="boys">Shop Boys <span class="chev" aria-hidden="true">›</span></button>
         </div>
       </div>
+      <button type="button" class="film-toggle" id="swagPlayBtn" aria-label="Pause the Drop 001 film">
+        <span class="ic-pause" aria-hidden="true"></span>
+        <span class="ic-play" aria-hidden="true"></span>
+      </button>
       <div class="swag-shop-card" id="swagShopCard" hidden>
         <p class="ssc-kicker">In this scene</p>
         <h4 id="sscTitle">The Hype Girls hoodies</h4>
         <p class="ssc-sub" id="sscSub"></p>
         <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
       </div>
+    </div>
+
+    <div class="store-tiles" aria-label="Shop by collection side">
+      <button type="button" class="store-tile store-tile-girls" data-store-tile="girls" aria-label="Shop all Hype Girls">
+        <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
+        <span class="tile-copy">
+          <span class="tile-label">Girls</span>
+          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
+        </span>
+      </button>
+      <button type="button" class="store-tile store-tile-boys" data-store-tile="boys" aria-label="Shop all Hype Boys">
+        <img src="/swag/tile-boys.jpg" alt="Hype Boys — a model wearing the charcoal Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
+        <span class="tile-copy">
+          <span class="tile-label">Boys</span>
+          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
+        </span>
+      </button>
     </div>
 
     <div class="store-controls" id="storeControls">
