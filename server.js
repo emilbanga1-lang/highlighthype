@@ -75,6 +75,35 @@ function notifyPending(title, sport, id, review) {
     .catch((e) => console.error("notifyPending failed:", e.message));
 }
 
+// ---- Guardian text messages (SMS) — CAPTURE ONLY for now ----
+// Emil approved collecting a parent/guardian mobile + text opt-in at
+// upload (2026-11-03). Actually SENDING texts waits for a Twilio account
+// Emil will set up himself: set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and
+// TWILIO_FROM (the HighlightHype number) in Render env vars to activate.
+// Until then this is an inert no-op with a clear log line, exactly like
+// SMTP above behaves when SMTP_USER/SMTP_PASS are unset. No credentials
+// live in the code, and nothing is ever texted to the athlete — guardian
+// numbers only, and only where the guardian checked the opt-in box.
+function sendText(to, body) {
+  const sid = process.env.TWILIO_ACCOUNT_SID, auth = process.env.TWILIO_AUTH_TOKEN, from = process.env.TWILIO_FROM;
+  if (!sid || !auth || !from) { console.log(`[sms] TWILIO_* env vars not set — text NOT sent (would text ${to}: "${String(body).slice(0, 80)}")`); return Promise.resolve(false); }
+  if (!to) return Promise.resolve(false);
+  const creds = Buffer.from(`${sid}:${auth}`).toString("base64");
+  return fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: "POST",
+    headers: { authorization: `Basic ${creds}`, "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ From: from, To: to, Body: String(body) }).toString(),
+  }).then(async (r) => {
+    if (!r.ok) { console.error("sendText failed:", r.status, (await r.text().catch(() => "")).slice(0, 200)); return false; }
+    return true;
+  }).catch((e) => { console.error("sendText failed:", e.message); return false; });
+}
+// Text a guardian ONLY when they left a mobile AND checked the opt-in.
+function notifyGuardianText(row, body) {
+  if (!row || !row.guardian_phone || !row.text_consent) return;
+  sendText(row.guardian_phone, body).catch(() => {});
+}
+
 // ---- Agent pre-review (first-pass check, NOT an approval) ----
 // Runs on every new upload/link before it reaches the owner queue.
 // It only checks what the server can see: the submitted text, the media
@@ -133,6 +162,21 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'");
 try { db.exec("ALTER TABLE highlights ADD COLUMN review TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN team TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''"); } catch {}
+// Guardian mobile + text opt-in (2026-11-03 follow-up). Both are PRIVATE,
+// treated exactly like notify_email: stored on the play, stripped from
+// every public response, visible only on owner-authorized endpoints.
+// text_consent is the uploader's explicit opt-in (unchecked by default);
+// a phone stored WITHOUT consent is never treated as textable.
+try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_phone TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
+// A contest play is prize-eligible when the owner can actually reach a
+// parent/guardian: a guardian email on file, OR a guardian mobile WITH
+// text consent. No reachable guardian = not prize-eligible.
+const prizeEligibleFor = (row) => !!row && (!!row.notify_email || (!!row.guardian_phone && !!row.text_consent));
+// Loose phone sanity: keep what the guardian typed, but only store it if
+// it has enough digits to be a real number (drops obvious typos/garbage).
+const cleanPhone = (s) => { const v = String(s || "").trim(); return v.replace(/\D/g, "").length >= 10 ? v.slice(0, 32) : ""; };
+const parseConsent = (v) => ["on", "yes", "true", "1"].includes(String(v ?? "").trim().toLowerCase()) ? 1 : 0;
 // ---- Athlete identity (same-name differentiation) ----
 // Two different youths can post under the same name. A play's athlete is
 // NEVER identified by the name string alone: each athlete gets a stable
@@ -340,7 +384,10 @@ function notifyApproved(title, id, to) {
     .catch((e) => console.error("notifyApproved failed:", e.message));
 }
 function publicHighlight(row, voterToken = "") {
-  const { notify_email, ...safe } = row;
+  // Private guardian contact fields are stripped here — the single choke
+  // point every public response flows through (board, athlete collections,
+  // contest). guardian_phone / text_consent must never be added to `safe`.
+  const { notify_email, guardian_phone, text_consent, ...safe } = row;
   // Athlete display: first name + last initial (+ team in the UI). The
   // HH-#### tag is only exposed when two different athletes share the
   // same name+team group, so it appears exactly when disambiguation is
@@ -355,6 +402,10 @@ function publicHighlight(row, voterToken = "") {
     // Used to mark contest prize eligibility (winners are contacted
     // through the parent/guardian, never the child directly).
     hasGuardianEmail: !!row.notify_email,
+    // Boolean only — true when a guardian mobile is on file WITH text
+    // consent (i.e. reachable by text). The number itself never leaves
+    // the server except on owner-authorized endpoints.
+    hasGuardianText: !!row.guardian_phone && !!row.text_consent,
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
@@ -455,8 +506,10 @@ const server = http.createServer(async (req, res) => {
       }
       const review = preReview({ title, sport, playType: fields.playType || "", playerName: fields.playerName || "", story: fields.story || "", mediaKind: media_kind, mime, fileSize: file ? file.data.length : 0 });
       const athlete = resolveAthlete({ playerName: fields.playerName || "", team: String(fields.team || "").trim(), division, jersey: String(fields.jersey || "").trim(), notifyEmail: String(fields.notifyEmail || "").trim(), athleteChoice: String(fields.athleteChoice || ""), athleteKey: String(fields.athleteKey || "") });
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim());
+      const guardianPhone = cleanPhone(fields.guardianPhone || "");
+      const textConsent = parseConsent(fields.textConsent);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent);
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -493,7 +546,7 @@ const server = http.createServer(async (req, res) => {
       const voter = u.searchParams.get("voterToken") || "";
       const winnerId = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period)?.highlight_id;
       const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
-        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: !!r.notify_email }));
+        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: prizeEligibleFor(r) }));
       rows.sort((a, b) => b.voteCount - a.voteCount || a.id - b.id);
       const sportCounts = {};
       for (const r of rows) sportCounts[r.sport] = (sportCounts[r.sport] || 0) + 1;
@@ -519,8 +572,11 @@ const server = http.createServer(async (req, res) => {
       if (!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period))
         return sendJson(res, 400, { ok: false, message: "That play is not entered in this month's contest." });
       db.prepare("INSERT INTO contest_winners(period,highlight_id) VALUES(?,?) ON CONFLICT(period) DO UPDATE SET highlight_id=excluded.highlight_id").run(period, id);
-      const wrow = db.prepare("SELECT notify_email FROM highlights WHERE id=?").get(id);
-      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: wrow && wrow.notify_email ? "" : "This play has no parent/guardian email on file, so the winner's parent/guardian cannot be contacted — it is not prize-eligible until one is added." });
+      const wrow = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      // If the guardian opted into texts, send the claim text — inert
+      // (log line only) until Emil activates Twilio; see sendText.
+      if (wrow) notifyGuardianText(wrow, `HighlightHype: your athlete's play "${wrow.title}" won Hype of the Month! Reply to this text or check your email to claim. — HighlightHype`);
+      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email and no consented guardian text number on file, so the winner's parent/guardian cannot be contacted — it is not prize-eligible until one is added." });
     }
 
     // ---- Email moderation (works on any device; see moderateToken) ----
@@ -543,6 +599,7 @@ const server = http.createServer(async (req, res) => {
       if (!before) return sendHtml(res, 404, "<h1>Play not found</h1>");
       db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
+      if (status === "approved" && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       const after = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       return sendHtml(res, 200, moderatePage(after, token, status === "approved" ? "Approved — this play is now live on the board." : "Declined — this play is hidden and will not appear on the board."));
     }
@@ -573,8 +630,10 @@ const server = http.createServer(async (req, res) => {
         let review = null; try { review = r.review ? JSON.parse(r.review) : null; } catch {}
         // Owner-only: the guardian email is included HERE (owner-authorized
         // endpoint) so the owner can contact a winner's parent/guardian.
-        // It stays stripped from every public response.
-        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "" };
+        // It stays stripped from every public response. Same for the
+        // guardian mobile + text opt-in: owner-visible only, and the
+        // text_consent flag says whether texting is permitted at all.
+        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -590,6 +649,7 @@ const server = http.createServer(async (req, res) => {
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(statusMatch[1]));
       db.prepare("UPDATE highlights SET status=? WHERE id=?").run(body.status, Number(statusMatch[1]));
       if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
+      if (body.status === "approved" && before && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       return sendJson(res, 200, { ok: true, status: body.status });
     }
     const delMatch = p.match(/^\/api\/highlights\/(\d+)$/);
@@ -624,7 +684,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- Static ----
-    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p);
+    // Clean legal-page routes: /terms and /privacy serve the standalone
+    // pages in public/ (also reachable directly as /terms.html etc.).
+    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p === "/terms" ? "terms.html" : p === "/privacy" ? "privacy.html" : p);
     if (!filePath.startsWith(path.join(__dirname, "public")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory())
       filePath = path.join(__dirname, "public", "index.html");
     const type = MIME[path.extname(filePath)] || "text/plain";
