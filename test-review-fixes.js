@@ -69,9 +69,12 @@ try {
   const sportsPresent = [...new Set(pub.body.highlights.map((h) => h.sport))];
   assert(sportsPresent.length === 1 && sportsPresent[0] === "baseball", "test data has exactly one sport (baseball) for the pills to render");
 
-  /* ---- 4. Hype Frame scene map ---- */
-  assert(home.includes("Hype Frame — pause to shop the look"), "film hint is branded 'Hype Frame — pause to shop the look'");
-  assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"') && home.includes("Hype Frame · In this scene"), "pause card present with Hype Frame kicker");
+  /* ---- 4. Film shop-the-look scene map ---- */
+  // Renamed 2026-11-04: Emil moved the "Hype Frame" name to the
+  // freeze-frame studio, so the film hint/kicker use the plain wording.
+  // (The studio-side assertions live in test-hype-frame.js.)
+  assert(home.includes("⏸ Pause to shop the look") && !home.includes("Hype Frame — pause to shop the look"), "film hint reads 'Pause to shop the look' (no Hype Frame name on the film)");
+  assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"') && home.includes('<p class="ssc-kicker">In this scene</p>') && !home.includes("Hype Frame · In this scene"), "pause card present with plain 'In this scene' kicker");
   assert(home.includes('id="swagVideo"') && /id="swagVideo"[^>]*controls/.test(home), "swag film has native controls so it can be paused");
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
   assert(sceneRe("2.5", "hype-girls").test(appJs), "scene 0–2.5s (Girls) maps to #hype-girls");

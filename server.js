@@ -19,6 +19,12 @@ const PORT = Number(process.env.PORT || 3000);
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const UPLOAD_DIR = path.join(DATA_DIR, "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+// Hype Frame print images live OUTSIDE the publicly served uploads dir:
+// they are a family's own video stills, so they are stored under DATA_DIR
+// and served only through the owner-authorized image endpoint below.
+// They are never listed on any public endpoint.
+const HYPEFRAME_DIR = path.join(DATA_DIR, "hype-frames");
+fs.mkdirSync(HYPEFRAME_DIR, { recursive: true });
 
 
 // ---- Pending-approval email notification (zero-dependency SMTP) ----
@@ -199,6 +205,30 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_group TEXT DEFAULT ''")
 try { db.exec("ALTER TABLE highlights ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN division TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
+// ---- Hype Frame order requests (2026-11-04) ----
+// A Hype Frame starts from an APPROVED play: a family freezes a frame of
+// the athlete's own highlight in the studio, customizes it, previews it on
+// apparel, and a parent/guardian submits an ORDER REQUEST. There is no
+// payment and no price anywhere in this flow: status starts as
+// "pending-guardian" and printing happens only after the owner confirms
+// with the guardian directly. guardian_email is private exactly like
+// notify_email — stored here, returned ONLY on owner-authorized
+// endpoints, never in a public response.
+db.exec(`CREATE TABLE IF NOT EXISTS hype_frame_orders(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  highlight_id INTEGER NOT NULL,
+  athlete_id TEXT DEFAULT '',
+  print_image TEXT NOT NULL DEFAULT '',
+  custom_name TEXT DEFAULT '',
+  jersey TEXT DEFAULT '',
+  branding INTEGER DEFAULT 1,
+  apparel TEXT DEFAULT 'hoodie',
+  colorway TEXT DEFAULT '',
+  guardian_name TEXT DEFAULT '',
+  guardian_email TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending-guardian',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
 const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
 function athleteDisplayName(raw) {
   const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
@@ -383,6 +413,17 @@ function notifyApproved(title, id, to) {
     body: `Good news — your play "${title}" was approved and is now live on HighlightHype!\n\nSee it here: https://highlighthype.com/#play-${id}\n\nThanks for posting!\n` })
     .catch((e) => console.error("notifyApproved failed:", e.message));
 }
+// Owner notification for a new Hype Frame order request — same pattern
+// as notifyPending: silent no-op when SMTP is not configured.
+function notifyHypeFrameRequest(order, play) {
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass) return;
+  const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
+  smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+    subject: `HighlightHype: new Hype Frame request — ${play.title}`,
+    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway}\nParent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n\nSee the request and the print image in Owner view: https://highlighthype.com/#owner\n` })
+    .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
+}
 function publicHighlight(row, voterToken = "") {
   // Private guardian contact fields are stripped here — the single choke
   // point every public response flows through (board, athlete collections,
@@ -540,6 +581,48 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, message: "Thanks — the owner has been notified and will review this play." });
     }
 
+    // ---- Hype Frame order requests ----
+    // Creates a request ONLY for an APPROVED play (the studio button only
+    // exists on approved plays, and the endpoint re-checks server-side).
+    // The client sends the final print image as a PNG data URL (the exact
+    // canvas composite the family previewed, branding included when on).
+    // No payment, no price. The guardian email in the response is never
+    // echoed back — it is only stored and owner-visible.
+    if (p === "/api/hype-frame/orders" && req.method === "POST") {
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const play = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(body.highlightId));
+      if (!play || play.status !== "approved")
+        return sendJson(res, 404, { ok: false, message: "Hype Frame starts from an approved play on the board — this play is not approved yet." });
+      const guardianEmail = String(body.guardianEmail || "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail))
+        return sendJson(res, 400, { ok: false, message: "A parent/guardian email is required so we can confirm the order before printing." });
+      const m = String(body.image || "").match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
+      if (!m) return sendJson(res, 400, { ok: false, message: "Freeze a frame first — the print image is missing." });
+      const imgBuf = Buffer.from(m[1], "base64");
+      if (!imgBuf.length || imgBuf.length > 25 * 1024 * 1024)
+        return sendJson(res, 400, { ok: false, message: "That print image is too large — try freezing the frame again." });
+      if (imgBuf.subarray(0, 4).toString("hex") !== "89504e47")
+        return sendJson(res, 400, { ok: false, message: "The print image must be a PNG — try freezing the frame again." });
+      const imgName = `hf-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.png`;
+      fs.writeFileSync(path.join(HYPEFRAME_DIR, imgName), imgBuf);
+      const order = {
+        highlight_id: play.id,
+        athlete_id: play.athlete_id || "",
+        print_image: imgName,
+        custom_name: String(body.customName || "").trim().slice(0, 60),
+        jersey: String(body.jersey || "").trim().slice(0, 8),
+        branding: body.branding === false ? 0 : 1,
+        apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
+        colorway: String(body.colorway || "").trim().slice(0, 40),
+        guardian_name: String(body.guardianName || "").trim().slice(0, 80),
+        guardian_email: guardianEmail,
+      };
+      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,colorway,guardian_name,guardian_email)
+        VALUES(?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.colorway, order.guardian_name, order.guardian_email);
+      notifyHypeFrameRequest({ ...order, id: Number(info.lastInsertRowid) }, play);
+      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
+    }
+
     // ---- Contest ----
     if (p === "/api/contest" && req.method === "GET") {
       const period = u.searchParams.get("period") || currentPeriod();
@@ -637,6 +720,26 @@ const server = http.createServer(async (req, res) => {
       });
       return sendJson(res, 200, { queue: rows });
     }
+    // ---- Owner: Hype Frame requests (owner-authorized ONLY) ----
+    // This is the only place order requests are listed, and the only place
+    // a guardian email for an order is returned. The print image itself is
+    // served by the image endpoint below, also owner-authorized only —
+    // print images are never publicly listed or publicly served.
+    if (p === "/api/owner/hype-frames" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const rows = db.prepare(`SELECT o.*, h.title AS play_title FROM hype_frame_orders o
+        LEFT JOIN highlights h ON h.id=o.highlight_id ORDER BY o.id DESC`).all();
+      return sendJson(res, 200, { requests: rows.map((o) => ({ ...o, branding: !!o.branding, imageUrl: `/api/owner/hype-frames/${o.id}/image` })) });
+    }
+    const hfImgMatch = p.match(/^\/api\/owner\/hype-frames\/(\d+)\/image$/);
+    if (hfImgMatch && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const o = db.prepare("SELECT * FROM hype_frame_orders WHERE id=?").get(Number(hfImgMatch[1]));
+      const file = o ? path.join(HYPEFRAME_DIR, path.basename(o.print_image)) : "";
+      if (!o || !fs.existsSync(file)) return sendJson(res, 404, { ok: false, message: "Print image not found." });
+      res.writeHead(200, { "content-type": "image/png", "content-length": fs.statSync(file).size, "cache-control": "private, no-store" });
+      return fs.createReadStream(file).pipe(res);
+    }
     if (p === "/api/owner/reports" && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       return sendJson(res, 200, { reports: db.prepare("SELECT * FROM reports ORDER BY id DESC").all() });
@@ -657,6 +760,10 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(delMatch[1]));
       if (row && row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
+      for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(Number(delMatch[1]))) {
+        try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
+      }
+      db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(Number(delMatch[1]));
       db.prepare("DELETE FROM highlights WHERE id=?").run(Number(delMatch[1]));
       db.prepare("DELETE FROM votes WHERE highlight_id=?").run(Number(delMatch[1]));
       db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(Number(delMatch[1]));
