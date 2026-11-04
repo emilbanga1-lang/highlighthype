@@ -437,7 +437,25 @@
   .btn-boys{background:var(--volt);color:var(--volt-ink)}
   .btn-boys:hover{background:#d9ff4d}
   @media (max-width:560px){ .swag-film-overlay{padding:20px 18px 18px} .swag-film-ctas .btn{flex:1;padding:13px 10px;font-size:15px} }
+  /* ---------- Hype Frame (shop the look, 2026-11-04) ----------
+     Pause the film and a card names the swag in the current scene, with
+     one volt button to view that look. The card sits above the native
+     control bar and never blocks it: only the button takes clicks. */
+  .swag-film-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:3;display:inline-flex;align-items:center;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:7px 13px;border-radius:999px;pointer-events:none;white-space:nowrap;transition:opacity .25s ease}
+  @media (max-width:700px){ .swag-film-hint{top:58px} }
+  .swag-film-overlay{transition:opacity .25s ease}
+  .swag-film.film-paused .swag-film-overlay{opacity:0;pointer-events:none}
+  .swag-film.film-paused .swag-film-overlay .swag-film-ctas{pointer-events:none}
+  .swag-film.film-paused .swag-film-hint{opacity:0}
+  .swag-shop-card{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:4;width:min(430px,calc(100% - 32px));background:rgba(10,10,10,.85);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px);border-radius:16px;padding:18px 20px 20px;text-align:center;pointer-events:none;box-shadow:0 18px 44px rgba(0,0,0,.55)}
+  .swag-shop-card[hidden]{display:none}
+  .swag-shop-card .ssc-kicker{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--volt);margin:0 0 6px}
+  .swag-shop-card h4{font-family:"Anton",sans-serif;font-size:25px;line-height:1.05;margin:0;text-transform:uppercase;color:#fff}
+  .swag-shop-card .ssc-sub{margin:8px 0 15px;color:rgba(255,255,255,.85);font-weight:600;font-size:14.5px}
+  .swag-shop-card .btn{pointer-events:auto;padding:13px 26px;font-size:15.5px}
+  @media (max-width:560px){ .swag-shop-card{bottom:58px;padding:16px 16px 18px} .swag-shop-card h4{font-size:22px} }
   .collection{scroll-margin-top:calc(var(--navh,70px) + 24px)}
+  .lines-head,.coord-head{scroll-margin-top:calc(var(--navh,70px) + 24px)}
   .shop-hero{margin:0 0 40px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#000}
   .shop-hero img{width:100%;height:auto;display:block}
   .shop-hero figcaption{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:baseline;padding:15px 22px;background:var(--card);border-top:1px solid var(--line);color:var(--muted);font-size:13.5px;font-weight:600}
@@ -629,20 +647,39 @@
   .panel{display:none}
   .panel.active{display:block}
   /* Upload form (real, wired to /api/highlights) */
-  .upload-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px;margin:34px 0}
-  .upload-card h3{font-family:"Anton",sans-serif;font-size:24px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.02em}
-  .upload-card>p{color:var(--muted);font-size:14.5px;margin:0 0 18px;font-weight:500}
-  .upload-card label{display:block;font-weight:700;font-size:14px;margin:0 0 14px;color:#fff}
-  .upload-card input[type="text"],.upload-card input[type="email"],.upload-card input[type="tel"],.upload-card input:not([type]),.upload-card select,.upload-card textarea{width:100%;margin-top:6px;background:#0d0d0d;border:1px solid var(--line2);border-radius:10px;color:#fff;font:inherit;font-size:15px;padding:11px 13px}
-  .upload-card label.checkline{display:flex;gap:9px;align-items:flex-start;font-weight:600;font-size:14px;cursor:pointer}
+  /* Modernized 2026-11-04 (Emil's review): dropzone-first, sectioned
+     ("The play" / "The athlete" / "Parent/guardian (private)"), generous
+     spacing, rounded inputs, volt focus. Fields and logic unchanged. */
+  .upload-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:30px;margin:34px 0}
+  @media (max-width:640px){ .upload-card{padding:22px 18px} }
+  .upload-card h3{font-family:"Anton",sans-serif;font-size:26px;margin:0 0 4px;text-transform:uppercase;letter-spacing:.02em}
+  .upload-card>p{color:var(--muted);font-size:14.5px;margin:0 0 22px;font-weight:500}
+  .form-section{margin:0 0 26px}
+  .form-section + .form-section{border-top:1px solid var(--line);padding-top:24px}
+  .form-sec-title{font-family:"Anton",sans-serif;font-size:15px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:#fff;margin:0 0 16px}
+  .upload-card label{display:block;font-weight:700;font-size:14px;margin:0 0 16px;color:#fff}
+  .upload-card input[type="text"],.upload-card input[type="email"],.upload-card input[type="tel"],.upload-card input:not([type]),.upload-card select,.upload-card textarea{width:100%;margin-top:7px;background:#0d0d0d;border:1px solid var(--line2);border-radius:12px;color:#fff;font:inherit;font-size:15px;padding:13px 15px;transition:border-color .15s ease,box-shadow .15s ease}
+  .upload-card input[type="text"]:focus,.upload-card input[type="email"]:focus,.upload-card input[type="tel"]:focus,.upload-card input:not([type]):focus,.upload-card select:focus,.upload-card textarea:focus{outline:none;border-color:var(--volt);box-shadow:0 0 0 3px rgba(200,255,0,.16)}
+  .upload-card label.checkline{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:14px;cursor:pointer;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
   .upload-card label.checkline input{margin-top:2px;width:17px;height:17px;flex:0 0 auto;accent-color:var(--volt)}
-  .upload-card textarea{min-height:74px;resize:vertical}
-  .upload-card input[type="file"]{margin-top:6px;color:var(--muted);font:inherit;font-size:14px}
-  .upload-card .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .upload-card textarea{min-height:84px;resize:vertical}
+  .upload-card .row2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .upload-card .row2 label{margin-bottom:16px}
   @media (max-width:640px){ .upload-card .row2{grid-template-columns:1fr} }
-  .upload-card .small{color:var(--muted2);font-size:12.5px;font-weight:600;margin:-6px 0 12px}
-  .upload-card .submit-btn{width:100%;padding:15px;font-size:16px;margin-top:4px}
+  .upload-card .small{color:var(--muted2);font-size:12.5px;font-weight:600;margin:-6px 0 14px;line-height:1.5}
+  .upload-card .submit-btn{width:100%;padding:16px;font-size:16.5px;margin-top:2px;border-radius:999px}
   #uploadMsg{font-weight:700;margin:12px 0 0}
+  /* Drag-and-drop dropzone (wired in app.js to the same name="file" input) */
+  .dropzone{border:1.5px dashed var(--line2);border-radius:16px;background:rgba(255,255,255,.02);padding:34px 20px 28px;text-align:center;cursor:pointer;margin:0 0 14px;transition:border-color .15s ease,background .15s ease}
+  .dropzone:hover,.dropzone:focus-visible{border-color:#55554a;background:rgba(255,255,255,.04);outline:none}
+  .dropzone:focus-visible{box-shadow:0 0 0 3px rgba(200,255,0,.16)}
+  .dropzone.drag{border-color:var(--volt);background:rgba(200,255,0,.06)}
+  .dropzone.has-file{border-color:var(--volt);border-style:solid}
+  .dropzone .dz-icon{color:var(--volt);margin:0 auto 10px;display:block}
+  .dropzone .dz-big{font-family:"Anton",sans-serif;font-size:23px;text-transform:uppercase;letter-spacing:.02em;margin:0;color:#fff}
+  .dropzone .dz-sub{color:var(--muted);font-weight:600;font-size:14.5px;margin:7px 0 0}
+  .dropzone .dz-browse{color:var(--volt);text-decoration:underline;text-underline-offset:3px}
+  .dropzone .dz-file{margin:13px 0 0;color:#fff;font-weight:700;font-size:14.5px;word-break:break-all}
   /* Athlete duplicate-check prompt */
   .athlete-prompt{border:1px solid var(--volt);border-radius:14px;padding:16px 18px;margin:0 0 16px;background:rgba(200,255,0,.06)}
   .athlete-prompt h4{margin:0 0 6px;font-size:16px}

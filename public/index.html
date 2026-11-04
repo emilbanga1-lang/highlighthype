@@ -155,31 +155,47 @@
     <form id="uploadForm" class="upload-card">
       <h3 id="post">Post a play</h3>
       <p>Video first — clip first, details second. Your play goes to the owner for review and appears once approved.</p>
-      <label>Video / photo file <input type="file" name="file" accept="video/*,image/*"></label>
-      <p class="small">Or paste a video link instead (YouTube, Vimeo, etc.). <b>MP4 uploads work most reliably.</b> iPhone .MOV clips may show a black picture in Chrome — re-upload as MP4 if that happens.</p>
-      <label>Video link <input type="text" name="videoUrl" placeholder="https://…"></label>
-      <label>Title * <input type="text" name="title" required placeholder="e.g. Walk-off home run"></label>
-      <div class="row2">
-        <label>Sport <select name="sport">
-          <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
-          <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
-        </select></label>
-        <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-      </div>
-      <div class="row2">
+
+      <div class="form-section">
+        <h4 class="form-sec-title">The play</h4>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — drop a file here, or tap to browse">
+          <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+          <p class="dz-big">Drop your clip here</p>
+          <p class="dz-sub">Drag &amp; drop a video or photo, or <span class="dz-browse">browse your files</span></p>
+          <p class="dz-file" id="dzFile" hidden></p>
+          <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
+        </div>
+        <p class="small">File upload only. <b>MP4 uploads work most reliably.</b> iPhone .MOV clips may show a black picture in Chrome — re-upload as MP4 if that happens.</p>
+        <label>Title * <input type="text" name="title" required placeholder="e.g. Walk-off home run"></label>
+        <div class="row2">
+          <label>Sport <select name="sport">
+            <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
+            <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
+          </select></label>
+          <label>Board <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
+        </div>
         <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
-        <label>Player first name <input type="text" name="playerName" placeholder="First name only"></label>
+        <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
       </div>
-      <div class="row2">
+
+      <div class="form-section">
+        <h4 class="form-sec-title">The athlete</h4>
+        <div class="row2">
+          <label>Player first name <input type="text" name="playerName" placeholder="First name only"></label>
+          <label>Jersey number (optional) <input type="text" name="jersey" placeholder="e.g. 13"></label>
+        </div>
         <label>Team name (optional) <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
-        <label>Jersey number (optional) <input type="text" name="jersey" placeholder="e.g. 13"></label>
       </div>
-      <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
-      <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
-      <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month.</p>
-      <label>Parent/guardian mobile (optional) <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
-      <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
-      <p class="small">Private — never shown on the site. Your number is only used for texts if you check the box above; without the check it is kept for owner contact only and never texted. A play entered in the contest is prize-eligible only if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
+
+      <div class="form-section">
+        <h4 class="form-sec-title">Parent/guardian (private)</h4>
+        <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
+        <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month.</p>
+        <label>Parent/guardian mobile (optional) <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
+        <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+        <p class="small">Private — never shown on the site. Your number is only used for texts if you check the box above; without the check it is kept for owner contact only and never texted. A play entered in the contest is prize-eligible only if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
+      </div>
+
       <div id="athletePrompt" class="athlete-prompt" hidden></div>
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
@@ -379,9 +395,10 @@
     </div>
 
     <div class="swag-film" aria-label="Drop 001 swag film — Wear The Hype">
-      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
+      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Drop 001 swag film — the Hype Girls hoodies, the Hype Boys hoodies, and the Hype All Day hoodie, with Wear The Hype on the film"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
       <span class="dur">0:10</span>
+      <span class="swag-film-hint" id="swagHint">⏸ Hype Frame — pause to shop the look</span>
       <div class="swag-film-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
@@ -391,6 +408,12 @@
           <a class="btn btn-boys" href="#hype-boys">Shop Hype Boys</a>
         </div>
       </div>
+      <div class="swag-shop-card" id="swagShopCard" hidden>
+        <p class="ssc-kicker">Hype Frame · In this scene</p>
+        <h4 id="sscTitle">The Hype Girls hoodies</h4>
+        <p class="ssc-sub" id="sscSub"></p>
+        <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
+      </div>
     </div>
 
     <figure class="shop-hero">
@@ -398,7 +421,7 @@
       <figcaption><b>Drop 001 Lookbook</b><span>Girls Collection · Boys Collection</span><span class="gold">Your moment. Your hype.</span></figcaption>
     </figure>
 
-    <div class="lines-head">
+    <div class="lines-head" id="collections">
       <h3>The collections</h3>
       <p>The Drop 001 plan — four collections, each with its own slogan.</p>
     </div>
@@ -615,7 +638,7 @@
       </div>
     </div>
 
-    <div class="coord-head">
+    <div class="coord-head" id="coordinating">
       <h3>Coordinating tees</h3>
       <p>Made to match the colorways — Drop 001, both collections.</p>
     </div>

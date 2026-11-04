@@ -156,7 +156,7 @@ function renderMine() {
   const hawks = ALL_PLAYS.filter((h) => slugify(h.team) === "plainview-hawks").length;
   $("#proofHawksStat").textContent = hawks ? `${hawks} PLAY${hawks === 1 ? "" : "S"}` : "1 TEAM";
 }
-function renderAll() { renderMonth(); renderFame(); renderAll2(); renderMine(); highlightSharedPlay(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); highlightSharedPlay(); }
 function renderAll2() { /* All Hypes view */ 
   const tf = $("#teamFilter");
   const teams = [...new Set(ALL_PLAYS.map((h) => h.team).filter(Boolean))];
@@ -261,19 +261,82 @@ $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.p
 $$("[data-tablink]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); showHome(); showPanel(a.dataset.tablink); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 
 /* ---------------- filters ---------------- */
-function renderPills(el, current, cb) {
+// Sport pills are DYNAMIC (Emil, 2026-11-04): "All sports" plus one pill
+// per sport that actually has plays in the data behind that view — the
+// month pills follow this month's contest entries (for the selected
+// board), the All Hypes pills follow every approved play (for the
+// selected board). No plays in a sport = no pill for it.
+function sportsInData(plays) {
+  const present = new Set(plays.map((h) => h.sport).filter(Boolean));
+  return SPORTS.filter((s) => present.has(s));
+}
+function renderPills(el, current, sports, cb) {
   el.innerHTML = [`<button type="button" class="pill" data-sport="all" aria-pressed="${current === "all"}">All sports</button>`,
-    ...SPORTS.map((s) => `<button type="button" class="pill" data-sport="${s}" aria-pressed="${current === s}">${cap(s)}</button>`)].join("");
+    ...sports.map((s) => `<button type="button" class="pill" data-sport="${s}" aria-pressed="${current === s}">${cap(s)}</button>`)].join("");
   el.querySelectorAll(".pill").forEach((b) => b.onclick = () => cb(b.dataset.sport));
 }
 function syncFilterUI() {
-  renderPills($("#monthSportPills"), monthSport, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
-  renderPills($("#allSportPills"), allSport, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
+  // Fall back to "All sports" when the selected sport has no plays left
+  // in the current data (its pill is gone, so the filter must not stick).
+  const monthSports = sportsInData((CONTEST.entries || []).filter((h) => divMatch(h, monthDiv)));
+  if (monthSport !== "all" && !monthSports.includes(monthSport)) monthSport = "all";
+  const allSports = sportsInData(ALL_PLAYS.filter((h) => divMatch(h, allDiv)));
+  if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
+  renderPills($("#monthSportPills"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
+  renderPills($("#allSportPills"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
 }
 $("#teamFilter").addEventListener("change", (e) => { allTeam = e.target.value; if (allTeam !== "all") history.replaceState(null, "", `#team-${allTeam}`); renderAll2(); });
 $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; renderAll2(); });
+
+/* ---------------- Hype Frame (shop the look) ---------------- */
+// Emil's vision (2026-11-04): a kid pauses the Drop 001 film and can jump
+// to the swag in the frame they paused on. Scene cuts verified from the
+// actual media with ffmpeg scene detection: the 9.504s film cuts at
+// exactly 2.5s, 5.0s and 7.5s —
+//   0.0–2.5  Girls hoodies      -> #hype-girls
+//   2.5–5.0  Boys hoodies       -> #hype-boys
+//   5.0–7.5  Hype All Day hoodie -> #coordinating (coordinating tees area)
+//   7.5–end  End card           -> #collections (the full Drop 001 boards)
+// Preview only: the button says "View this look" — no prices, no cart,
+// no checkout anywhere in this flow.
+const HYPE_FRAME_SCENES = [
+  { until: 2.5, title: "The Hype Girls hoodies", sub: "You paused on the Girls scene — Hype Street, Hype Athletics & Hype Essentials.", btn: "View the Girls look", target: "hype-girls" },
+  { until: 5.0, title: "The Hype Boys hoodies", sub: "You paused on the Boys scene — Hype Street, Hype Athletics & Hype Unleashed.", btn: "View the Boys look", target: "hype-boys" },
+  { until: 7.5, title: "The Hype All Day hoodie", sub: "You paused on the statement hoodie — see the coordinating pieces below.", btn: "View this look", target: "coordinating" },
+  { until: Infinity, title: "Drop 001 — the full drop", sub: "Both collections, six boards. Preview — products are finalizing.", btn: "Shop Drop 001", target: "collections" },
+];
+function hypeFrameSceneAt(t) {
+  return HYPE_FRAME_SCENES.find((s) => t < s.until) || HYPE_FRAME_SCENES[HYPE_FRAME_SCENES.length - 1];
+}
+(function () {
+  const v = $("#swagVideo"), card = $("#swagShopCard");
+  if (!v || !card) return;
+  const film = v.closest(".swag-film");
+  const title = $("#sscTitle"), sub = $("#sscSub"), btn = $("#sscBtn");
+  let scene = HYPE_FRAME_SCENES[0];
+  function showCard() {
+    scene = hypeFrameSceneAt(v.currentTime || 0);
+    title.textContent = scene.title;
+    sub.textContent = scene.sub;
+    btn.textContent = scene.btn;
+    card.hidden = false;
+    if (film) film.classList.add("film-paused");
+  }
+  function hideCard() {
+    card.hidden = true;
+    if (film) film.classList.remove("film-paused");
+  }
+  v.addEventListener("pause", showCard);
+  v.addEventListener("seeked", () => { if (v.paused) showCard(); });
+  v.addEventListener("play", hideCard);
+  v.addEventListener("playing", hideCard);
+  btn.addEventListener("click", () => {
+    const el = document.getElementById(scene.target);
+    if (el) el.scrollIntoView({ behavior: "smooth" });
+  });
+})();
 
 /* ---------------- hero ---------------- */
 (function () {
@@ -300,6 +363,34 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
     setTimeout(tick, 1000);
   }
   tick();
+})();
+
+/* ---------------- upload dropzone ---------------- */
+// Modern drag-and-drop front end for the SAME file input the form has
+// always submitted (name="file"). It only dresses up picking the file:
+// click/keyboard opens the native picker, drag & drop assigns the file
+// to the input, and the chosen file's name + size are shown. Uploads are
+// file-only — the old paste-a-link option was removed (Emil, 2026-11-04).
+(function () {
+  const dz = $("#dropzone"), input = $("#fileInput"), fileLine = $("#dzFile");
+  if (!dz || !input) return;
+  const fmtSize = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : n >= 1024 ? Math.round(n / 1024) + " KB" : n + " B";
+  function showFile() {
+    const f = input.files && input.files[0];
+    dz.classList.toggle("has-file", !!f);
+    if (f) { fileLine.textContent = `✓ ${f.name} · ${fmtSize(f.size)} — ready below, hit Submit when the details are in.`; fileLine.hidden = false; }
+    else { fileLine.textContent = ""; fileLine.hidden = true; }
+  }
+  window.resetDropzone = () => { input.value = ""; showFile(); };
+  dz.addEventListener("click", (e) => { if (e.target !== input) input.click(); });
+  dz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
+  input.addEventListener("change", showFile);
+  ["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
+  dz.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) { try { input.files = e.dataTransfer.files; } catch { /* picker still works */ } showFile(); }
+  });
 })();
 
 /* ---------------- upload + athlete prompt ---------------- */
@@ -345,6 +436,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     if (!r.ok) throw new Error(j.message || "Upload failed");
     msg.textContent = j.message;
     form.reset();
+    if (window.resetDropzone) window.resetDropzone();
     form.elements.athleteChoice.value = ""; form.elements.athleteKey.value = "";
     athleteCheckDoneFor = "";
     $("#athletePrompt").hidden = true;
