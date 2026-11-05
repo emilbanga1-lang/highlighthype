@@ -1286,10 +1286,13 @@ function hfBuildColorButtons() {
 
 /* ---------------- quick upload picks (2026-11-04) ----------------
 // The wizard is gone: one screen. Division is a big Boys/Girls toggle
-// (default Boys) and sport is one-tap pills; both write into the SAME
-// hidden form fields the payload has always carried (name="division",
-// name="sport"), so the API, pre-review and athlete checks are
-// untouched. Validation happens once, at submit (see below).
+// (default Boys) writing the hidden division field; sport is a native
+// dropdown (round 5b, 2026-11-05 — one-tap pills until the owner asked
+// for dropdowns everywhere) whose <select> IS the sport field
+// (name="sport"). Either way the payload carries the same
+// name="division" / name="sport" values it always has, so the API,
+// pre-review and athlete checks are untouched. Validation happens
+// once, at submit (see below).
 function setDivPick(div) {
   const form = $("#uploadForm"); if (!form) return;
   form.elements.division.value = div;
@@ -1297,13 +1300,14 @@ function setDivPick(div) {
 }
 function setSportPick(sport) {
   const form = $("#uploadForm"); if (!form) return;
-  form.elements.sport.value = sport || "";
-  $$("[data-sport-pick]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sportPick === sport)));
+  // Round 5b: the sport control is a native <select name="sport">, so
+  // the field the payload has always read is the select itself; the
+  // select needs no click wiring (its value is read at submit).
+  if (form.elements.sport) form.elements.sport.value = sport || "";
 }
 $$("[data-div-pick]").forEach((b) => b.addEventListener("click", () => setDivPick(b.dataset.divPick)));
-$$("[data-sport-pick]").forEach((b) => b.addEventListener("click", () => setSportPick(b.dataset.sportPick)));
-// After a successful submit the form resets; re-sync the toggle/pills
-// with the reset field values (Boys, no sport).
+// After a successful submit the form resets; re-sync the toggle and
+// the sport dropdown with the reset field values (Boys, no sport).
 window.syncQuickPicks = () => { setDivPick("boys"); setSportPick(""); };
 
 /* ---------------- upload + athlete prompt ---------------- */
@@ -1319,7 +1323,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   if (!fileEl || !fileEl.files || !fileEl.files.length) { msg.textContent = "Add your clip first — tap the box at the top to pick it from your camera roll."; $("#dropzone")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   const name = String(form.elements.playerName.value || "").trim();
   if (!name) { msg.textContent = "Add the athlete's first name — every hype needs its athlete."; form.elements.playerName.focus(); return; }
-  if (!String(form.elements.sport.value || "").trim()) { msg.textContent = "Tap the sport — one tap is all it takes."; document.querySelector(".quick-sports")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (!String(form.elements.sport.value || "").trim()) { msg.textContent = "Tap the sport — one tap is all it takes."; $("#sportSelect")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   if (!String(form.elements.title.value || "").trim()) form.elements.title.value = `${name}'s highlight`;
   const fd = new FormData(form);
   // Duplicate-name check: if this name already belongs to an athlete and

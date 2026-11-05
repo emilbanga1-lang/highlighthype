@@ -178,21 +178,21 @@
       </div>
       <div class="quick-field">
         <span class="quick-label" id="sportPickLabel">Sport *</span>
-        <div class="quick-sports" role="group" aria-labelledby="sportPickLabel">
-            <button type="button" class="pill" data-sport-pick="baseball" aria-pressed="false">Baseball</button>
-            <button type="button" class="pill" data-sport-pick="basketball" aria-pressed="false">Basketball</button>
-            <button type="button" class="pill" data-sport-pick="cheer" aria-pressed="false">Cheer</button>
-            <button type="button" class="pill" data-sport-pick="fieldhockey" aria-pressed="false">Field Hockey</button>
-            <button type="button" class="pill" data-sport-pick="football" aria-pressed="false">Football</button>
-            <button type="button" class="pill" data-sport-pick="gymnastics" aria-pressed="false">Gymnastics</button>
-            <button type="button" class="pill" data-sport-pick="hockey" aria-pressed="false">Hockey</button>
-            <button type="button" class="pill" data-sport-pick="lacrosse" aria-pressed="false">Lacrosse</button>
-            <button type="button" class="pill" data-sport-pick="other" aria-pressed="false">Other</button>
-            <button type="button" class="pill" data-sport-pick="soccer" aria-pressed="false">Soccer</button>
-            <button type="button" class="pill" data-sport-pick="softball" aria-pressed="false">Softball</button>
-            <button type="button" class="pill" data-sport-pick="volleyball" aria-pressed="false">Volleyball</button>
-        </div>
-        <input type="hidden" name="sport" value="">
+        <select name="sport" id="sportSelect" class="sport-select" aria-labelledby="sportPickLabel">
+          <option value="">Choose a sport</option>
+          <option value="baseball">Baseball</option>
+          <option value="basketball">Basketball</option>
+          <option value="cheer">Cheer</option>
+          <option value="fieldhockey">Field Hockey</option>
+          <option value="football">Football</option>
+          <option value="gymnastics">Gymnastics</option>
+          <option value="hockey">Hockey</option>
+          <option value="lacrosse">Lacrosse</option>
+          <option value="other">Other</option>
+          <option value="soccer">Soccer</option>
+          <option value="softball">Softball</option>
+          <option value="volleyball">Volleyball</option>
+        </select>
       </div>
       <label>What happened? (optional) <input type="text" name="title" placeholder="e.g. Walk-off home run — blank is fine, we title it from the athlete's name"></label>
 
