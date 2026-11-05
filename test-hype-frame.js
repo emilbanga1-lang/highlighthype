@@ -35,8 +35,10 @@ try {
   const css = await text("/styles.css");
 
   /* ---- 1. Naming: film vs studio ---- */
-  const hint = (home.match(/id="swagHint"[^>]*>([^<]*)</) || [])[1] || "";
-  assert(hint.includes("Pause to shop the look") && !hint.includes("Hype Frame"), "film hint says 'Pause to shop the look' with no Hype Frame name");
+  /* Nov 5 (2026-11-05): the floating hint pill is gone — a docked
+     pause/play button (#swagPauseBtn) is the film's pause control. */
+  assert(!home.includes('id="swagHint"'), "floating film hint pill is gone (Nov 5)");
+  assert(home.includes('id="swagPauseBtn"') && home.includes("Pause the film"), "film carries the docked pause/play button (no Hype Frame name on the film)");
   const kicker = (home.match(/<p class="ssc-kicker">([^<]*)<\/p>/) || [])[1] || "";
   assert(kicker === "In this scene", "film pause-card kicker is exactly 'In this scene'");
   // Store v8 (2026-11-04): the creative adopts Emil's concept-poster
@@ -152,15 +154,26 @@ try {
 
   /* ---- 5. Placement (fixed) + look presets (2026-11-04) ----
      The studio no longer offers drag/size placement: the print always
-     renders at the fixed default (50 / 42 · 66%) and the order still
-     carries those values. The server keeps accepting, storing and
-     clamping placement exactly as before (round-trip checks below).
+     renders at the fixed default (50 / 42 · 78% — size raised from 66%
+     on 2026-11-05, it read small/washed on the garment) and the order
+     still carries those values. The server keeps accepting, storing
+     and clamping placement exactly as before (round-trip checks below).
      The branding checkbox became three look presets; the frozen-frame
      box is gone (the frame shows on the garment mock only). */
   for (const id of ["hfPlace", "hfSize", "hfSizeMinus", "hfSizePlus", "hfSizeVal", "hfPlaceReset", "hfBranding", "hfStillWrap", "hfStill"]) assert(!home.includes(`id="${id}"`), `removed studio control stays gone: #${id}`);
   for (const p of ["classic", "signature", "hypeframe"]) assert(home.includes(`data-hf-preset="${p}"`), `print-style preset present: ${p}`);
   assert(home.includes('data-hf-preset="hypeframe" aria-pressed="true"'), "Hype Frame is the default preset");
   assert(home.includes('id="hfStepBack"') && home.includes('id="hfStepFwd"'), "±1s step buttons flank the Freeze button");
+  /* ---- 5b. Nov 5 studio usability (2026-11-05) ----
+     Big step targets + no double-tap zoom; the stray #hfPhoto box is
+     hidden for video plays; a frame filmstrip under the video; and a
+     "See it finished" lineup under the preview. */
+  assert(css.includes(".hf-freezerow .btn{min-height:56px") && css.includes("min-width:84px"), "step buttons are big tap targets (≥56px tall, ≥84px wide)");
+  assert(css.includes("touch-action:manipulation"), "studio controls opt out of double-tap zoom (touch-action: manipulation)");
+  assert(/\.hf-studio img#hfPhoto\[hidden\]\s*\{\s*display:\s*none/.test(css), "the src-less studio photo is really hidden for video plays (no stray alt-text box)");
+  assert(home.includes('id="hfStrip"') && appJs.includes("function hfBuildStrip") && appJs.includes("function hfJumpToFrame"), "frame filmstrip present and wired (capture → tap → seek + pause)");
+  assert(home.includes('id="hfFinRow"') && appJs.includes("HF_FINISHED") && appJs.includes("function hfRenderFinished"), "'See it finished' lineup present (4 example garments, current print layered per garment+side)");
+  assert(appJs.includes("size: 78") && appJs.includes("HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 }"), "the one shared placement default carries the raised 78% print size");
   assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
   assert(home.includes('id="hfSideFront"') && home.includes('id="hfSideBack"'), "studio offers a Front / Back print-side toggle");
   assert(appJs.includes("function hfSetSide") && appJs.includes("side: hfState.side"), "the chosen print side rides on the order payload");
@@ -183,7 +196,7 @@ try {
   r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
   const byId = (id) => r.body.requests.find((q) => q.id === id);
   const pDef = JSON.parse(byId(defId).placement);
-  assert(pDef.cx === 50 && pDef.cy === 42 && pDef.size === 66, "default placement stored on an unadjusted order (50 / 42 · 66% size)");
+  assert(pDef.cx === 50 && pDef.cy === 42 && pDef.size === 78, "default placement stored on an unadjusted order (50 / 42 · 78% size)");
   const pCustom = JSON.parse(byId(customId).placement);
   assert(pCustom.cx === 35.5 && pCustom.cy === 60 && pCustom.size === 92, "custom placement round-trips to the owner API exactly");
   const pClamp = JSON.parse(byId(clampedId).placement);

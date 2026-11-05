@@ -769,7 +769,7 @@ const server = http.createServer(async (req, res) => {
       const placement = JSON.stringify({
         cx: clampPct(plIn.cx, 0, 100, 50),
         cy: clampPct(plIn.cy, 0, 100, 42),
-        size: clampPct(plIn.size, 10, 100, 66),
+        size: clampPct(plIn.size, 10, 100, 78),
       });
       const order = {
         highlight_id: play.id,

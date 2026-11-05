@@ -100,9 +100,11 @@ try {
 
   /* ---- 4. Film shop-the-look scene map ---- */
   // Renamed 2026-11-04: Emil moved the "Hype Frame" name to the
-  // freeze-frame studio, so the film hint/kicker use the plain wording.
+  // freeze-frame studio, so the film's pause card uses plain wording.
+  // Nov 5 (2026-11-05): the floating hint pill itself is gone — the
+  // docked pause button + the pause card carry the flow now.
   // (The studio-side assertions live in test-hype-frame.js.)
-  assert(home.includes("⏸ Pause to shop the look") && !home.includes("Hype Frame — pause to shop the look"), "film hint reads 'Pause to shop the look' (no Hype Frame name on the film)");
+  assert(!home.includes('id="swagHint"') && home.includes('id="swagPauseBtn"'), "no floating hint on the film; the docked pause button is the pause affordance (no Hype Frame name on the film)");
   assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"') && home.includes('<p class="ssc-kicker">In this scene</p>') && !home.includes("Hype Frame · In this scene"), "pause card present with plain 'In this scene' kicker");
   // Store v2 (2026-11-04): Emil asked for Overtime's chrome-free hero,
   // so the native control bar is GONE — tapping the film or the round
@@ -172,14 +174,16 @@ try {
   // manifesto headline, steps line, CTA) was ported into the restored
   // v2 store and re-skinned dark — asserted in §8 below.
 
-  /* ---- 6. Store film hero: full-bleed cinematic, music, no button ----
+  /* ---- 6. Store film hero: full-bleed cinematic, silent, docked pause ----
      Emil (2026-11-04, with Overtime shop screenshots): the film leads
      the Store as an edge-to-edge autoplay hero — bold italic title,
      underlined Shop Girls / Shop Boys link-buttons, no native controls.
-     Tonight batch: the round pause/play button is REMOVED (tapping the
-     film pauses for pause-to-shop), the film carries the homepage
-     music bed (probed in §8), and the photo nav tiles became the
-     division blocks' banner headers (§5/§8). */
+     Tonight batch: the round pause/play button was REMOVED (tapping
+     the film pauses for pause-to-shop) and the photo nav tiles became
+     the division blocks' banner headers (§5/§8).
+     Nov 5 (2026-11-05): the film is SILENT (music stripped, probed in
+     §8), two scenes are back views, the floating hint pill is gone,
+     and a real pause/play button is docked in the film's corner. */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
   assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
   assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
@@ -190,7 +194,7 @@ try {
   assert(home.includes('data-hero-shop="girls"') && home.includes('data-hero-shop="boys"'), "hero overlay has Shop Girls / Shop Boys link-buttons");
   assert(home.includes("Shop Girls") && home.includes("Shop Boys"), "hero shop links are labelled Shop Girls / Shop Boys");
   assert(!home.includes('id="swagPlayBtn"') && !appJs.includes("swagPlayBtn"), "round outline pause/play button removed from markup and JS");
-  assert(appJs.includes("sv.muted = false"), "entering the Store attempts an unmuted (music) start, first-tap fallback");
+  assert(appJs.includes("sv.muted = true") && !appJs.includes("sv.muted = false"), "the film is silent (Nov 5): entering the Store keeps it muted — the unmute-on-gesture logic is gone");
   assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"'), "pause-to-shop scene card still present under the hero");
   for (const side of ["girls", "boys"]) {
     assert(home.includes(`data-store-block="${side}"`) && home.includes(`/swag/tile-${side}.jpg`), `division block banner present with its photo: ${side}`);
@@ -228,7 +232,7 @@ try {
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
   assert(filmDur > 34 && filmDur < 36, `the film still runs ~35s (${filmDur}s — five 7.0s scenes; scene 1 is now the blue-sky Boys Street clip)`);
   const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
-  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "the film now carries the homepage music bed (audio stream present)");
+  assert(filmStreams.includes("video") && !filmStreams.includes("audio"), "the film is SILENT (Nov 5): no audio stream at all — the music bed is stripped");
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
@@ -264,7 +268,11 @@ try {
   assert(css.includes("body.store-open .shop{padding-top:0;border-top:0}"), "Store view starts at the very top — no padding or border above the film");
   const barIdx = home.indexOf("store-bar");
   assert(barIdx > heroIdx && barIdx < headIdx, "store bar (Back + breadcrumb) sits below the film, above the intro copy");
-  assert(css.includes(".swag-film-hero .swag-film-badge{top:82px") && css.includes(".swag-film-hero .swag-film-hint{top:82px"), "film badge + hint pill drop below the floating nav line (no logo overlap)");
+  assert(css.includes(".swag-film-hero .swag-film-badge{top:82px") && !home.includes('id="swagHint"') && !css.includes(".swag-film-hint"), "film badge drops below the floating nav line; the floating hint pill is fully removed (Nov 5)");
+  assert(home.includes('id="swagPauseBtn"') && css.includes(".swag-pause-btn{position:absolute;right:16px;bottom:16px"), "a real pause/play button is docked in the film's bottom-right corner (Nov 5)");
+  assert(css.includes("body:not([data-store-focus]) .store-block .prod-grid{display:none"), "doors landing (Nov 5): division products stay collapsed until a door opens the division");
+  assert((home.match(/class="prod-colors"/g) || []).length === 6 && (home.match(/class="prod-dot"/g) || []).length === 24, "every card shows its colorway dots under the size run (6 cards x 4 colorways)");
+  assert(home.includes('id="qvSides"') && home.includes('data-qv-side="0"') && home.includes('data-qv-side="1"') && appJs.includes("qv-side-btn"), "quick view has explicit FRONT / BACK buttons (colors + sides reachable without swiping)");
   assert(appJs.includes("const storeState = { focus: null }"), "store starts unfocused (full landing: film, Boys, Girls, Hype Frame)");
   assert(home.indexOf('data-hero-shop="boys"') < home.indexOf('data-hero-shop="girls"'), "hero overlay links: Shop Boys before Shop Girls");
   assert(home.indexOf('data-store-focus="boys"') < home.indexOf('data-store-focus="girls"'), "banner focus buttons: Boys before Girls");
@@ -298,7 +306,7 @@ try {
   const heroFile = path.join(tmp, "hero-probe.mp4");
   fs.writeFileSync(heroFile, Buffer.from(heroBuf));
   const heroDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", heroFile]).toString().trim());
-  assert(heroDur > 12.5 && heroDur < 13.6, `hero runs ~13.1s after the recut (${heroDur}s — 9.08s montage, logo ending cut, + 4.0s golf close)`);
+  assert(heroDur > 10.7 && heroDur < 11.7, `hero runs ~11.2s after the Nov 5 recut (${heroDur}s — hockey trimmed ~1.5s, 0.4s crossfade into the 4.0s golf close, one continuous music bed)`);
 
   /* ---- 10. Hardening follow-up (2026-11-04 night, post-tonight-batch):
      backup endpoints + headers + log redaction + upload guards +
