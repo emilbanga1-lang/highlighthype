@@ -625,8 +625,19 @@ try {
   // 1280x720) — asserted in section 16 above against the live file;
   // its composition is the sweatshirt-player build (see DEPLOY-NOTES).
 
+
+  /* §18 Round 4 fix (2026-11-05): showStore() pauses every .view-home
+     video; an explicitly paused video never auto-resumes, so the Hype
+     Frame films are restarted explicitly — studio film on studio open,
+     homepage film on return home. */
+  assert("18.1 showHome resumes the homepage Hype Frame film",
+    /#hfExamplesHome video/.test(appJs) && /hfHome\.play\(\)/.test(appJs));
+  assert("18.2 openHypeFrame plays the studio film",
+    /#hypeframe \.hf-film video/.test(appJs) && /hfFilm\.play\(\)/.test(appJs));
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();
   fs.rmSync(tmp, { recursive: true, force: true });
 }
+
