@@ -44,7 +44,7 @@ try {
   /* ---- 3b. Quick Upload: ONE screen (Emil, 2026-11-04 night) -------
      The 3-step wizard is replaced by a single quick form: clip picker
      first (phone-first copy, playing preview once picked), a few quick
-     questions (name, Boys/Girls toggle, sport pills, optional title),
+     questions (name, Boys/Girls toggle, sport dropdown, optional title),
      everything else in a collapsed "Add more (optional)" section — all
      with the SAME field names/payload as the wizard had. */
   for (const f of FIELDS) assert((home.split(`name="${f}"`).length - 1) === 1, `field name="${f}" appears exactly once in the quick form`);
@@ -53,7 +53,7 @@ try {
   assert(!home.includes("MOV") && !home.includes("most reliably"), "the MP4/.MOV warning text is removed entirely");
   assert(home.includes('id="dzPreview"') && home.includes('id="dzVideo"') && appJs.includes("Your clip is in") && appJs.includes("createObjectURL"), "a picked clip previews playing in the dropzone with a '✓ Your clip is in' state");
   assert(home.includes('data-div-pick="boys"') && home.includes('data-div-pick="girls"') && home.includes('name="division" value="boys"') && appJs.includes("setDivPick"), "Boys/Girls big toggle writes the division field (default Boys)");
-  assert((home.match(/data-sport-pick=/g) || []).length === 12 && home.includes('name="sport" value=""') && appJs.includes("setSportPick"), "sport is one-tap pills (12 sports, same list/order as the old select) writing the sport field");
+  assert(!home.includes("data-sport-pick") && !appJs.includes("data-sport-pick") && home.includes('<select name="sport" id="sportSelect"') && appJs.includes("setSportPick"), "sport is a native dropdown in the upload form (round 5b: the 12 one-tap pills are gone; the <select name=\"sport\"> IS the sport field)");
   assert(home.includes("What happened? (optional)") && appJs.includes("'s highlight`"), "the title is one optional 'What happened?' line; blank auto-fills as <Name>'s highlight at submit");
   const moreAt = home.indexOf("Add more (optional)");
   assert(moreAt > -1 && home.includes('class="quick-more"'), "'Add more (optional)' collapsed section present");
@@ -751,6 +751,56 @@ try {
   assert(gtcSandbox.allDiv === "all" && gtcSandbox.allSport === "all" && gtcSandbox.allTeam === "all" && gtcSandbox.allSearch === "", "behavioral: a fame tap resets every All Hypes filter so the card is rendered");
   assert(gtcCalls.includes("view:all") && gtcCalls.includes("hash:#play-7"), "behavioral: a fame tap switches to All Hypes and sets the shared-play hash");
   assert(gtcCalls.includes('qs:#allBoard [data-play-id="7"]') && gtcCalls.includes("class:flash") && gtcCalls.includes("scroll"), "behavioral: a fame tap flash-highlights the play's All-board card and scrolls to it");
+
+  /* ---- 20. Round 5b (2026-11-05, night): the upload form's sport
+     picker becomes a dropdown too ----
+     Round 5 turned the BOARD sport filters into native selects but
+     deliberately left the upload form's 12 one-tap sport pills; the
+     owner then reported he still saw "all the sports listed" on the
+     homepage and directed the form to convert too, so no sport list
+     renders as pills anywhere. Differences from the board selects,
+     on purpose: the form offers the FULL sport list (the dynamic
+     plays-only rule belongs to the board filters), behind a
+     "Choose a sport" placeholder (value ""). Because the <select>
+     itself carries name="sport" (the old hidden field is gone), the
+     payload and the submit-time validation read exactly the field
+     they always have: no sport chosen fails with the same message
+     and scroll-to-control behavior, and a chosen sport submits the
+     same value its pill used to write. ---- */
+  // (1) Structure: placeholder first, then the full list, in order.
+  const selStart = home.indexOf('<select name="sport"');
+  const selBlock = home.slice(selStart, home.indexOf("</select>", selStart));
+  const optVals = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[1]);
+  const optLabels = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[2]);
+  assert(JSON.stringify(optVals) === JSON.stringify(["", "baseball", "basketball", "cheer", "fieldhockey", "football", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "volleyball"]), "Round 5b: the form sport select = placeholder (value \"\") + the FULL 12-sport list in the pills' old order (not the board filters' dynamic list)");
+  assert(optLabels[0] === "Choose a sport" && optLabels[3] === "Cheer" && optLabels[4] === "Field Hockey", "Round 5b: placeholder reads 'Choose a sport' and option labels carry the pills' display names");
+  assert(selBlock.includes('class="sport-select"'), "Round 5b: the form select wears the same .sport-select chrome as the round-5 board selects");
+  assert(!home.includes('type="hidden" name="sport"') && !home.includes("quick-sports") && !css.includes(".quick-sports"), "Round 5b: the hidden sport field and the pill container/CSS are gone — name=\"sport\" survives exactly once (the §3b count), on the select");
+  // (2) Behavioral — setSportPick/syncQuickPicks from the REAL app.js,
+  // run in a vm against a stub form whose sport field is a select.
+  const pickStart = appJs.indexOf("function setDivPick");
+  const pickEnd = appJs.indexOf("};", appJs.indexOf("window.syncQuickPicks")) + 2;
+  const pickBlock = appJs.slice(pickStart, pickEnd);
+  assert(pickBlock.includes("function setSportPick") && pickBlock.includes("window.syncQuickPicks") && !pickBlock.includes("data-sport-pick"), "Round 5b: quick-picks block located (setDivPick/setSportPick/syncQuickPicks, no pill wiring left)");
+  const stubSport = { value: "" }, stubDiv = { value: "boys" };
+  const stubForm = { elements: { sport: stubSport, division: stubDiv } };
+  const pickSandbox = {
+    window: {},
+    $: (sel) => sel === "#uploadForm" ? stubForm : null,
+    $$: () => [],
+    console,
+  };
+  const pickCtx = vm.createContext(pickSandbox);
+  vm.runInContext(pickBlock, pickCtx);
+  vm.runInContext('setSportPick("soccer")', pickCtx);
+  assert(stubSport.value === "soccer", "behavioral: setSportPick writes the chosen value into the sport select — the same value the soccer pill used to write into the hidden field");
+  vm.runInContext('setSportPick("")', pickCtx);
+  assert(stubSport.value === "", "behavioral: clearing the pick returns the select to the placeholder value (\"\") the validation treats as unchosen");
+  vm.runInContext('setSportPick("hockey"); setDivPick("girls"); window.syncQuickPicks()', pickCtx);
+  assert(stubSport.value === "" && stubDiv.value === "boys", "behavioral: syncQuickPicks still resets both quick picks after a submit (Boys, no sport) — now against the select");
+  // (3) Validation path: same field read, same message, scroll target
+  // is the select now (the pill container no longer exists).
+  assert(appJs.includes('msg.textContent = "Tap the sport — one tap is all it takes."') && appJs.includes('$("#sportSelect")?.scrollIntoView') && !appJs.includes(".quick-sports"), "Round 5b: an unchosen sport fails submit validation with the SAME message as the untapped pills did, scrolling the dropdown into view instead of the gone pill row");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
