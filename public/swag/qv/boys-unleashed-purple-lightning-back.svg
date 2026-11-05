@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="boys unleashed hoodie in Purple Lightning — back illustration">
+  <defs>
+    <radialGradient id="boys-unleashed-back-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="boys-unleashed-back-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7e22ce"/><stop offset=".55" stop-color="#43107c"/><stop offset="1" stop-color="#17072f"/></linearGradient>
+    <clipPath id="boys-unleashed-back-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#boys-unleashed-back-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#boys-unleashed-back-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#boys-unleashed-back-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#boys-unleashed-back-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    <polygon points="211.2,281.6 250.2,323.8 226.8,328.4 242.4,378.4 178.5,334.7 201.9,330.0 187.8,372.1" fill="#22d3ee" opacity="0.75" transform="rotate(0 205 330)"/><polygon points="455.3,289.1 488.3,324.7 468.5,328.7 481.7,370.9 427.6,334.0 447.4,330.0 435.5,365.6" fill="#f0abfc" opacity="0.7" transform="rotate(0 450 330)"/><polygon points="230.4,502.8 264.4,539.6 244.0,543.6 257.6,587.2 201.9,549.1 222.3,545.0 210.0,581.7" fill="#a78bfa" opacity="0.75" transform="rotate(0 225 545)"/><polygon points="451.6,494.2 492.6,538.4 468.0,543.4 484.4,595.8 417.1,549.9 441.7,545.0 427.0,589.3" fill="#22d3ee" opacity="0.65" transform="rotate(0 445 545)"/><polygon points="328.6,152.1 351.1,176.4 337.6,179.1 346.6,207.9 309.7,182.7 323.2,180.0 315.1,204.3" fill="#f0abfc" opacity="0.65" transform="rotate(0 325 180)"/>
+    
+    <g opacity="1"><polygon points="189.5,444.0 171.5,322.5 252.5,390.0 284.0,313.5 320.0,286.5 356.0,313.5 387.5,390.0 468.5,322.5 450.5,444.0" fill="none" stroke="#d8b4fe" stroke-width="8" stroke-linejoin="round"/><rect x="196.25" y="439.5" width="247.5" height="18.0" rx="9.0" fill="none" stroke="#d8b4fe" stroke-width="8"/></g><g opacity="1"><polygon points="189.5,444.0 171.5,322.5 252.5,390.0 284.0,313.5 320.0,286.5 356.0,313.5 387.5,390.0 468.5,322.5 450.5,444.0" fill="none" stroke="#67e8f9" stroke-width="2.5" stroke-linejoin="round"/><rect x="196.25" y="439.5" width="247.5" height="18.0" rx="9.0" fill="none" stroke="#67e8f9" stroke-width="2.5"/></g>
+  </g>
+  
+          <path d="M222 224 C228 137 272 92 320 92 C368 92 412 137 418 224 C393 252 360 266 320 266 C280 266 247 252 222 224 Z" fill="url(#boys-unleashed-back-fabric)" stroke="rgba(0,0,0,.30)" stroke-width="3"/>
+          <path d="M252 205 C282 232 358 232 388 205" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="5"/>
+          <path d="M320 100 C303 140 297 180 299 224 M320 100 C337 140 343 180 341 224" fill="none" stroke="rgba(0,0,0,.15)" stroke-width="4"/>
+          <path d="M320 266 L320 642" stroke="rgba(0,0,0,.10)" stroke-width="3"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      
+    
+</svg>

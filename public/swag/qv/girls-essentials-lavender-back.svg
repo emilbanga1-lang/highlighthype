@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="girls essentials hoodie in Lavender — back illustration">
+  <defs>
+    <radialGradient id="girls-essentials-back-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="girls-essentials-back-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d5c6ea"/><stop offset=".55" stop-color="#c2ade0"/><stop offset="1" stop-color="#a484d1"/></linearGradient>
+    <clipPath id="girls-essentials-back-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#girls-essentials-back-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#girls-essentials-back-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#girls-essentials-back-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#girls-essentials-back-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    
+    
+    <g transform="rotate(8 330 420)"><ellipse cx="330.0" cy="346.9" rx="66.64999999999999" ry="40.85" transform="rotate(-90 330.0 346.9)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="5"/><ellipse cx="399.5" cy="397.4" rx="66.64999999999999" ry="40.85" transform="rotate(-18 399.5 397.4)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="5"/><ellipse cx="373.0" cy="479.1" rx="66.64999999999999" ry="40.85" transform="rotate(54 373.0 479.1)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="5"/><ellipse cx="287.0" cy="479.1" rx="66.64999999999999" ry="40.85" transform="rotate(126 287.0 479.1)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="5"/><ellipse cx="260.5" cy="397.4" rx="66.64999999999999" ry="40.85" transform="rotate(198 260.5 397.4)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="5"/><circle cx="330" cy="420" r="23.65" fill="#ffd166" stroke="#c93378" stroke-width="3.25"/></g><g transform="rotate(-12 440 305)"><ellipse cx="440.0" cy="280.5" rx="22.32" ry="13.68" transform="rotate(-90 440.0 280.5)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="4"/><ellipse cx="463.3" cy="297.4" rx="22.32" ry="13.68" transform="rotate(-18 463.3 297.4)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="4"/><ellipse cx="454.4" cy="324.8" rx="22.32" ry="13.68" transform="rotate(54 454.4 324.8)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="4"/><ellipse cx="425.6" cy="324.8" rx="22.32" ry="13.68" transform="rotate(126 425.6 324.8)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="4"/><ellipse cx="416.7" cy="297.4" rx="22.32" ry="13.68" transform="rotate(198 416.7 297.4)" fill="none" fill-opacity="0.08" stroke="#c93378" stroke-width="4"/><circle cx="440" cy="305" r="7.92" fill="#ffd166" stroke="#c93378" stroke-width="2.6"/></g>
+  </g>
+  
+          <path d="M222 224 C228 137 272 92 320 92 C368 92 412 137 418 224 C393 252 360 266 320 266 C280 266 247 252 222 224 Z" fill="url(#girls-essentials-back-fabric)" stroke="rgba(0,0,0,.30)" stroke-width="3"/>
+          <path d="M252 205 C282 232 358 232 388 205" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="5"/>
+          <path d="M320 100 C303 140 297 180 299 224 M320 100 C337 140 343 180 341 224" fill="none" stroke="rgba(0,0,0,.15)" stroke-width="4"/>
+          <path d="M320 266 L320 642" stroke="rgba(0,0,0,.10)" stroke-width="3"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      
+    
+</svg>

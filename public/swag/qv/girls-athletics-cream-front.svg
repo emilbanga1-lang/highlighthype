@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="girls athletics hoodie in Cream — front illustration">
+  <defs>
+    <radialGradient id="girls-athletics-front-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="girls-athletics-front-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7e6"/><stop offset=".55" stop-color="#f3e7cf"/><stop offset="1" stop-color="#d9c8a9"/></linearGradient>
+    <clipPath id="girls-athletics-front-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#girls-athletics-front-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#girls-athletics-front-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#girls-athletics-front-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#girls-athletics-front-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    
+    
+      <path d="M112 365 L202 348 L200 376 L110 394 Z" fill="#14532d"/>
+      <path d="M108 407 L199 390 L198 414 L107 432 Z" fill="#14532d"/>
+      <path d="M528 365 L438 348 L440 376 L530 394 Z" fill="#14532d"/>
+      <path d="M532 407 L441 390 L442 414 L533 432 Z" fill="#14532d"/>
+      <path d="M180 646 L460 646 M180 664 L460 664" stroke="#14532d" stroke-width="7"/>
+    
+    <g opacity="1"><polygon points="223.4,302.6 221.6,287.1 235.2,296.2 241.6,281.6 248.0,290.8 254.4,281.6 260.8,296.2 274.4,287.1 272.6,302.6" fill="#14532d" stroke="none" stroke-width="0" stroke-linejoin="round"/><rect x="222.92000000000002" y="302.152" width="50.16" height="3.6479999999999997" rx="1.8239999999999998" fill="#14532d" stroke="none" stroke-width="0"/><circle cx="230.672" cy="293.032" r="1.9152" fill="#fff" opacity=".9"/><circle cx="241.616" cy="285.736" r="1.9152" fill="#fff" opacity=".9"/><circle cx="248.0" cy="294.856" r="1.9152" fill="#fff" opacity=".9"/><circle cx="254.384" cy="285.736" r="1.9152" fill="#fff" opacity=".9"/><circle cx="265.328" cy="293.032" r="1.9152" fill="#fff" opacity=".9"/></g><circle cx="248" cy="340" r="32.3" fill="none" stroke="#14532d" stroke-width="4.75"/><text x="248" y="352.35" text-anchor="middle" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="36.1" fill="#14532d">H</text>
+  </g>
+  
+          <path d="M224 218 C235 141 277 105 320 105 C363 105 405 141 416 218 C396 245 362 260 320 260 C278 260 244 245 224 218 Z" fill="url(#girls-athletics-front-fabric)" stroke="rgba(0,0,0,.28)" stroke-width="3"/>
+          <path d="M258 190 C276 224 296 240 320 240 C344 240 364 224 382 190 C374 252 350 278 320 278 C290 278 266 252 258 190 Z" fill="rgba(0,0,0,.30)"/>
+          <path d="M291 252 L282 395 M349 252 L358 395" stroke="rgba(20,20,20,.62)" stroke-width="7" stroke-linecap="round"/>
+          <circle cx="282" cy="402" r="6" fill="rgba(255,255,255,.75)"/><circle cx="358" cy="402" r="6" fill="rgba(255,255,255,.75)"/>
+          <path d="M320 112 C302 150 296 190 298 232 M320 112 C338 150 344 190 342 232" fill="none" stroke="rgba(0,0,0,.16)" stroke-width="4"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      <path d="M232 518 L408 518 L431 636 L209 636 Z" fill="rgba(0,0,0,.10)" stroke="rgba(0,0,0,.25)" stroke-width="3"/>
+    
+</svg>

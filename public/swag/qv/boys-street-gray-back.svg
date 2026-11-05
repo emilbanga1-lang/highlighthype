@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 720" role="img" aria-label="boys street hoodie in Gray — back illustration">
+  <defs>
+    <radialGradient id="boys-street-back-bg" cx="50%" cy="18%" r="75%"><stop offset="0" stop-color="#353535"/><stop offset=".48" stop-color="#111"/><stop offset="1" stop-color="#030303"/></radialGradient>
+    <linearGradient id="boys-street-back-fabric" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a7a9ad"/><stop offset=".55" stop-color="#8b8e93"/><stop offset="1" stop-color="#71747a"/></linearGradient>
+    <clipPath id="boys-street-back-clip">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </clipPath>
+  </defs>
+  <rect width="640" height="720" fill="url(#boys-street-back-bg)"/>
+  <ellipse cx="320" cy="682" rx="238" ry="24" fill="#000" opacity=".58"/>
+  <g fill="url(#boys-street-back-fabric)" stroke="rgba(0,0,0,.34)" stroke-width="3">
+      <path d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
+      <path d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
+      <path d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
+    </g>
+  <g clip-path="url(#boys-street-back-clip)">
+    <rect x="90" y="80" width="460" height="610" fill="url(#boys-street-back-fabric)"/>
+    <ellipse cx="260" cy="250" rx="190" ry="230" fill="#fff" opacity=".04"/>
+    <ellipse cx="405" cy="560" rx="190" ry="210" fill="#000" opacity=".06"/>
+    <g opacity=".16" fill="#d4d4d8"><ellipse cx="250" cy="330" rx="130" ry="46" transform="rotate(-14 250 330)"/><ellipse cx="400" cy="520" rx="150" ry="52" transform="rotate(10 400 520)"/><ellipse cx="300" cy="170" rx="120" ry="34"/></g>
+    
+    <g opacity="1"><polygon points="195.3,381.6 178.1,265.5 255.5,330.0 285.6,256.9 320.0,231.1 354.4,256.9 384.5,330.0 461.9,265.5 444.7,381.6" fill="none" stroke="#fff" stroke-width="7" stroke-linejoin="round"/><rect x="201.75" y="377.3" width="236.5" height="17.2" rx="8.6" fill="none" stroke="#fff" stroke-width="7"/></g><text x="322" y="540" text-anchor="middle" transform="rotate(-13 322 540)" font-family="'Brush Script MT','Segoe Script',cursive" font-size="88" fill="#fff">HYPE</text><path d="M190 574 L462 500" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  
+          <path d="M222 224 C228 137 272 92 320 92 C368 92 412 137 418 224 C393 252 360 266 320 266 C280 266 247 252 222 224 Z" fill="url(#boys-street-back-fabric)" stroke="rgba(0,0,0,.30)" stroke-width="3"/>
+          <path d="M252 205 C282 232 358 232 388 205" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="5"/>
+          <path d="M320 100 C303 140 297 180 299 224 M320 100 C337 140 343 180 341 224" fill="none" stroke="rgba(0,0,0,.15)" stroke-width="4"/>
+          <path d="M320 266 L320 642" stroke="rgba(0,0,0,.10)" stroke-width="3"/>
+        
+  
+      <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
+      <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
+      <path d="M108 570 L188 562 M452 562 L532 570" stroke="rgba(0,0,0,.25)" stroke-width="4"/>
+      
+    
+</svg>
