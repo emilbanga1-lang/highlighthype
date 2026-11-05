@@ -435,12 +435,17 @@
      Pause the film and a card names the swag in the current scene, with
      one volt button to view that look. The card sits above the native
      control bar and never blocks it: only the button takes clicks. */
-  .swag-film-hint{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:3;display:inline-flex;align-items:center;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);color:#fff;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:7px 13px;border-radius:999px;pointer-events:none;white-space:nowrap;transition:opacity .25s ease}
-  @media (max-width:700px){ .swag-film-hint{top:58px} }
+  /* Nov 5 (2026-11-05): the floating "Pause to shop the look" hint pill
+     is GONE (Emil: it read as a pause button floating on the video).
+     In its place, a real pause/play button docked in the film's
+     bottom-right corner, styled on the homepage hero's control-bar
+     pills (.sound-btn: dark glass, 1px light border, 999px radius). */
+  .swag-pause-btn{position:absolute;right:16px;bottom:16px;z-index:5;display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-size:13px;font-weight:800;letter-spacing:.02em;cursor:pointer;backdrop-filter:blur(6px);white-space:nowrap;touch-action:manipulation}
+  .swag-pause-btn:hover{border-color:#fff;background:rgba(0,0,0,.75)}
+  .swag-pause-btn:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .swag-film-overlay{transition:opacity .25s ease}
   .swag-film.film-paused .swag-film-overlay{opacity:0;pointer-events:none}
   .swag-film.film-paused .swag-film-overlay .swag-film-ctas,.swag-film.film-paused .swag-film-overlay .swag-hero-links{pointer-events:none}
-  .swag-film.film-paused .swag-film-hint{opacity:0}
   .swag-shop-card{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;z-index:4;width:min(430px,calc(100% - 32px));background:rgba(10,10,10,.85);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px);border-radius:16px;padding:18px 20px 20px;text-align:center;pointer-events:none;box-shadow:0 18px 44px rgba(0,0,0,.55)}
   .swag-shop-card[hidden]{display:none}
   .swag-shop-card .ssc-kicker{font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--volt);margin:0 0 6px}
@@ -744,6 +749,12 @@
   @media (max-width:900px){ .hf-grid{grid-template-columns:1fr} }
   .hf-studio video{width:100%;border-radius:14px;background:#000;display:block}
   .hf-studio img#hfPhoto,.hf-studio img#hfStill{width:100%;border-radius:14px;display:block}
+  /* Nov 5 (2026-11-05): the rule above (display:block) outranks the UA
+     [hidden] rule, so for VIDEO plays the src-less #hfPhoto rendered as
+     a stray broken-image box showing its alt text ("The play's photo")
+     floating under the studio video. Same fix pattern as
+     .hf-garment[hidden]: the attribute wins explicitly. */
+  .hf-studio img#hfPhoto[hidden]{display:none}
   .hf-studio img#hfStill{border:1px solid var(--line2)}
   .hf-scrubrow{display:flex;gap:12px;align-items:center;margin:12px 0 14px}
   .hf-scrubrow input[type="range"]{flex:1;accent-color:var(--volt);cursor:pointer}
@@ -778,6 +789,44 @@
   .hf-freezerow{display:flex;gap:10px;align-items:stretch}
   .hf-freezerow #hfFreeze{flex:1;width:auto}
   .hf-freezerow .btn{white-space:nowrap}
+  /* Nov 5 studio usability (2026-11-05): one clean column (grid
+     children may not overflow the track), BIG step targets, and no
+     double-tap zoom on the studio controls. */
+  .hf-col{min-width:0}
+  .hf-freezerow .btn{min-height:56px}
+  .hf-freezerow #hfStepBack,.hf-freezerow #hfStepFwd{min-width:84px;padding-left:12px;padding-right:12px;font-size:16px}
+  .hf-studio button,.hf-studio input,.hf-studio .seg,.hf-studio .pill{touch-action:manipulation}
+  /* Frame filmstrip: captured thumbnails under the video. */
+  .hf-strip-wrap{margin:0 0 14px}
+  .hf-strip-wrap[hidden]{display:none}
+  .hf-strip-label{margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2)}
+  .hf-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .hf-thumb{flex:0 0 auto;width:86px;padding:0;border:2px solid var(--line2);border-radius:10px;overflow:hidden;background:#000;cursor:pointer;position:relative;line-height:0;touch-action:manipulation}
+  .hf-thumb img{width:100%;height:auto;display:block}
+  .hf-thumb span{position:absolute;left:5px;bottom:4px;background:rgba(0,0,0,.65);color:#fff;font-size:10.5px;font-weight:800;padding:2px 6px;border-radius:999px;line-height:1.25}
+  .hf-thumb.active{border-color:var(--volt)}
+  .hf-thumb:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  /* "See it finished": the print on a 4-garment example lineup. */
+  .hf-fin-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px}
+  @media (max-width:560px){ .hf-fin-row{grid-template-columns:repeat(2,1fr)} }
+  .hf-fin{margin:0;min-width:0}
+  .hf-fin-stage{position:relative;border:1px solid var(--line);border-radius:12px;background:#101010;overflow:hidden}
+  .hf-fin-garment{width:100%;height:auto;display:block}
+  .hf-fin-print{position:absolute;display:block;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  .hf-fin figcaption{margin-top:6px;font-size:11.5px;font-weight:700;color:var(--muted);text-align:center}
+  .hf-freezerow .btn{padding:12px 16px}
+  /* Phone geometry (390px audit, 2026-11-05): the studio column is
+     ~314px wide inside the card — Freeze takes its own full-width row
+     on top, the two steppers split the row beneath at full height,
+     and the segmented groups stretch full-width with equal buttons,
+     so nothing squeezes or overflows. */
+  @media (max-width:560px){
+    .hf-freezerow{flex-wrap:wrap}
+    .hf-freezerow #hfFreeze{order:-1;flex:1 1 100%}
+    .hf-freezerow #hfStepBack,.hf-freezerow #hfStepFwd{flex:1;min-width:0}
+    .hf-studio .seg{display:flex;width:100%}
+    .hf-studio .seg button{flex:1;padding:10px 6px;white-space:nowrap}
+  }
   .hf-presets{margin:4px 0 10px}
   .hf-presets button{padding:8px 16px;font-size:14px}
   .hf-studio #hfMsg{margin:12px 0 0;font-weight:700}
@@ -813,12 +862,14 @@
   .hero-shop-boys{color:var(--volt)}
   .hero-shop-link:hover{filter:brightness(1.18)}
   /* Tonight batch (2026-11-04): the round pause/play button is gone —
-     tapping the film itself toggles playback (pause-to-shop intact). */
+     tapping the film itself toggles playback (pause-to-shop intact).
+     Nov 5 (2026-11-05): a docked corner pause/play button joins the
+     tap-to-pause (see .swag-pause-btn) and the floating hint pill is
+     removed. */
   /* Store v6: the floating nav (logo left, hamburger right, ~70px tall)
-     now sits over the film, so the hero's badge + hint pill drop below
-     the nav line instead of colliding with it. */
+     now sits over the film, so the hero's badge drops below the nav
+     line instead of colliding with it. */
   .swag-film-hero .swag-film-badge{top:82px}
-  .swag-film-hero .swag-film-hint{top:82px}
   /* Tonight batch (2026-11-04): the photo tiles + sticky filter
      controls are gone. Each division is a block — a wide banner header
      (photo, name + collections line, focus button) over its 3 product
@@ -874,6 +925,12 @@
   body[data-store-focus="girls"] .store-block[data-store-block="boys"]{display:none}
   body[data-store-focus="boys"] .store-block[data-store-block="boys"],
   body[data-store-focus="girls"] .store-block[data-store-block="girls"]{margin-top:6px}
+  /* Doors landing (2026-11-05, Overtime pattern): on the landing the
+     two division banners are DOORS — no products are expanded until a
+     door opens (focus mode). The whole banner is the tap target. */
+  body:not([data-store-focus]) .store-block .prod-grid{display:none}
+  body:not([data-store-focus]) .store-block{margin-bottom:22px}
+  .store-banner{cursor:pointer}
   .prod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
   @media (min-width:900px){ .prod-grid{grid-template-columns:repeat(3,1fr);gap:20px} }
   .prod-card{background:#0d0d0f;border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;text-align:left}
@@ -927,6 +984,12 @@
   .qv-swatch .swatch{width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
   .qv-swatch[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
   .qv-swatch:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  /* FRONT / BACK toggle (2026-11-05): colors and sides are reachable
+     by button, not only by swiping the gallery. */
+  .qv-sides{display:flex;gap:8px;margin:12px 0 2px}
+  .qv-side-btn{flex:1;appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:800;font-size:13.5px;padding:10px 0;border-radius:999px;cursor:pointer;touch-action:manipulation}
+  .qv-side-btn[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
+  .qv-side-btn:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .qv-panel h4{font-family:"Anton",sans-serif;font-size:30px;text-transform:uppercase;margin:2px 0 0;color:#fff}
   .qv-colors-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:14px 0 2px}
   .qv-colors{color:#e8e8e8;font-weight:600;margin:0}
@@ -934,7 +997,13 @@
   /* Prices + youth sizes (2026-11-04, Baseball Lifestyle 101 pattern):
      Store-only — the Hype Frame creative and homepage stay price-free. */
   .prod-price{font-family:"Anton",sans-serif;font-size:21px;color:#fff;margin:0 0 2px}
-  .prod-sizes{color:var(--muted);font-size:12.5px;font-weight:600;margin:0 0 12px}
+  .prod-sizes{color:var(--muted);font-size:12.5px;font-weight:600;margin:0}
+  /* Color dots on the cards (2026-11-05): one dot per colorway under
+     the size run — the colors are named + viewable front/back in the
+     quick view. (Supersedes the v8 note above: the strip that moved
+     into the quick view was swatches + names; the card row is dots.) */
+  .prod-colors{display:flex;gap:6px;margin:9px 0 2px}
+  .prod-dot{width:14px;height:14px;flex:0 0 auto;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
   .prod-sizes-label{font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-right:6px}
   .qv-price{font-family:"Anton",sans-serif;font-size:26px;color:#fff;margin:10px 0 0}
   .qv-sizes{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 2px}

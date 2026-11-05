@@ -268,17 +268,10 @@ function showStore(target) {
   $$(".view-home video").forEach((v) => v.pause());
   const sv = $("#swagVideo");
   if (sv) {
-    // The film now carries the homepage music bed (2026-11-04). The
-    // Enter-the-Store click is a user gesture, so try to start WITH
-    // sound; if the browser keeps it muted, unmute on the first tap
-    // anywhere in the store instead. Muted autoplay stays the fallback.
-    const wasMuted = sv.muted;
-    sv.muted = false;
+    // The film is SILENT (2026-11-05): Emil reversed the music add —
+    // the file has no audio track at all, and the video stays muted.
+    sv.muted = true;
     const p = sv.play(); if (p && p.catch) p.catch(() => {});
-    if (wasMuted || sv.muted) {
-      const unmute = () => { sv.muted = false; const q = sv.play(); if (q && q.catch) q.catch(() => {}); };
-      $("#shop")?.addEventListener("pointerdown", unmute, { once: true });
-    }
   }
   // #hype-girls / #hype-boys links focus that division's block
   // (2026-11-04 store restructure). Other targets scroll as before.
@@ -378,6 +371,13 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
    (7-14s), Boys Unleashed on a football field (14-21s), Girls Street on
    a soccer field (21-28s), Girls Essentials on a running track
    (28s-end).
+   Film v8 (2026-11-05): the film is SILENT (no audio track — Emil
+   reversed the music add), and scenes 2 + 4 are now BACK views: Boys
+   Athletics from behind (HYPE / H / ATHLETIC CLUB back print, baseball
+   field) and Girls Street from behind (hibiscus + HYPE script back
+   print, soccer field at sunset). Same order, 7.0s scenes, same
+   pause-to-shop boundaries. A docked pause/play button sits in the
+   film's bottom-right corner (the floating hint pill is gone).
    Each scene's card targets that collection's grid card by slug. The old
    film's title-card and Hype All Day scenes are gone with the old film. */
 const FILM_SCENES = [
@@ -413,21 +413,37 @@ function filmSceneAt(t) {
   v.addEventListener("play", hideCard);
   v.addEventListener("playing", hideCard);
   btn.addEventListener("click", () => goToStoreScene(scene.target));
-  // No native controls and no round button (removed 2026-11-04):
-  // tapping the film toggles playback, and pausing surfaces the scene
+  // Pause control (2026-11-05): a real button docked in the film's
+  // bottom-right corner — same pill pattern as the homepage hero's
+  // control bar — replaces the old floating hint pill. Tapping the
+  // film still toggles playback too, and pausing surfaces the scene
   // card above via the pause listener (pause-to-shop).
+  const pauseBtn = $("#swagPauseBtn");
+  const syncPauseBtn = () => {
+    if (!pauseBtn) return;
+    pauseBtn.innerHTML = v.paused ? "▶ <span>Play</span>" : "❚❚ <span>Pause</span>";
+    pauseBtn.setAttribute("aria-label", v.paused ? "Play the film" : "Pause the film");
+  };
+  v.addEventListener("pause", syncPauseBtn);
+  v.addEventListener("play", syncPauseBtn);
+  pauseBtn?.addEventListener("click", (e) => { e.stopPropagation(); if (v.paused) v.play(); else v.pause(); });
+  syncPauseBtn();
   v.addEventListener("click", () => { if (v.paused) v.play(); else v.pause(); });
 })();
 
-/* ---------------- Store: division blocks + focus (2026-11-04) -------
-   Tonight batch restructure: the landing is film → Boys block → Girls
-   block → Hype Frame creative, with all six cards always on the page.
-   Focus mode (body[data-store-focus="boys"|"girls"]) hides the film,
+/* ---------------- Store: division doors + focus (2026-11-04/05) ----
+   Nov 5 (Overtime pattern, Emil): the landing is film → Boys DOOR →
+   Girls DOOR → Hype Frame creative. The doors are the two division
+   banners; NO products are expanded on the landing (the grids are
+   CSS-hidden until a division is focused). Tapping a door (anywhere
+   on the banner, or its button) enters focus mode
+   (body[data-store-focus="boys"|"girls"]), which hides the film,
    the store bar/head, and the other division's block, and pins the
-   focused block under a slim focus bar. Entered from the film overlay
-   Shop Boys/Girls links, each block's banner button, #hype-boys /
-   #hype-girls links, and the film's pause-to-shop card (which focuses
-   the paused scene's division and lands on its card). */
+   focused block's grid under a slim focus bar; the focus bar's exit
+   returns to the doors landing. Also entered from the film overlay
+   Shop Boys/Girls links, #hype-boys / #hype-girls links, and the
+   film's pause-to-shop card (which focuses the paused scene's
+   division and lands on its card). */
 const storeState = { focus: null };
 function setStoreFocus(div) {
   storeState.focus = div || null;
@@ -466,6 +482,13 @@ function goToStoreScene(target) {
 }
 $$("[data-hero-shop]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.heroShop === "girls" ? "hype-girls" : "hype-boys")));
 $$("[data-store-focus]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys")));
+/* The whole banner is the door (2026-11-05): tapping anywhere on it
+   opens that division, not just on the underlined button. */
+$$(".store-banner").forEach((banner) => banner.addEventListener("click", (e) => {
+  if (e.target.closest("[data-store-focus]")) return; // the button has its own handler
+  const btn = banner.querySelector("[data-store-focus]");
+  if (btn) goToStoreScene(btn.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys");
+}));
 $("#storeFocusExit")?.addEventListener("click", () => { setStoreFocus(null); document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }); });
 $$(".prod-card").forEach((card) => {
   const flip = card.querySelector("[data-flip]");
@@ -502,7 +525,18 @@ function qvSyncGallery() {
   $("#qvColorName").textContent = qvGalleryState.colors[ci][0];
   $("#qvSideLabel").textContent = idx % 2 ? "Back" : "Front";
   $$("#qvSwatches .qv-swatch").forEach((b, i) => b.setAttribute("aria-pressed", String(i === ci)));
+  $$("#qvSides .qv-side-btn").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.qvSide) === idx % 2)));
 }
+/* FRONT / BACK without swiping (2026-11-05): the toggle scrolls the
+   gallery to the current colorway's front or back frame. The color
+   buttons above it (the swatch row) jump to a colorway's front. */
+$$("#qvSides .qv-side-btn").forEach((b) => b.addEventListener("click", () => {
+  const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
+  const w = g.clientWidth || 1;
+  const idx = Math.min(qvGalleryState.colors.length * 2 - 1, Math.max(0, Math.round(g.scrollLeft / w)));
+  const ci = Math.floor(idx / 2);
+  g.scrollTo({ left: (ci * 2 + Number(b.dataset.qvSide)) * w, behavior: "smooth" });
+}));
 function openQuickView(card) {
   const qv = $("#quickView"); if (!qv) return;
   const slug = card.dataset.slug;
@@ -591,7 +625,11 @@ const HF_AREAS_BACK = {
 // (cx/cy = the print's center, size = print width as % of the area's
 // width), so it maps proportionally when switching garments, and the
 // order request carries it to the server for the printer to reproduce.
-const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 66 };
+/* Print size raised 66% -> 78% (2026-11-05): the print read small and
+   washed on the garment at 66%. ONE shared default — preview, the
+   composed print's placement math, and the order payload all read it,
+   front and back (server fallback default matches). */
+const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
@@ -637,6 +675,65 @@ function initHfStudio(play) {
   }
   hfSetApparel("hoodie");
   hfSetSide("front");
+  hfBuildStrip();
+}
+/* Frame filmstrip (2026-11-05): thumbnails captured client-side from
+   the play's own video at ~1s intervals (coarser for long clips, max
+   ~30 thumbs) in a scrollable strip under the video. Tapping one
+   seeks the studio video to that moment and pauses — the kid then
+   hits Freeze, or nudges with the ±1s buttons. Captures run on a
+   detached video element so the studio player is never disturbed;
+   plays are same-origin files, so the canvas is not tainted. */
+let hfStripToken = 0;
+function hfBuildStrip() {
+  const wrap = $("#hfStripWrap"), strip = $("#hfStrip");
+  if (!wrap || !strip) return;
+  const token = ++hfStripToken;
+  strip.innerHTML = "";
+  if (hfState.mediaType !== "video" || !hfState.play) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const cap = document.createElement("video");
+  cap.muted = true; cap.playsInline = true; cap.preload = "auto";
+  cap.src = hfState.play.media_url;
+  const cvs = document.createElement("canvas");
+  cap.addEventListener("loadedmetadata", async () => {
+    const dur = cap.duration || 0;
+    if (!dur || token !== hfStripToken) return;
+    const step = dur > 30 ? Math.ceil(dur / 30) : 1;
+    const x = cvs.getContext("2d");
+    for (let t = 0; t < dur; t += step) {
+      if (token !== hfStripToken) return;
+      await new Promise((res) => {
+        const done = () => { cap.removeEventListener("seeked", done); res(); };
+        cap.addEventListener("seeked", done);
+        setTimeout(res, 1500); // never hang the strip on a stuck seek
+        try { cap.currentTime = Math.min(t, Math.max(0, dur - 0.05)); } catch { res(); }
+      });
+      if (token !== hfStripToken || !cap.videoWidth) continue;
+      cvs.width = 128;
+      cvs.height = Math.max(1, Math.round(128 * cap.videoHeight / cap.videoWidth));
+      x.drawImage(cap, 0, 0, cvs.width, cvs.height);
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "hf-thumb";
+      b.setAttribute("aria-label", `Jump to ${hfFmtTime(t)}`);
+      const im = document.createElement("img");
+      im.alt = ""; im.src = cvs.toDataURL("image/jpeg", 0.72);
+      const lab = document.createElement("span");
+      lab.textContent = hfFmtTime(t);
+      b.appendChild(im); b.appendChild(lab);
+      b.addEventListener("click", () => hfJumpToFrame(t, b));
+      strip.appendChild(b);
+    }
+    cap.removeAttribute("src"); cap.load();
+  });
+}
+function hfJumpToFrame(t, btn) {
+  const v = $("#hfVideo"); if (!v) return;
+  v.pause();
+  if (v.duration) v.currentTime = Math.min(Math.max(0, t), v.duration);
+  const scrub = $("#hfScrub"); if (scrub) scrub.value = v.currentTime || t;
+  hfUpdateTime();
+  $$("#hfStrip .hf-thumb").forEach((el) => el.classList.toggle("active", el === btn));
 }
 function hfFmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function hfUpdateTime() {
@@ -803,6 +900,60 @@ function hfSetPreset(p) {
   $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
   if (hfState.frozen) composeHfPrint();
 }
+/* "See it finished" (2026-11-05, from Emil's poster): the current
+   composed print layered onto a fixed lineup of example garments —
+   black hoodie BACK, cream tee FRONT, heather-gray hoodie BACK,
+   white tee FRONT. The figures clone the studio's own garment SVGs
+   (fabric recolored per example), and each print is positioned with
+   the same placement + per-garment print-area math as the main mock,
+   computed in % so it needs no layout. Re-renders whenever the print
+   or placement changes (hfApplyPlacement calls it on every path). */
+const HF_FINISHED = [
+  { apparel: "hoodie", side: "back", hex: "#17171a", label: "Black hoodie · Back" },
+  { apparel: "tee", side: "front", hex: "#f3e7cf", label: "Cream tee · Front" },
+  { apparel: "hoodie", side: "back", hex: "#a8abb0", label: "Heather gray hoodie · Back" },
+  { apparel: "tee", side: "front", hex: "#f5f5f2", label: "White tee · Front" },
+];
+function hfBuildFinished() {
+  const row = $("#hfFinRow");
+  if (!row || row.children.length) return;
+  row.innerHTML = HF_FINISHED.map((f, i) => `<figure class="hf-fin" data-fin="${i}"><div class="hf-fin-stage"></div><figcaption>${f.label}</figcaption></figure>`).join("");
+  HF_FINISHED.forEach((f, i) => {
+    const src = document.querySelector(`.hf-garment-${f.apparel}-${f.side}`);
+    const stage = row.querySelector(`[data-fin="${i}"] .hf-fin-stage`);
+    if (!src || !stage) return;
+    const clone = src.cloneNode(true);
+    clone.removeAttribute("hidden");
+    clone.classList.add("hf-fin-garment");
+    clone.querySelectorAll(".hf-fabric").forEach((p) => p.setAttribute("fill", f.hex));
+    const img = document.createElement("img");
+    img.className = "hf-fin-print"; img.alt = ""; img.hidden = true;
+    stage.appendChild(clone); stage.appendChild(img);
+  });
+}
+function hfRenderFinished() {
+  const row = $("#hfFinRow"); if (!row) return;
+  hfBuildFinished();
+  const url = hfState.printDataUrl, aspect = hfState.printAspect;
+  row.querySelectorAll(".hf-fin").forEach((fig, i) => {
+    const f = HF_FINISHED[i], img = fig.querySelector(".hf-fin-print");
+    if (!f || !img) return;
+    if (!url || !aspect) { img.hidden = true; img.removeAttribute("src"); return; }
+    const area = (f.side === "back" ? HF_AREAS_BACK : HF_AREAS)[f.apparel];
+    const p = hfState.placement;
+    const pwPct = area.width * p.size / 100;         // % of stage width
+    const phPct = pwPct * (640 / 720) * aspect;      // % of stage height (stage is 640x720)
+    const cxPct = area.left + area.width * p.cx / 100;
+    const cyPct = area.top + area.height * p.cy / 100;
+    const cxC = pwPct >= area.width ? area.left + area.width / 2 : Math.min(Math.max(cxPct, area.left + pwPct / 2), area.left + area.width - pwPct / 2);
+    const cyC = phPct >= area.height ? area.top + area.height / 2 : Math.min(Math.max(cyPct, area.top + phPct / 2), area.top + area.height - phPct / 2);
+    if (img.getAttribute("src") !== url) img.src = url;
+    img.hidden = false;
+    img.style.width = pwPct + "%";
+    img.style.left = (cxC - pwPct / 2) + "%";
+    img.style.top = (cyC - phPct / 2) + "%";
+  });
+}
 // Position the print layer inside the mock from hfState.placement.
 // Pixel math against the rendered mock, stored back as print-area
 // percentages. When the print fits the area on an axis its center is
@@ -813,6 +964,7 @@ function hfSetPreset(p) {
 function hfApplyPlacement() {
   const mock = $("#hfMock"), print = $("#hfPrint");
   if (!mock || !print) return;
+  hfRenderFinished();
   if (!hfState.frozen || !hfState.printAspect) { print.style.left = ""; print.style.top = ""; print.style.width = ""; return; }
   const r = mock.getBoundingClientRect();
   if (!r.width || !r.height) return;

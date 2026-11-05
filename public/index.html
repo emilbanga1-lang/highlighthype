@@ -49,7 +49,7 @@
   <div class="wrap hero-controls">
     <div class="p-bar">
       <div class="p-track"><div class="p-fill" id="heroFill"></div></div>
-      <div class="p-time"><span class="p-cur" id="heroCur">0:00</span> <span id="heroTotal">/ 0:13</span></div>
+      <div class="p-time"><span class="p-cur" id="heroCur">0:00</span> <span id="heroTotal">/ 0:11</span></div>
       <button type="button" class="sound-btn" id="heroSound">🔊 Tap for sound</button>
     </div>
   </div>
@@ -304,6 +304,10 @@
             <input type="range" id="hfScrub" min="0" max="0" step="0.01" value="0" aria-label="Video timeline — scrub to your favorite moment">
             <span id="hfTime">0:00 / 0:00</span>
           </div>
+          <div class="hf-strip-wrap" id="hfStripWrap" hidden>
+            <p class="hf-strip-label">Tap a frame to jump to it</p>
+            <div class="hf-strip" id="hfStrip" role="group" aria-label="Frame thumbnails — tap one to jump the video to that moment"></div>
+          </div>
           <div class="hf-freezerow">
             <button type="button" class="btn btn-ghost" id="hfStepBack" aria-label="Back one second">◀ 1s</button>
             <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
@@ -396,6 +400,10 @@
             </div>
           </div>
           <p class="small">The preview shows the actual print image — exactly as it would be sent to print.</p>
+
+          <h4 class="form-sec-title" style="margin-top:22px">See it finished</h4>
+          <p class="small">Your print, finished — on a few favorites from the lineup.</p>
+          <div class="hf-fin-row" id="hfFinRow"></div>
 
           <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
           <form id="hfOrderForm">
@@ -500,11 +508,11 @@
       <span class="store-focus-title" id="storeFocusTitle">Hype Boys — Drop 001</span>
       <button type="button" class="back-link" id="storeFocusExit">← All collections</button>
     </div>
-<!-- Tonight batch (2026-11-04): the film leads the landing (unchanged from v6/v7), now with the blue-sky Boys Street opener, the homepage music bed, and no round pause button — tapping the film pauses for pause-to-shop. -->
+<!-- Nov 5 batch (2026-11-05): the film is SILENT (Emil reversed the music add) and two scenes are now back views (Boys Athletics + Girls Street). The floating hint pill is gone — a real pause/play button is docked in the film's bottom-right corner, mirroring the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. -->
     <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      <span class="swag-film-hint" id="swagHint">⏸ Pause to shop the look</span>
+      <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
       <div class="swag-film-overlay swag-hero-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
@@ -556,6 +564,7 @@
                     <h4>Hype Street</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Black, Denim Blue, Gray and Olive"><span class="prod-dot" style="--sw:#2e2e31"></span><span class="prod-dot" style="--sw:#3f5f82"></span><span class="prod-dot" style="--sw:#8b8e93"></span><span class="prod-dot" style="--sw:#5f6a45"></span></p>
                   </div>
                 </article>
           <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie">
@@ -569,6 +578,7 @@
                     <h4>Hype Athletics</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Cream, Heather Gray, Forest Green and Navy"><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#a8abb0"></span><span class="prod-dot" style="--sw:#1e5138"></span><span class="prod-dot" style="--sw:#1c3054"></span></p>
                   </div>
                 </article>
           <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie">
@@ -582,6 +592,7 @@
                     <h4>Hype Unleashed</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Blue Lightning, Fire Orange, Purple Lightning and Teal Lightning"><span class="prod-dot" style="--sw:#37b6ff"></span><span class="prod-dot" style="--sw:#ff7a1a"></span><span class="prod-dot" style="--sw:#7e22ce"></span><span class="prod-dot" style="--sw:#14b8a6"></span></p>
                   </div>
                 </article>
         </div>
@@ -607,6 +618,7 @@
                     <h4>Hype Street</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Black, Pink, Cream and Light Blue"><span class="prod-dot" style="--sw:#2d2d31"></span><span class="prod-dot" style="--sw:#efa7c6"></span><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#a9d7f0"></span></p>
                   </div>
                 </article>
           <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie">
@@ -620,6 +632,7 @@
                     <h4>Hype Athletics</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Cream, Forest Green, Navy and Heather Gray"><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#1e5138"></span><span class="prod-dot" style="--sw:#1c3054"></span><span class="prod-dot" style="--sw:#a8abb0"></span></p>
                   </div>
                 </article>
           <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie">
@@ -633,6 +646,7 @@
                     <h4>Hype Essentials</h4>
                     <p class="prod-price">$69.99</p>
                     <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <p class="prod-colors" aria-label="Comes in Sky Blue, Cream, Pink and Lavender"><span class="prod-dot" style="--sw:#8ec9ee"></span><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#f6a8c5"></span><span class="prod-dot" style="--sw:#c2ade0"></span></p>
                   </div>
                 </article>
         </div>
@@ -690,6 +704,11 @@
         <button type="button" class="qv-close" data-qv-close aria-label="Close quick view">✕</button>
         <div class="qv-colorline"><span id="qvColorName"></span><span class="qv-side-label" id="qvSideLabel">Front</span></div>
         <div class="qv-gallery" id="qvGallery" tabindex="0" aria-label="Product views — swipe or scroll to see every colorway, front and back"></div>
+        <div class="qv-sides" id="qvSides" role="group" aria-label="View side">
+          <button type="button" class="qv-side-btn" data-qv-side="0" aria-pressed="true">Front</button>
+          <button type="button" class="qv-side-btn" data-qv-side="1" aria-pressed="false">Back</button>
+        </div>
+        <p class="qv-colors-label">Color</p>
         <div class="qv-swatches" id="qvSwatches" role="group" aria-label="Colorways"></div>
         <p class="prod-side" id="qvSide"></p>
         <h4 id="qvTitle"></h4>
