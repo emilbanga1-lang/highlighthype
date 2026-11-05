@@ -39,10 +39,10 @@ async function loadData() {
 function mediaHtml(h) {
   if (h.media_kind === "file") {
     if ((h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
-    return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="metadata"></video>`;
+    return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="auto" autoplay></video>`;
   }
   if (h.media_kind === "link_embed") return `<iframe src="${esc(h.embed_url)}" allowfullscreen title="Embedded play"></iframe>`;
-  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="metadata"></video>`;
+  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="auto" autoplay></video>`;
   return `<a class="watch-link" href="${esc(h.media_url)}" target="_blank" rel="noopener">▶ Watch on ${esc(h.host_label || "link")} ↗</a>`;
 }
 function athleteLine(h) {
@@ -65,7 +65,7 @@ function cardHtml(h, opts = {}) {
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
       ${athleteLine(h)}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
-      ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Not prize-eligible — no parent/guardian contact on file</span></p>` : ""}
+      ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
         <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id})">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
@@ -83,13 +83,19 @@ function cardHtml(h, opts = {}) {
 window.toggleVote = async (id) => { try { await api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) }); await loadData(); } catch (e) { alert(e.message); } };
 window.enterContest = async (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
-  if (play && !play.hasGuardianEmail && !play.hasGuardianText && !confirm("Heads up: this play has no parent/guardian email and no consented guardian text number on file, so it won't be prize-eligible — winners are contacted through a parent/guardian only. Enter anyway?")) return;
+  if (play && !play.hasGuardianEmail && !play.hasGuardianText && !confirm("Heads up: this play has no parent/guardian email and no consented guardian text number on file, so it can't be featured if it wins — winners are contacted through a parent/guardian only. Enter anyway?")) return;
   try { const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); alert(r.message); await loadData(); } catch (e) { alert(e.message); }
 };
 window.reportPlay = async (id) => { const reason = prompt("Why are you reporting this play? (optional)") || "Reported by a user"; try { const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) }); alert(r.message); } catch (e) { alert(e.message); } };
 window.markWinner = async (id) => { try { const r = await api("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); if (r.warning) alert(r.warning); await loadData(); } catch (e) { alert(e.message); } };
 window.sharePlay = async (id) => {
   const url = `${location.origin}${location.pathname}#play-${id}`;
+  // Native share sheet where the device offers one (2026-11-04); the
+  // clipboard/prompt flow stays as the fallback.
+  if (navigator.share) {
+    try { await navigator.share({ title: "HighlightHype", url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
   try { await navigator.clipboard.writeText(url); alert("Link copied! Share it anywhere."); }
   catch { prompt("Copy this play link:", url); }
 };
@@ -122,9 +128,6 @@ function renderMonth() {
   const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
   $("#board").innerHTML = filtered.map((h) => cardHtml(h, { monthVotes: h.voteCount, inContest: true, prizeEligible: h.prizeEligible })).join("");
   $("#emptyState").style.display = filtered.length ? "none" : "block";
-  // Proof panel stats
-  $("#proofContestStat").textContent = `${entries.length} ${entries.length === 1 ? "ENTRY" : "ENTRIES"}`;
-  $("#proofContestSub").textContent = y && m ? `${MONTHS[m - 1]} ${y} · votes close at month-end` : "This month's contest";
 }
 function renderFame() {
   const ranked = [...ALL_PLAYS].sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
@@ -135,7 +138,6 @@ function renderFame() {
       <div class="fame-info"><h4>${esc(h.title)}</h4><p>${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"}${h.team ? ` · ${esc(h.team)}` : " · No team tagged"}${h.athlete_label ? ` · ${esc(h.athlete_label)}` : ""}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}</p></div>
       <div class="fame-votes"><b>${h.voteCount}</b><span>All-time votes</span></div>
     </div>`).join("") : `<p style="color:var(--muted)">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
-  if (ranked.length) $("#proofFameStat").textContent = `#1: ${ranked[0].voteCount} VOTES`;
 }
 function renderMine() {
   const byAthlete = new Map();
@@ -154,8 +156,6 @@ function renderMine() {
       <div style="flex:1"><b>${esc(a.label)}</b>${a.team ? ` · ${esc(a.team)}` : ""}${a.tag ? ` · <span class="tagchip">${esc(a.tag)}</span>` : ""}<br><span style="color:var(--muted)">${a.count} public play${a.count === 1 ? "" : "s"}</span></div>
       <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.id)}')">See all plays →</button>
     </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
-  const hawks = ALL_PLAYS.filter((h) => slugify(h.team) === "plainview-hawks").length;
-  $("#proofHawksStat").textContent = hawks ? `${hawks} PLAY${hawks === 1 ? "" : "S"}` : "1 TEAM";
 }
 function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); highlightSharedPlay(); }
 function renderAll2() { /* All Hypes view */ 
@@ -186,7 +186,19 @@ function renderAll2() { /* All Hypes view */
 function highlightSharedPlay() {
   const pm = location.hash.match(/^#play-(\d+)$/);
   if (!pm) return;
-  const el = document.querySelector(`[data-play-id="${pm[1]}"]`);
+  const id = pm[1];
+  let el = document.querySelector(`[data-play-id="${id}"]`);
+  if (!el) {
+    // Deep-link fallback (2026-11-04): the play may not be rendered in
+    // the current board view (e.g. it's not in this month's contest) —
+    // switch to All Hypes with every filter open, render, then land on
+    // the card. If the play doesn't exist at all, do nothing.
+    if (!ALL_PLAYS.some((h) => String(h.id) === id)) return;
+    allDiv = "all"; allSport = "all"; allTeam = "all"; allSearch = "";
+    const si = $("#allSearch"); if (si) si.value = "";
+    showPanel("plays"); switchView("all"); renderAll2(); syncFilterUI();
+    el = document.querySelector(`[data-play-id="${id}"]`);
+  }
   if (el) { el.classList.add("flash"); setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }
 }
 
@@ -224,7 +236,7 @@ function showPanel(name) {
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
 }
-$$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
+$$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 $("#menuAllHypes").addEventListener("click", () => { showHome(); closeMenu(false); showPanel("plays"); switchView("all"); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); });
 function switchView(v) {
   currentView = v;
@@ -240,29 +252,53 @@ function showStore(target) {
   document.body.classList.add("store-open");
   window.scrollTo(0, 0);
   $$(".view-home video").forEach((v) => v.pause());
-  const sv = $("#swagVideo"); if (sv) { const p = sv.play(); if (p && p.catch) p.catch(() => {}); }
-  // Store redesign (2026-11-04): #hype-girls / #hype-boys are no longer
-  // stacked board sections — they select the grid's division filter and
-  // land on the product grid. Other targets scroll as before.
+  const sv = $("#swagVideo");
+  if (sv) {
+    // The film now carries the homepage music bed (2026-11-04). The
+    // Enter-the-Store click is a user gesture, so try to start WITH
+    // sound; if the browser keeps it muted, unmute on the first tap
+    // anywhere in the store instead. Muted autoplay stays the fallback.
+    const wasMuted = sv.muted;
+    sv.muted = false;
+    const p = sv.play(); if (p && p.catch) p.catch(() => {});
+    if (wasMuted || sv.muted) {
+      const unmute = () => { sv.muted = false; const q = sv.play(); if (q && q.catch) q.catch(() => {}); };
+      $("#shop")?.addEventListener("pointerdown", unmute, { once: true });
+    }
+  }
+  // #hype-girls / #hype-boys links focus that division's block
+  // (2026-11-04 store restructure). Other targets scroll as before.
   if (target === "hype-girls" || target === "hype-boys") {
-    setStoreDivision(target === "hype-girls" ? "girls" : "boys", "all");
-    setTimeout(() => document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }), 60);
+    setStoreFocus(target === "hype-girls" ? "girls" : "boys");
+    setTimeout(() => document.getElementById("storeFocusBar")?.scrollIntoView({ behavior: "smooth" }), 60);
   } else if (target) { const el = document.getElementById(target); if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 60); }
 }
 function showHome() {
+  setStoreFocus(null);
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
   const hv = $("#heroVideo"); if (hv) { const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
 }
+/* One home reset for every logo / home link (2026-11-04): leave the
+   store, land on the plays board, scroll to the top, and drop a stale
+   Hype Frame deep link so it can't reopen the studio. */
+function goHome() {
+  showHome();
+  showPanel("plays");
+  window.scrollTo(0, 0);
+  if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top");
+}
 $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); closeMenu(false); showStore(a.dataset.storeTarget || null); }));
-$$("[data-home-link]").forEach((b) => b.addEventListener("click", () => { showHome(); window.scrollTo(0, 0); }));
-$$(".brand").forEach((b) => b.addEventListener("click", () => showHome()));
+$$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()));
+$$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));
 window.addEventListener("hashchange", () => {
   if (location.hash === "#shop") showStore();
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   if (hm) openHypeFrame(Number(hm[1]));
+  const pm = location.hash.match(/^#play-(\d+)$/);
+  if (pm) { showHome(); showPanel("plays"); highlightSharedPlay(); }
 });
 function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
 $("#floatSubmit").addEventListener("click", goSubmit);
@@ -363,90 +399,60 @@ function filmSceneAt(t) {
   v.addEventListener("play", hideCard);
   v.addEventListener("playing", hideCard);
   btn.addEventListener("click", () => goToStoreScene(scene.target));
-  // Store v2 hero (2026-11-04): no native controls — tapping the film
-  // toggles playback, and a round outline button (Overtime style,
-  // bottom-right) does the same. Pausing still surfaces the scene card
-  // above via the pause listener; the button icon just mirrors state.
-  const playBtn = $("#swagPlayBtn");
-  function syncPlayBtn() {
-    if (!playBtn) return;
-    playBtn.classList.toggle("is-paused", v.paused);
-    playBtn.setAttribute("aria-label", v.paused ? "Play the Drop 001 film" : "Pause the Drop 001 film");
-  }
+  // No native controls and no round button (removed 2026-11-04):
+  // tapping the film toggles playback, and pausing surfaces the scene
+  // card above via the pause listener (pause-to-shop).
   v.addEventListener("click", () => { if (v.paused) v.play(); else v.pause(); });
-  if (playBtn) playBtn.addEventListener("click", (e) => { e.stopPropagation(); if (v.paused) v.play(); else v.pause(); });
-  v.addEventListener("play", syncPlayBtn);
-  v.addEventListener("pause", syncPlayBtn);
-  syncPlayBtn();
 })();
 
-/* ---------------- Store: product grid (Drop 001 redesign) ----------------
-   Emil (2026-11-04): the Store is now a compact product grid with real
-   lookbook photography instead of six stacked illustrated boards.
-   - Girls/Boys toggle + collection chips filter the grid in place.
-   - Cards flip front/back (hover on desktop, ⇄ toggle on touch) and
-     open a quick-view overlay. Preview only: no prices, no checkout.
-   - The film's scenes drive the grid: division targets (hype-girls,
-     hype-boys) set the filter and flash that side's cards; since v4 the
-     film's own scenes target single collection cards by slug instead. */
-const storeState = { division: "boys", chip: "all" };
-function applyStoreFilter() {
-  $$(".prod-card").forEach((c) => {
-    const ok = c.dataset.division === storeState.division && (storeState.chip === "all" || c.dataset.collection === storeState.chip);
-    c.hidden = !ok;
-  });
-  $$("[data-store-div]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.storeDiv === storeState.division)));
-  $$("[data-store-chip]").forEach((b) => {
-    if (b.dataset.chipDiv) b.hidden = b.dataset.chipDiv !== storeState.division;
-    b.setAttribute("aria-pressed", String(b.dataset.storeChip === storeState.chip));
-  });
-}
-function setStoreDivision(division, chip) {
-  storeState.division = division;
-  if (chip) storeState.chip = chip;
-  // A chip that only exists on the other side (Essentials/Unleashed)
-  // cannot survive a division switch.
-  if (storeState.chip !== "all") {
-    const chipBtn = $(`[data-store-chip="${storeState.chip}"]`);
-    if (chipBtn && chipBtn.dataset.chipDiv && chipBtn.dataset.chipDiv !== division) storeState.chip = "all";
+/* ---------------- Store: division blocks + focus (2026-11-04) -------
+   Tonight batch restructure: the landing is film → Boys block → Girls
+   block → Hype Frame creative, with all six cards always on the page.
+   Focus mode (body[data-store-focus="boys"|"girls"]) hides the film,
+   the store bar/head, and the other division's block, and pins the
+   focused block under a slim focus bar. Entered from the film overlay
+   Shop Boys/Girls links, each block's banner button, #hype-boys /
+   #hype-girls links, and the film's pause-to-shop card (which focuses
+   the paused scene's division and lands on its card). */
+const storeState = { focus: null };
+function setStoreFocus(div) {
+  storeState.focus = div || null;
+  if (div) document.body.dataset.storeFocus = div; else delete document.body.dataset.storeFocus;
+  const bar = $("#storeFocusBar");
+  if (bar) {
+    bar.hidden = !div;
+    if (div) $("#storeFocusTitle").textContent = `Hype ${div === "girls" ? "Girls" : "Boys"} — Drop 001`;
   }
-  applyStoreFilter();
 }
 function flashStoreCards(selector) {
-  const cards = $$(selector || ".prod-card:not([hidden])");
+  const cards = $$(selector || ".prod-card");
   cards.forEach((c) => { c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); });
   setTimeout(() => cards.forEach((c) => c.classList.remove("flash")), 2400);
 }
 function goToStoreScene(target) {
-  // Store v4: film scenes target a single collection card by slug —
-  // set that card's division + collection filter, scroll, flash the card.
+  // Film scenes target a single collection card by slug — focus that
+  // card's division, scroll to the card, flash it.
   const sceneCard = document.querySelector(`.prod-card[data-slug="${target}"]`);
   if (sceneCard) {
-    setStoreDivision(sceneCard.dataset.division, sceneCard.dataset.collection);
-    document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
-    flashStoreCards(`.prod-card[data-slug="${target}"]`);
+    setStoreFocus(sceneCard.dataset.division);
+    setTimeout(() => { sceneCard.scrollIntoView({ behavior: "smooth", block: "center" }); flashStoreCards(`.prod-card[data-slug="${target}"]`); }, 60);
     return;
   }
   if (target === "hype-girls" || target === "hype-boys") {
     const div = target === "hype-girls" ? "girls" : "boys";
-    setStoreDivision(div, "all");
-    document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
+    setStoreFocus(div);
+    setTimeout(() => document.getElementById("storeFocusBar")?.scrollIntoView({ behavior: "smooth" }), 60);
     flashStoreCards(`.prod-card[data-division="${div}"]`);
   } else {
-    // "coordinating" / "collections": the whole grid is the destination.
-    storeState.chip = "all"; applyStoreFilter();
+    // "coordinating" / "collections": the full landing is the destination.
+    setStoreFocus(null);
     document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
     flashStoreCards();
   }
 }
-$$("[data-store-div]").forEach((b) => b.addEventListener("click", () => setStoreDivision(b.dataset.storeDiv)));
-$$("[data-store-chip]").forEach((b) => b.addEventListener("click", () => { storeState.chip = b.dataset.storeChip; applyStoreFilter(); }));
-// Store v2 (2026-11-04): the hero's underlined Shop Girls / Shop Boys
-// links and the full-width photo tiles are navigation too — same
-// destination as the film's division scenes (set filter, scroll to the
-// grid, flash that side's cards).
 $$("[data-hero-shop]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.heroShop === "girls" ? "hype-girls" : "hype-boys")));
-$$("[data-store-tile]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.storeTile === "girls" ? "hype-girls" : "hype-boys")));
+$$("[data-store-focus]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys")));
+$("#storeFocusExit")?.addEventListener("click", () => { setStoreFocus(null); document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }); });
 $$(".prod-card").forEach((card) => {
   const flip = card.querySelector("[data-flip]");
   if (flip) flip.addEventListener("click", (e) => {
@@ -468,10 +474,17 @@ function openQuickView(card) {
   $("#qvSlogan").textContent = card.querySelector(".prod-slogan").textContent;
   $("#qvDesc").textContent = card.querySelector(".prod-desc").textContent;
   $("#qvColors").textContent = card.querySelector(".prod-colors").textContent;
+  // Price is set ($69.99 across Drop 001 youth hoodies); the size
+  // selector is selection state only — no cart, no checkout — and it
+  // resets each time the quick view opens.
+  $$("#qvSizes .qv-size").forEach((b) => b.setAttribute("aria-pressed", "false"));
   qv.hidden = false;
   document.body.classList.add("qv-open");
   qv.querySelector(".qv-close")?.focus();
 }
+$$("#qvSizes .qv-size").forEach((b) => b.addEventListener("click", () => {
+  $$("#qvSizes .qv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
 function closeQuickView() {
   const qv = $("#quickView"); if (!qv) return;
   qv.hidden = true;
@@ -479,15 +492,17 @@ function closeQuickView() {
 }
 $$("[data-qv-close]").forEach((el) => el.addEventListener("click", closeQuickView));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuickView(); });
-applyStoreFilter();
 
 /* ---------------- Hype Frame studio ---------------- */
 // Emil's product concept (2026-11-04): a real freeze-frame from the
 // athlete's OWN highlight, printed on premium youth apparel.
 //   1. Select your highlight from an uploaded video (the play card button).
-//   2. Freeze your favorite frame using a video timeline (scrub + freeze).
-//   3. Customize with your name, jersey number, and optional HYPE FRAME
-//      branding (drawn onto the print image itself, not just the preview).
+//   2. Freeze your favorite frame using a video timeline (scrub, ±1s
+//      step buttons, freeze — works while the video plays).
+//   3. Pick a print style — Classic (photo only), Signature (photo +
+//      name / jersey caption), or Hype Frame (crown + wordmark drawn
+//      onto the print image itself, not just the preview). The print
+//      always sits at the fixed default placement on the garment.
 //   4. Preview the actual image on a hoodie or T-shirt.
 //   5. Order with parent or guardian approval (an order REQUEST — no
 //      payment, no price; the owner confirms with the guardian first).
@@ -519,7 +534,7 @@ const HF_AREAS = {
 // width), so it maps proportionally when switching garments, and the
 // order request carries it to the server for the printer to reproduce.
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 66 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT } };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
 const hfCrown = new Image();
 let hfCrownReady = false;
 hfCrown.onload = () => { hfCrownReady = true; if (hfState.frozen) composeHfPrint(); };
@@ -539,15 +554,11 @@ function initHfStudio(play) {
   hfState.printDataUrl = "";
   hfState.printAspect = 0;
   hfState.placement = { ...HF_PLACEMENT_DEFAULT };
-  $("#hfSize").value = HF_PLACEMENT_DEFAULT.size;
-  $("#hfSizeVal").textContent = HF_PLACEMENT_DEFAULT.size + "%";
-  $("#hfPlace").hidden = true;
   $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, preview it on apparel, and send the request. A parent or guardian confirms before anything is printed.`;
   $("#hfName").value = play.athlete_label || play.player_name || "";
   $("#hfJersey").value = play.jersey || "";
-  $("#hfBranding").checked = true;
+  hfSetPreset("hypeframe");
   $("#hfMsg").textContent = "";
-  $("#hfStillWrap").hidden = true;
   $("#hfPrintImg").hidden = true;
   $("#hfPrintEmpty").hidden = false;
   hfApplyPlacement();
@@ -580,6 +591,7 @@ function freezeHfFrame() {
   if (hfState.mediaType === "video") {
     const v = $("#hfVideo");
     if (!v.videoWidth || v.readyState < 2) { alert("Give the video a moment to load, then freeze again."); return; }
+    v.pause(); // freeze works mid-play: stop on this exact frame first
     c.width = v.videoWidth; c.height = v.videoHeight;
     x.drawImage(v, 0, 0, c.width, c.height);
   } else if (hfState.mediaType === "image") {
@@ -592,8 +604,6 @@ function freezeHfFrame() {
     return;
   }
   hfState.frozen = true;
-  $("#hfStill").src = c.toDataURL("image/png");
-  $("#hfStillWrap").hidden = false;
   composeHfPrint();
 }
 // Compose the FINAL print image: the frozen frame, the optional HYPE
@@ -602,12 +612,16 @@ function freezeHfFrame() {
 // both use this exact image — what they see is what would print.
 function composeHfPrint() {
   const img = $("#hfPrintImg"), empty = $("#hfPrintEmpty");
-  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; img.hidden = true; empty.hidden = false; $("#hfPlace").hidden = true; hfApplyPlacement(); return; }
+  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; img.hidden = true; empty.hidden = false; hfApplyPlacement(); return; }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
-  const branding = $("#hfBranding").checked;
-  const caption = [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ");
+  // Look presets (2026-11-04): Classic = photo only, Signature = photo
+  // + name/number caption band, Hype Frame = photo + corner branding.
+  const branding = hfState.preset === "hypeframe";
+  const caption = hfState.preset === "signature"
+    ? [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ")
+    : "";
   const bandH = caption ? Math.round(W * 0.17) : 0;
   const c = document.createElement("canvas");
   c.width = W; c.height = H + bandH;
@@ -645,8 +659,14 @@ function composeHfPrint() {
   hfState.printAspect = c.height / c.width;
   img.src = hfState.printDataUrl;
   img.hidden = false; empty.hidden = true;
-  $("#hfPlace").hidden = false;
   hfApplyPlacement();
+}
+// Print style presets: radio behavior over the three options; the
+// choice re-composes the print live, exactly like the old checkbox did.
+function hfSetPreset(p) {
+  hfState.preset = p;
+  $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
+  if (hfState.frozen) composeHfPrint();
 }
 // Position the print layer inside the mock from hfState.placement.
 // Pixel math against the rendered mock, stored back as print-area
@@ -675,18 +695,6 @@ function hfApplyPlacement() {
   print.style.width = pw + "px";
   print.style.left = (cxp - pw / 2) + "px";
   print.style.top = (cyp - ph / 2) + "px";
-}
-function hfSetPlacementSize(size) {
-  hfState.placement.size = Math.min(100, Math.max(30, Math.round(Number(size) || HF_PLACEMENT_DEFAULT.size)));
-  $("#hfSize").value = hfState.placement.size;
-  $("#hfSizeVal").textContent = hfState.placement.size + "%";
-  hfApplyPlacement();
-}
-function hfResetPlacement() {
-  hfState.placement = { ...HF_PLACEMENT_DEFAULT };
-  $("#hfSize").value = HF_PLACEMENT_DEFAULT.size;
-  $("#hfSizeVal").textContent = HF_PLACEMENT_DEFAULT.size + "%";
-  hfApplyPlacement();
 }
 function hfSetApparel(a) {
   hfState.apparel = a;
@@ -720,37 +728,18 @@ function hfSetColorway(name) {
   v.addEventListener("timeupdate", () => { $("#hfScrub").value = v.currentTime || 0; hfUpdateTime(); });
   $("#hfScrub").addEventListener("input", (e) => { if (v.duration) { v.currentTime = Number(e.target.value); hfUpdateTime(); } });
   $("#hfFreeze").addEventListener("click", freezeHfFrame);
+  // Step buttons nudge the playhead ±1s (paused) so the exact moment is
+  // easy to land on before freezing.
+  const hfSeek = (d) => { if (v.duration) { v.pause(); v.currentTime = Math.min(Math.max(0, (v.currentTime || 0) + d), v.duration); hfUpdateTime(); } };
+  $("#hfStepBack").addEventListener("click", () => hfSeek(-1));
+  $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
   ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
-  $("#hfBranding").addEventListener("change", () => { if (hfState.frozen) composeHfPrint(); });
+  $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
   $("#hfAppHoodie").addEventListener("click", () => hfSetApparel("hoodie"));
   $("#hfAppTee").addEventListener("click", () => hfSetApparel("tee"));
-  // Print placement: drag the print on the garment (pointer events, so
-  // mouse + touch both work; touch-action:none on the print layer keeps
-  // the drag from fighting page scroll), size slider + steppers, reset.
-  const hfPrintEl = $("#hfPrint");
-  let hfDrag = null;
-  hfPrintEl.addEventListener("pointerdown", (e) => {
-    if (!hfState.frozen) return;
-    e.preventDefault();
-    try { hfPrintEl.setPointerCapture(e.pointerId); } catch {}
-    hfDrag = { x: e.clientX, y: e.clientY, cx: hfState.placement.cx, cy: hfState.placement.cy };
-  });
-  hfPrintEl.addEventListener("pointermove", (e) => {
-    if (!hfDrag) return;
-    const r = $("#hfMock").getBoundingClientRect();
-    if (!r.width || !r.height) return;
-    const area = HF_AREAS[hfState.apparel] || HF_AREAS.hoodie;
-    const aw = r.width * area.width / 100, ah = r.height * area.height / 100;
-    hfState.placement.cx = Math.min(100, Math.max(0, hfDrag.cx + (e.clientX - hfDrag.x) / aw * 100));
-    hfState.placement.cy = Math.min(100, Math.max(0, hfDrag.cy + (e.clientY - hfDrag.y) / ah * 100));
-    hfApplyPlacement();
-  });
-  ["pointerup", "pointercancel"].forEach((ev) => hfPrintEl.addEventListener(ev, () => { hfDrag = null; }));
-  hfPrintEl.addEventListener("dragstart", (e) => e.preventDefault());
-  $("#hfSize").addEventListener("input", (e) => hfSetPlacementSize(e.target.value));
-  $("#hfSizeMinus").addEventListener("click", () => hfSetPlacementSize(hfState.placement.size - 4));
-  $("#hfSizePlus").addEventListener("click", () => hfSetPlacementSize(hfState.placement.size + 4));
-  $("#hfPlaceReset").addEventListener("click", hfResetPlacement);
+  // Print placement is FIXED at the default (2026-11-04): no drag, no
+  // size controls — hfApplyPlacement positions from the defaults and
+  // the order still carries the placement values to the server.
   window.addEventListener("resize", hfApplyPlacement);
   $("#hfOrderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -765,7 +754,7 @@ function hfSetColorway(name) {
         highlightId: hfState.play.id,
         customName: $("#hfName").value.trim(),
         jersey: $("#hfJersey").value.trim(),
-        branding: $("#hfBranding").checked,
+        branding: hfState.preset === "hypeframe",
         apparel: hfState.apparel,
         colorway: hfState.colorway,
         placement: hfState.placement,
@@ -806,23 +795,36 @@ function hfSetColorway(name) {
 })();
 
 /* ---------------- upload dropzone ---------------- */
-// Modern drag-and-drop front end for the SAME file input the form has
-// always submitted (name="file"). It only dresses up picking the file:
-// click/keyboard opens the native picker, drag & drop assigns the file
-// to the input, and the chosen file's name + size are shown. Uploads are
-// file-only — the old paste-a-link option was removed (Emil, 2026-11-04).
+// Front end for the SAME file input the form has always submitted
+// (name="file"): tap/click/keyboard opens the native picker, drag &
+// drop assigns the file to the input. Once a clip is picked it PREviews
+// playing right in the dropzone with a clear "✓ Your clip is in" state
+// (Quick Upload, 2026-11-04). Uploads are file-only — the old
+// paste-a-link option was removed earlier (Emil, 2026-11-04).
 (function () {
   const dz = $("#dropzone"), input = $("#fileInput"), fileLine = $("#dzFile");
   if (!dz || !input) return;
+  const preview = $("#dzPreview"), pVideo = $("#dzVideo"), pImg = $("#dzImg");
+  let previewUrl = "";
   const fmtSize = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : n >= 1024 ? Math.round(n / 1024) + " KB" : n + " B";
   function showFile() {
     const f = input.files && input.files[0];
     dz.classList.toggle("has-file", !!f);
-    if (f) { fileLine.textContent = `✓ ${f.name} · ${fmtSize(f.size)} — ready. Hit Continue below to add the details.`; fileLine.hidden = false; }
-    else { fileLine.textContent = ""; fileLine.hidden = true; }
-    // Picking a (new) file clears any Step 1 wizard message (e.g. the
-    // mirrored confirmation from a just-finished submit).
-    if (typeof uploadStepError === "function") uploadStepError(1, "");
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = ""; }
+    if (f) {
+      fileLine.textContent = `✓ Your clip is in — ${f.name} · ${fmtSize(f.size)}. Tap the clip to change it.`;
+      fileLine.hidden = false;
+      previewUrl = URL.createObjectURL(f);
+      const isVideo = (f.type || "").startsWith("video/");
+      pVideo.hidden = !isVideo; pImg.hidden = isVideo;
+      if (isVideo) { pVideo.src = previewUrl; const p = pVideo.play(); if (p && p.catch) p.catch(() => {}); }
+      else pImg.src = previewUrl;
+      preview.hidden = false;
+    } else {
+      fileLine.textContent = ""; fileLine.hidden = true;
+      preview.hidden = true;
+      pVideo.removeAttribute("src"); pVideo.load(); pImg.removeAttribute("src");
+    }
   }
   window.resetDropzone = () => { input.value = ""; showFile(); };
   dz.addEventListener("click", (e) => { if (e.target !== input) input.click(); });
@@ -836,75 +838,44 @@ function hfSetColorway(name) {
   });
 })();
 
-/* ---------------- upload wizard (3 steps) ---------------- */
-// Presentation only (Emil, 2026-11-04): the SAME form, fields, payload
-// and submit handler — the wizard just shows one section at a time and
-// gates Continue on what each step needs. Submit-time rules are
-// unchanged from the single-page form: the guardian email stays
-// OPTIONAL, and the athlete "same athlete?" prompt still runs at
-// submit — when it fires, the wizard jumps back to Step 2 (where the
-// prompt now lives) and returns to Step 3 on the prompt's Continue, so
-// no entered data or chosen file is ever lost.
-let uploadStep = 1;
-const UPLOAD_STEP_NAMES = { 1: "Your video", 2: "The athlete", 3: "Parent/guardian (private)" };
-function showUploadStep(n) {
-  uploadStep = n;
-  $$("#uploadForm .form-step").forEach((s) => { s.hidden = Number(s.dataset.step) !== n; });
-  const label = $("#uploadStepLabel"), fill = $("#uploadBarFill");
-  if (label) label.textContent = `Step ${n} of 3 — ${UPLOAD_STEP_NAMES[n]}`;
-  if (fill) fill.style.width = (n / 3 * 100) + "%";
-  const back = $("#upBack"), next = $("#upNext");
-  if (back) back.hidden = n === 1;
-  if (next) next.hidden = n === 3;
+/* ---------------- quick upload picks (2026-11-04) ----------------
+// The wizard is gone: one screen. Division is a big Boys/Girls toggle
+// (default Boys) and sport is one-tap pills; both write into the SAME
+// hidden form fields the payload has always carried (name="division",
+// name="sport"), so the API, pre-review and athlete checks are
+// untouched. Validation happens once, at submit (see below).
+function setDivPick(div) {
+  const form = $("#uploadForm"); if (!form) return;
+  form.elements.division.value = div;
+  $$("[data-div-pick]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.divPick === div)));
 }
-function uploadStepError(n, text) {
-  const el = $("#stepMsg" + n);
-  if (el) { el.textContent = text || ""; el.hidden = !text; }
+function setSportPick(sport) {
+  const form = $("#uploadForm"); if (!form) return;
+  form.elements.sport.value = sport || "";
+  $$("[data-sport-pick]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.sportPick === sport)));
 }
-function validUploadStep(n) {
-  const form = $("#uploadForm");
-  if (!form) return true;
-  if (n === 1) {
-    const f = form.elements.file;
-    if (!f || !f.files || !f.files.length) { uploadStepError(1, "Add your video or photo first — drop the clip in the box above."); return false; }
-    if (!String(form.elements.title.value || "").trim()) { uploadStepError(1, "Give the play a title — that's what shows on the board."); form.elements.title.focus(); return false; }
-  }
-  if (n === 2) {
-    if (!String(form.elements.playerName.value || "").trim()) { uploadStepError(2, "Add the athlete's first name — every hype needs its athlete."); form.elements.playerName.focus(); return false; }
-    if (!form.elements.division.value) { uploadStepError(2, "Pick the division — Boys or Girls."); return false; }
-  }
-  uploadStepError(n, "");
-  return true;
-}
-(function initUploadWizard() {
-  const form = $("#uploadForm");
-  if (!form) return;
-  showUploadStep(1);
-  $("#upNext").addEventListener("click", () => { if (validUploadStep(uploadStep)) showUploadStep(uploadStep + 1); });
-  $("#upBack").addEventListener("click", () => showUploadStep(uploadStep - 1));
-  // Enter advances through Steps 1-2 instead of submitting early; on
-  // Step 3 it submits as usual. Textareas keep Enter for new lines, and
-  // the dropzone keeps Enter for opening the file picker.
-  form.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || uploadStep >= 3) return;
-    const t = e.target;
-    if (!t || t.tagName === "TEXTAREA" || t.tagName === "BUTTON") return;
-    if (t.closest && t.closest("#dropzone")) return;
-    if (t.type === "checkbox" || t.type === "radio" || t.type === "file") return;
-    if (!$("#athletePrompt").hidden) return;
-    e.preventDefault();
-    if (validUploadStep(uploadStep)) showUploadStep(uploadStep + 1);
-  });
-})();
+$$("[data-div-pick]").forEach((b) => b.addEventListener("click", () => setDivPick(b.dataset.divPick)));
+$$("[data-sport-pick]").forEach((b) => b.addEventListener("click", () => setSportPick(b.dataset.sportPick)));
+// After a successful submit the form resets; re-sync the toggle/pills
+// with the reset field values (Boys, no sport).
+window.syncQuickPicks = () => { setDivPick("boys"); setSportPick(""); };
 
 /* ---------------- upload + athlete prompt ---------------- */
 let athleteCheckDoneFor = "";
 $("#uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const form = e.target;
-  const fd = new FormData(form);
-  const name = String(fd.get("playerName") || "").trim();
   const msg = $("#uploadMsg");
+  // Quick-upload validation (2026-11-04): the clip, the athlete's first
+  // name and one sport tap are required; division defaults to Boys.
+  // "What happened?" is optional — blank becomes "<Name>'s highlight".
+  const fileEl = form.elements.file;
+  if (!fileEl || !fileEl.files || !fileEl.files.length) { msg.textContent = "Add your clip first — tap the box at the top to pick it from your camera roll."; $("#dropzone")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  const name = String(form.elements.playerName.value || "").trim();
+  if (!name) { msg.textContent = "Add the athlete's first name — every hype needs its athlete."; form.elements.playerName.focus(); return; }
+  if (!String(form.elements.sport.value || "").trim()) { msg.textContent = "Tap the sport — one tap is all it takes."; document.querySelector(".quick-sports")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  if (!String(form.elements.title.value || "").trim()) form.elements.title.value = `${name}'s highlight`;
+  const fd = new FormData(form);
   // Duplicate-name check: if this name already belongs to an athlete and
   // the uploader hasn't answered the prompt for this exact name yet, ask
   // "same athlete or a different athlete with the same name?" first.
@@ -918,14 +889,10 @@ $("#uploadForm").addEventListener("submit", async (e) => {
           ${chk.matches.map((a) => `<label><input type="radio" name="athletePick" value="${esc(a.athleteKey)}"> Same athlete — ${esc(a.displayName)}${a.team ? ` · ${esc(a.team)}` : ""} <span class="tagchip">${esc(a.tag)}</span> · ${a.playCount} play${a.playCount === 1 ? "" : "s"} so far</label>`).join("")}
           <label><input type="radio" name="athletePick" value="__new"> A different athlete with the same name</label>
           <p style="margin-top:10px"><button type="button" class="mini-btn" id="athleteContinue">Continue →</button></p>`;
-        // The prompt lives in Step 2 of the wizard: jump back there to
-        // show it (hiding the wizard nav so its Continue isn't confused
-        // with the prompt's), then return to Step 3 on the prompt's
-        // Continue so the upload result shows where Submit was pressed.
-        showUploadStep(2);
+        // The prompt interrupts the submit right where it sits (above
+        // the Post button); its Continue files the choice and resumes
+        // the same submit, so no entered data or chosen file is lost.
         box.hidden = false;
-        $("#upNext").hidden = true;
-        $("#upBack").hidden = true;
         box.scrollIntoView({ behavior: "smooth", block: "center" });
         $("#athleteContinue").onclick = () => {
           const pick = box.querySelector("input[name='athletePick']:checked");
@@ -934,7 +901,6 @@ $("#uploadForm").addEventListener("submit", async (e) => {
           else { form.elements.athleteChoice.value = "same"; form.elements.athleteKey.value = pick.value; }
           athleteCheckDoneFor = name.toLowerCase();
           box.hidden = true;
-          showUploadStep(3);
           form.requestSubmit();
         };
         return;
@@ -949,15 +915,10 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     msg.textContent = j.message;
     form.reset();
     if (window.resetDropzone) window.resetDropzone();
+    if (window.syncQuickPicks) window.syncQuickPicks();
     form.elements.athleteChoice.value = ""; form.elements.athleteKey.value = "";
     athleteCheckDoneFor = "";
     $("#athletePrompt").hidden = true;
-    uploadStepError(2, "");
-    showUploadStep(1);
-    // The wizard resets to Step 1 with the form cleared (today's reset
-    // behavior); mirror the server's confirmation at Step 1 so the step
-    // change doesn't swallow it.
-    uploadStepError(1, j.message);
   } catch (err) { msg.textContent = "Error: " + err.message; }
 });
 
@@ -972,7 +933,7 @@ async function loadOwner() {
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
         if (h.guardian_phone) bits.push(`${esc(h.guardian_phone)} <a class="mini-btn" style="text-decoration:none" href="tel:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">📞 Call</a> <a class="mini-btn" style="text-decoration:none" href="sms:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">💬 Text</a> ${h.text_consent ? `<span class="tagchip">Text opt-in: YES</span>` : `<span class="tagchip warn">No text opt-in — do not text</span>`}`);
-        return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — not prize-eligible.</span>`; })()}
+        return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — can't be featured as a winner.</span>`; })()}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button></div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");

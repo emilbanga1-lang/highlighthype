@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="dark" />
 <title>HighlightHype — Every Athlete Deserves The Hype</title>
-<link rel="preload" as="image" href="/logo.jpg" fetchpriority="high">
+<link rel="preload" as="image" href="/logo-transparent.png" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
@@ -16,7 +16,7 @@
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="HighlightHype home">
-      <img class="brand-logo" src="/logo.jpg" alt="HighlightHype" width="1244" height="420" fetchpriority="high" />
+      <img class="brand-logo" src="/logo-transparent.png" alt="HighlightHype" width="1244" height="420" fetchpriority="high" />
     </a>
     <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
@@ -24,7 +24,6 @@
       <button type="button" id="menuAllHypes">All Hypes</button>
       <button type="button" data-panel-btn="mine" aria-current="false">My Highlights</button>
       <button type="button" data-panel-btn="how" aria-current="false">How it works</button>
-      <button type="button" data-panel-btn="proof" aria-current="false">What's on the line</button>
       <a class="nav-swag" href="#shop" data-store-link>Swag Shop — Rep The Hype</a>
     </nav>
   </div>
@@ -35,7 +34,7 @@
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
   <div class="hero-media">
-    <video id="heroVideo" src="/hero.mp4" poster="/hero-poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="HighlightHype hero film — a fast-cut montage of youth sports highlights closing on the HighlightHype logo"></video>
+    <video id="heroVideo" src="/hero.mp4" poster="/hero-poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="HighlightHype hero film — a fast-cut montage of youth sports highlights"></video>
   </div>
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
@@ -50,7 +49,7 @@
   <div class="wrap hero-controls">
     <div class="p-bar">
       <div class="p-track"><div class="p-fill" id="heroFill"></div></div>
-      <div class="p-time"><span class="p-cur" id="heroCur">0:00</span> <span id="heroTotal">/ 0:11</span></div>
+      <div class="p-time"><span class="p-cur" id="heroCur">0:00</span> <span id="heroTotal">/ 0:13</span></div>
       <button type="button" class="sound-btn" id="heroSound">🔊 Tap for sound</button>
     </div>
   </div>
@@ -154,62 +153,72 @@
 
     <form id="uploadForm" class="upload-card">
       <h3 id="post">Post a play</h3>
-      <p>Video first — clip first, details second. Three quick steps. Your play goes to the owner for review and appears once approved.</p>
+      <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>
 
-      <div class="wizard-progress" id="uploadProgress">
-        <p class="wizard-steplabel" id="uploadStepLabel">Step 1 of 3 — Your video</p>
-        <div class="wizard-track"><div class="wizard-fill" id="uploadBarFill"></div></div>
-      </div>
-
-      <div class="form-section form-step" data-step="1">
-        <h4 class="form-sec-title">Your video</h4>
-        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — drop a file here, or tap to browse">
-          <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
-          <p class="dz-big">Drop your clip here</p>
-          <p class="dz-sub">Drag &amp; drop a video or photo, or <span class="dz-browse">browse your files</span></p>
-          <p class="dz-file" id="dzFile" hidden></p>
-          <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
+      <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — tap to pick a clip from your camera roll, or drop a file here">
+        <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        <p class="dz-big">Tap to pick a clip from your camera roll</p>
+        <p class="dz-sub">…or drag &amp; drop a video or photo here</p>
+        <div class="dz-preview" id="dzPreview" hidden>
+          <video id="dzVideo" muted loop playsinline autoplay></video>
+          <img id="dzImg" alt="Your picked photo" hidden>
         </div>
-        <p class="small">File upload only. <b>MP4 uploads work most reliably.</b> iPhone .MOV clips may show a black picture in Chrome — re-upload as MP4 if that happens.</p>
-        <label>Title * <input type="text" name="title" required placeholder="e.g. Walk-off home run"></label>
-        <label>Sport <select name="sport">
-          <option value="baseball">Baseball</option><option value="basketball">Basketball</option><option value="cheer">Cheer</option><option value="fieldhockey">Field Hockey</option><option value="football">Football</option>
-          <option value="gymnastics">Gymnastics</option><option value="hockey">Hockey</option><option value="lacrosse">Lacrosse</option><option value="other">Other</option><option value="soccer">Soccer</option><option value="softball">Softball</option><option value="volleyball">Volleyball</option>
-        </select></label>
-        <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
-        <label>Story <textarea name="story" placeholder="What happened? Keep it short and hype."></textarea></label>
-        <p class="step-msg" id="stepMsg1" role="alert" hidden></p>
+        <p class="dz-file" id="dzFile" hidden></p>
+        <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
       </div>
 
-      <div class="form-section form-step" data-step="2" hidden>
-        <h4 class="form-sec-title">The athlete</h4>
-        <div class="row2">
-          <label>Player first name <input type="text" name="playerName" placeholder="First name only"></label>
-          <label>Jersey number (optional) <input type="text" name="jersey" placeholder="e.g. 13"></label>
+      <label>Athlete's first name * <input type="text" name="playerName" placeholder="First name only"></label>
+      <div class="quick-field">
+        <span class="quick-label" id="divPickLabel">Boys or Girls *</span>
+        <div class="seg quick-divseg" role="group" aria-labelledby="divPickLabel">
+          <button type="button" data-div-pick="boys" aria-pressed="true">Boys</button>
+          <button type="button" data-div-pick="girls" aria-pressed="false">Girls</button>
         </div>
-        <label>Team name (optional) <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
-        <label>Division <select name="division"><option value="boys">Boys</option><option value="girls">Girls</option></select></label>
-        <div id="athletePrompt" class="athlete-prompt" hidden></div>
-        <p class="step-msg" id="stepMsg2" role="alert" hidden></p>
+        <input type="hidden" name="division" value="boys">
       </div>
+      <div class="quick-field">
+        <span class="quick-label" id="sportPickLabel">Sport *</span>
+        <div class="quick-sports" role="group" aria-labelledby="sportPickLabel">
+            <button type="button" class="pill" data-sport-pick="baseball" aria-pressed="false">Baseball</button>
+            <button type="button" class="pill" data-sport-pick="basketball" aria-pressed="false">Basketball</button>
+            <button type="button" class="pill" data-sport-pick="cheer" aria-pressed="false">Cheer</button>
+            <button type="button" class="pill" data-sport-pick="fieldhockey" aria-pressed="false">Field Hockey</button>
+            <button type="button" class="pill" data-sport-pick="football" aria-pressed="false">Football</button>
+            <button type="button" class="pill" data-sport-pick="gymnastics" aria-pressed="false">Gymnastics</button>
+            <button type="button" class="pill" data-sport-pick="hockey" aria-pressed="false">Hockey</button>
+            <button type="button" class="pill" data-sport-pick="lacrosse" aria-pressed="false">Lacrosse</button>
+            <button type="button" class="pill" data-sport-pick="other" aria-pressed="false">Other</button>
+            <button type="button" class="pill" data-sport-pick="soccer" aria-pressed="false">Soccer</button>
+            <button type="button" class="pill" data-sport-pick="softball" aria-pressed="false">Softball</button>
+            <button type="button" class="pill" data-sport-pick="volleyball" aria-pressed="false">Volleyball</button>
+        </div>
+        <input type="hidden" name="sport" value="">
+      </div>
+      <label>What happened? (optional) <input type="text" name="title" placeholder="e.g. Walk-off home run — blank is fine, we title it from the athlete's name"></label>
 
-      <div class="form-section form-step" data-step="3" hidden>
-        <h4 class="form-sec-title">Parent/guardian (private)</h4>
-        <label>Parent/guardian email (optional) <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
-        <p class="small">Private — never shown on the site. Used only to tell you when the play is approved, and to contact a parent/guardian if the play wins Hype of the Month.</p>
-        <label>Parent/guardian mobile (optional) <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
-        <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
-        <p class="small">Private — never shown on the site. Your number is only used for texts if you check the box above; without the check it is kept for owner contact only and never texted. A play entered in the contest is prize-eligible only if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
-        <button type="submit" class="btn btn-lime submit-btn">Submit a Hype → in review</button>
-        <p id="uploadMsg"></p>
-      </div>
+      <details class="quick-more">
+        <summary>Add more (optional)</summary>
+        <div class="quick-more-body">
+          <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
+          <label>Story <textarea name="story" placeholder="The short story behind the play — keep it hype."></textarea></label>
+          <div class="row2">
+            <label>Jersey number <input type="text" name="jersey" placeholder="e.g. 13"></label>
+            <label>Team name <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
+          </div>
+          <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
+          <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
+          <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+          <p class="small">Private — never shown on the site. The email and number are only used to tell you when the play is approved and to reach a parent/guardian if the play wins; texts go out only if the box above is checked. A play can only be featured as Hype of the Month if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
+        </div>
+      </details>
+      <p class="small quick-contact-note">Add a parent/guardian contact so we can reach you if this play wins — winners are featured on our socials.</p>
+
+      <div id="athletePrompt" class="athlete-prompt" hidden></div>
+      <button type="submit" class="btn btn-lime submit-btn">Post my hype</button>
+      <p id="uploadMsg"></p>
 
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
-      <div class="wizard-nav">
-        <button type="button" class="btn btn-ghost" id="upBack" hidden>← Back</button>
-        <button type="button" class="btn btn-lime" id="upNext">Continue →</button>
-      </div>
     </form>
   </div>
 
@@ -295,15 +304,14 @@
             <input type="range" id="hfScrub" min="0" max="0" step="0.01" value="0" aria-label="Video timeline — scrub to your favorite moment">
             <span id="hfTime">0:00 / 0:00</span>
           </div>
-          <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
-          <p class="small">Play or scrub the video, pause on the moment, then freeze it. Not the one? Scrub and freeze again — as many times as you like, until it's the shot.</p>
+          <div class="hf-freezerow">
+            <button type="button" class="btn btn-ghost" id="hfStepBack" aria-label="Back one second">◀ 1s</button>
+            <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
+            <button type="button" class="btn btn-ghost" id="hfStepFwd" aria-label="Forward one second">1s ▶</button>
+          </div>
+          <p class="small">Play or scrub to the moment — Freeze works while the video plays, and the ◀ ▶ buttons nudge it a second at a time. Not the one? Freeze again — as many times as you like, until it's the shot. Your frame shows up on the garment preview.</p>
           <div id="hfLinkNote" hidden>
             <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
-          </div>
-          <div id="hfStillWrap" hidden>
-            <h4 class="form-sec-title" style="margin-top:22px">Your frozen frame</h4>
-            <img id="hfStill" alt="Your frozen frame — the still you picked">
-            <p class="small">This is the actual still that goes on the print, at the video's full resolution.</p>
           </div>
         </div>
 
@@ -313,7 +321,13 @@
           <div class="row2">
             <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
           </div>
-          <label class="checkline"><input type="checkbox" id="hfBranding" checked> Add the HYPE FRAME branding — crown + wordmark in the corner of the print</label>
+          <h4 class="form-sec-title" style="margin-top:22px">Print style</h4>
+          <div class="seg hf-presets" role="group" aria-label="Print style">
+            <button type="button" data-hf-preset="classic" aria-pressed="false">Classic</button>
+            <button type="button" data-hf-preset="signature" aria-pressed="false">Signature</button>
+            <button type="button" data-hf-preset="hypeframe" aria-pressed="true">Hype Frame</button>
+          </div>
+          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — the crown + HYPE FRAME lockup in the corner of the photo. The print sits centered on the front of the garment, every time.</p>
 
           <h4 class="form-sec-title" style="margin-top:22px">Preview it on apparel</h4>
           <div class="seg" role="group" aria-label="Apparel">
@@ -353,20 +367,7 @@
               <p class="hf-print-empty" id="hfPrintEmpty">Freeze a frame to see it here</p>
             </div>
           </div>
-          <div class="hf-place" id="hfPlace" hidden>
-            <div class="hf-place-row">
-              <span class="hf-place-sizewrap">
-                <label class="hf-place-label" for="hfSize">Print size</label>
-                <button type="button" class="mini-btn hf-place-btn" id="hfSizeMinus" aria-label="Make the print smaller">−</button>
-                <input type="range" id="hfSize" min="30" max="100" step="1" value="66" aria-label="Print size">
-                <button type="button" class="mini-btn hf-place-btn" id="hfSizePlus" aria-label="Make the print bigger">+</button>
-                <span class="hf-place-val" id="hfSizeVal">66%</span>
-              </span>
-              <button type="button" class="mini-btn" id="hfPlaceReset">Reset placement</button>
-            </div>
-            <p class="small" style="margin:8px 0 0">Drag the print on the garment to move it, slide to size it. It stays inside the printable area — and where you put it is exactly how it gets printed.</p>
-          </div>
-          <p class="small">The preview shows the actual print image — branding included when it's on — exactly as it would be sent to print.</p>
+          <p class="small">The preview shows the actual print image — exactly as it would be sent to print.</p>
 
           <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
           <form id="hfOrderForm">
@@ -401,6 +402,9 @@
         <div class="review-note">
           <p><b>Reviewed before it's live.</b> Every upload is checked by a person before it reaches the board — nothing posts automatically.</p>
         </div>
+        <div class="review-note">
+          <p><b>What's on the line:</b> the <b>Hype of the Month</b> title — the play with the most votes cast this month wins, and every play starts the month even. The winner gets bragging rights: <b>featured on the homepage</b> plus a <b>shoutout on HighlightHype socials</b>. Winners are contacted through a <b>parent or guardian</b> — never the child.</p>
+        </div>
       </div>
       <aside class="upload-mock" aria-label="Upload form preview">
         <h3>Post a play</h3>
@@ -418,42 +422,6 @@
   </div>
 </section>
 
-<!-- ============ WHAT'S ON THE LINE ============ -->
-<section class="panel" id="proof" data-panel="proof">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="sec-tag">What's on the line</span>
-      <h2>Proof, not <span class="lime">promises</span></h2>
-      <p>The contest, the all-time board, and the team pilot — three cards, one tab.</p>
-    </div>
-    <div class="proof-grid">
-      <div class="proof">
-        <div class="proof-media"><video src="/play-baseball.mp4" poster="/play-baseball.webp" muted playsinline preload="metadata" aria-label="Baseball play — video thumbnail"></video></div>
-        <div class="tag">Contest · Live now</div>
-        <h3>Hype of the Month</h3>
-        <p>A monthly contest across <b>all sports</b>. Only votes cast that month count — every play starts the month even. Winners are contacted through a <b>parent or guardian</b>.</p>
-        <div class="stat"><span id="proofContestStat">—</span><small id="proofContestSub">This month's contest</small></div>
-      </div>
-      <div class="proof">
-        <div class="proof-media"><video src="/play-soccer.mp4" poster="/play-soccer.webp" muted playsinline preload="metadata" aria-label="Soccer play — video thumbnail"></video></div>
-        <div class="tag">All-time</div>
-        <h3>Hall of Fame</h3>
-        <p>The <b>Top 10 of all time</b>, plus a Top 3 podium on the board. Monthly winners fade; Hall of Fame votes never reset.</p>
-        <div class="stat"><span id="proofFameStat">TOP 10</span><small>All-time leaderboard, ranked by lifetime votes</small></div>
-      </div>
-      <div class="proof">
-        <div class="proof-media"><video src="/play-basketball.mp4" poster="/play-basketball.webp" muted playsinline preload="metadata" aria-label="Basketball play — video thumbnail"></video></div>
-        <div class="tag">Team boards · Pilot</div>
-        <h3>Plainview Hawks</h3>
-        <p>Tag a play with your team and it lands on your <b>team board</b> too. The Hawks are the pilot team — their board fills with the first approved Hawks-tagged play.</p>
-        <div class="stat"><span id="proofHawksStat">1 TEAM</span><small>Pilot starts with one team, done right — then leagues</small></div>
-      </div>
-    </div>
-    <div class="sayings" aria-label="Drop 001 sayings">
-      <span>The hype starts here</span><span>Hype all day</span><span>Hype is earned</span>
-    </div>
-  </div>
-</section>
 </div><!-- /deck -->
 
 <!-- ============ OWNER PANEL ============ -->
@@ -500,9 +468,11 @@
 <!-- ============ THE STORE ============ -->
 <section class="shop" id="shop">
   <div class="wrap">
-    <!-- Store v6: the film leads the Store at the very top of the page
-         (nav floats over it, like the homepage); the store bar moved
-         below the film. -->
+    <div class="store-focusbar" id="storeFocusBar" hidden>
+      <span class="store-focus-title" id="storeFocusTitle">Hype Boys — Drop 001</span>
+      <button type="button" class="back-link" id="storeFocusExit">← All collections</button>
+    </div>
+<!-- Tonight batch (2026-11-04): the film leads the landing (unchanged from v6/v7), now with the blue-sky Boys Street opener, the homepage music bed, and no round pause button — tapping the film pauses for pause-to-shop. -->
     <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
@@ -515,10 +485,6 @@
           <button type="button" class="hero-shop-link hero-shop-girls" data-hero-shop="girls">Shop Girls <span class="chev" aria-hidden="true">›</span></button>
         </div>
       </div>
-      <button type="button" class="film-toggle" id="swagPlayBtn" aria-label="Pause the Drop 001 film">
-        <span class="ic-pause" aria-hidden="true"></span>
-        <span class="ic-play" aria-hidden="true"></span>
-      </button>
       <div class="swag-shop-card" id="swagShopCard" hidden>
         <p class="ssc-kicker">In this scene</p>
         <h4 id="sscTitle">The Boys Hype Street hoodie</h4>
@@ -537,143 +503,142 @@
         <span class="sec-tag">Rep The Hype · Drop 001</span>
         <h2>Rep the <span class="lime">hype</span></h2>
       </div>
-      <p>Bold, youth-first apparel — six hoodies, two collections, one <b style="color:#fff">limited drop</b>. Preview only — products are finalizing, no checkout yet.</p>
+      <p>Bold, youth-first apparel — six hoodies, two collections, one <b style="color:#fff">limited drop</b>. Drop 001 — ordering opens soon.</p>
     </div>
 
-    <div class="store-tiles" aria-label="Shop by collection side">
-      <button type="button" class="store-tile store-tile-boys" data-store-tile="boys" aria-label="Shop all Hype Boys">
-        <img src="/swag/tile-boys.jpg" alt="Hype Boys — a model wearing the charcoal Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
-        <span class="tile-copy">
-          <span class="tile-label">Boys</span>
-          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
-        </span>
-      </button>
-      <button type="button" class="store-tile store-tile-girls" data-store-tile="girls" aria-label="Shop all Hype Girls">
-        <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
-        <span class="tile-copy">
-          <span class="tile-label">Girls</span>
-          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
-        </span>
-      </button>
-    </div>
-
-    <div class="store-controls" id="storeControls">
-      <div class="store-divseg" role="group" aria-label="Choose a collection side">
-        <button type="button" id="hype-boys" class="divseg-btn divseg-boys" data-store-div="boys" aria-pressed="true">Hype Boys</button>
-        <button type="button" id="hype-girls" class="divseg-btn divseg-girls" data-store-div="girls" aria-pressed="false">Hype Girls</button>
+    <div class="store-blocks" id="collections">
+      <div class="store-block" data-store-block="boys">
+        <div class="store-banner store-banner-boys">
+          <img src="/swag/tile-boys.jpg" alt="Hype Boys — Nicholas wearing the charcoal Hype hoodie in a baseball stadium" loading="lazy" decoding="async" />
+          <div class="store-banner-copy">
+            <h3>Hype <span class="lime">Boys</span></h3>
+            <p>Street · Athletics · Unleashed — Drop 001</p>
+            <button type="button" class="store-banner-btn" data-store-focus="boys">Shop the collection <span class="chev" aria-hidden="true">›</span></button>
+          </div>
+        </div>
+        <div class="prod-grid" aria-label="Hype Boys products">
+          <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/boys-street-front.jpg" alt="Boys Hype Street washed black hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/boys-street-back.jpg" alt="Boys Hype Street washed black hoodie — back with a large white crown and diagonal HYPE script, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Street card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Boys Collection · Crown motif</p>
+                    <h4>Hype Street</h4>
+                    <p class="prod-slogan">Hype Is Life</p>
+                    <p class="prod-desc">Everyday style. Youth culture.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/boys-street-flat.jpg" alt="Boys Hype Street hoodie in all four colorways: Black, Denim Blue, Gray, Olive" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Black · Denim Blue · Gray · Olive</p>
+                  </div>
+                </article>
+          <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/boys-athletics-front.jpg" alt="Boys Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/boys-athletics-back.jpg" alt="Boys Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Athletics card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Boys Collection · Crown motif</p>
+                    <h4>Hype Athletics</h4>
+                    <p class="prod-slogan">Hype Is Earned</p>
+                    <p class="prod-desc">Performance. Pride. Community.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/boys-athletics-flat.jpg" alt="Boys Hype Athletics hoodie in all four colorways: Cream, Heather Gray, Forest Green, Navy" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Cream · Heather Gray · Forest Green · Navy</p>
+                  </div>
+                </article>
+          <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/boys-unleashed-front.jpg" alt="Boys Hype Unleashed blue and yellow lightning-print hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/boys-unleashed-back.jpg" alt="Boys Hype Unleashed purple lightning-print hoodie — back with a neon crown outline, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Unleashed card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Boys Collection · Crown motif</p>
+                    <h4>Hype Unleashed</h4>
+                    <p class="prod-slogan">It&rsquo;s Hype or Nothing</p>
+                    <p class="prod-desc">Bold designs. High energy. No limits.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/boys-unleashed-flat.jpg" alt="Boys Hype Unleashed hoodie in all four colorways: Blue Lightning, Fire Orange, Purple Lightning, Teal Lightning" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Blue Lightning · Fire Orange · Purple Lightning · Teal Lightning</p>
+                  </div>
+                </article>
+        </div>
       </div>
-      <div class="store-chips" role="group" aria-label="Filter by collection">
-        <button type="button" class="store-chip" data-store-chip="all" aria-pressed="true">All</button>
-        <button type="button" class="store-chip" data-store-chip="street" aria-pressed="false">Street</button>
-        <button type="button" class="store-chip" data-store-chip="athletics" aria-pressed="false">Athletics</button>
-        <button type="button" class="store-chip" data-store-chip="essentials" data-chip-div="girls" aria-pressed="false" hidden>Essentials</button>
-        <button type="button" class="store-chip" data-store-chip="unleashed" data-chip-div="boys" aria-pressed="false">Unleashed</button>
+      <div class="store-block" data-store-block="girls">
+        <div class="store-banner store-banner-girls">
+          <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
+          <div class="store-banner-copy">
+            <h3>Hype <span class="pink">Girls</span></h3>
+            <p>Street · Athletics · Essentials — Drop 001</p>
+            <button type="button" class="store-banner-btn" data-store-focus="girls">Shop the collection <span class="chev" aria-hidden="true">›</span></button>
+          </div>
+        </div>
+        <div class="prod-grid" aria-label="Hype Girls products">
+          <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/girls-street-front.jpg" alt="Girls Hype Street charcoal hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back with pink hibiscus flowers and white HYPE script, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Street card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Girls Collection · Tiara motif</p>
+                    <h4>Hype Street</h4>
+                    <p class="prod-slogan">Hype Is Life</p>
+                    <p class="prod-desc">Everyday style. Youth culture.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/girls-street-flat.jpg" alt="Girls Hype Street hoodie in all four colorways: Black, Pink, Cream, Light Blue" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Black · Pink · Cream · Light Blue</p>
+                  </div>
+                </article>
+          <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/girls-athletics-front.jpg" alt="Girls Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/girls-athletics-back.jpg" alt="Girls Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Athletics card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Girls Collection · Tiara motif</p>
+                    <h4>Hype Athletics</h4>
+                    <p class="prod-slogan">Hype Is Earned</p>
+                    <p class="prod-desc">Performance. Pride. Community.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/girls-athletics-flat.jpg" alt="Girls Hype Athletics hoodie in all four colorways: Cream, Forest Green, Navy, Heather Gray" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Cream · Forest Green · Navy · Heather Gray</p>
+                  </div>
+                </article>
+          <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie">
+                  <div class="prod-media">
+                    <img class="prod-img prod-front" src="/swag/girls-essentials-front.jpg" alt="Girls Hype Essentials pink hoodie — front, worn" loading="lazy" decoding="async" />
+                    <img class="prod-img prod-back" src="/swag/girls-essentials-back.jpg" alt="Girls Hype Essentials pink hoodie — back with a large hibiscus, worn" loading="lazy" decoding="async" />
+                    <span class="preview-note">Drop 001</span>
+                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Essentials card to the back view">⇄ Back</button>
+                  </div>
+                  <div class="prod-body">
+                    <p class="prod-side">Girls Collection · Tiara motif</p>
+                    <h4>Hype Essentials</h4>
+                    <p class="prod-slogan">The Hype Starts Here</p>
+                    <p class="prod-desc">Comfort. Creativity. Confidence.</p>
+                    <p class="prod-price">$69.99</p>
+                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
+                    <img class="prod-flat" src="/swag/girls-essentials-flat.jpg" alt="Girls Hype Essentials hoodie in all four colorways: Sky Blue, Cream, Pink, Lavender" loading="lazy" decoding="async" />
+                    <p class="prod-colors">Sky Blue · Cream · Pink · Lavender</p>
+                  </div>
+                </article>
+        </div>
       </div>
-      <span id="coordinating" class="store-anchor" aria-hidden="true"></span>
-    </div>
-
-    <div class="prod-grid" id="collections" aria-label="Drop 001 products">
-      <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie" hidden>
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/girls-street-front.jpg" alt="Girls Hype Street charcoal hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back with pink hibiscus flowers and white HYPE script, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Street card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Girls Collection · Tiara motif</p>
-          <h4>Hype Street</h4>
-          <p class="prod-slogan">Hype Is Life</p>
-          <p class="prod-desc">Everyday style. Youth culture.</p>
-          <img class="prod-flat" src="/swag/girls-street-flat.jpg" alt="Girls Hype Street hoodie in all four colorways: Black, Pink, Cream, Light Blue" loading="lazy" decoding="async" />
-          <p class="prod-colors">Black · Pink · Cream · Light Blue</p>
-        </div>
-      </article>
-
-      <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie" hidden>
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/girls-athletics-front.jpg" alt="Girls Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/girls-athletics-back.jpg" alt="Girls Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Athletics card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Girls Collection · Tiara motif</p>
-          <h4>Hype Athletics</h4>
-          <p class="prod-slogan">Hype Is Earned</p>
-          <p class="prod-desc">Performance. Pride. Community.</p>
-          <img class="prod-flat" src="/swag/girls-athletics-flat.jpg" alt="Girls Hype Athletics hoodie in all four colorways: Cream, Forest Green, Navy, Heather Gray" loading="lazy" decoding="async" />
-          <p class="prod-colors">Cream · Forest Green · Navy · Heather Gray</p>
-        </div>
-      </article>
-
-      <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie" hidden>
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/girls-essentials-front.jpg" alt="Girls Hype Essentials pink hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/girls-essentials-back.jpg" alt="Girls Hype Essentials pink hoodie — back with a large hibiscus, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Essentials card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Girls Collection · Tiara motif</p>
-          <h4>Hype Essentials</h4>
-          <p class="prod-slogan">The Hype Starts Here</p>
-          <p class="prod-desc">Comfort. Creativity. Confidence.</p>
-          <img class="prod-flat" src="/swag/girls-essentials-flat.jpg" alt="Girls Hype Essentials hoodie in all four colorways: Sky Blue, Cream, Pink, Lavender" loading="lazy" decoding="async" />
-          <p class="prod-colors">Sky Blue · Cream · Pink · Lavender</p>
-        </div>
-      </article>
-
-      <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie">
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/boys-street-front.jpg" alt="Boys Hype Street washed black hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/boys-street-back.jpg" alt="Boys Hype Street washed black hoodie — back with a large white crown and diagonal HYPE script, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Street card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Boys Collection · Crown motif</p>
-          <h4>Hype Street</h4>
-          <p class="prod-slogan">Hype Is Life</p>
-          <p class="prod-desc">Everyday style. Youth culture.</p>
-          <img class="prod-flat" src="/swag/boys-street-flat.jpg" alt="Boys Hype Street hoodie in all four colorways: Black, Denim Blue, Gray, Olive" loading="lazy" decoding="async" />
-          <p class="prod-colors">Black · Denim Blue · Gray · Olive</p>
-        </div>
-      </article>
-
-      <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie">
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/boys-athletics-front.jpg" alt="Boys Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/boys-athletics-back.jpg" alt="Boys Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Athletics card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Boys Collection · Crown motif</p>
-          <h4>Hype Athletics</h4>
-          <p class="prod-slogan">Hype Is Earned</p>
-          <p class="prod-desc">Performance. Pride. Community.</p>
-          <img class="prod-flat" src="/swag/boys-athletics-flat.jpg" alt="Boys Hype Athletics hoodie in all four colorways: Cream, Heather Gray, Forest Green, Navy" loading="lazy" decoding="async" />
-          <p class="prod-colors">Cream · Heather Gray · Forest Green · Navy</p>
-        </div>
-      </article>
-
-      <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie">
-        <div class="prod-media">
-          <img class="prod-img prod-front" src="/swag/boys-unleashed-front.jpg" alt="Boys Hype Unleashed blue and yellow lightning-print hoodie — front, worn" loading="lazy" decoding="async" />
-          <img class="prod-img prod-back" src="/swag/boys-unleashed-back.jpg" alt="Boys Hype Unleashed purple lightning-print hoodie — back with a neon crown outline, worn" loading="lazy" decoding="async" />
-          <span class="preview-note">Preview</span>
-          <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Unleashed card to the back view">⇄ Back</button>
-        </div>
-        <div class="prod-body">
-          <p class="prod-side">Boys Collection · Crown motif</p>
-          <h4>Hype Unleashed</h4>
-          <p class="prod-slogan">It&rsquo;s Hype or Nothing</p>
-          <p class="prod-desc">Bold designs. High energy. No limits.</p>
-          <img class="prod-flat" src="/swag/boys-unleashed-flat.jpg" alt="Boys Hype Unleashed hoodie in all four colorways: Blue Lightning, Fire Orange, Purple Lightning, Teal Lightning" loading="lazy" decoding="async" />
-          <p class="prod-colors">Blue Lightning · Fire Orange · Purple Lightning · Teal Lightning</p>
-        </div>
-      </article>
     </div>
 
     <div class="hf-creative" id="hype-frame">
@@ -693,7 +658,7 @@
       </div>
       <div class="hfc-stage" aria-hidden="true">
         <figure class="hfc-print hfc-print-moment">
-          <img src="/swag/boys-unleashed-front.jpg" alt="" loading="lazy" decoding="async" />
+          <img src="/swag/hfc-action.jpg" alt="" loading="lazy" decoding="async" />
           <figcaption>Frozen from the highlight</figcaption>
         </figure>
         <figure class="hfc-print hfc-print-hoodie">
@@ -715,7 +680,7 @@
               <path d="M232 518 L408 518 L431 636 L209 636 Z" fill="rgba(0,0,0,.10)" stroke="rgba(0,0,0,.25)" stroke-width="3"/>
             </svg>
             <div class="hfc-printbox">
-              <img src="/swag/boys-unleashed-front.jpg" alt="" loading="lazy" decoding="async" />
+              <img src="/swag/hfc-action.jpg" alt="" loading="lazy" decoding="async" />
               <span class="hfc-printcap"><span class="cap-top"><img src="/crown.png" alt="" />Hype Frame</span><span class="cap-name">Nick · #13</span></span>
             </div>
           </div>
@@ -736,9 +701,19 @@
         <h4 id="qvTitle"></h4>
         <p class="prod-slogan" id="qvSlogan"></p>
         <p class="prod-desc" id="qvDesc"></p>
+        <p class="qv-price" id="qvPrice">$69.99</p>
+        <p class="qv-colors-label">Youth sizes</p>
+        <div class="qv-sizes" id="qvSizes" role="group" aria-label="Youth sizes">
+          <button type="button" class="qv-size" data-qv-size="YXXS" aria-pressed="false">YXXS</button>
+          <button type="button" class="qv-size" data-qv-size="YXS" aria-pressed="false">YXS</button>
+          <button type="button" class="qv-size" data-qv-size="YS" aria-pressed="false">YS</button>
+          <button type="button" class="qv-size" data-qv-size="YM" aria-pressed="false">YM</button>
+          <button type="button" class="qv-size" data-qv-size="YL" aria-pressed="false">YL</button>
+          <button type="button" class="qv-size" data-qv-size="YXL" aria-pressed="false">YXL</button>
+        </div>
         <p class="qv-colors-label">Colorways</p>
         <p class="qv-colors" id="qvColors"></p>
-        <p class="qv-note">Preview — products are being finalized; checkout opens once they are.</p>
+        <p class="qv-note">Drop 001 — ordering opens soon.</p>
       </div>
     </div>
   </div>
@@ -759,7 +734,7 @@
   <div class="wrap">
     <div>
       <a class="brand" href="#top" style="margin-bottom:12px">
-        <img class="brand-logo brand-logo-lg" src="/logo.jpg" alt="HighlightHype" width="1244" height="420" />
+        <img class="brand-logo brand-logo-lg" src="/logo-transparent.png" alt="HighlightHype" width="1244" height="420" />
       </a>
       <div>HighlightHype · @HighlightHype_Official · Private beta — invite only, not public yet.</div>
       <div>Only your own clips. Parent permission under 13. Winners are contacted through a parent/guardian.</div>
