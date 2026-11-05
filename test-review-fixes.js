@@ -198,8 +198,8 @@ try {
   const filmFile = path.join(tmp, "film-probe.mp4");
   fs.writeFileSync(filmFile, Buffer.from(filmBuf));
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
-  assert(filmDur > 34 && filmDur < 36, `the v6 recut film runs ~35s (${filmDur}s — five 7.0s scenes at ~1.3x)`);
-  assert((home.match(/poster="\/swag-poster-v5\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v5 poster — a Boys Street frame of the recut film");
+  assert(filmDur > 34 && filmDur < 36, `the v7 film runs ~35s (${filmDur}s — five 7.0s scenes, widescreen sport-setting clips at natural speed)`);
+  assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
      scenes (title card / Hype All Day / division & end cards) remain. */
