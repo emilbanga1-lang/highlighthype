@@ -57,43 +57,25 @@ try {
   assert(home.includes('id="hypeframe"') && home.includes('id="hfVideo"') && home.includes('id="hfScrub"') && home.includes('id="hfFreeze"') && home.includes('id="hfOrderForm"'), "studio markup present (video, timeline, freeze button, order form)");
   assert(appJs.includes("/api/hype-frame/orders") && appJs.includes("composeHfPrint"), "studio wires freeze -> compose -> order request");
 
-  /* ---- 1b. Apparel preview: BOTH garment branches show the print ----
-     Regression (2026-11-04 live bug): the T-Shirt preview showed the
-     hoodie carrying the print above a plain tee. Root cause: the author
-     rule .hf-garment{display:block} outranks the UA [hidden]{display:none},
-     so hfSetApparel's hidden toggling never hid either garment — both
-     SVGs stacked and the shared print overlay landed on the hoodie in
-     both modes. Fix: .hf-garment[hidden]{display:none}.
-     Regression 2 (2026-11-04, after the placement build): switching
-     apparel updated aria-pressed, data-apparel and the placement, but
-     the garment graphic stayed on the hoodie. Root cause: hfSetApparel
-     toggled visibility via the `hidden` IDL *property* on the two
-     garment SVGs — on SVG elements that property does not reliably
-     reflect to the `hidden` content attribute, so the attribute (the
-     only thing the CSS rule keys off) never changed and the initial
-     markup state (hoodie shown, tee hidden) persisted. Fix: toggle the
-     attribute itself with toggleAttribute(), which is an Element
-     method and works on SVG elements in every engine. */
-  assert(/\.hf-garment\[hidden\]\s*\{\s*display:\s*none/.test(css), "inactive garment is actually hidden (.hf-garment[hidden]{display:none} present)");
-  for (const a of ["hoodie", "tee"]) {
-    const rule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\] \\.hf-print\\s*\\{[^}]*left:[^}]*top:[^}]*width:`);
-    assert(rule.test(css), `${a} branch positions the shared print layer in its chest print area`);
-  }
-  for (const a of ["hoodie", "tee"]) {
-    const backRule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\]\\[data-side="back"\\] \\.hf-print\\s*\\{[^}]*left:`);
-    assert(backRule.test(css), `${a} back-side print area is positioned (upper back)`);
-  }
-  assert(appJs.includes("function hfSyncGarment"), "one garment sync drives all four garment SVGs (apparel x print side)");
-  for (const [cls, cond] of [["hf-garment-hoodie-front", '!(a === "hoodie" && s === "front")'], ["hf-garment-hoodie-back", '!(a === "hoodie" && s === "back")'], ["hf-garment-tee-front", '!(a === "tee" && s === "front")'], ["hf-garment-tee-back", '!(a === "tee" && s === "back")']])
-    assert(appJs.includes(`$(".${cls}").toggleAttribute("hidden", ${cond})`), "garment sync toggles the hidden ATTRIBUTE: " + cls);
-  assert(!appJs.includes('$(".hf-garment-hoodie-front").hidden =') && !appJs.includes('$(".hf-garment-tee-front").hidden ='), "garment sync does not rely on the hidden IDL property for the garment SVGs (it does not reflect to the attribute on SVG elements)");
-  assert(appJs.includes('$("#hfMock").dataset.apparel = a'), "apparel switch sets the mock's data-apparel so the matching print-area rule applies");
-  assert(appJs.includes('$("#hfMock").dataset.side = s'), "garment sync sets the mock's data-side so the matching back print-area rule applies");
-  assert((home.match(/id="hfPrint"/g) || []).length === 1, "exactly one shared print layer serves both garments");
-  const mockHtml = home.slice(home.indexOf('id="hfMock"'), home.indexOf('id="hfOrderForm"'));
-  assert(mockHtml.indexOf("hf-garment-tee") > -1 && mockHtml.indexOf('id="hfPrint"') > mockHtml.indexOf("hf-garment-tee"), "print layer follows both garment SVGs in the mock, so it paints above the active garment");
-  assert((mockHtml.match(/<svg class="hf-garment /g) || []).length === 4, "mock contains exactly four garment SVGs (front + back per apparel)");
-  assert(/<svg class="hf-garment hf-garment-tee-front"[^>]*hidden>/.test(mockHtml) && /<svg class="hf-garment hf-garment-hoodie-back"[^>]*hidden>/.test(mockHtml) && /<svg class="hf-garment hf-garment-tee-back"[^>]*hidden>/.test(mockHtml) && !/<svg class="hf-garment hf-garment-hoodie-front"[^>]*hidden>/.test(mockHtml), "markup opens on the hoodie FRONT: the other three garments start hidden, so the first switch has a state to flip");
+  /* ---- 1b. Round 2 (2026-11-05): the ENTIRE studio preview is gone ----
+     Emil found the "Preview it on apparel" block too confusing: the
+     garment mock, the Hoodie/T-Shirt picker, the Front/Back picker,
+     the colorway picker and the "See it finished" row are all
+     deleted. The studio flow is freeze -> print style -> name/number
+     -> guardian contact -> send request, and the order payload
+     carries fixed defaults (hoodie / front / default colorway) so
+     the server contract below is unchanged. (The pre-Round-2 preview
+     regression history — stacked garments, hidden-attribute toggling
+     — is moot: there is no preview left to regress.) */
+  for (const gone of ["Preview it on apparel", 'id="hfAppHoodie"', 'id="hfAppTee"', 'id="hfSideFront"', 'id="hfSideBack"', 'id="hfSwatches"', 'id="hfMock"', 'id="hfPrint"', 'id="hfPrintImg"', 'id="hfPrintEmpty"', 'id="hfFinRow"', "See it finished"])
+    assert(!home.includes(gone), `studio preview stays deleted: ${gone}`);
+  for (const goneFn of ["function hfSetApparel", "function hfSetSide", "function hfSetColorway", "function hfSyncGarment", "function hfApplyPlacement", "function hfRenderFinished", "HF_FINISHED"])
+    assert(!appJs.includes(goneFn), `preview JS stays deleted: ${goneFn}`);
+  assert(!css.includes(".hf-mock{") && !css.includes(".hf-fin-row{") && !css.includes(".hf-garment{"), "preview CSS is deleted too (mock / finished-row / garment rules)");
+  assert(appJs.includes('apparel: "hoodie"') && appJs.includes('side: "front"'), "studio state carries the fixed garment defaults (hoodie, front)");
+  assert(appJs.includes("apparel: hfState.apparel") && appJs.includes("side: hfState.side") && appJs.includes("colorway: hfState.colorway"), "order payload still sends apparel / side / colorway (the defaults) — server contract unchanged");
+  assert(appJs.includes("composeHfPrint") && appJs.includes("hfState.printDataUrl = c.toDataURL"), "the composed print is still generated client-side and carried on the order (only the on-screen preview went away)");
+
   // Prices exist in the Store now (Drop 001 cards, 2026-11-04) — but
   // the Hype Frame creative inside the Store stays price-free.
   const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
@@ -172,14 +154,14 @@ try {
   assert(css.includes("touch-action:manipulation"), "studio controls opt out of double-tap zoom (touch-action: manipulation)");
   assert(/\.hf-studio img#hfPhoto\[hidden\]\s*\{\s*display:\s*none/.test(css), "the src-less studio photo is really hidden for video plays (no stray alt-text box)");
   assert(home.includes('id="hfStrip"') && appJs.includes("function hfBuildStrip") && appJs.includes("function hfJumpToFrame"), "frame filmstrip present and wired (capture → tap → seek + pause)");
-  assert(home.includes('id="hfFinRow"') && appJs.includes("HF_FINISHED") && appJs.includes("function hfRenderFinished"), "'See it finished' lineup present (4 example garments, current print layered per garment+side)");
+  assert(!home.includes('id="hfFinRow"') && !appJs.includes("HF_FINISHED"), "Round 2: the 'See it finished' row is removed with the rest of the studio preview (finished-product examples live on the homepage instead)");
   assert(appJs.includes("size: 78") && appJs.includes("HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 }"), "the one shared placement default carries the raised 78% print size");
   assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
-  assert(home.includes('id="hfSideFront"') && home.includes('id="hfSideBack"'), "studio offers a Front / Back print-side toggle");
-  assert(appJs.includes("function hfSetSide") && appJs.includes("side: hfState.side"), "the chosen print side rides on the order payload");
+  assert(!home.includes('id="hfSideFront"') && !home.includes('id="hfSideBack"'), "Round 2: no Front / Back print-side toggle in the studio (the side is a fixed order default)");
+  assert(appJs.includes("side: hfState.side") && appJs.includes('hfState.side = "front"'), "the fixed front print side still rides on the order payload");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
-  assert(appJs.includes("function hfApplyPlacement") && appJs.includes("placement: hfState.placement"), "studio applies the (fixed) placement and sends it with the order");
+  assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
   assert(appJs.includes("Placement:") && appJs.includes("% size"), "Owner view displays each request's placement for the printer");
   // Unadjusted order -> studio defaults are stored.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });

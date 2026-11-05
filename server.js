@@ -353,6 +353,7 @@ function moderatePage(row, token, message = "") {
 <h1>Moderate this play</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}
 <p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}${row.athlete_tag ? ` — athlete ${escHtml(row.athlete_tag)}` : ""}</p>
 ${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
+<p><a href="/">← Back to the HighlightHype homepage</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
 }
@@ -365,6 +366,7 @@ function moderateQueuePage(rows, token, message = "") {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderation queue</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
 <h1>Plays waiting for approval</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}${items}
+<p><a href="/">← Back to the HighlightHype homepage</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
 }
@@ -833,21 +835,21 @@ const server = http.createServer(async (req, res) => {
     // ---- Email moderation (works on any device; see moderateToken) ----
     if (p === "/moderate" && req.method === "GET") {
       const token = u.searchParams.get("token") || "";
-      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p>");
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p><p><a href=\"/\">← HighlightHype home</a></p>");
       const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(u.searchParams.get("id") || 0));
-      if (!row) return sendHtml(res, 404, "<h1>Play not found</h1>");
+      if (!row) return sendHtml(res, 404, "<h1>Play not found</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       return sendHtml(res, 200, moderatePage(row, token));
     }
     if (p === "/moderate" && req.method === "POST") {
       const params = new URLSearchParams((await readBody(req)).toString("utf8"));
       const token = params.get("token") || "";
-      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1>");
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       const id = Number(params.get("id") || 0);
       const action = params.get("action");
-      if (!["approve", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1>");
+      if (!["approve", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       const status = action === "approve" ? "approved" : "hidden";
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
-      if (!before) return sendHtml(res, 404, "<h1>Play not found</h1>");
+      if (!before) return sendHtml(res, 404, "<h1>Play not found</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (status === "approved" && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
@@ -856,7 +858,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (p === "/moderate-queue" && req.method === "GET") {
       const token = u.searchParams.get("token") || "";
-      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p>");
+      if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p><p><a href=\"/\">← HighlightHype home</a></p>");
       const rows = db.prepare("SELECT * FROM highlights WHERE status='pending' ORDER BY id DESC").all();
       return sendHtml(res, 200, moderateQueuePage(rows, token));
     }

@@ -148,20 +148,27 @@ try {
      Store v8 (2026-11-04): cards are garment-only again — the flat
      board illustrations at their native ratio, Overtime-style lean
      body (name + price + size run) — and the colorways live in the
-     quick view's swipeable gallery (§11). */
+     quick view's swipeable gallery (§11).
+     Round 2 (2026-11-05, Emil's option A) SUPERSEDES v8 on card
+     imagery: the card's primary image is the design's real FRONT
+     lookbook photo and the flip peek its real BACK photo; the boards
+     are no longer referenced by the store markup (the files remain
+     on disk). The colorway illustration frames still exist — inside
+     the quick view, AFTER the two real photo frames (§11/§12). */
   const SLUGS = ["girls-street", "girls-athletics", "girls-essentials", "boys-street", "boys-athletics", "boys-unleashed"];
   assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
   for (const slug of SLUGS) {
     assert(home.includes(`data-slug="${slug}"`), `grid card present: ${slug}`);
-    assert(!home.includes(`/swag/${slug}-front.jpg`) && !home.includes(`/swag/${slug}-back.jpg`), `card ${slug} references no worn photo (garment-only product views)`);
+    assert(home.includes(`/swag/${slug}-front.jpg`), `card ${slug} shows the real FRONT lookbook photo as its primary image`);
+    assert(home.includes(`/swag/${slug}-back.jpg`), `card ${slug} flip peek shows the real BACK lookbook photo`);
     for (const kind of ["front", "back"]) {
-      assert(home.includes(`/swag-boards/${slug}-${kind}.svg`), `card ${slug} shows the garment ${kind} illustration`);
-      const r = await fetch(`${base}/swag-boards/${slug}-${kind}.svg`);
+      const r = await fetch(`${base}/swag/${slug}-${kind}.jpg`);
       const buf = await r.arrayBuffer();
-      assert(r.status === 200 && buf.byteLength > 3000, `board illustration serves and is non-trivial: /swag-boards/${slug}-${kind}.svg (${buf.byteLength} bytes)`);
+      assert(r.status === 200 && buf.byteLength > 5000, `real ${kind} photo serves and is non-trivial: /swag/${slug}-${kind}.jpg (${buf.byteLength} bytes)`);
     }
   }
-  assert(home.includes("/swag-boards/"), "Store cards use the flat garment board illustrations");
+  assert(!home.includes("/swag-boards/"), "Round 2: cards no longer reference the flat board illustrations");
+  assert(home.includes("prod-photo"), "card photos carry the photo treatment class (posed photos anchor high in the card frame)");
   assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
   assert(!home.includes("data-store-div=") && !home.includes("data-store-chip=") && !home.includes('class="store-controls"'), "division toggle + collection chips are gone (blocks replace filters)");
   assert(home.includes('data-store-focus="boys"') && home.includes('data-store-focus="girls"'), "each block banner carries its focus button");
@@ -331,9 +338,12 @@ try {
      models in product views; card anatomy matched to Overtime (image
      dominant, one badge, name + price + size run, no prose chrome).
      The gallery frames are build-time recolors of the board SVGs —
-     garment body recolored per colorway, print art unchanged. */
+     garment body recolored per colorway, print art unchanged.
+     Round 2 (2026-11-05) note: the gallery now LEADS with the
+     design's real front/back photos (JS-built frames, asserted in
+     §12); the colorway frames below keep their v8 assertions. */
   assert(appJs.includes("QV_PRODUCTS") && appJs.includes("qvSyncGallery") && appJs.includes("/swag/qv/"), "quick view is driven by per-product colorway gallery data");
-  assert(!home.includes("qv-media") && !/id="qv(Front|Back|Flat)"/.test(home), "quick view has no worn-photo figures or static colorway strip left");
+  assert(!home.includes("qv-media") && !/id="qv(Front|Back|Flat)"/.test(home), "quick view static markup has no photo figures or colorway strip (Round 2 photos are JS-built frames — §12)");
   const QV_COLORS = {
     "boys-street": ["black", "denim-blue", "gray", "olive"],
     "boys-athletics": ["cream", "heather-gray", "forest-green", "navy"],
@@ -353,6 +363,71 @@ try {
   }
   const preShopV8 = home.slice(0, home.indexOf('id="shop"'));
   assert(!preShopV8.includes("$"), "no price anywhere before the Store section (v8)");
+
+  /* ---- 12. Round 2 (2026-11-05): safe token storage, friendly vote
+     failures, quick view leads with real photos, homepage Hype Frame
+     examples, hero single audio bed ---- */
+  // Safe storage: one guarded wrapper (localStorage -> cookie ->
+  // in-memory), used for BOTH the voter token and the owner token.
+  assert(appJs.includes("function hhStorageGet") && appJs.includes("function hhStorageSet"), "safe storage helper present (hhStorageGet / hhStorageSet)");
+  assert(appJs.includes("document.cookie") && appJs.includes("hhMemoryStore"), "storage helper falls back to a cookie, then to an in-memory store");
+  assert((appJs.match(/localStorage\.(getItem|setItem)/g) || []).length === 2, "localStorage is touched ONLY inside the guarded helper (one get + one set)");
+  assert(appJs.includes('hhStorageGet("hh_voter")'), "the voter token is minted/read through the safe helper");
+  assert(appJs.includes('ownerToken = () => hhStorageGet("hh_owner_token")'), "the owner token is read through the safe helper");
+  assert(!appJs.includes('localStorage.getItem("hh_owner_token")') && !appJs.includes('localStorage.setItem("hh_owner_token"'), "no unguarded owner-token localStorage access remains");
+  // Friendly vote path: retry once on a network failure, inline
+  // message instead of alert(), refresh isolated in its own try/catch.
+  assert(appJs.includes("Didn't go through — tap to try again"), "vote failure shows the friendly inline button message");
+  assert(appJs.includes("isNetworkFailure") && appJs.includes("function showVoteFailure"), "vote failure helpers present (network sniff + inline message)");
+  assert((appJs.match(/await postVote\(\)/g) || []).length === 2, "toggleVote POSTs, then retries exactly once");
+  const voteFn = appJs.slice(appJs.indexOf("async function toggleVote"), appJs.indexOf("function showVoteFailure"));
+  assert(!voteFn.includes("alert("), "toggleVote never surfaces a raw alert() error");
+  assert(/try \{\s*await loadData\(\);\s*\} catch/.test(appJs), "the post-vote board refresh runs in its own try/catch (a refresh failure can't read as a vote error)");
+  assert(css.includes(".votebtn.vote-failed"), "the failed-vote button state is styled");
+  // Quick view leads with the real photos, colorway frames after.
+  assert(appJs.includes('class="qv-frame qv-frame-photo"'), "quick view builds real-photo frames");
+  assert(appJs.includes("/swag/${slug}-${sd}.jpg"), "quick view photo frames use the design's real front/back photos");
+  assert(appJs.includes("2 + Number(b.dataset.qvColor) * 2"), "swatch jumps account for the 2 leading photo frames");
+  assert(appJs.includes('g.scrollTo({ left: Number(b.dataset.qvSide) * w'), "FRONT/BACK buttons target the photo frames");
+  // Homepage Hype Frame finished-product examples (poster crops).
+  assert(home.includes('id="hfExamples"'), "homepage Hype Frame examples strip present");
+  assert(home.includes("/swag/hf-example-hoodie-back.jpg") && home.includes("/swag/hf-example-lineup.jpg"), "examples strip uses the two poster crops");
+  assert(home.includes("Example finishes — yours is made from your own play"), "examples are captioned as examples, made-from-your-own-play");
+  const sizeOf = (f) => execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", f], { encoding: "utf8" }).trim();
+  assert(sizeOf("public/swag/hf-example-hoodie-back.jpg") === "386,448", "hoodie-back example crop is 386x448");
+  assert(sizeOf("public/swag/hf-example-lineup.jpg") === "1284,284", "garment-lineup example crop is 1284x284");
+  for (const f of ["hf-example-hoodie-back.jpg", "hf-example-lineup.jpg"]) {
+    const r = await fetch(`${base}/swag/${f}`);
+    assert(r.ok && Number(r.headers.get("content-length")) > 10000, `example crop serves: /swag/${f}`);
+  }
+  // Hero: exactly ONE audio stream (the unbroken master track bed).
+  const heroStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", heroFile], { encoding: "utf8" }).trim().split("\n");
+  assert(heroStreams.filter((t) => t === "audio").length === 1, "hero carries exactly one audio stream (single unbroken music bed)");
+
+  /* ---- 13. Dead-end sweep (Round 2 added scope, 2026-11-05): every
+     view/panel must have a visible, working route back to the
+     homepage. The header logo (goHome) is the global route; panels
+     add their own back buttons; the store adds a Back-to-homepage
+     bar; the quick view and the standalone moderation pages were
+     the dead ends and are fixed here. ---- */
+  assert(appJs.includes('$$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));'), "every .brand logo (header + footer) is bound to goHome()");
+  assert(appJs.includes("function goHome()") && appJs.includes('showPanel("plays")'), "goHome() resets to the plays board (the homepage)");
+  assert(home.includes('data-home-link') && home.includes("← Back to homepage"), "store landing carries a Back-to-homepage button (data-home-link -> goHome)");
+  assert(home.includes('id="storeFocusExit"'), "store focus mode has its exit back to the store landing");
+  assert((home.match(/data-panel-btn="plays"/g) || []).length >= 3, "athlete + studio panels carry a Back-to-the-board button (plus the menu's Plays button)");
+  assert(home.includes('id="qvHome"') && home.includes("← Home"), "the open quick view carries its own Home button (it covers the header)");
+  assert(appJs.includes('$("#qvHome")?.addEventListener("click", () => { closeQuickView(); goHome(); })'), "quick-view Home closes the dialog, then runs goHome()");
+  assert(css.includes(".qv-home{"), "the quick-view Home button is styled (pill, top-left, mirrors the close button)");
+  // Moderation pages (server-rendered): both templates + every bare
+  // error response on the moderation routes link home.
+  assert(serverJs.includes("← Back to the HighlightHype homepage"), "moderation page + queue templates link back to the homepage");
+  assert((serverJs.match(/<a href=\\?"/g) || []).length >= 8, "moderation templates and error responses all carry a home link");
+  const modRes = await fetch(`${base}/moderate?id=1`);
+  const modBody = await modRes.text();
+  assert(modRes.status === 403 && modBody.includes('<a href="/">'), "the served moderation 403 page links home");
+  const queueRes = await fetch(`${base}/moderate-queue`);
+  const queueBody = await queueRes.text();
+  assert(queueRes.status === 403 && queueBody.includes('<a href="/">'), "the served moderation-queue 403 page links home");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {

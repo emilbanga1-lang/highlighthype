@@ -33,6 +33,11 @@ try {
     assert(privacy.text.includes(marker), `/privacy contains: ${marker}`);
   assert(!privacy.text.includes("guardian_phone") && !privacy.text.includes("text_consent"), "/privacy contains no private field internals");
 
+  // Dead-end sweep (Round 2, 2026-11-05): the standalone legal pages
+  // must carry a visible route back to the homepage.
+  assert(terms.text.includes('href="/"') && terms.text.includes("← Back to HighlightHype") && terms.text.includes("HighlightHype home"), "/terms has visible home links (back link + footer)");
+  assert(privacy.text.includes('href="/"') && privacy.text.includes("← Back to HighlightHype") && privacy.text.includes("HighlightHype home"), "/privacy has visible home links (back link + footer)");
+
   const termsFile = await get("/terms.html");
   assert(termsFile.status === 200, "/terms.html also serves directly");
 
