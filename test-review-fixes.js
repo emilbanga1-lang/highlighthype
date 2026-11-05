@@ -7,7 +7,7 @@
 // 6. Store v2: full-bleed cinematic film hero + photo nav tiles.
 // 7. Store v3: Suitsupply editorial — light canvas, framed-print cards
 //    and tiles, text-tab controls, designed Hype Frame creative.
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -101,16 +101,19 @@ try {
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
   // Store v4 (2026-11-04): the film was rebuilt from 10s clips of
   // youth wearing the actual Drop 001 designs, so the scene map is
-  // collection scenes on the measured boundaries (10/20/30/40s) — the
-  // old title-card and Hype All Day scenes are gone (asserted in §8).
-  // Film v5 (2026-11-04): the Boys Unleashed clip, whose generation
-  // failed during v4, was retried and cut in as the fifth scene.
-  assert(sceneRe("10", "girls-street").test(appJs), "scene 0–10s (Girls Street clip) maps to girls-street");
-  assert(sceneRe("20", "girls-essentials").test(appJs), "scene 10–20s (Girls Essentials clip) maps to girls-essentials");
-  assert(sceneRe("30", "boys-street").test(appJs), "scene 20–30s (Boys Street clip) maps to boys-street");
-  assert(sceneRe("40", "boys-athletics").test(appJs), "scene 30–40s (Boys Athletics clip) maps to boys-athletics");
-  assert(sceneRe("Infinity", "boys-unleashed").test(appJs), "scene 40s–end (Boys Unleashed clip) maps to boys-unleashed");
+  // collection scenes on the measured boundaries — the old title-card
+  // and Hype All Day scenes are gone (asserted in §8). Film v5 cut the
+  // Boys Unleashed clip in as the fifth scene.
+  // Store v6 (2026-11-04): Emil asked for Boys first + a faster cut —
+  // the same five clips recut Boys-first at ~1.3x, 7.0s per scene, so
+  // the boundaries are 7/14/21/28s and Girls Essentials closes the film.
+  assert(sceneRe("7", "boys-street").test(appJs), "scene 0–7s (Boys Street clip) maps to boys-street");
+  assert(sceneRe("14", "boys-athletics").test(appJs), "scene 7–14s (Boys Athletics clip) maps to boys-athletics");
+  assert(sceneRe("21", "boys-unleashed").test(appJs), "scene 14–21s (Boys Unleashed clip) maps to boys-unleashed");
+  assert(sceneRe("28", "girls-street").test(appJs), "scene 21–28s (Girls Street clip) maps to girls-street");
+  assert(sceneRe("Infinity", "girls-essentials").test(appJs), "scene 28s–end (Girls Essentials clip) maps to girls-essentials");
   assert(appJs.includes("The Boys Hype Unleashed hoodie"), "Unleashed scene card carries the collection title");
+  assert(home.includes('<h4 id="sscTitle">The Boys Hype Street hoodie</h4>'), "pause card placeholder title matches the new first scene (Boys Street)");
   assert(home.includes('id="hype-girls"') && home.includes('id="hype-boys"') && home.includes('id="collections"'), "division + grid scroll anchors exist in the Store");
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
@@ -171,14 +174,18 @@ try {
   }
   assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-tile]") && appJs.includes("goToStoreScene"), "hero links + tiles wired to the division filter + grid scroll in app.js");
 
-  /* ---- 8. Store v4: v2 restored, new film, film-first hero ----
+  /* ---- 8. Store v4/v6: dark store, film-first hero, Boys-first recut ----
      Emil (2026-11-04 evening): the v3 light re-skin was rejected
      ("looked better before"), so the dark v2 store is restored and:
      (1) the film leads the page, bigger; (2) the film itself is new —
-     five 10s clips of youth wearing the actual Drop 001 designs
-     (the fifth, Boys Unleashed, was cut in by film v5, 2026-11-04);
+     five clips of youth wearing the actual Drop 001 designs (the
+     fifth, Boys Unleashed, was cut in by film v5, 2026-11-04);
      (3) the Hype Frame creative survives, re-skinned for the dark
-     store. (The v3 §7 light-skin assertions were replaced by these.) */
+     store. (The v3 §7 light-skin assertions were replaced by these.)
+     Store v6 (later that night): Emil asked for the film at the very
+     top of the Store with the header floating over it like the
+     homepage, Boys first + Boys as the default division, and a faster
+     Boys-first recut of the film (~35s). */
   assert(home.includes('class="shop"') && !home.includes("store-light"), "dark v2 store restored (no .store-light scope class)");
   assert(!css.includes(".store-light") && !css.includes("#f4f1ea"), "no light-canvas rules remain in styles.css");
   const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf("swag-film-hero"), headIdx = home.indexOf("shop-head"), tilesIdx = home.indexOf("store-tiles");
@@ -187,8 +194,12 @@ try {
   assert(css.includes(".swag-film-hero{aspect-ratio:auto;height:82vh"), "mobile hero is ~82vh tall (taller than v2's 4/5 crop)");
   const filmRes = await fetch(`${base}/swag-film.mp4`);
   const filmBuf = await filmRes.arrayBuffer();
-  assert(filmRes.status === 200 && filmBuf.byteLength > 8000000 && filmBuf.byteLength < 20000000, `the NEW five-clip film serves and is upload-sized (${filmBuf.byteLength} bytes; the four-clip v4 film was 6,996,212)`);
-  assert(home.includes('poster="/swag-poster-v4.jpg"'), "hero poster is a frame of the new film (old-design poster retired)");
+  assert(filmRes.status === 200 && filmBuf.byteLength > 5000000 && filmBuf.byteLength < 20000000, `the five-clip film serves and is upload-sized (${filmBuf.byteLength} bytes)`);
+  const filmFile = path.join(tmp, "film-probe.mp4");
+  fs.writeFileSync(filmFile, Buffer.from(filmBuf));
+  const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
+  assert(filmDur > 34 && filmDur < 36, `the v6 recut film runs ~35s (${filmDur}s — five 7.0s scenes at ~1.3x)`);
+  assert((home.match(/poster="\/swag-poster-v5\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v5 poster — a Boys Street frame of the recut film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
      scenes (title card / Hype All Day / division & end cards) remain. */
@@ -211,6 +222,27 @@ try {
   const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
   assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
   assert(hfCreative.includes("parent or guardian confirms by email before anything is printed"), "creative keeps the guardian-approval framing (no payment/checkout language)");
+
+  /* ---- Store v6: film at the very top under the floating nav,
+     Boys first + Boys default (Emil, 2026-11-04 night) ---- */
+  assert(css.includes("body.store-open .nav{position:absolute;top:0;background:transparent"), "in the Store the nav floats over the film, homepage-style (logo on the video)");
+  assert(!css.includes("body.store-open .nav{position:relative"), "the old solid in-flow store nav bar is gone");
+  assert(css.includes("body.store-open .shop{padding-top:0;border-top:0}"), "Store view starts at the very top — no padding or border above the film");
+  const barIdx = home.indexOf("store-bar");
+  assert(barIdx > heroIdx && barIdx < headIdx, "store bar (Back + breadcrumb) sits below the film, above the intro copy");
+  assert(css.includes(".swag-film-hero .swag-film-badge{top:82px") && css.includes(".swag-film-hero .swag-film-hint{top:82px"), "film badge + hint pill drop below the floating nav line (no logo overlap)");
+  assert(appJs.includes('const storeState = { division: "boys"'), "store defaults to the Boys division");
+  assert(home.indexOf('data-hero-shop="boys"') < home.indexOf('data-hero-shop="girls"'), "hero overlay links: Shop Boys before Shop Girls");
+  assert(home.indexOf('data-store-div="boys"') < home.indexOf('data-store-div="girls"'), "division toggle: Hype Boys before Hype Girls");
+  assert(home.indexOf('data-store-tile="boys"') < home.indexOf('data-store-tile="girls"'), "photo tiles: Boys before Girls");
+  assert(home.indexOf('data-store-target="hype-boys"') < home.indexOf('data-store-target="hype-girls"'), "homepage store card links: Hype Boys before Hype Girls");
+  assert(/id="hype-boys"[^>]*aria-pressed="true"/.test(home) && /id="hype-girls"[^>]*aria-pressed="false"/.test(home), "toggle initial state: Boys pressed, Girls not");
+  const chipTag = (chip) => (home.match(new RegExp(`<button[^>]*data-store-chip="${chip}"[^>]*>`)) || [""])[0];
+  assert(chipTag("unleashed") !== "" && !chipTag("unleashed").includes("hidden"), "Unleashed chip visible in the initial (Boys) state");
+  assert(chipTag("essentials").includes("hidden"), "Essentials chip hidden in the initial (Boys) state");
+  const cardTag = (slug) => (home.match(new RegExp(`<article class="prod-card"[^>]*data-slug="${slug}"[^>]*>`)) || [""])[0];
+  for (const slug of ["boys-street", "boys-athletics", "boys-unleashed"]) assert(cardTag(slug) !== "" && !cardTag(slug).includes("hidden"), `initial HTML shows the card: ${slug}`);
+  for (const slug of ["girls-street", "girls-athletics", "girls-essentials"]) assert(cardTag(slug).includes("hidden"), `initial HTML hides the card: ${slug}`);
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
