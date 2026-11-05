@@ -57,8 +57,12 @@ try {
   assert(home.includes("What happened? (optional)") && appJs.includes("'s highlight`"), "the title is one optional 'What happened?' line; blank auto-fills as <Name>'s highlight at submit");
   const moreAt = home.indexOf("Add more (optional)");
   assert(moreAt > -1 && home.includes('class="quick-more"'), "'Add more (optional)' collapsed section present");
-  for (const f of ["playType", "story", "jersey", "team", "notifyEmail", "guardianPhone", "textConsent"]) assert(home.indexOf(`name="${f}"`) > moreAt, `optional field lives inside Add more: ${f}`);
-  assert(home.includes("Add a parent/guardian contact so we can reach you if this play wins — winners are featured on our socials."), "guardian-contact line sits under the optional section (featured framing, no prize promise)");
+  for (const f of ["playType", "story", "jersey", "team"]) assert(home.indexOf(`name="${f}"`) > moreAt, `optional field lives inside Add more: ${f}`);
+  // Round 6 (2026-11-05): the guardian-contact block MOVED OUT of
+  // "Add more" into the main form — youth rerun v3's #1 finding was
+  // that the contact deciding featuring sat hidden in a section
+  // labelled optional. Full location/explainer coverage is in §21.
+  for (const f of ["notifyEmail", "guardianPhone", "textConsent"]) assert(home.indexOf(`name="${f}"`) > -1 && home.indexOf(`name="${f}"`) < moreAt, `guardian field lives in the MAIN form, before Add more: ${f}`);
   assert(home.includes("Post my hype"), "submit button reads 'Post my hype'");
   assert(home.includes("Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete."), "text opt-in copy is EXACTLY the current copy");
   assert(!/name="textConsent"[^>]*checked/.test(home), "text opt-in checkbox is unchecked by default");
@@ -772,8 +776,8 @@ try {
   const selBlock = home.slice(selStart, home.indexOf("</select>", selStart));
   const optVals = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[1]);
   const optLabels = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[2]);
-  assert(JSON.stringify(optVals) === JSON.stringify(["", "baseball", "basketball", "cheer", "fieldhockey", "football", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "volleyball"]), "Round 5b: the form sport select = placeholder (value \"\") + the FULL 12-sport list in the pills' old order (not the board filters' dynamic list)");
-  assert(optLabels[0] === "Choose a sport" && optLabels[3] === "Cheer" && optLabels[4] === "Field Hockey", "Round 5b: placeholder reads 'Choose a sport' and option labels carry the pills' display names");
+  assert(JSON.stringify(optVals) === JSON.stringify(["", "baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the form sport select = placeholder (value \"\") + the FULL 18-sport list (Round 5b's 12 + Dance/Golf/Swimming/Tennis/Track/Wrestling), alphabetical with Other in its Lacrosse–Soccer slot");
+  assert(optLabels[0] === "Choose a sport" && optLabels[3] === "Cheer" && optLabels[4] === "Dance" && optLabels[5] === "Field Hockey" && optLabels[16] === "Track &amp; Field" && optLabels[18] === "Wrestling", "Round 6: placeholder reads 'Choose a sport'; option labels carry display names (Track & Field for the track key, Wrestling last)");
   assert(selBlock.includes('class="sport-select"'), "Round 5b: the form select wears the same .sport-select chrome as the round-5 board selects");
   assert(!home.includes('type="hidden" name="sport"') && !home.includes("quick-sports") && !css.includes(".quick-sports"), "Round 5b: the hidden sport field and the pill container/CSS are gone — name=\"sport\" survives exactly once (the §3b count), on the select");
   // (2) Behavioral — setSportPick/syncQuickPicks from the REAL app.js,
@@ -801,6 +805,104 @@ try {
   // (3) Validation path: same field read, same message, scroll target
   // is the select now (the pill container no longer exists).
   assert(appJs.includes('msg.textContent = "Tap the sport — one tap is all it takes."') && appJs.includes('$("#sportSelect")?.scrollIntoView') && !appJs.includes(".quick-sports"), "Round 5b: an unchosen sport fails submit validation with the SAME message as the untapped pills did, scrolling the dropdown into view instead of the gone pill row");
+
+  /* ---- 21. Round 6 (2026-11-05, late): three youth-rerun-v3 fixes ----
+     (1) The guardian-contact block moves OUT of the collapsed "Add
+     more (optional)" section into the main quick form under a
+     plain-language explainer — the email that decides featuring was
+     hidden behind an "optional" label (the rerun's #1 finding).
+     Posting without it still works; it only decides featuring, and
+     the server-side eligibility rule (notify_email, or guardian
+     phone + text consent) is untouched. (2) Report goes inline: the
+     built-in prompt/alert pair read as a dead button in in-app
+     browsers; the panel mirrors §14's enter pattern, same endpoint,
+     same payload. (3) Six sports join — Dance, Golf, Swimming,
+     Tennis, Track & Field, Wrestling — across the form select, the
+     client SPORTS constant and cap()'s labels. The server holds NO
+     sport whitelist (it lowercases and stores the key), so there is
+     no server list to sync; the wrestling upload below proves a new
+     sport end-to-end (post -> approve -> served with its key). ---- */
+  // (1a) Structure: guardian block in the main form — after "What
+  // happened?", before "Add more" — with the explainer in plain words.
+  const guardianAt = home.indexOf('class="quick-field guardian-block"');
+  const happenedAt = home.indexOf("What happened? (optional)");
+  assert(guardianAt > happenedAt && guardianAt < moreAt, "Round 6: the guardian block sits in the main form — after 'What happened?', before the collapsed 'Add more' section");
+  assert(home.includes("Parent or guardian — needed to win") && home.includes("To win Hype of the Month, we need a parent or guardian we can reach — ask a parent first.") && home.includes("You can still post without it; your play just can't be featured until we have it."), "Round 6: the guardian block carries the plain-language eligibility explainer (ask a parent first; posting still allowed)");
+  assert(!home.includes("Add a parent/guardian contact so we can reach you if this play wins"), "Round 6: the old guardian pointer note under the optional section is gone (the block itself is in the form now)");
+  const moreBlock = home.slice(moreAt, home.indexOf("</details>", moreAt));
+  assert(!moreBlock.includes("notifyEmail") && !moreBlock.includes("guardianPhone") && !moreBlock.includes("textConsent"), "Round 6: no guardian field remains inside the collapsed section");
+  assert(css.includes(".guardian-block{"), "Round 6: the guardian block is framed as part of the main form");
+  // (1b)+(3) Behavior against the real server: a no-guardian upload
+  // still succeeds and is NOT prize-eligible; a wrestling upload WITH
+  // a guardian email is accepted and IS prize-eligible.
+  const mkUpload = async (fields) => {
+    const f = new FormData();
+    f.append("title", fields.title); f.append("sport", fields.sport); f.append("division", "boys"); f.append("playerName", fields.playerName);
+    if (fields.notifyEmail) f.append("notifyEmail", fields.notifyEmail);
+    f.append("file", new Blob([png], { type: "image/png" }), "play.png");
+    return j("/api/highlights", { method: "POST", body: f });
+  };
+  const upA = await mkUpload({ title: "Round 6 No Guardian Play", sport: "soccer", playerName: "Noa" });
+  assert(upA.status === 201 && upA.body.status === "pending", "Round 6: an upload with NO guardian contact still succeeds and starts pending (guardian stays optional for posting)");
+  const upB = await mkUpload({ title: "Round 6 Wrestling Play", sport: "wrestling", playerName: "Wren", notifyEmail: "parent@example.com" });
+  assert(upB.status === 201 && upB.body.status === "pending", "Round 6: a wrestling upload is accepted by the server (no sport whitelist exists to fall out of sync)");
+  for (const u of [upA, upB]) {
+    const a = await j(`/api/highlights/${u.body.id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved" }) });
+    assert(a.body.status === "approved", `Round 6: owner approves play ${u.body.id}`);
+  }
+  const pub2 = await j("/api/highlights?division=all");
+  const playA = pub2.body.highlights.find((h) => h.id === upA.body.id);
+  const playB = pub2.body.highlights.find((h) => h.id === upB.body.id);
+  assert(playA && playA.hasGuardianEmail === false && playA.hasGuardianText === false, "Round 6: the no-guardian play reports no guardian contact on file");
+  assert(playB && playB.sport === "wrestling" && playB.hasGuardianEmail === true, "Round 6: the wrestling play is served with sport=wrestling and its guardian email on file");
+  for (const u of [upA, upB]) {
+    const e = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: u.body.id }) });
+    assert(e.status === 201 && e.body.ok, `Round 6: play ${u.body.id} enters the contest`);
+  }
+  const contest6 = await j("/api/contest?voterToken=round6probe");
+  const entryA = (contest6.body.entries || []).find((h) => h.id === upA.body.id);
+  const entryB = (contest6.body.entries || []).find((h) => h.id === upB.body.id);
+  assert(entryA && entryA.prizeEligible === false, "Round 6: the no-guardian entry is NOT prize-eligible (placement changed, the eligibility rule didn't)");
+  assert(entryB && entryB.prizeEligible === true, "Round 6: the guardian-email entry IS prize-eligible");
+  // (2) Report inline: structure + vm behavioral drive of the real block.
+  const reportBlock = appJs.slice(appJs.indexOf("const REPORT_MSGS"), appJs.indexOf("window.markWinner"));
+  assert(reportBlock.includes("window.reportPlay") && reportBlock.includes("window.sendReport") && reportBlock.includes("window.cancelReport"), "Round 6: report block located (reportPlay + sendReport + cancelReport)");
+  assert(!reportBlock.includes("prompt(") && !reportBlock.includes("alert("), "Round 6: the report path uses NO native dialogs");
+  assert(appJs.includes('onclick="reportPlay(${h.id})"') && appJs.includes("data-report-msg") && appJs.includes("REPORT_MSGS.get(h.id)"), "Round 6: the Report button opens the inline panel; cards render a per-card report slot from REPORT_MSGS");
+  assert(reportBlock.includes("Report this play? The owner reviews every report.") && reportBlock.includes("Send report") && reportBlock.includes("Cancel"), "Round 6: the panel copy and both actions are present");
+  assert(reportBlock.includes("/api/highlights/${id}/report") && reportBlock.includes('"Reported by a user"'), "Round 6: Send posts the same endpoint, an empty reason defaulting to 'Reported by a user'");
+  assert(css.includes(".card-msg .report-reason textarea"), "Round 6: the report reason field is styled inside the card slot");
+  const reportCalls = [];
+  const reportSandbox = {
+    window: {},
+    api: async (p, opts) => { reportCalls.push({ path: p, body: JSON.parse(opts.body) }); if (p.includes("/99/")) throw new Error("Play not found."); return { message: "Thanks — the owner has been notified and will review this play." }; },
+    esc: (s) => String(s ?? ""),
+    $$: () => [],
+    console,
+  };
+  const reportCtx = vm.createContext(reportSandbox);
+  vm.runInContext(reportBlock, reportCtx);
+  const reportMsgOf = (id) => vm.runInContext(`REPORT_MSGS.get(${id}) || ""`, reportCtx);
+  reportSandbox.window.reportPlay(7);
+  assert(reportMsgOf(7).includes("Send report") && reportMsgOf(7).includes("data-report-reason") && reportCalls.length === 0, "behavioral: tapping Report opens the inline panel (reason field + Send/Cancel) and posts nothing yet");
+  reportSandbox.window.cancelReport(7);
+  assert(reportMsgOf(7) === "" && reportCalls.length === 0, "behavioral: Cancel closes the panel and sends nothing (no trace)");
+  const fakeBtn = (val) => ({ closest: () => ({ querySelector: () => ({ value: val }) }) });
+  reportSandbox.window.reportPlay(7);
+  await reportSandbox.window.sendReport(7, fakeBtn("  spam clip  "));
+  assert(reportCalls.length === 1 && reportCalls[0].path === "/api/highlights/7/report" && reportCalls[0].body.reason === "spam clip", "behavioral: Send posts the trimmed reason to the same endpoint with the same payload shape");
+  assert(reportMsgOf(7).includes("Thanks — the owner has been notified") && reportMsgOf(7).includes("ok"), "behavioral: the server's confirmation message shows inline on the card");
+  await reportSandbox.window.sendReport(8, fakeBtn("   "));
+  assert(reportCalls.length === 2 && reportCalls[1].body.reason === "Reported by a user", "behavioral: a blank reason still sends the default 'Reported by a user'");
+  await reportSandbox.window.sendReport(99, fakeBtn("x"));
+  assert(reportMsgOf(99).includes("Play not found.") && reportMsgOf(99).includes("err"), "behavioral: a server error shows inline on the card as an error, not an alert");
+  // (3) The client SPORTS constant + cap() labels, run for real.
+  const sportsBlock = appJs.slice(appJs.indexOf("const cap"), appJs.indexOf("const MONTHS"));
+  const sportsCtx = vm.createContext({ console });
+  vm.runInContext(sportsBlock, sportsCtx);
+  assert(JSON.stringify(vm.runInContext("SPORTS", sportsCtx)) === JSON.stringify(["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the client SPORTS constant is the full 18, alphabetical with Other between Lacrosse and Soccer");
+  for (const [k, label] of [["dance", "Dance"], ["golf", "Golf"], ["swimming", "Swimming"], ["tennis", "Tennis"], ["track", "Track & Field"], ["wrestling", "Wrestling"]])
+    assert(vm.runInContext(`cap("${k}")`, sportsCtx) === label, `Round 6: cap("${k}") renders the label "${label}"`);
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
