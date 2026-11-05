@@ -99,11 +99,15 @@ try {
   // outline button toggles playback instead (wiring asserted in §6).
   assert(home.includes('id="swagVideo"') && !/id="swagVideo"[^>]*\bcontrols\b/.test(home), "swag film has NO native controls (v2 cinematic hero)");
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
-  assert(sceneRe("2.5", "hype-girls").test(appJs), "scene 0–2.5s (Girls) maps to #hype-girls");
-  assert(sceneRe("5\\.0", "hype-boys").test(appJs), "scene 2.5–5s (Boys) maps to #hype-boys");
-  assert(sceneRe("7\\.5", "coordinating").test(appJs), "scene 5–7.5s (Hype All Day) maps to #coordinating");
-  assert(appJs.includes("Infinity") && appJs.includes('target: "collections"'), "end-card scene maps to #collections");
-  assert(home.includes('id="hype-girls"') && home.includes('id="hype-boys"') && home.includes('id="coordinating"') && home.includes('id="collections"'), "all four Hype Frame scroll targets exist in the Store");
+  // Store v4 (2026-11-04): the film was rebuilt from four 10s clips of
+  // youth wearing the actual Drop 001 designs, so the scene map is now
+  // four collection scenes on the measured boundaries (10/20/30s) — the
+  // old title-card and Hype All Day scenes are gone (asserted in §8).
+  assert(sceneRe("10", "girls-street").test(appJs), "scene 0–10s (Girls Street clip) maps to girls-street");
+  assert(sceneRe("20", "girls-essentials").test(appJs), "scene 10–20s (Girls Essentials clip) maps to girls-essentials");
+  assert(sceneRe("30", "boys-street").test(appJs), "scene 20–30s (Boys Street clip) maps to boys-street");
+  assert(sceneRe("Infinity", "boys-athletics").test(appJs), "scene 30s–end (Boys Athletics clip) maps to boys-athletics");
+  assert(home.includes('id="hype-girls"') && home.includes('id="hype-boys"') && home.includes('id="collections"'), "division + grid scroll anchors exist in the Store");
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
   assert(!storeSection.includes("$"), "no prices anywhere in the Store section");
@@ -133,8 +137,9 @@ try {
   assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
   assert(appJs.includes("applyStoreFilter") && appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "grid filtering + quick view wired in app.js");
   assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button drives the grid (filter + highlight)");
-  // Store v3 (2026-11-04): the slim Hype Frame banner + steps strip were
-  // replaced by a designed creative section — asserted in §7 below.
+  // Hype Frame in the Store: the v3 creative section (layered prints,
+  // manifesto headline, steps line, CTA) was ported into the restored
+  // v2 store and re-skinned dark — asserted in §8 below.
 
   /* ---- 6. Store v2: full-bleed cinematic hero + photo nav tiles ----
      Emil (2026-11-04, with Overtime shop screenshots): the film leads
@@ -162,30 +167,39 @@ try {
   }
   assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-tile]") && appJs.includes("goToStoreScene"), "hero links + tiles wired to the division filter + grid scroll in app.js");
 
-  /* ---- 7. Store v3: Suitsupply editorial ----
-     Emil (2026-11-04, with a Suitsupply email creative): light warm
-     off-white canvas, photos as overlapping white-bordered prints,
-     minimal black type. Scoped to the Store via .store-light; the
-     film hero and all store functionality are unchanged (§§4–6). */
-  assert(home.includes('class="shop store-light"'), "store section carries the light-canvas scope class");
-  assert(css.includes(".shop.store-light") && css.includes("#f4f1ea"), "styles.css paints the store on the warm off-white canvas (#f4f1ea)");
-  assert((home.match(/class="prod-print prod-print-front"/g) || []).length === 6, "every card's front photo sits in a white-matted print");
-  assert((home.match(/class="prod-print prod-print-back"/g) || []).length === 6, "every card's back photo is a second layered print");
-  assert(css.includes(".prod-print-back") && css.includes("rotate(-2deg)"), "back print peeks out behind the front print (offset + rotated)");
-  assert(css.includes(".prod-card.show-back .prod-print-back") && css.includes(".prod-card:hover .prod-print-back"), "flip brings the back print forward (touch class + desktop hover)");
-  assert((home.match(/View back ⇄/g) || []).length === 6, "flip control reads 'View back ⇄' on every card");
-  assert(appJs.includes('"View front ⇄"') && appJs.includes('"View back ⇄"'), "flip toggle cycles the View back / View front labels in app.js");
-  assert(css.includes(".store-light .store-chip") && css.includes('.store-chip[aria-pressed="true"]'), "collection filters are text tabs (active = underlined) on the light canvas");
-  assert(css.includes(".store-light .divseg-girls") && css.includes(".store-light .divseg-boys"), "Girls/Boys toggle uses the same text-tab treatment");
-  assert((home.match(/class="tile-print"/g) || []).length === 2 && (home.match(/class="tile-caption"/g) || []).length === 2, "nav tiles are framed prints with an editorial caption inside the mat");
-  assert(css.includes(".store-light .qv-panel") && css.includes(".store-light .qv-media figure"), "quick view restyled light (white panel, matted prints)");
-  /* Hype Frame creative (the headline deliverable): layered prints,
-     manifesto headline, one numbered steps line, CTA to the plays. */
+  /* ---- 8. Store v4: v2 restored, new film, film-first hero ----
+     Emil (2026-11-04 evening): the v3 light re-skin was rejected
+     ("looked better before"), so the dark v2 store is restored and:
+     (1) the film leads the page, bigger; (2) the film itself is new —
+     four 10s clips of youth wearing the actual Drop 001 designs;
+     (3) the Hype Frame creative survives, re-skinned for the dark
+     store. (The v3 §7 light-skin assertions were replaced by these.) */
+  assert(home.includes('class="shop"') && !home.includes("store-light"), "dark v2 store restored (no .store-light scope class)");
+  assert(!css.includes(".store-light") && !css.includes("#f4f1ea"), "no light-canvas rules remain in styles.css");
+  const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf("swag-film-hero"), headIdx = home.indexOf("shop-head"), tilesIdx = home.indexOf("store-tiles");
+  assert(heroIdx > shopIdx && heroIdx < headIdx && heroIdx < tilesIdx, "film hero is the first element of the Store (before the intro copy and tiles)");
+  assert(css.includes("aspect-ratio:16/9;max-height:92vh"), "desktop hero runs 16/9 with a generous max-height");
+  assert(css.includes(".swag-film-hero{aspect-ratio:auto;height:82vh"), "mobile hero is ~82vh tall (taller than v2's 4/5 crop)");
+  const filmRes = await fetch(`${base}/swag-film.mp4`);
+  const filmBuf = await filmRes.arrayBuffer();
+  assert(filmRes.status === 200 && filmBuf.byteLength > 5000000 && filmBuf.byteLength < 20000000, `the NEW film serves and is upload-sized (${filmBuf.byteLength} bytes; the old film was 1,519,887)`);
+  assert(home.includes('poster="/swag-poster-v4.jpg"'), "hero poster is a frame of the new film (old-design poster retired)");
+  /* Scene table integrity: exactly the four new scenes, on the
+     assembled film's measured boundaries, and none of the old film's
+     scenes (title card / Hype All Day / division & end cards) remain. */
+  const scenesBlock = appJs.slice(appJs.indexOf("FILM_SCENES"), appJs.indexOf("];", appJs.indexOf("FILM_SCENES")));
+  assert((scenesBlock.match(/until:/g) || []).length === 4, "scene table has exactly 4 scenes");
+  assert(!scenesBlock.includes("Hype All Day") && !scenesBlock.includes("hype-girls") && !scenesBlock.includes("hype-boys") && !scenesBlock.includes("coordinating") && !scenesBlock.includes("collections"), "no old-film scene targets remain in the scene table");
+  assert(!appJs.includes("The Hype All Day hoodie") && !appJs.includes("Drop 001 — the full drop"), "old title-card / statement-hoodie scene copy is gone from app.js");
+  assert(appJs.includes('data-slug="${target}"') || appJs.includes("data-slug="), "scene button resolves its target card by slug (goToStoreScene)");
+  /* Hype Frame creative, dark skin: layered prints, manifesto
+     headline, one numbered steps line, CTA to the plays. */
   assert(home.includes('class="hf-creative"') && !home.includes("hypeframe-banner") && !home.includes("hf-steps-strip"), "Hype Frame creative section replaces the slim banner");
   assert(home.includes('class="hfc-print hfc-print-moment"') && home.includes('class="hfc-print hfc-print-hoodie"'), "creative layers a moment print over a hoodie print");
   assert(home.includes('class="hfc-printbox"') && home.includes('class="hfc-garment"'), "hoodie print reuses the studio garment mock with a composed print in its print area");
   assert((home.split("/swag/boys-unleashed-front.jpg").length - 1) >= 3, "the same dynamic lookbook moment appears on the card, the moment print, and the hoodie print");
-  assert(home.includes("Your moment.") && home.includes("Your hype.") && css.includes(".hfc-title"), "creative headline is the manifesto line (set in big italic ink)");
+  assert(home.includes("Your moment.") && home.includes("Your hype.") && css.includes(".hfc-title"), "creative headline is the manifesto line");
+  assert(css.includes(".hf-creative{display:grid") && css.includes("border-top:1px solid var(--line)"), "creative is styled for the dark store (v2 palette, unscoped by .store-light)");
   assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "creative subline: freeze a frame from your own highlight video — and wear it");
   for (const step of ["Pick your play", "Freeze the frame", "Make it yours", "Preview it", "Guardian approves"]) assert(home.includes(step), `creative steps line includes: ${step}`);
   assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
