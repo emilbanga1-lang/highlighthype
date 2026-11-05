@@ -272,6 +272,10 @@
   .votebtn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink)}
   /* Round 2: a failed vote is reported ON the button, in plain words. */
   .votebtn.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}
+  /* Fixes batch (2026-11-05): a vote in flight reads as pending —
+     dimmed, busy cursor — so the first tap visibly registered and a
+     second tap is not needed (the JS guard ignores it anyway). */
+  .votebtn.vote-pending{opacity:.6;cursor:progress}
   .votecount{font-size:13.5px;color:var(--muted);font-weight:600}
   .votecount b{color:#fff;font-size:16px;font-weight:800}
   .board-note{margin-top:22px;color:var(--muted2);font-size:13.5px;font-weight:500;max-width:820px}
@@ -712,6 +716,13 @@
   .mini-btn{background:transparent;border:1px solid var(--line2);color:#fff;border-radius:999px;font:inherit;font-size:13px;font-weight:700;padding:8px 13px;cursor:pointer}
   .mini-btn:hover{border-color:#fff}
   .mini-btn.share-copied{border-color:var(--volt);color:var(--volt)}
+  /* Fixes batch (2026-11-05): the per-card enter-contest message slot
+     — inline feedback replaces the native confirm()/alert() dialogs. */
+  .card-msg{margin-top:10px;border:1px solid var(--line2);border-radius:12px;padding:10px 12px;background:rgba(255,255,255,.03)}
+  .card-msg[hidden]{display:none}
+  .card-msg-text{margin:0;font-size:13.5px;font-weight:600;color:#fff;line-height:1.45}
+  .card-msg-text.err{color:#ffb9be}
+  .card-msg-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
   .athlete-link{background:none;border:0;color:var(--volt);font:inherit;font-weight:800;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
   .tagchip{display:inline-block;background:#fff;color:#0a0a0a;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:999px;vertical-align:2px}
   .tagchip.warn{background:transparent;border:1px solid var(--line2);color:var(--muted)}
@@ -773,6 +784,15 @@
      with ±1s step buttons; print styles are a 3-option preset group. */
   .hf-freezerow{display:flex;gap:10px;align-items:stretch}
   .hf-freezerow #hfFreeze{flex:1;width:auto}
+  /* Fixes batch (2026-11-05): freeze confirmation — the composed
+     print itself, small, under the freeze row. NOT the removed
+     apparel preview. The [hidden] guard is explicit: a display rule
+     on the wrapper must never resurrect it as an empty box (the old
+     #hfPhoto lesson). */
+  .hf-frozen{margin:14px 0 4px}
+  .hf-frozen[hidden]{display:none}
+  .hf-frozen img{display:block;width:auto;max-width:100%;max-height:180px;border:1px solid var(--line2);border-radius:12px;background:#000}
+  .hf-frozen-cap{margin:7px 0 0;font-size:12.5px;font-weight:700;color:var(--muted)}
   .hf-freezerow .btn{white-space:nowrap}
   /* Nov 5 studio usability (2026-11-05): one clean column (grid
      children may not overflow the track), BIG step targets, and no

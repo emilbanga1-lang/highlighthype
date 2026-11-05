@@ -101,11 +101,12 @@ function cardHtml(h, opts = {}) {
       </div>
       <div class="card-actions">
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-        <button type="button" class="mini-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
+        <button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
         ${ownerToken() && opts.inContest ? `<button type="button" class="mini-btn" onclick="markWinner(${h.id})">Mark winner (owner)</button>` : ""}
       </div>
+      <div class="card-msg" data-enter-msg${ENTER_MSGS.has(h.id) ? "" : " hidden"}>${ENTER_MSGS.get(h.id) || ""}</div>
     </div>
   </article>`;
 }
@@ -117,22 +118,59 @@ function cardHtml(h, opts = {}) {
    refusal) are not retried — only transport failures are. */
 const isNetworkFailure = (e) => !!e && (e.name === "TypeError" || /failed to fetch|network|load failed/i.test(e.message || ""));
 window.toggleVote = async (id, btn) => {
+  /* In-flight guard (Fixes batch, 2026-11-05): voting is a toggle, so
+     on a slow connection an impatient second tap used to fire a
+     PARALLEL request that toggled the vote straight back off — the
+     user cancelled their own vote and thought voting was broken.
+     While a request for this button is in flight, further clicks are
+     ignored and the button shows a pending state so the tap visibly
+     registered. The guard releases on EVERY exit path (finally),
+     including the failure paths, where the label is first restored
+     so showVoteFailure captures the real original. */
+  if (btn && btn.dataset.voteBusy === "1") return;
+  const original = btn ? btn.textContent : "";
+  if (btn) {
+    btn.dataset.voteBusy = "1";
+    btn.disabled = true;
+    btn.classList.add("vote-pending");
+    btn.textContent = "Voting…";
+  }
+  const failVote = () => {
+    if (btn) {
+      btn.textContent = original;
+      btn.disabled = false;
+      btn.classList.remove("vote-pending");
+    }
+    showVoteFailure(btn);
+  };
   const postVote = () => api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) });
   try {
-    await postVote();
-  } catch (firstError) {
-    if (!isNetworkFailure(firstError)) {
-      showVoteFailure(btn);
-      return;
-    }
     try {
       await postVote();
-    } catch {
-      showVoteFailure(btn);
-      return;
+    } catch (firstError) {
+      if (!isNetworkFailure(firstError)) {
+        failVote();
+        return;
+      }
+      try {
+        await postVote();
+      } catch {
+        failVote();
+        return;
+      }
+    }
+    try { await loadData(); } catch { /* the vote landed; a failed refresh is not a vote error */ }
+  } finally {
+    if (btn) {
+      delete btn.dataset.voteBusy;
+      btn.disabled = false;
+      btn.classList.remove("vote-pending");
+      // On success the re-render has already replaced this button (or
+      // is about to); on failure showVoteFailure owns the label. Only
+      // restore when the button still shows the pending label.
+      if (!btn.classList.contains("vote-failed") && btn.textContent === "Voting…") btn.textContent = original;
     }
   }
-  try { await loadData(); } catch { /* the vote landed; a failed refresh is not a vote error */ }
 };
 function showVoteFailure(btn) {
   if (!btn) return;
@@ -145,11 +183,45 @@ function showVoteFailure(btn) {
     btn.classList.remove("vote-failed");
   }, 3600);
 }
-window.enterContest = async (id) => {
+/* Enter-contest feedback (Fixes batch, 2026-11-05): the enter flow
+   used native confirm()/alert(), which in-app browsers can block or
+   auto-dismiss — the button read as completely dead (a tester tapped
+   twice and saw nothing). All enter feedback is now INLINE on the
+   card: a per-card message slot in cardHtml, fed from ENTER_MSGS so
+   a board re-render can neither duplicate the slot nor drop a
+   message mid-flow. The API contract is unchanged. */
+const ENTER_MSGS = new Map();
+function setEnterMsg(id, html) {
+  if (html) ENTER_MSGS.set(id, html); else ENTER_MSGS.delete(id);
+  $$(`.card[data-play-id="${id}"] [data-enter-msg]`).forEach((slot) => {
+    slot.innerHTML = html || "";
+    slot.hidden = !html;
+  });
+}
+window.enterContest = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
-  if (play && !play.hasGuardianEmail && !play.hasGuardianText && !confirm("Heads up: this play has no parent/guardian email and no consented guardian text number on file, so it can't be featured if it wins — winners are contacted through a parent/guardian only. Enter anyway?")) return;
-  try { const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); alert(r.message); await loadData(); } catch (e) { alert(e.message); }
+  if (play && !play.hasGuardianEmail && !play.hasGuardianText) {
+    setEnterMsg(id, `<p class="card-msg-text">This play can't be featured yet — it needs a parent/guardian email on file so we can reach the winner. It can still collect votes.</p>
+      <div class="card-msg-btns">
+        <button type="button" class="mini-btn" onclick="enterContestAnyway(${id})">Enter anyway</button>
+        <button type="button" class="mini-btn" onclick="enterContestDismiss(${id})">Not now</button>
+      </div>`);
+    return;
+  }
+  return submitContestEntry(id);
 };
+window.enterContestAnyway = (id) => submitContestEntry(id);
+window.enterContestDismiss = (id) => setEnterMsg(id, "");
+async function submitContestEntry(id) {
+  setEnterMsg(id, `<p class="card-msg-text">Entering…</p>`);
+  try {
+    const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) });
+    setEnterMsg(id, `<p class="card-msg-text ok">${esc(r.message)}</p>`);
+    await loadData();
+  } catch (e) {
+    setEnterMsg(id, `<p class="card-msg-text err">${esc(e.message)}</p>`);
+  }
+}
 window.reportPlay = async (id) => { const reason = prompt("Why are you reporting this play? (optional)") || "Reported by a user"; try { const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) }); alert(r.message); } catch (e) { alert(e.message); } };
 window.markWinner = async (id) => { try { const r = await api("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); if (r.warning) alert(r.warning); await loadData(); } catch (e) { alert(e.message); } };
 window.sharePlay = async (id, btn) => {
@@ -741,6 +813,7 @@ function initHfStudio(play) {
     linkNote.hidden = false; freezeBtn.disabled = true;
   }
   hfBuildStrip();
+  hfSyncFrozenThumb(); // new play: no print yet — confirmation hidden, Freeze label restored
 }
 /* Frame filmstrip (2026-11-05): thumbnails captured client-side from
    the play's own video at ~1s intervals (coarser for long clips, max
@@ -909,6 +982,30 @@ function hfDrawLockup(x, W, H, bandH, tone) {
   x.fillText("HIGHLIGHTHYPE", cx, H + bandH * 0.90);
   x.restore();
 }
+/* Freeze confirmation (Fixes batch, 2026-11-05): Round 2 removed the
+   studio preview, and with it went the ONLY visible sign that a
+   freeze had worked — users tapped Freeze and saw nothing change.
+   This is deliberately NOT the apparel preview coming back (no
+   garment mock, no pickers): the composed print itself, shown small
+   under the freeze row, plus the Freeze button relabels. Synced from
+   composeHfPrint — the single choke point every recompose flows
+   through (freeze, print-style preset, name/jersey edits) — so the
+   thumbnail always tracks the current print, and it hides again
+   whenever there is no print (new play opened, not frozen yet). */
+const HF_FREEZE_LABEL = "📸 Freeze this frame";
+function hfSyncFrozenThumb() {
+  const wrap = $("#hfFrozenWrap"), img = $("#hfFrozenImg"), btn = $("#hfFreeze");
+  if (!wrap || !img) return;
+  if (hfState.frozen && hfState.printDataUrl) {
+    img.src = hfState.printDataUrl;
+    wrap.hidden = false;
+    if (btn) btn.textContent = "Frame frozen ✓ — tap to re-freeze";
+  } else {
+    wrap.hidden = true;
+    img.removeAttribute("src");
+    if (btn) btn.textContent = HF_FREEZE_LABEL;
+  }
+}
 // Compose the FINAL print image: the frozen frame, the optional HYPE
 // FRAME poster treatment (grunge frame + lockup band), and the name /
 // jersey caption under the frame. The submitted order carries this
@@ -916,7 +1013,7 @@ function hfDrawLockup(x, W, H, bandH, tone) {
 // the composition is no longer shown on a garment preview in the
 // studio; it lives in hfState and rides on the order payload.)
 function composeHfPrint() {
-  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; return; }
+  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; hfSyncFrozenThumb(); return; }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
@@ -954,6 +1051,7 @@ function composeHfPrint() {
   }
   hfState.printDataUrl = c.toDataURL("image/png");
   hfState.printAspect = c.height / c.width;
+  hfSyncFrozenThumb();
 }
 // Print style presets: radio behavior over the three options; the
 // choice re-composes the print live, exactly like the old checkbox did.

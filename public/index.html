@@ -313,6 +313,14 @@
             <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
             <button type="button" class="btn btn-ghost" id="hfStepFwd" aria-label="Forward one second">1s ▶</button>
           </div>
+          <!-- Freeze confirmation (Fixes batch, 2026-11-05): NOT the
+               removed apparel preview — just the composed print itself,
+               small, so a freeze visibly lands. Hidden until a freeze
+               succeeds; synced from composeHfPrint in app.js. -->
+          <div class="hf-frozen" id="hfFrozenWrap" hidden>
+            <img id="hfFrozenImg" alt="Your frozen frame — the print composed from the moment you froze">
+            <p class="hf-frozen-cap">Your frozen frame — this is the print. Freeze again any time to change it.</p>
+          </div>
           <p class="small">Play or scrub to the moment — Freeze works while the video plays, and the ◀ ▶ buttons nudge it a second at a time. Not the one? Freeze again — as many times as you like, until it's the shot. Your frozen frame becomes the print.</p>
           <div id="hfLinkNote" hidden>
             <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
