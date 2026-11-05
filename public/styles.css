@@ -793,6 +793,23 @@
   .hf-frozen[hidden]{display:none}
   .hf-frozen img{display:block;width:auto;max-width:100%;max-height:180px;border:1px solid var(--line2);border-radius:12px;background:#000}
   .hf-frozen-cap{margin:7px 0 0;font-size:12.5px;font-weight:700;color:var(--muted)}
+  /* Round 3 (2026-11-05): the studio opens with the payoff — the Hype
+     Frame film + the finished-product examples — and the color/size
+     pickers are back. The film is a plain 16/9 player card. */
+  .hf-payoff{margin:2px 0 10px}
+  .hf-film{border:1px solid var(--line2);border-radius:20px;overflow:hidden;background:#000;box-shadow:0 18px 44px rgba(0,0,0,.45)}
+  .hf-film video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+  .hf-payoff-line{margin:16px 0 2px;font-family:"Anton",sans-serif;font-size:clamp(22px,5.6vw,30px);letter-spacing:.02em;text-transform:uppercase}
+  .hf-examples-studio{margin:14px 0 0;padding-top:0;border-top:0}
+  .hf-colors{display:flex;flex-wrap:wrap;gap:8px}
+  .hf-color{display:inline-flex;align-items:center;gap:8px;appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:700;font-size:13.5px;padding:9px 14px 9px 10px;border-radius:999px;cursor:pointer;touch-action:manipulation}
+  .hf-color-dot{width:18px;height:18px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);flex:none}
+  .hf-color[aria-pressed="true"]{background:var(--hf-purple);border-color:var(--hf-purple);color:#fff}
+  .hf-color:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hf-sizes{display:flex;flex-wrap:wrap;gap:8px}
+  .hf-size{appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:800;font-size:13.5px;padding:9px 15px;border-radius:999px;cursor:pointer;touch-action:manipulation}
+  .hf-size[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
+  .hf-size:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .hf-freezerow .btn{white-space:nowrap}
   /* Nov 5 studio usability (2026-11-05): one clean column (grid
      children may not overflow the track), BIG step targets, and no
@@ -920,6 +937,13 @@
   body[data-store-focus="girls"] .shop-head{display:none}
   body[data-store-focus="boys"] .store-block[data-store-block="girls"],
   body[data-store-focus="girls"] .store-block[data-store-block="boys"]{display:none}
+  /* The Hype Frame door (Round 3, 2026-11-05) is a third landing block
+     but NOT a division: it hides in either division's focus mode and
+     never gets a focus state of its own. */
+  body[data-store-focus="boys"] .store-block[data-store-block="hypeframe"],
+  body[data-store-focus="girls"] .store-block[data-store-block="hypeframe"]{display:none}
+  .store-banner-copy h3 .purple{color:var(--hf-purple-soft)}
+  .hf-creative{scroll-margin-top:calc(var(--navh,70px) + 12px)}
   body[data-store-focus="boys"] .store-block[data-store-block="boys"],
   body[data-store-focus="girls"] .store-block[data-store-block="girls"]{margin-top:6px}
   /* Doors landing (2026-11-05, Overtime pattern): on the landing the

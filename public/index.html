@@ -239,6 +239,33 @@
       </figure>
     </div>
   </div>
+
+<!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
+<div class="wrap">
+  <div class="hf-examples" id="hfExamplesHome">
+    <div class="hf-examples-head">
+      <span class="sec-tag">Hype Frame</span>
+      <h4>What yours could look like</h4>
+      <p>Example finishes — yours is made from your own play. Pick a play on the board and tap “Create a Hype Frame” to freeze your moment.</p>
+    </div>
+    <!-- Hype Frame film (Round 3, 2026-11-05): assembled from real
+         assets — Nicholas's actual home-run clip, its frozen frame, and
+         the finished-product poster crops. No generated footage. -->
+    <div class="hf-film">
+      <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a real highlight freezes and becomes a printed hoodie"></video>
+    </div>
+    <div class="hf-examples-grid">
+      <figure class="hf-example hf-example-hoodie">
+        <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+        <figcaption>Cream hoodie · Back — example finish</figcaption>
+      </figure>
+      <figure class="hf-example hf-example-lineup">
+        <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
+        <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
+      </figure>
+    </div>
+  </div>
+</div>
 </section>
 
 <!-- ============ MY HIGHLIGHTS ============ -->
@@ -294,6 +321,29 @@
       <p id="hfPlayLine">Turn your highlight into wearable hype — freeze a real frame from the highlight, put it on premium youth apparel, and send the request. A parent or guardian confirms before anything is printed.</p>
     </div>
 
+    <!-- Payoff first (Round 3, 2026-11-05): the studio opens with what
+         the finished thing looks like — the Hype Frame film plus the
+         finished-product examples — THEN the freeze flow. Excitement
+         first, data collection last. -->
+    <div class="hf-payoff">
+      <div class="hf-film">
+        <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a real highlight freezes and becomes a printed hoodie"></video>
+      </div>
+      <p class="hf-payoff-line">This is what your moment becomes.</p>
+      <div class="hf-examples hf-examples-studio">
+        <div class="hf-examples-grid">
+          <figure class="hf-example hf-example-hoodie">
+            <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+            <figcaption>Cream hoodie · Back — example finish</figcaption>
+          </figure>
+          <figure class="hf-example hf-example-lineup">
+            <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
+            <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+
     <div class="hf-studio upload-card" id="hfStudio">
       <div class="hf-grid">
         <div class="hf-col">
@@ -340,6 +390,23 @@
             <button type="button" data-hf-preset="hypeframe" aria-pressed="true">Hype Frame</button>
           </div>
           <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on the front of the garment.</p>
+
+          <!-- Color + size pickers (Round 3, 2026-11-05): Emil reversed
+               the Round 2 simplification for these two fields. The
+               garment (hoodie) and print side (front) stay fixed — no
+               apparel mock, no side toggle. Color drives the composed
+               print's frame tone, exactly as the default did. -->
+          <h4 class="form-sec-title" style="margin-top:22px">Hoodie color</h4>
+          <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
+          <h4 class="form-sec-title" style="margin-top:22px">Youth size</h4>
+          <div class="hf-sizes" id="hfSizes" role="group" aria-label="Youth size">
+            <button type="button" class="hf-size" data-hf-size="YXXS" aria-pressed="false">YXXS</button>
+            <button type="button" class="hf-size" data-hf-size="YXS" aria-pressed="false">YXS</button>
+            <button type="button" class="hf-size" data-hf-size="YS" aria-pressed="false">YS</button>
+            <button type="button" class="hf-size" data-hf-size="YM" aria-pressed="true">YM</button>
+            <button type="button" class="hf-size" data-hf-size="YL" aria-pressed="false">YL</button>
+            <button type="button" class="hf-size" data-hf-size="YXL" aria-pressed="false">YXL</button>
+          </div>
 
           <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
           <form id="hfOrderForm">
@@ -393,27 +460,6 @@
     </div>
   </div>
 </section>
-
-<!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
-<div class="wrap">
-  <div class="hf-examples" id="hfExamplesHome">
-    <div class="hf-examples-head">
-      <span class="sec-tag">Hype Frame</span>
-      <h4>What yours could look like</h4>
-      <p>Example finishes — yours is made from your own play. Pick a play on the board and tap “Create a Hype Frame” to freeze your moment.</p>
-    </div>
-    <div class="hf-examples-grid">
-      <figure class="hf-example hf-example-hoodie">
-        <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-        <figcaption>Cream hoodie · Back — example finish</figcaption>
-      </figure>
-      <figure class="hf-example hf-example-lineup">
-        <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
-        <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
-      </figure>
-    </div>
-  </div>
-</div>
 
 </div><!-- /deck -->
 
@@ -606,6 +652,21 @@
                     <p class="prod-colors" aria-label="Comes in Sky Blue, Cream, Pink and Lavender"><span class="prod-dot" style="--sw:#8ec9ee"></span><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#f6a8c5"></span><span class="prod-dot" style="--sw:#c2ade0"></span></p>
                   </div>
                 </article>
+        </div>
+      </div>
+      <!-- Third door (Round 3, 2026-11-05): Hype Frame gets a door
+           like the two divisions. It is NOT a division — no focus
+           mode; tapping it scrolls to the Hype Frame creative below
+           (data-hf-door wiring in app.js). Hidden in focus mode like
+           the other doors' blocks. -->
+      <div class="store-block" data-store-block="hypeframe">
+        <div class="store-banner store-banner-hf">
+          <img src="/swag/hf-door.jpg" alt="Hype Frame — a frozen baseball moment printed on the back of a cream hoodie" loading="lazy" decoding="async" />
+          <div class="store-banner-copy">
+            <h3>Hype <span class="purple">Frame</span></h3>
+            <p>Turn your highlight into wearable hype</p>
+            <button type="button" class="store-banner-btn" data-hf-door>Create yours <span class="chev" aria-hidden="true">›</span></button>
+          </div>
         </div>
       </div>
     </div>

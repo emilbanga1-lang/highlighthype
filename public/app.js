@@ -515,12 +515,19 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
    pause-to-shop boundaries. A docked pause/play button sits in the
    film's bottom-right corner (the floating hint pill is gone).
    Each scene's card targets that collection's grid card by slug. The old
-   film's title-card and Hype All Day scenes are gone with the old film. */
+   film's title-card and Hype All Day scenes are gone with the old film.
+   Round 3 (2026-11-05): Emil — each model clip felt too long. The same
+   five scenes are recut to 4.0s each (20.0s total, still silent), each
+   trimmed around its best moment (the two back views keep the back
+   print readable): Boys Street 0-4s (from 1.5-5.5s of the v8 cut),
+   Boys Athletics 4-8s, Boys Unleashed 8-12s, Girls Street 12-16s,
+   Girls Essentials 16s-end. The pause-to-shop boundaries below are
+   the new 4s grid: scene k covers [4k, 4k+4). */
 const FILM_SCENES = [
-  { until: 7, title: "The Boys Hype Street hoodie", sub: "You paused on the Boys Street scene — washed black with the crown HYPE chest.", btn: "View this look", target: "boys-street" },
-  { until: 14, title: "The Boys Hype Athletics hoodie", sub: "You paused on the Boys Athletics scene — cream varsity with green stripes, Hype Is Earned.", btn: "View this look", target: "boys-athletics" },
-  { until: 21, title: "The Boys Hype Unleashed hoodie", sub: "You paused on the Boys Unleashed scene — blue and yellow lightning print, It's Hype or Nothing.", btn: "View this look", target: "boys-unleashed" },
-  { until: 28, title: "The Girls Hype Street hoodie", sub: "You paused on the Girls Street scene — washed charcoal with the hibiscus HYPE print.", btn: "View this look", target: "girls-street" },
+  { until: 4, title: "The Boys Hype Street hoodie", sub: "You paused on the Boys Street scene — washed black with the crown HYPE chest.", btn: "View this look", target: "boys-street" },
+  { until: 8, title: "The Boys Hype Athletics hoodie", sub: "You paused on the Boys Athletics scene — cream varsity with green stripes, Hype Is Earned.", btn: "View this look", target: "boys-athletics" },
+  { until: 12, title: "The Boys Hype Unleashed hoodie", sub: "You paused on the Boys Unleashed scene — blue and yellow lightning print, It's Hype or Nothing.", btn: "View this look", target: "boys-unleashed" },
+  { until: 16, title: "The Girls Hype Street hoodie", sub: "You paused on the Girls Street scene — washed charcoal with the hibiscus HYPE print.", btn: "View this look", target: "girls-street" },
   { until: Infinity, title: "The Girls Hype Essentials hoodie", sub: "You paused on the Girls Essentials scene — the pink hoodie, The Hype Starts Here.", btn: "View this look", target: "girls-essentials" },
 ];
 function filmSceneAt(t) {
@@ -625,6 +632,12 @@ $$(".store-banner").forEach((banner) => banner.addEventListener("click", (e) => 
   const btn = banner.querySelector("[data-store-focus]");
   if (btn) goToStoreScene(btn.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys");
 }));
+/* Third door (Round 3, 2026-11-05): the Hype Frame banner is a door
+   like the divisions, but it is NOT a division — no focus mode. The
+   whole banner (and its button) smooth-scrolls to the Hype Frame
+   creative that lives on the same store landing. */
+$$("[data-hf-door]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("hype-frame")?.scrollIntoView({ behavior: "smooth" }); }));
+$$(".store-banner-hf").forEach((banner) => banner.addEventListener("click", () => { document.getElementById("hype-frame")?.scrollIntoView({ behavior: "smooth" }); }));
 $("#storeFocusExit")?.addEventListener("click", () => { setStoreFocus(null); document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }); });
 $$(".prod-card").forEach((card) => {
   const flip = card.querySelector("[data-flip]");
@@ -740,14 +753,15 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuick
 //      default placement on the garment.
 //   4. Order with parent or guardian approval (an order REQUEST — no
 //      payment, no price; the owner confirms with the guardian first).
-// Round 2 (2026-11-05): there is NO on-screen garment preview and no
-// apparel / side / colorway pickers any more — the preview block was
-// too confusing. The order payload carries fixed defaults instead
-// (apparel "hoodie", side "front", the default colorway below), so
-// the server contract is unchanged; garment details are confirmed
-// with the guardian afterwards. The hoodie colorway list survives
-// only so the composed print's frame/lockup tone can follow the
-// default garment color.
+// Round 2 (2026-11-05): the on-screen garment preview was removed
+// (too confusing), and with it the apparel / side / colorway pickers —
+// the payload carried fixed defaults. Round 3 (2026-11-05, later the
+// same day): Emil brought back exactly two pickers — hoodie COLOR and
+// youth SIZE (see hfPickColor / hfPickSize). The preview, the garment
+// picker and the side toggle stay removed: apparel is always
+// "hoodie", side always "front". The colorway list below is the
+// picker's single source of truth, and the composed print's
+// frame/lockup tone follows the chosen garment color.
 // Capture is client-side canvas work: play videos are same-origin hosted
 // files, so drawImage + toDataURL work. Link-posted plays can't be
 // captured (cross-origin embeds) — the studio says so instead of failing.
@@ -768,7 +782,7 @@ const HF_COLORWAYS = {
    print's placement values and the order payload both read it
    (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -792,10 +806,13 @@ function initHfStudio(play) {
   $("#hfJersey").value = play.jersey || "";
   hfSetPreset("hypeframe");
   $("#hfMsg").textContent = "";
-  // Round 2 defaults ride on every order (no pickers in the studio).
+  // Fixed garment defaults ride on every order (hoodie / front —
+  // still no garment or side picker). Color + size are the family's
+  // choice again (Round 3): reset both pickers for the new play.
   hfState.apparel = "hoodie";
   hfState.side = "front";
-  hfState.colorway = (HF_COLORWAYS.hoodie[0] || {}).name || "Black";
+  hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
+  hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
   v.pause(); v.removeAttribute("src"); v.load();
   photo.removeAttribute("src");
@@ -1060,6 +1077,40 @@ function hfSetPreset(p) {
   $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
   if (hfState.frozen) composeHfPrint();
 }
+// Hoodie color + youth size (Round 3, 2026-11-05): Emil reversed the
+// Round 2 simplification for these two fields. The color drives the
+// composed print's frame tone (hfPrintTone reads hfState.colorway), so
+// picking one re-composes a frozen print exactly like a style change.
+// The garment stays "hoodie" and the side stays "front" — there is
+// still no apparel mock, garment picker or side toggle.
+const HF_SIZES = ["YXXS", "YXS", "YS", "YM", "YL", "YXL"];
+function hfPickColor(name) {
+  const list = HF_COLORWAYS[hfState.apparel] || [];
+  if (!list.some((k) => k.name === name)) return;
+  hfState.colorway = name;
+  $$("#hfColors [data-hf-color]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfColor === name)));
+  if (hfState.frozen) composeHfPrint();
+}
+function hfPickSize(size) {
+  if (!HF_SIZES.includes(size)) return;
+  hfState.size = size;
+  $$("#hfSizes [data-hf-size]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSize === size)));
+}
+function hfBuildColorButtons() {
+  const wrap = $("#hfColors");
+  if (!wrap || wrap.childElementCount) return;
+  for (const k of HF_COLORWAYS.hoodie) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "hf-color";
+    b.dataset.hfColor = k.name;
+    b.setAttribute("aria-pressed", String(hfState.colorway === k.name));
+    b.setAttribute("aria-label", `Hoodie color ${k.name}`);
+    b.innerHTML = `<span class="hf-color-dot" style="--sw:${k.hex}"></span>${k.name}`;
+    b.addEventListener("click", () => hfPickColor(k.name));
+    wrap.appendChild(b);
+  }
+}
 (function () {
   const v = $("#hfVideo");
   if (!v) return;
@@ -1074,10 +1125,15 @@ function hfSetPreset(p) {
   $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
   ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
   $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
+  // Color + size pickers (Round 3): color buttons are built from
+  // HF_COLORWAYS so the list lives in exactly one place; size buttons
+  // are static markup wired here.
+  hfBuildColorButtons();
+  $$("#hfSizes [data-hf-size]").forEach((b) => b.addEventListener("click", () => hfPickSize(b.dataset.hfSize)));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
-  // size controls — and since Round 2 there is no garment preview or
-  // apparel/side/colorway picker either; the order simply carries
-  // the default placement + garment values to the server.
+  // placement controls — and there is still no garment preview or
+  // apparel/side picker; the order carries the default placement,
+  // the fixed garment values, and the chosen colorway + size.
   $("#hfOrderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = $("#hfMsg");
@@ -1095,6 +1151,7 @@ function hfSetPreset(p) {
         apparel: hfState.apparel,
         side: hfState.side,
         colorway: hfState.colorway,
+        size: hfState.size,
         placement: hfState.placement,
         guardianName: $("#hfGuardianName").value.trim(),
         guardianEmail,
@@ -1290,7 +1347,7 @@ async function loadOwner() {
           <div class="hf-req-body">
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
-            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Print side: ${o.side === "back" ? "Back" : "Front"}<br>
+            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
             <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>
