@@ -120,7 +120,7 @@
           <button type="button" data-div="boys" aria-pressed="true">Boys</button>
           <button type="button" data-div="girls" aria-pressed="false">Girls</button>
         </div>
-        <div class="pills" role="group" aria-label="Sport" id="monthSportPills"></div>
+        <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
       </div>
       <div class="board" id="board"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
@@ -139,7 +139,7 @@
           <button type="button" data-div="boys" aria-pressed="false">Boys</button>
           <button type="button" data-div="girls" aria-pressed="false">Girls</button>
         </div>
-        <div class="pills" role="group" aria-label="Sport" id="allSportPills"></div>
+        <select class="sport-select" id="allSportSelect" aria-label="Sport — all plays"></select>
         <span class="tool-label" id="teamLabel">Team</span>
         <select class="team-select" id="teamFilter" aria-labelledby="teamLabel">
           <option value="all">All teams</option>

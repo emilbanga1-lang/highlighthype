@@ -279,12 +279,22 @@ function renderMonth() {
   $("#board").innerHTML = filtered.map((h) => cardHtml(h, { monthVotes: h.voteCount, inContest: true, prizeEligible: h.prizeEligible })).join("");
   $("#emptyState").style.display = filtered.length ? "none" : "block";
 }
+/* Hall of Fame thumbnails (Round 5, 2026-11-05): image plays keep
+   their photo; video plays — uploaded files and direct link videos,
+   the same two kinds the board cards play — get a REAL playing video
+   (muted, looping, inline) instead of the old sport-name placeholder.
+   Anything else (embeds, watch-links) keeps the sport-name fallback. */
+function fameThumbHtml(h) {
+  if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
+  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}" muted loop playsinline autoplay preload="metadata"></video>`;
+  return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
+}
 function renderFame() {
   const ranked = [...ALL_PLAYS].sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
   $("#fameList").innerHTML = ranked.length ? ranked.map((h, i) => `
-    <div class="fame-row${i === 0 ? " top" : ""}">
+    <div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
       <span class="fame-rank">${i + 1}</span>
-      <span class="fame-thumb">${(h.mime || "").startsWith("image/") ? `<img src="${esc(h.media_url)}" alt="">` : `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`}</span>
+      <span class="fame-thumb">${fameThumbHtml(h)}</span>
       <div class="fame-info"><h4>${esc(h.title)}</h4><p>${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"}${h.team ? ` · ${esc(h.team)}` : " · No team tagged"}${h.athlete_label ? ` · ${esc(h.athlete_label)}` : ""}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}</p></div>
       <div class="fame-votes"><b>${h.voteCount}</b><span>All-time votes</span></div>
     </div>`).join("") : `<p style="color:var(--muted)">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
@@ -351,6 +361,23 @@ function highlightSharedPlay() {
   }
   if (el) { el.classList.add("flash"); setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }
 }
+/* Hall of Fame rows land on the play's full card (Round 5,
+   2026-11-05): reset the All Hypes filters so the card is rendered,
+   switch to that view, set the shared-play hash (#play-<id>, the
+   same URL contract as a shared link) and flash + scroll to the
+   card exactly the way highlightSharedPlay does. The card lookup is
+   scoped to #allBoard on purpose: month-board cards carry the same
+   data-play-id and sit earlier in the DOM, so an unscoped lookup
+   could land on a card in a view the visitor just left. */
+window.goToPlayCard = (id) => {
+  showHome();
+  allDiv = "all"; allSport = "all"; allTeam = "all"; allSearch = "";
+  const si = $("#allSearch"); if (si) si.value = "";
+  showPanel("plays"); switchView("all"); renderAll2(); syncFilterUI();
+  history.replaceState(null, "", `#play-${id}`);
+  const el = document.querySelector(`#allBoard [data-play-id="${id}"]`);
+  if (el) { el.classList.add("flash"); setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }
+};
 
 /* ---------------- athlete collection ---------------- */
 window.openAthlete = async (athleteId) => {
@@ -453,29 +480,34 @@ $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.p
 $$("[data-tablink]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); showHome(); showPanel(a.dataset.tablink); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 
 /* ---------------- filters ---------------- */
-// Sport pills are DYNAMIC (Emil, 2026-11-04): "All sports" plus one pill
-// per sport that actually has plays in the data behind that view — the
-// month pills follow this month's contest entries (for the selected
-// board), the All Hypes pills follow every approved play (for the
-// selected board). No plays in a sport = no pill for it.
+// Sport filters are DYNAMIC (Emil, 2026-11-04): "All sports" plus one
+// entry per sport that actually has plays in the data behind that
+// view — the month filter follows this month's contest entries (for
+// the selected board), the All Hypes filter follows every approved
+// play (for the selected board). No plays in a sport = no entry.
+// Round 5 (2026-11-05): the entries moved from pill rows into native
+// <select> dropdowns (one per board view) to give the homepage its
+// vertical space back — native on purpose, so iOS opens its own
+// reliable picker. Same options, same per-view state, same filtering.
 function sportsInData(plays) {
   const present = new Set(plays.map((h) => h.sport).filter(Boolean));
   return SPORTS.filter((s) => present.has(s));
 }
-function renderPills(el, current, sports, cb) {
-  el.innerHTML = [`<button type="button" class="pill" data-sport="all" aria-pressed="${current === "all"}">All sports</button>`,
-    ...sports.map((s) => `<button type="button" class="pill" data-sport="${s}" aria-pressed="${current === s}">${cap(s)}</button>`)].join("");
-  el.querySelectorAll(".pill").forEach((b) => b.onclick = () => cb(b.dataset.sport));
+function renderSportSelect(el, current, sports, cb) {
+  el.innerHTML = [`<option value="all"${current === "all" ? " selected" : ""}>All sports</option>`,
+    ...sports.map((s) => `<option value="${s}"${current === s ? " selected" : ""}>${cap(s)}</option>`)].join("");
+  el.value = current;
+  el.onchange = () => cb(el.value);
 }
 function syncFilterUI() {
   // Fall back to "All sports" when the selected sport has no plays left
-  // in the current data (its pill is gone, so the filter must not stick).
+  // in the current data (its option is gone, so the filter must not stick).
   const monthSports = sportsInData((CONTEST.entries || []).filter((h) => divMatch(h, monthDiv)));
   if (monthSport !== "all" && !monthSports.includes(monthSport)) monthSport = "all";
   const allSports = sportsInData(ALL_PLAYS.filter((h) => divMatch(h, allDiv)));
   if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
-  renderPills($("#monthSportPills"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
-  renderPills($("#allSportPills"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
+  renderSportSelect($("#monthSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
+  renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
 }
