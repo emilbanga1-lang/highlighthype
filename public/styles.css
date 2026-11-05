@@ -793,8 +793,12 @@
      bold italic title + underlined shop links bottom-left over the
      gradient, one round outline pause/play button bottom-right. Below
      it, full-width photo tiles act as navigation (Girls / Boys). */
-  .swag-film-hero{width:100vw;margin-left:calc(50% - 50vw);border:0;border-radius:0;aspect-ratio:21/9;margin-bottom:22px}
-  @media (max-width:640px){ .swag-film-hero{aspect-ratio:4/5;max-height:84vh} }
+  /* Store v4 (2026-11-04): the film leads the store and runs bigger —
+     first element in the view, 16/9 on desktop with a generous cap,
+     ~82vh tall on phones (the new film's clips are portrait, so the
+     tall crop is its home turf). */
+  .swag-film-hero{width:100vw;margin-left:calc(50% - 50vw);border:0;border-radius:0;aspect-ratio:16/9;max-height:92vh;margin-bottom:22px}
+  @media (max-width:640px){ .swag-film-hero{aspect-ratio:auto;height:82vh;max-height:82vh} }
   .swag-film-hero video{cursor:pointer}
   .swag-hero-overlay{padding:30px max(20px, calc((100vw - 1180px)/2)) 26px}
   .swag-film-hero .swag-film-overlay h3{font-style:italic}
@@ -878,132 +882,38 @@
   .qv-note{color:var(--muted2);font-size:13px;margin:14px 0 0}
   body.qv-open{overflow:hidden}
 
-  /* ---------- Store v3 (2026-11-04): Suitsupply editorial ----------
-     Emil sent a Suitsupply email creative + suitsupply.com as the new
-     reference: a light warm off-white canvas, generous whitespace, and
-     photos presented as overlapping WHITE-BORDERED PRINTS with soft
-     shadows and minimal black type. This block translates that language
-     to the Store ONLY (scoped to .store-light on the shop section) —
-     the rest of the app keeps its dark theme. Volt/pink survive only
-     as small accents: link underlines, the division tab rules, the
-     card-flash ring. The film hero stays the v2 full-bleed dark band. */
-  .shop.store-light{
-    --paper:#f4f1ea; --ink:#171611; --ink-soft:#55534a; --ink-faint:#8a877c;
-    --hair:rgba(23,22,17,.14); --gold-deep:#a87f14; --lime-deep:#7a9a00; --pink-deep:#d61c7a;
-    background:var(--paper); color:var(--ink); border-top:0; padding:40px 0 84px;
-  }
-  /* store bar + head on paper */
-  .store-light .store-bar{border-bottom:1px solid var(--hair); margin-bottom:40px}
-  .store-light .back-link{border-color:var(--hair); color:var(--ink)}
-  .store-light .back-link:hover{border-color:var(--ink)}
-  .store-light .store-bar .crumb{color:var(--ink-faint)}
-  .store-light .store-bar .crumb b{color:var(--ink)}
-  .store-light .store-bar .crumb .sep{color:var(--hair)}
-  .store-light .sec-tag{color:var(--ink-soft)}
-  .store-light .shop-head{margin-bottom:46px}
-  .store-light .shop-head h2{color:var(--ink)}
-  .store-light .shop-head h2 .lime{color:inherit; background:linear-gradient(transparent 64%, var(--volt) 64%)}
-  .store-light .shop-head p{color:var(--ink-soft)}
-  .store-light .shop-head p b{color:var(--ink)}
-  .store-light .swag-film-hero{margin-bottom:48px}
-  /* nav tiles as editorial prints: white mat, caption inside the mat */
-  .store-light .store-tiles{gap:26px; margin-bottom:52px}
-  .store-light .store-tile{border:0; border-radius:3px; background:#fff; padding:12px; aspect-ratio:auto; overflow:visible;
-    box-shadow:0 20px 44px rgba(23,22,17,.13), 0 2px 8px rgba(23,22,17,.07); transition:box-shadow .25s ease}
-  .store-light .store-tile:hover{box-shadow:0 26px 54px rgba(23,22,17,.18), 0 3px 10px rgba(23,22,17,.09)}
-  .store-light .store-tile::after{display:none}
-  .store-light .store-tile:focus-visible{outline:2px solid var(--ink); outline-offset:4px}
-  .store-light .tile-print{display:block}
-  .store-light .store-tile img{position:relative; inset:auto; width:100%; height:auto; aspect-ratio:21/10; object-fit:cover; display:block}
-  @media (max-width:640px){ .store-light .store-tile img{aspect-ratio:4/3} }
-  .store-light .tile-caption{display:flex; align-items:baseline; justify-content:space-between; gap:14px; padding:15px 6px 5px}
-  .store-light .tile-label{font-family:"Anton",sans-serif; font-style:italic; font-size:clamp(30px,4.6vw,44px); line-height:1; text-transform:uppercase; letter-spacing:.01em; color:var(--ink); text-shadow:none}
-  .store-light .tile-link{font-weight:800; font-size:16.5px; color:var(--ink); text-decoration:underline; text-underline-offset:5px; text-decoration-thickness:2px; text-shadow:none; white-space:nowrap}
-  .store-light .tile-link .chev{text-decoration:none; display:inline-block}
-  .store-light .store-tile-girls .tile-link{text-decoration-color:#ec2c8c}
-  .store-light .store-tile-boys .tile-link{text-decoration-color:var(--volt)}
-  /* controls as minimal text tabs */
-  .store-light .store-controls{background:rgba(244,241,234,.93); border-bottom:1px solid var(--hair); padding:13px 2px; margin-bottom:36px; gap:8px 30px}
-  .store-light .store-divseg{border:0; border-radius:0; overflow:visible; display:inline-flex; gap:24px}
-  .store-light .divseg-btn{color:var(--ink-faint); font-size:13.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; padding:6px 1px; border-bottom:2px solid transparent}
-  .store-light .divseg-btn:hover{color:var(--ink)}
-  .store-light .divseg-girls[aria-pressed="true"]{background:none; color:var(--ink); border-bottom-color:#ec2c8c}
-  .store-light .divseg-boys[aria-pressed="true"]{background:none; color:var(--ink); border-bottom-color:var(--lime-deep)}
-  .store-light .store-chips{gap:22px}
-  .store-light .store-chip{border:0; background:none; border-radius:0; color:var(--ink-faint); font-size:13px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; padding:6px 1px; border-bottom:2px solid transparent}
-  .store-light .store-chip:hover{color:var(--ink)}
-  .store-light .store-chip[aria-pressed="true"]{background:none; color:var(--ink); border-bottom-color:var(--ink)}
-  /* product cards as framed prints: white mat, back print peeking out */
-  .store-light .prod-grid{gap:38px 22px}
-  @media (min-width:900px){ .store-light .prod-grid{gap:46px 26px} }
-  .store-light .prod-card{background:transparent; border:0; border-radius:0; overflow:visible}
-  .store-light .prod-card:focus-visible{outline:2px solid var(--ink); outline-offset:4px}
-  .store-light .prod-media{position:relative; aspect-ratio:auto; background:transparent; overflow:visible; padding:0 0 15px 15px}
-  .store-light .prod-print{background:#fff; padding:9px; box-shadow:0 16px 32px rgba(23,22,17,.14), 0 2px 7px rgba(23,22,17,.08)}
-  .store-light .prod-img{position:relative; inset:auto; width:100%; height:auto; aspect-ratio:4/5; object-fit:cover; object-position:center 18%; display:block; opacity:1}
-  .store-light .prod-print-back{position:absolute; left:0; top:15px; width:calc(100% - 15px); z-index:0; transform:rotate(-2deg);
-    transition:left .38s ease, top .38s ease, transform .38s ease}
-  .store-light .prod-print-front{position:relative; z-index:1; transition:transform .38s ease}
-  /* flip: the back print comes forward, the front print peeks behind */
-  .store-light .prod-card.show-back .prod-print-back{left:15px; top:0; transform:rotate(0deg); z-index:2}
-  .store-light .prod-card.show-back .prod-print-front{transform:translate(-15px,15px) rotate(-2deg); z-index:0}
-  @media (hover:hover){
-    .store-light .prod-card:hover .prod-print-back{left:15px; top:0; transform:rotate(0deg); z-index:2}
-    .store-light .prod-card:hover .prod-print-front{transform:translate(-15px,15px) rotate(-2deg); z-index:0}
-  }
-  .store-light .prod-media .preview-note{top:17px; left:17px; background:#fff; border:1px solid var(--hair); color:var(--ink); box-shadow:0 2px 8px rgba(23,22,17,.12)}
-  .store-light .prod-flip{top:17px; right:17px; bottom:auto; background:#fff; border:1px solid var(--hair); color:var(--ink);
-    font-size:12.5px; font-weight:800; letter-spacing:.02em; padding:7px 12px; border-radius:999px; box-shadow:0 2px 8px rgba(23,22,17,.12); z-index:3}
-  .store-light .prod-flip:hover{border-color:var(--ink)}
-  .store-light .prod-body{padding:15px 2px 0}
-  .store-light .prod-side{color:var(--ink-faint); letter-spacing:.14em; margin-bottom:7px}
-  .store-light .prod-body h4{color:var(--ink); font-size:22px}
-  .store-light .prod-slogan{color:var(--ink-soft); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; margin:5px 0 3px}
-  .store-light .prod-desc{color:var(--ink-soft); font-size:13.5px; margin-bottom:11px}
-  .store-light .prod-flat{width:190px; max-width:100%; background:#fff; border:1px solid var(--hair); border-radius:2px; padding:4px}
-  .store-light .prod-colors{color:var(--ink-faint); font-size:12px; margin-top:7px}
-  /* quick view in the same light editorial language */
-  .store-light .qv-backdrop{background:rgba(24,22,17,.55)}
-  .store-light .qv-panel{background:#fff; color:var(--ink); border:0; border-radius:4px; padding:30px; box-shadow:0 30px 70px rgba(20,18,12,.35)}
-  .store-light .qv-close{background:#fff; color:var(--ink); border:1px solid var(--hair)}
-  .store-light .qv-close:hover{border-color:var(--ink)}
-  .store-light .qv-media figure{background:#fff; border:1px solid var(--hair); padding:8px; box-shadow:0 10px 22px rgba(23,22,17,.10)}
-  .store-light .qv-media img{border-radius:2px}
-  .store-light .qv-media figcaption{color:var(--ink-faint)}
-  .store-light .qv-panel h4{color:var(--ink)}
-  .store-light .qv-flat{border:1px solid var(--hair); border-radius:2px}
-  .store-light .qv-colors{color:var(--ink)}
-  .store-light .qv-colors-label{color:var(--ink-faint)}
-  .store-light .qv-note{color:var(--ink-faint)}
-  /* Hype Frame creative: layered prints on paper (replaces the slim
-     banner). Left: the moment, as a framed print rotated -3deg. Right,
-     overlapping it: the same moment printed on the studio's hoodie mock,
-     inside its own white mat. Composition is static DOM/CSS — the
-     printbox reuses the studio hoodie print-area geometry (left 33.4% /
-     top 40.5% / width 33.2% of the 640x720 mock). */
+  /* Hype Frame creative — Store v4 (2026-11-04): the layered-prints
+     composition built for v3, re-skinned for the restored dark store.
+     The white print mats stay (polaroids on dark); type, steps and the
+     section rule use the v2 dark palette. Left: the moment, as a framed
+     print rotated -3deg. Right, overlapping it: the same moment printed
+     on the studio's hoodie mock, inside its own white mat. Static
+     DOM/CSS — the printbox reuses the studio hoodie print-area geometry
+     (left 33.4% / top 40.5% / width 33.2% of the 640x720 mock). */
   .hf-creative{display:grid; grid-template-columns:1.02fr .98fr; gap:60px; align-items:center;
-    margin:76px 0 8px; padding-top:60px; border-top:1px solid var(--hair)}
+    margin:76px 0 8px; padding-top:60px; border-top:1px solid var(--line)}
   @media (max-width:900px){ .hf-creative{grid-template-columns:1fr; gap:44px; margin-top:58px; padding-top:46px} }
+  .hf-creative .sec-tag{color:var(--volt)}
   .hfc-title{font-family:"Anton",sans-serif; font-style:italic; font-size:clamp(42px,5.6vw,66px); line-height:.98;
-    text-transform:uppercase; letter-spacing:.01em; color:var(--ink); margin:0 0 20px}
-  .hfc-sub{color:var(--ink-soft); font-size:17px; line-height:1.55; max-width:470px; margin:0 0 10px}
-  .hfc-guardian{color:var(--ink-faint); font-size:13.5px; max-width:470px; margin:0}
+    text-transform:uppercase; letter-spacing:.01em; color:var(--white); margin:0 0 20px}
+  .hfc-sub{color:var(--muted); font-size:17px; line-height:1.55; max-width:470px; margin:0 0 10px}
+  .hfc-guardian{color:var(--muted2); font-size:13.5px; max-width:470px; margin:0}
   .hfc-steps{display:flex; flex-wrap:wrap; gap:9px 12px; list-style:none; margin:28px 0 32px; padding:0;
-    font-size:12px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--ink-soft)}
+    font-size:12px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--muted)}
   .hfc-steps li{display:inline-flex; align-items:baseline; gap:7px}
-  .hfc-steps li:not(:last-child)::after{content:"·"; margin-left:12px; color:var(--ink-faint)}
-  .hfc-steps .n{font-family:"Anton",sans-serif; font-size:13px; letter-spacing:.05em; color:var(--gold-deep)}
-  .hfc-cta{display:inline-block; font-weight:800; font-size:17.5px; color:var(--ink); text-decoration:underline;
+  .hfc-steps li:not(:last-child)::after{content:"·"; margin-left:12px; color:var(--muted2)}
+  .hfc-steps .n{font-family:"Anton",sans-serif; font-size:13px; letter-spacing:.05em; color:var(--gold)}
+  .hfc-cta{display:inline-block; font-weight:800; font-size:17.5px; color:var(--white); text-decoration:underline;
     text-decoration-color:var(--volt); text-decoration-thickness:2.5px; text-underline-offset:6px}
-  .hfc-cta:hover{text-decoration-color:var(--ink)}
+  .hfc-cta:hover{text-decoration-color:var(--white)}
   .hfc-cta .chev{text-decoration:none; display:inline-block}
   .hfc-stage{position:relative; width:100%; max-width:540px; margin:0 auto; aspect-ratio:1/1.12}
   .hfc-print{position:absolute; margin:0; background:#fff; padding:10px;
-    box-shadow:0 24px 48px rgba(23,22,17,.16), 0 3px 10px rgba(23,22,17,.10)}
+    box-shadow:0 24px 48px rgba(0,0,0,.55), 0 3px 10px rgba(0,0,0,.4)}
   .hfc-print-moment{width:59%; left:0; top:0; z-index:1; transform:rotate(-3deg)}
   .hfc-print-moment img{width:100%; aspect-ratio:4/4.3; object-fit:cover; object-position:center 20%; display:block}
   .hfc-print-moment figcaption{padding:11px 4px 3px; text-align:center; font-size:11.5px; font-weight:700;
-    letter-spacing:.13em; text-transform:uppercase; color:var(--ink-faint)}
+    letter-spacing:.13em; text-transform:uppercase; color:#77776e}
   .hfc-print-hoodie{width:57%; right:0; bottom:0; z-index:2; transform:rotate(2deg)}
   .hfc-mock{position:relative}
   .hfc-garment{width:100%; height:auto; display:block}

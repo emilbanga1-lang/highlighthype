@@ -312,11 +312,16 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
 //   7.5–end  End card           -> #collections (the full Drop 001 boards)
 // Preview only: the button says "View this look" — no prices, no cart,
 // no checkout anywhere in this flow.
+/* Store v4 film (2026-11-04): four 10-second clips of youth wearing the
+   actual Drop 001 designs, assembled in shop order — Girls Street (0-10s),
+   Girls Essentials (10-20s), Boys Street (20-30s), Boys Athletics (30-40s).
+   Each scene's card targets that collection's grid card by slug. The old
+   film's title-card and Hype All Day scenes are gone with the old film. */
 const FILM_SCENES = [
-  { until: 2.5, title: "The Hype Girls hoodies", sub: "You paused on the Girls scene — Hype Street, Hype Athletics & Hype Essentials.", btn: "View the Girls look", target: "hype-girls" },
-  { until: 5.0, title: "The Hype Boys hoodies", sub: "You paused on the Boys scene — Hype Street, Hype Athletics & Hype Unleashed.", btn: "View the Boys look", target: "hype-boys" },
-  { until: 7.5, title: "The Hype All Day hoodie", sub: "You paused on the statement hoodie — see the coordinating pieces below.", btn: "View this look", target: "coordinating" },
-  { until: Infinity, title: "Drop 001 — the full drop", sub: "Both collections, six boards. Preview — products are finalizing.", btn: "Shop Drop 001", target: "collections" },
+  { until: 10, title: "The Girls Hype Street hoodie", sub: "You paused on the Girls Street scene — washed charcoal with the hibiscus HYPE print.", btn: "View this look", target: "girls-street" },
+  { until: 20, title: "The Girls Hype Essentials hoodie", sub: "You paused on the Girls Essentials scene — the pink hoodie, The Hype Starts Here.", btn: "View this look", target: "girls-essentials" },
+  { until: 30, title: "The Boys Hype Street hoodie", sub: "You paused on the Boys Street scene — washed black with the crown HYPE chest.", btn: "View this look", target: "boys-street" },
+  { until: Infinity, title: "The Boys Hype Athletics hoodie", sub: "You paused on the Boys Athletics scene — cream varsity with green stripes, Hype Is Earned.", btn: "View this look", target: "boys-athletics" },
 ];
 function filmSceneAt(t) {
   return FILM_SCENES.find((s) => t < s.until) || FILM_SCENES[FILM_SCENES.length - 1];
@@ -367,10 +372,9 @@ function filmSceneAt(t) {
    - Girls/Boys toggle + collection chips filter the grid in place.
    - Cards flip front/back (hover on desktop, ⇄ toggle on touch) and
      open a quick-view overlay. Preview only: no prices, no checkout.
-   - The film's scene targets keep their names (hype-girls, hype-boys,
-     coordinating, collections) but now drive the grid: division scenes
-     set the filter and flash-highlight that side's cards; the other
-     scenes land on the grid and flash the visible cards. */
+   - The film's scenes drive the grid: division targets (hype-girls,
+     hype-boys) set the filter and flash that side's cards; since v4 the
+     film's own scenes target single collection cards by slug instead. */
 const storeState = { division: "girls", chip: "all" };
 function applyStoreFilter() {
   $$(".prod-card").forEach((c) => {
@@ -400,6 +404,15 @@ function flashStoreCards(selector) {
   setTimeout(() => cards.forEach((c) => c.classList.remove("flash")), 2400);
 }
 function goToStoreScene(target) {
+  // Store v4: film scenes target a single collection card by slug —
+  // set that card's division + collection filter, scroll, flash the card.
+  const sceneCard = document.querySelector(`.prod-card[data-slug="${target}"]`);
+  if (sceneCard) {
+    setStoreDivision(sceneCard.dataset.division, sceneCard.dataset.collection);
+    document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" });
+    flashStoreCards(`.prod-card[data-slug="${target}"]`);
+    return;
+  }
   if (target === "hype-girls" || target === "hype-boys") {
     const div = target === "hype-girls" ? "girls" : "boys";
     setStoreDivision(div, "all");
@@ -425,7 +438,7 @@ $$(".prod-card").forEach((card) => {
   if (flip) flip.addEventListener("click", (e) => {
     e.stopPropagation();
     const back = card.classList.toggle("show-back");
-    flip.textContent = back ? "View front ⇄" : "View back ⇄";
+    flip.textContent = back ? "⇄ Front" : "⇄ Back";
     flip.setAttribute("aria-label", `Flip ${card.querySelector("h4").textContent} card to the ${back ? "front" : "back"} view`);
   });
   card.addEventListener("click", () => openQuickView(card));
