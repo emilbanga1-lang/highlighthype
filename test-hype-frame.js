@@ -60,13 +60,17 @@ try {
   /* ---- 1b. Round 2 (2026-11-05): the ENTIRE studio preview is gone ----
      Emil found the "Preview it on apparel" block too confusing: the
      garment mock, the Hoodie/T-Shirt picker, the Front/Back picker,
-     the colorway picker and the "See it finished" row are all
-     deleted. The studio flow is freeze -> print style -> name/number
-     -> guardian contact -> send request, and the order payload
-     carries fixed defaults (hoodie / front / default colorway) so
-     the server contract below is unchanged. (The pre-Round-2 preview
-     regression history — stacked garments, hidden-attribute toggling
-     — is moot: there is no preview left to regress.) */
+     the colorway swatch row and the "See it finished" row were all
+     deleted. Round 3 (2026-11-05, later the same day): Emil brought
+     back exactly two pickers — hoodie COLOR (button list, §7 below)
+     and youth SIZE. The assertions in this section scope to the
+     apparel-PREVIEW block only: the mock, the garment/side pickers
+     and the finished-row stay deleted, and the old preview's element
+     ids / function names (hfSwatches, hfSetColorway, …) stay gone —
+     the new pickers use fresh names (hfColors, hfPickColor). The
+     studio flow is now payoff -> freeze -> print style -> color/size
+     -> name/number -> guardian contact -> send request; apparel and
+     side still ride as fixed defaults (hoodie / front). */
   for (const gone of ["Preview it on apparel", 'id="hfAppHoodie"', 'id="hfAppTee"', 'id="hfSideFront"', 'id="hfSideBack"', 'id="hfSwatches"', 'id="hfMock"', 'id="hfPrint"', 'id="hfPrintImg"', 'id="hfPrintEmpty"', 'id="hfFinRow"', "See it finished"])
     assert(!home.includes(gone), `studio preview stays deleted: ${gone}`);
   for (const goneFn of ["function hfSetApparel", "function hfSetSide", "function hfSetColorway", "function hfSyncGarment", "function hfApplyPlacement", "function hfRenderFinished", "HF_FINISHED"])
@@ -219,6 +223,42 @@ try {
   assert(byId(backId).side === "back", "chosen print side (back) round-trips to the owner API");
   assert(byId(defId).side === "front", "order without a side defaults to front");
   assert(byId(bogusSideId).side === "front", "bogus side is sanitized to front");
+
+  /* ---- 7. Round 3 (2026-11-05): color + size pickers return; the
+     studio opens with the payoff; size rides on the order ----
+     Emil reversed the Round 2 simplification for exactly two fields.
+     Color: a button list built from HF_COLORWAYS (default Black);
+     picking one sets hfState.colorway, which drives the composed
+     print's tone. Size: six youth sizes, default YM. The garment
+     (hoodie) and side (front) pickers do NOT return (§1b). */
+  assert(home.includes('id="hfColors"') && home.includes('id="hfSizes"'), "studio carries the color + size picker containers");
+  for (const sz of ["YXXS", "YXS", "YS", "YM", "YL", "YXL"])
+    assert(home.includes(`data-hf-size="${sz}"`), `size picker offers ${sz}`);
+  assert(home.includes('data-hf-size="YM" aria-pressed="true"'), "YM is the pressed default size");
+  assert(appJs.includes("function hfPickColor") && appJs.includes("function hfPickSize") && appJs.includes("function hfBuildColorButtons"), "picker logic present (pick color / pick size / build color buttons)");
+  assert(appJs.includes("hfBuildColorButtons()") && appJs.includes("HF_COLORWAYS.hoodie"), "color buttons are built from the HF_COLORWAYS hoodie list (one source of truth)");
+  assert(appJs.includes('size: "YM"') && appJs.includes("size: hfState.size"), "studio state defaults size to YM and the order payload sends the chosen size");
+  assert(appJs.includes("hfState.colorway = name"), "picking a color sets hfState.colorway (the print tone follows)");
+  assert(appJs.includes('Size: ${esc(o.size || "YM")}'), "Owner view's Hype Frame list surfaces the size next to the colorway");
+  assert(css.includes(".hf-color{") && css.includes(".hf-size{"), "picker styles present");
+  // Studio opens with the payoff (Round 3 item 5): film + examples
+  // BEFORE the studio card; the freeze flow follows unchanged.
+  assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
+  assert(home.includes("This is what your moment becomes."), "payoff line present");
+  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 2, "the Hype Frame film plays in the studio payoff AND the homepage examples section");
+  // Size round-trips like the print side does.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
+  assert(r.status === 201, "order with a chosen size is created");
+  const sizedId = r.body.id;
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "huge" })) });
+  assert(r.status === 201, "order with a bogus size is created (sanitized server-side)");
+  const bogusSizeId = r.body.id;
+  r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
+  assert(byId(sizedId).size === "YL", "chosen size (YL) round-trips to the owner API");
+  assert(byId(defId).size === "YM", "order without a size defaults to YM");
+  assert(byId(bogusSizeId).size === "YM", "bogus size is sanitized to YM");
+  const pubS = await text("/api/highlights?division=all");
+  assert(!pubS.includes('"size"'), "size stays off the public highlights API (owner-side field only)");
 
   const pubH2 = await text("/api/highlights?division=all");
   assert(!pubH2.includes('"placement"'), "placement absent from the public highlights API");

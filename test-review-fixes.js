@@ -120,11 +120,13 @@ try {
   // Store v6 (2026-11-04): Emil asked for Boys first + a faster cut —
   // the same five clips recut Boys-first at ~1.3x, 7.0s per scene, so
   // the boundaries are 7/14/21/28s and Girls Essentials closes the film.
-  assert(sceneRe("7", "boys-street").test(appJs), "scene 0–7s (Boys Street clip) maps to boys-street");
-  assert(sceneRe("14", "boys-athletics").test(appJs), "scene 7–14s (Boys Athletics clip) maps to boys-athletics");
-  assert(sceneRe("21", "boys-unleashed").test(appJs), "scene 14–21s (Boys Unleashed clip) maps to boys-unleashed");
-  assert(sceneRe("28", "girls-street").test(appJs), "scene 21–28s (Girls Street clip) maps to girls-street");
-  assert(sceneRe("Infinity", "girls-essentials").test(appJs), "scene 28s–end (Girls Essentials clip) maps to girls-essentials");
+  // Round 3 (2026-11-05): the film is recut to 4.0s scenes — the
+  // pause-to-shop boundaries move to the 4s grid with it.
+  assert(sceneRe("4", "boys-street").test(appJs), "scene 0–4s (Boys Street clip) maps to boys-street");
+  assert(sceneRe("8", "boys-athletics").test(appJs), "scene 4–8s (Boys Athletics clip) maps to boys-athletics");
+  assert(sceneRe("12", "boys-unleashed").test(appJs), "scene 8–12s (Boys Unleashed clip) maps to boys-unleashed");
+  assert(sceneRe("16", "girls-street").test(appJs), "scene 12–16s (Girls Street clip) maps to girls-street");
+  assert(sceneRe("Infinity", "girls-essentials").test(appJs), "scene 16s–end (Girls Essentials clip) maps to girls-essentials");
   assert(appJs.includes("The Boys Hype Unleashed hoodie"), "Unleashed scene card carries the collection title");
   assert(home.includes('<h4 id="sscTitle">The Boys Hype Street hoodie</h4>'), "pause card placeholder title matches the new first scene (Boys Street)");
   assert(home.includes('data-store-block="boys"') && home.includes('data-store-block="girls"') && home.includes('id="collections"') && home.includes('id="storeFocusBar"'), "division blocks + grid anchor + focus bar exist in the Store");
@@ -238,7 +240,7 @@ try {
   const filmFile = path.join(tmp, "film-probe.mp4");
   fs.writeFileSync(filmFile, Buffer.from(filmBuf));
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
-  assert(filmDur > 34 && filmDur < 36, `the film still runs ~35s (${filmDur}s — five 7.0s scenes; scene 1 is now the blue-sky Boys Street clip)`);
+  assert(filmDur > 19 && filmDur < 21, `the film runs ~20s after the Round 3 recut (${filmDur}s — the same five scenes at 4.0s each; Emil: the 7s scenes felt too long)`);
   const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
   assert(filmStreams.includes("video") && !filmStreams.includes("audio"), "the film is SILENT (Nov 5): no audio stream at all — the music bed is stripped");
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
@@ -314,7 +316,7 @@ try {
   const heroFile = path.join(tmp, "hero-probe.mp4");
   fs.writeFileSync(heroFile, Buffer.from(heroBuf));
   const heroDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", heroFile]).toString().trim());
-  assert(heroDur > 10.7 && heroDur < 11.7, `hero runs ~11.2s after the Nov 5 recut (${heroDur}s — hockey trimmed ~1.5s, 0.4s crossfade into the 4.0s golf close, one continuous music bed)`);
+  assert(heroDur > 9.0 && heroDur < 9.7, `hero runs ~9.3s after the Round 3 rebuild (${heroDur}s — true 0.7s crossfades at the hockey->golf join AND the golf->montage loop seam, so the loop is continuous; one unbroken music bed. Was ~11.2s in Rounds 1-2, where fades-to-black read as a blip)`);
 
   /* ---- 10. Hardening follow-up (2026-11-04 night, post-tonight-batch):
      backup endpoints + headers + log redaction + upload guards +
@@ -546,6 +548,45 @@ try {
   await voteSandbox.window.toggleVote(9, rbtn);
   assert(voteApiCalls === 2 && voteLoads === 1, "behavioral: Round 2's retry still works under the guard (network failure -> one retry -> success)");
   assert(!rbtn.dataset.voteBusy && rbtn.disabled === false, "behavioral: the guard releases after the retry path");
+
+  /* ---- 16. Round 3 (2026-11-05, later): third door, Hype Frame film,
+     examples placement (the blank-space fix), HF order size wiring ----
+     Emil's phone review: the store landing gets a THIRD door for Hype
+     Frame; a real-assets promo film opens the studio and sits on the
+     homepage; and the homepage examples block — a plain deck child
+     that rendered under EVERY panel — moves inside the home panel,
+     which is what left a slab of dead black space under the studio
+     card (hidden panels hold no height; the examples block did). */
+  const hfDoorIdx = home.indexOf('data-store-block="hypeframe"');
+  assert(hfDoorIdx > girlsBlockIdx && hfDoorIdx < creativeIdx, "landing order: Boys door -> Girls door -> Hype Frame door -> Hype Frame creative");
+  const doorSlice = home.slice(hfDoorIdx, creativeIdx);
+  assert(doorSlice.includes("data-hf-door") && doorSlice.includes("Turn your highlight into wearable hype") && doorSlice.includes("/swag/hf-door.jpg"), "the third door is labeled Hype Frame with its tagline and banner art");
+  assert(!doorSlice.includes("data-store-focus"), "the Hype Frame door carries NO division focus control (it must not enter focus mode)");
+  assert(appJs.includes('$$("[data-hf-door]")') && appJs.includes('getElementById("hype-frame")') && appJs.includes("scrollIntoView"), "the door scrolls to the store's Hype Frame creative");
+  assert(css.includes('[data-store-focus="boys"] .store-block[data-store-block="hypeframe"]') && css.includes('[data-store-focus="girls"] .store-block[data-store-block="hypeframe"]'), "the door's block hides in either division's focus mode");
+  assert(css.includes(".hf-creative{scroll-margin-top"), "the creative clears the floating nav when the door scrolls to it");
+  // The film itself: serves, ~15s, 1280x720 (assembled from real
+  // assets — Nicholas's clip, its freeze, the poster crops).
+  const hfFilmRes = await fetch(`${base}/hype-frame-film.mp4`);
+  const hfFilmBuf = Buffer.from(await hfFilmRes.arrayBuffer());
+  assert(hfFilmRes.status === 200 && hfFilmBuf.byteLength > 500000, `the Hype Frame film serves (${hfFilmBuf.byteLength} bytes)`);
+  const hfFilmFile = path.join(tmp, "hf-film-probe.mp4");
+  fs.writeFileSync(hfFilmFile, hfFilmBuf);
+  const hfFilmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", hfFilmFile]).toString().trim());
+  assert(hfFilmDur > 12 && hfFilmDur < 18, `the Hype Frame film runs ~15s (${hfFilmDur}s)`);
+  const hfFilmSize = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", hfFilmFile], { encoding: "utf8" }).trim();
+  assert(hfFilmSize === "1280,720", `the Hype Frame film is 1280x720 (${hfFilmSize})`);
+  const doorRes = await fetch(`${base}/swag/hf-door.jpg`);
+  assert(doorRes.status === 200 && Number(doorRes.headers.get("content-length")) > 10000, "the door banner image serves");
+  // Item 7 structural fix: the examples block lives INSIDE the home
+  // (plays) panel now, so panel views no longer trail it.
+  const playsIdx = home.indexOf('data-panel="plays"'), mineIdx = home.indexOf('data-panel="mine"'), exIdx = home.indexOf('id="hfExamplesHome"');
+  assert(playsIdx > -1 && exIdx > playsIdx && exIdx < mineIdx, "homepage examples block sits inside the plays panel (before My Highlights)");
+  const exSlice = home.slice(exIdx, mineIdx);
+  assert(exSlice.includes('src="/hype-frame-film.mp4"') && exSlice.indexOf('src="/hype-frame-film.mp4"') < exSlice.indexOf("hf-examples-grid"), "on the homepage the film sits ABOVE the examples grid");
+  // Server: size column + sanitizer + owner-email surfacing.
+  assert(serverJs.includes('ADD COLUMN size TEXT') && serverJs.includes('"YXXS", "YXS", "YS", "YM", "YL", "YXL"'), "server stores the HF order size (additive column + whitelist)");
+  assert(serverJs.includes("Size: ${order.size"), "the owner notification email enumerates the size alongside the colorway");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
