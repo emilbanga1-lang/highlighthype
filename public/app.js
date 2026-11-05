@@ -73,7 +73,7 @@ function cardHtml(h, opts = {}) {
       <div class="card-actions">
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
         <button type="button" class="mini-btn" onclick="enterContest(${h.id})">🏆 Enter this play</button>
-        <button type="button" class="mini-btn" onclick="sharePlay(${h.id})">🔗 Share</button>
+        <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
         ${ownerToken() && opts.inContest ? `<button type="button" class="mini-btn" onclick="markWinner(${h.id})">Mark winner (owner)</button>` : ""}
       </div>
@@ -88,7 +88,7 @@ window.enterContest = async (id) => {
 };
 window.reportPlay = async (id) => { const reason = prompt("Why are you reporting this play? (optional)") || "Reported by a user"; try { const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) }); alert(r.message); } catch (e) { alert(e.message); } };
 window.markWinner = async (id) => { try { const r = await api("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); if (r.warning) alert(r.warning); await loadData(); } catch (e) { alert(e.message); } };
-window.sharePlay = async (id) => {
+window.sharePlay = async (id, btn) => {
   const url = `${location.origin}${location.pathname}#play-${id}`;
   // Native share sheet where the device offers one (2026-11-04); the
   // clipboard/prompt flow stays as the fallback.
@@ -96,7 +96,21 @@ window.sharePlay = async (id) => {
     try { await navigator.share({ title: "HighlightHype", url }); return; }
     catch (e) { if (e && e.name === "AbortError") return; }
   }
-  try { await navigator.clipboard.writeText(url); alert("Link copied! Share it anywhere."); }
+  try {
+    await navigator.clipboard.writeText(url);
+    // Visible confirmation ON the clicked button (hardening follow-up,
+    // 2026-11-04): on desktop there is no share sheet, and an alert()
+    // alone proved easy to miss/auto-dismiss — the label flip cannot
+    // be missed and needs no dismissal. Restores itself in ~2s.
+    if (btn) {
+      const original = btn.innerHTML;
+      btn.textContent = "Link copied ✓";
+      btn.classList.add("share-copied");
+      setTimeout(() => { btn.innerHTML = original; btn.classList.remove("share-copied"); }, 2000);
+    } else {
+      alert("Link copied! Share it anywhere.");
+    }
+  }
   catch { prompt("Copy this play link:", url); }
 };
 

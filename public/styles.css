@@ -703,6 +703,7 @@
   .card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
   .mini-btn{background:transparent;border:1px solid var(--line2);color:#fff;border-radius:999px;font:inherit;font-size:13px;font-weight:700;padding:8px 13px;cursor:pointer}
   .mini-btn:hover{border-color:#fff}
+  .mini-btn.share-copied{border-color:var(--volt);color:var(--volt)}
   .athlete-link{background:none;border:0;color:var(--volt);font:inherit;font-weight:800;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
   .tagchip{display:inline-block;background:#fff;color:#0a0a0a;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:999px;vertical-align:2px}
   .tagchip.warn{background:transparent;border:1px solid var(--line2);color:var(--muted)}
@@ -827,8 +828,18 @@
   .store-banner-btn{appearance:none;border:0;background:none;padding:0;font:inherit;font-weight:800;font-size:17.5px;color:#fff;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-shadow:0 2px 12px rgba(0,0,0,.5);cursor:pointer}
   .store-banner-btn .chev{text-decoration:none;display:inline-block}
   .store-banner-btn:focus-visible{outline:2px solid var(--volt);outline-offset:3px}
-  .store-focusbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 2px;border-bottom:1px solid var(--line);margin-bottom:22px}
+  /* Focus-exit clearance (hardening follow-up, 2026-11-04): in focus
+     mode the bar sits at the very top of the store, directly under the
+     floating nav (z-index 70), and the exit pill's right edge landed
+     under the 44px hamburger — mouse clicks hit the menu button
+     instead. padding-right:64px parks the pill fully left of the
+     hamburger at desktop and phone widths, and scroll-margin-top
+     keeps scrollIntoView from tucking the bar under the nav either.
+     The hamburger and the floating-header-over-film layout are
+     untouched. */
+  .store-focusbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 64px 12px 2px;border-bottom:1px solid var(--line);margin-bottom:22px;scroll-margin-top:calc(var(--navh,70px) + 8px)}
   .store-focusbar[hidden]{display:none}
+  .store-focusbar .back-link{flex:none}
   .store-focus-title{font-family:"Anton",sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.02em}
   body[data-store-focus="boys"] .swag-film-hero,
   body[data-store-focus="girls"] .swag-film-hero,
