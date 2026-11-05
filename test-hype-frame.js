@@ -39,19 +39,18 @@ try {
   assert(hint.includes("Pause to shop the look") && !hint.includes("Hype Frame"), "film hint says 'Pause to shop the look' with no Hype Frame name");
   const kicker = (home.match(/<p class="ssc-kicker">([^<]*)<\/p>/) || [])[1] || "";
   assert(kicker === "In this scene", "film pause-card kicker is exactly 'In this scene'");
-  // Store v3 (2026-11-04): the slim banner's "HYPE FRAME — Your moment.
-  // Your swag." header and its five full-sentence steps were replaced by
-  // the designed creative section — the manifesto headline plus the five
-  // steps as ONE minimal numbered line (detailed assertions live in
-  // test-review-fixes.js §7). The studio itself keeps the full flow.
-  assert(home.includes('class="hf-creative"') && home.includes("Your moment.") && home.includes("Your hype."), "Store creative carries the manifesto headline");
+  // Store v8 (2026-11-04): the creative adopts Emil's concept-poster
+  // copy — the tagline "Turn your highlight into wearable hype." as
+  // the headline and the three VIDEO / FRAME / WEAR IT beats in place
+  // of the five-step line (the studio itself keeps the full flow).
+  assert(home.includes('class="hf-creative"') && home.includes("Turn your highlight") && home.includes("into wearable hype."), "Store creative headline is the poster tagline");
   for (const step of [
-    "Pick your play",
-    "Freeze the frame",
-    "Make it yours",
-    "Preview it",
-    "Guardian approves",
-  ]) assert(home.includes(step), `Store creative steps line includes: ${step}`);
+    "Video",
+    "Wear It",
+    "Upload your highlight",
+    "Choose your frame",
+    "Printed on your gear",
+  ]) assert(home.includes(step), "Store creative VIDEO / FRAME / WEAR IT beat includes: " + step);
   assert(appJs.includes("Create a Hype Frame"), "play cards get a 'Create a Hype Frame' button");
   assert(home.includes('id="hypeframe"') && home.includes('id="hfVideo"') && home.includes('id="hfScrub"') && home.includes('id="hfFreeze"') && home.includes('id="hfOrderForm"'), "studio markup present (video, timeline, freeze button, order form)");
   assert(appJs.includes("/api/hype-frame/orders") && appJs.includes("composeHfPrint"), "studio wires freeze -> compose -> order request");
@@ -78,14 +77,21 @@ try {
     const rule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\] \\.hf-print\\s*\\{[^}]*left:[^}]*top:[^}]*width:`);
     assert(rule.test(css), `${a} branch positions the shared print layer in its chest print area`);
   }
-  assert(appJs.includes('$(".hf-garment-hoodie").toggleAttribute("hidden", a !== "hoodie")') && appJs.includes('$(".hf-garment-tee").toggleAttribute("hidden", a !== "tee")'), "apparel switch toggles the hidden ATTRIBUTE on both garments");
-  assert(!appJs.includes('$(".hf-garment-hoodie").hidden =') && !appJs.includes('$(".hf-garment-tee").hidden ='), "apparel switch does not rely on the hidden IDL property for the garment SVGs (it does not reflect to the attribute on SVG elements)");
+  for (const a of ["hoodie", "tee"]) {
+    const backRule = new RegExp(`\\.hf-mock\\[data-apparel="${a}"\\]\\[data-side="back"\\] \\.hf-print\\s*\\{[^}]*left:`);
+    assert(backRule.test(css), `${a} back-side print area is positioned (upper back)`);
+  }
+  assert(appJs.includes("function hfSyncGarment"), "one garment sync drives all four garment SVGs (apparel x print side)");
+  for (const [cls, cond] of [["hf-garment-hoodie-front", '!(a === "hoodie" && s === "front")'], ["hf-garment-hoodie-back", '!(a === "hoodie" && s === "back")'], ["hf-garment-tee-front", '!(a === "tee" && s === "front")'], ["hf-garment-tee-back", '!(a === "tee" && s === "back")']])
+    assert(appJs.includes(`$(".${cls}").toggleAttribute("hidden", ${cond})`), "garment sync toggles the hidden ATTRIBUTE: " + cls);
+  assert(!appJs.includes('$(".hf-garment-hoodie-front").hidden =') && !appJs.includes('$(".hf-garment-tee-front").hidden ='), "garment sync does not rely on the hidden IDL property for the garment SVGs (it does not reflect to the attribute on SVG elements)");
   assert(appJs.includes('$("#hfMock").dataset.apparel = a'), "apparel switch sets the mock's data-apparel so the matching print-area rule applies");
+  assert(appJs.includes('$("#hfMock").dataset.side = s'), "garment sync sets the mock's data-side so the matching back print-area rule applies");
   assert((home.match(/id="hfPrint"/g) || []).length === 1, "exactly one shared print layer serves both garments");
   const mockHtml = home.slice(home.indexOf('id="hfMock"'), home.indexOf('id="hfOrderForm"'));
   assert(mockHtml.indexOf("hf-garment-tee") > -1 && mockHtml.indexOf('id="hfPrint"') > mockHtml.indexOf("hf-garment-tee"), "print layer follows both garment SVGs in the mock, so it paints above the active garment");
-  assert((mockHtml.match(/<svg class="hf-garment /g) || []).length === 2, "mock contains exactly two garment SVGs (one per apparel)");
-  assert(/<svg class="hf-garment hf-garment-tee"[^>]*hidden>/.test(mockHtml) && !/<svg class="hf-garment hf-garment-hoodie"[^>]*hidden>/.test(mockHtml), "markup opens with only the tee garment hidden, so the first apparel switch has a state to flip");
+  assert((mockHtml.match(/<svg class="hf-garment /g) || []).length === 4, "mock contains exactly four garment SVGs (front + back per apparel)");
+  assert(/<svg class="hf-garment hf-garment-tee-front"[^>]*hidden>/.test(mockHtml) && /<svg class="hf-garment hf-garment-hoodie-back"[^>]*hidden>/.test(mockHtml) && /<svg class="hf-garment hf-garment-tee-back"[^>]*hidden>/.test(mockHtml) && !/<svg class="hf-garment hf-garment-hoodie-front"[^>]*hidden>/.test(mockHtml), "markup opens on the hoodie FRONT: the other three garments start hidden, so the first switch has a state to flip");
   // Prices exist in the Store now (Drop 001 cards, 2026-11-04) — but
   // the Hype Frame creative inside the Store stays price-free.
   const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
@@ -136,7 +142,7 @@ try {
   assert(r.status === 200 && r.body.requests.length === 1, "owner list returns the request with owner auth");
   const o = r.body.requests[0];
   assert(o.id === orderId && o.highlight_id === approvedId && o.guardian_email === GUARDIAN, "owner sees the request with the guardian email (owner-only)");
-  assert(o.custom_name === "Nick" && o.jersey === "13" && o.branding === true && o.apparel === "hoodie" && o.colorway === "Black" && o.status === "pending-guardian", "owner sees customization + apparel + status stored correctly");
+  assert(o.custom_name === "Nick" && o.jersey === "13" && o.branding === true && o.apparel === "hoodie" && o.colorway === "Black" && o.side === "front" && o.status === "pending-guardian", "owner sees customization + apparel + status stored correctly");
   const imgNoAuth = await fetch(base + `/api/owner/hype-frames/${orderId}/image`);
   assert(imgNoAuth.status === 403, "print image endpoint requires owner auth (403 without token)");
   const img = await fetch(base + `/api/owner/hype-frames/${orderId}/image`, { headers: { "x-owner-token": tok } });
@@ -156,6 +162,9 @@ try {
   assert(home.includes('data-hf-preset="hypeframe" aria-pressed="true"'), "Hype Frame is the default preset");
   assert(home.includes('id="hfStepBack"') && home.includes('id="hfStepFwd"'), "±1s step buttons flank the Freeze button");
   assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
+  assert(home.includes('id="hfSideFront"') && home.includes('id="hfSideBack"'), "studio offers a Front / Back print-side toggle");
+  assert(appJs.includes("function hfSetSide") && appJs.includes("side: hfState.side"), "the chosen print side rides on the order payload");
+  assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("function hfApplyPlacement") && appJs.includes("placement: hfState.placement"), "studio applies the (fixed) placement and sends it with the order");
   assert(appJs.includes("Placement:") && appJs.includes("% size"), "Owner view displays each request's placement for the printer");
@@ -179,6 +188,20 @@ try {
   assert(pCustom.cx === 35.5 && pCustom.cy === 60 && pCustom.size === 92, "custom placement round-trips to the owner API exactly");
   const pClamp = JSON.parse(byId(clampedId).placement);
   assert(pClamp.cx === 100 && pClamp.cy === 0 && pClamp.size === 100, "out-of-range placement is clamped to the print-area bounds");
+  /* ---- 6. Print side (Store v8, 2026-11-04) ----
+     The studio's Front/Back chooser rides on the order; the server
+     sanitizes anything but "back" to "front". */
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { side: "back" })) });
+  assert(r.status === 201, "order with print side Back is created");
+  const backId = r.body.id;
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { side: "sideways" })) });
+  assert(r.status === 201, "order with a bogus print side is created (sanitized server-side)");
+  const bogusSideId = r.body.id;
+  r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
+  assert(byId(backId).side === "back", "chosen print side (back) round-trips to the owner API");
+  assert(byId(defId).side === "front", "order without a side defaults to front");
+  assert(byId(bogusSideId).side === "front", "bogus side is sanitized to front");
+
   const pubH2 = await text("/api/highlights?division=all");
   assert(!pubH2.includes('"placement"'), "placement absent from the public highlights API");
   const pubC2 = await text("/api/contest");

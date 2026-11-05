@@ -142,24 +142,29 @@ try {
      Tonight batch (2026-11-04): the filter toggle + chips are gone —
      the grid is now two always-visible division blocks (banner header
      + 3 cards each) with a focus mode, so the old filter assertions
-     were replaced by the block assertions below. */
+     were replaced by the block assertions below.
+     Store v8 (2026-11-04): cards are garment-only again — the flat
+     board illustrations at their native ratio, Overtime-style lean
+     body (name + price + size run) — and the colorways live in the
+     quick view's swipeable gallery (§11). */
   const SLUGS = ["girls-street", "girls-athletics", "girls-essentials", "boys-street", "boys-athletics", "boys-unleashed"];
   assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
   for (const slug of SLUGS) {
     assert(home.includes(`data-slug="${slug}"`), `grid card present: ${slug}`);
-    for (const kind of ["front", "back", "flat"]) {
-      assert(home.includes(`/swag/${slug}-${kind}.jpg`), `card ${slug} references its ${kind} lookbook crop`);
-      const r = await fetch(`${base}/swag/${slug}-${kind}.jpg`);
+    assert(!home.includes(`/swag/${slug}-front.jpg`) && !home.includes(`/swag/${slug}-back.jpg`), `card ${slug} references no worn photo (garment-only product views)`);
+    for (const kind of ["front", "back"]) {
+      assert(home.includes(`/swag-boards/${slug}-${kind}.svg`), `card ${slug} shows the garment ${kind} illustration`);
+      const r = await fetch(`${base}/swag-boards/${slug}-${kind}.svg`);
       const buf = await r.arrayBuffer();
-      assert(r.status === 200 && buf.byteLength > 5000, `crop serves and is non-trivial: /swag/${slug}-${kind}.jpg (${buf.byteLength} bytes)`);
+      assert(r.status === 200 && buf.byteLength > 3000, `board illustration serves and is non-trivial: /swag-boards/${slug}-${kind}.svg (${buf.byteLength} bytes)`);
     }
   }
-  assert(!home.includes("/swag-boards/"), "illustrated board SVGs are no longer referenced by the Store");
+  assert(home.includes("/swag-boards/"), "Store cards use the flat garment board illustrations");
   assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
   assert(!home.includes("data-store-div=") && !home.includes("data-store-chip=") && !home.includes('class="store-controls"'), "division toggle + collection chips are gone (blocks replace filters)");
   assert(home.includes('data-store-focus="boys"') && home.includes('data-store-focus="girls"'), "each block banner carries its focus button");
   assert(!(home.match(/<article class="prod-card"[^>]*>/g) || []).some((t) => t.includes("hidden")), "no product card starts hidden on the landing (all six show)");
-  assert(home.includes('id="quickView"') && home.includes('id="qvFront"') && home.includes('id="qvBack"') && home.includes('id="qvFlat"'), "quick-view overlay present with front/back/flat images");
+  assert(home.includes('id="quickView"') && home.includes('id="qvGallery"') && home.includes('id="qvSwatches"') && home.includes('id="qvColorName"'), "quick-view overlay present with the swipeable colorway gallery");
   assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
   assert(appJs.includes("setStoreFocus") && !appJs.includes("applyStoreFilter") && !appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "focus mode + quick view wired in app.js (old filter functions gone)");
   assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button focuses the card's division and highlights the card");
@@ -242,10 +247,10 @@ try {
   const hfcRes = await fetch(`${base}/swag/hfc-action.jpg`);
   const hfcBuf = await hfcRes.arrayBuffer();
   assert(hfcRes.status === 200 && hfcBuf.byteLength > 5000, `action still serves and is non-trivial: /swag/hfc-action.jpg (${hfcBuf.byteLength} bytes)`);
-  assert(home.includes("Your moment.") && home.includes("Your hype.") && css.includes(".hfc-title"), "creative headline is the manifesto line");
+  assert(home.includes("Your moment.") && home.includes("Your hype.") && home.includes("Turn your highlight") && css.includes(".hfc-title"), "manifesto line stays on the page (hero) and the creative headline is the poster tagline");
   assert(css.includes(".hf-creative{display:grid") && css.includes("border-top:1px solid var(--line)"), "creative is styled for the dark store (v2 palette, unscoped by .store-light)");
   assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "creative subline: freeze a frame from your own highlight video — and wear it");
-  for (const step of ["Pick your play", "Freeze the frame", "Make it yours", "Preview it", "Guardian approves"]) assert(home.includes(step), `creative steps line includes: ${step}`);
+  for (const step of ["Video", "Wear It", "Upload your highlight", "Choose your frame", "Printed on your gear"]) assert(home.includes(step), `creative VIDEO / FRAME / WEAR IT beat includes: ${step}`);
   assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
   const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
   assert(!hfCreative.includes("$"), "Hype Frame creative stays price-free (prices live on the product cards only)");
@@ -309,8 +314,37 @@ try {
   assert(serverJs.includes("statfsSync") && serverJs.includes("MIN_FREE_BYTES") && serverJs.includes("UPLOAD_RATE_LIMIT"), "upload guards present: free-space floor + per-IP rate-limit constants");
   assert(!serverJs.includes("...safe") && serverJs.includes("athlete_label: row.player_name"), "publicHighlight is an explicit allowlist (internal columns like review no longer spread into public output)");
   assert(renderYaml.includes("plan: starter"), "render.yaml matches the live Starter service");
-  assert(/\.store-focusbar\{[^}]*padding:12px 64px 12px 2px/.test(css) && css.includes("scroll-margin-top:calc(var(--navh,70px) + 8px)"), "store focus-exit pill clears the floating hamburger (64px right clearance + scroll margin)");
+  assert(/body\.store-open\[data-store-focus="boys"\] \.shop,\s*body\.store-open\[data-store-focus="girls"\] \.shop\{padding-top:calc\(var\(--navh,70px\) \+ 12px\)\}/.test(css), "focus mode pads the shop below the floating nav band, so the exit pill is fully mouse-clickable (v8 root-cause fix)");
+  assert(!/\.store-focusbar\{[^}]*padding:12px 64px/.test(css) && css.includes("scroll-margin-top:calc(var(--navh,70px) + 8px)"), "the ineffective 64px focusbar padding hack is gone; scroll margin kept");
   assert(appJs.includes("sharePlay(${h.id}, this)") && appJs.includes("Link copied ✓") && appJs.includes("share-copied"), "share fallback flips the clicked button to 'Link copied ✓' (impossible-to-miss confirmation)");
+
+  /* ---- 11. Store v8: quick-view gallery + Overtime card rhythm ----
+     Emil (2026-11-04): products bigger, colorways scrollable, no
+     models in product views; card anatomy matched to Overtime (image
+     dominant, one badge, name + price + size run, no prose chrome).
+     The gallery frames are build-time recolors of the board SVGs —
+     garment body recolored per colorway, print art unchanged. */
+  assert(appJs.includes("QV_PRODUCTS") && appJs.includes("qvSyncGallery") && appJs.includes("/swag/qv/"), "quick view is driven by per-product colorway gallery data");
+  assert(!home.includes("qv-media") && !/id="qv(Front|Back|Flat)"/.test(home), "quick view has no worn-photo figures or static colorway strip left");
+  const QV_COLORS = {
+    "boys-street": ["black", "denim-blue", "gray", "olive"],
+    "boys-athletics": ["cream", "heather-gray", "forest-green", "navy"],
+    "boys-unleashed": ["blue-lightning", "fire-orange", "purple-lightning", "teal-lightning"],
+    "girls-street": ["black", "pink", "cream", "light-blue"],
+    "girls-athletics": ["cream", "forest-green", "navy", "heather-gray"],
+    "girls-essentials": ["sky-blue", "cream", "pink", "lavender"],
+  };
+  for (const [slug, colors] of Object.entries(QV_COLORS)) {
+    for (const c of colors) {
+      for (const sd of ["front", "back"]) {
+        const r = await fetch(`${base}/swag/qv/${slug}-${c}-${sd}.svg`);
+        const txt = await r.text();
+        assert(r.status === 200 && txt.includes("<svg") && txt.includes("-fabric"), `gallery frame serves: /swag/qv/${slug}-${c}-${sd}.svg`);
+      }
+    }
+  }
+  const preShopV8 = home.slice(0, home.indexOf('id="shop"'));
+  assert(!preShopV8.includes("$"), "no price anywhere before the Store section (v8)");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
