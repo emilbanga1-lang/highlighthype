@@ -1,11 +1,40 @@
 // HighlightHype front end (2026-11-03 design port).
 // Voter identity = a random token stored in this browser (one vote per
-// browser per play per month). Owner identity = token in localStorage.
-// Athlete identity is server-side (athlete_id); the name is only a label.
+// browser per play per month). Owner identity = a token stored the
+// same way. Athlete identity is server-side (athlete_id); the name is
+// only a label.
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
-const voterToken = localStorage.getItem("hh_voter") || (() => { const t = "v_" + Math.random().toString(36).slice(2) + Date.now(); localStorage.setItem("hh_voter", t); return t; })();
-const ownerToken = () => localStorage.getItem("hh_owner_token") || "";
+/* Safe storage (Round 2, 2026-11-05): a shared link opened inside an
+   in-app browser (Messages etc.) can make localStorage throw or be
+   unavailable, which used to break voting outright. Every token read
+   and write goes through this helper: localStorage inside try/catch
+   first, then a first-party cookie, then an in-memory value for the
+   current page session. Storage failures must never break the page. */
+const hhMemoryStore = new Map();
+function hhStorageGet(key) {
+  try {
+    const value = window.localStorage.getItem(key);
+    if (value) { hhMemoryStore.set(key, value); return value; }
+  } catch { /* restricted storage: fall through to the cookie */ }
+  try {
+    const prefix = `${encodeURIComponent(key)}=`;
+    const part = document.cookie.split(";").map((p) => p.trim()).find((p) => p.startsWith(prefix));
+    if (part) {
+      const value = decodeURIComponent(part.slice(prefix.length));
+      if (value) { hhMemoryStore.set(key, value); return value; }
+    }
+  } catch { /* cookies unavailable too: use memory below */ }
+  return hhMemoryStore.get(key) || "";
+}
+function hhStorageSet(key, value) {
+  hhMemoryStore.set(key, value);
+  try { window.localStorage.setItem(key, value); return; } catch { /* fall through to the cookie */ }
+  try { document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Max-Age=31536000; Path=/; SameSite=Lax`; } catch { /* memory copy above still serves this session */ }
+}
+const voterToken = hhStorageGet("hh_voter") || (() => { const t = "v_" + Math.random().toString(36).slice(2) + Date.now(); hhStorageSet("hh_voter", t); return t; })();
+const ownerToken = () => hhStorageGet("hh_owner_token");
+const setOwnerToken = (token) => { if (token) hhStorageSet("hh_owner_token", token); };
 const api = async (path, opts = {}) => {
   const r = await fetch(path, { ...opts, headers: { ...(opts.headers || {}), ...(ownerToken() ? { "x-owner-token": ownerToken() } : {}) } });
   const j = await r.json().catch(() => ({}));
@@ -67,7 +96,7 @@ function cardHtml(h, opts = {}) {
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
       ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
-        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id})">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
+        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
       </div>
       <div class="card-actions">
@@ -80,7 +109,42 @@ function cardHtml(h, opts = {}) {
     </div>
   </article>`;
 }
-window.toggleVote = async (id) => { try { await api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) }); await loadData(); } catch (e) { alert(e.message); } };
+/* Vote hardening (Round 2, 2026-11-05): a network/fetch failure gets
+   ONE automatic retry; a final failure is reported inline on the
+   button in friendly words (never a raw alert); and the post-vote
+   board refresh runs in its own try/catch so a refresh hiccup can
+   never masquerade as a vote failure. Server errors (a real API
+   refusal) are not retried — only transport failures are. */
+const isNetworkFailure = (e) => !!e && (e.name === "TypeError" || /failed to fetch|network|load failed/i.test(e.message || ""));
+window.toggleVote = async (id, btn) => {
+  const postVote = () => api(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) });
+  try {
+    await postVote();
+  } catch (firstError) {
+    if (!isNetworkFailure(firstError)) {
+      showVoteFailure(btn);
+      return;
+    }
+    try {
+      await postVote();
+    } catch {
+      showVoteFailure(btn);
+      return;
+    }
+  }
+  try { await loadData(); } catch { /* the vote landed; a failed refresh is not a vote error */ }
+};
+function showVoteFailure(btn) {
+  if (!btn) return;
+  const original = btn.textContent;
+  btn.textContent = "Didn't go through — tap to try again";
+  btn.classList.add("vote-failed");
+  setTimeout(() => {
+    if (!btn.isConnected) return;
+    btn.textContent = original;
+    btn.classList.remove("vote-failed");
+  }, 3600);
+}
 window.enterContest = async (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
   if (play && !play.hasGuardianEmail && !play.hasGuardianText && !confirm("Heads up: this play has no parent/guardian email and no consented guardian text number on file, so it can't be featured if it wins — winners are contacted through a parent/guardian only. Enter anyway?")) return;
@@ -504,9 +568,11 @@ $$(".prod-card").forEach((card) => {
 /* Store v8 (2026-11-04): quick-view product data lives here, not in
    card chrome — the cards are name + price + size run (Overtime-style),
    and the quick view carries the story plus the full colorway gallery.
-   Gallery frames are the flat board illustrations recolored per
-   colorway at build time (/swag/qv/<slug>-<color>-<side>.svg) — no
-   worn/model photos anywhere in product views. */
+   Round 2 (2026-11-05): the gallery LEADS with the design's real
+   lookbook photos (front, then back — /swag/<slug>-<side>.jpg, the
+   same photos the product cards now show), and the flat board
+   illustrations recolored per colorway at build time
+   (/swag/qv/<slug>-<color>-<side>.svg) follow after them. */
 const QV_PRODUCTS = {
   "boys-street": { side: "Boys Collection · Crown motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", colors: [["Black", "#2e2e31"], ["Denim Blue", "#3f5f82"], ["Gray", "#8b8e93"], ["Olive", "#5f6a45"]] },
   "boys-athletics": { side: "Boys Collection · Crown motif", slogan: "Hype Is Earned", desc: "Performance. Pride. Community.", colors: [["Cream", "#f3e7cf"], ["Heather Gray", "#a8abb0"], ["Forest Green", "#1e5138"], ["Navy", "#1c3054"]] },
@@ -516,26 +582,32 @@ const QV_PRODUCTS = {
   "girls-essentials": { side: "Girls Collection · Tiara motif", slogan: "The Hype Starts Here", desc: "Comfort. Creativity. Confidence.", colors: [["Sky Blue", "#8ec9ee"], ["Cream", "#f3e7cf"], ["Pink", "#f6a8c5"], ["Lavender", "#c2ade0"]] },
 };
 const qvColorSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+/* Gallery layout (Round 2): frame 0 = real FRONT photo, frame 1 =
+   real BACK photo, then two frames per colorway (front, back) of the
+   illustration gallery. Total frames = colors * 2 + 2. */
 let qvGalleryState = { slug: "", colors: [] };
+function qvFrameCount() { return qvGalleryState.colors.length * 2 + 2; }
 function qvSyncGallery() {
   const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
   const w = g.clientWidth || 1;
-  const idx = Math.min(qvGalleryState.colors.length * 2 - 1, Math.max(0, Math.round(g.scrollLeft / w)));
-  const ci = Math.floor(idx / 2);
-  $("#qvColorName").textContent = qvGalleryState.colors[ci][0];
-  $("#qvSideLabel").textContent = idx % 2 ? "Back" : "Front";
+  const idx = Math.min(qvFrameCount() - 1, Math.max(0, Math.round(g.scrollLeft / w)));
+  const isPhoto = idx < 2;
+  const ci = isPhoto ? -1 : Math.floor((idx - 2) / 2);
+  const sideIdx = isPhoto ? idx : (idx - 2) % 2;
+  $("#qvColorName").textContent = isPhoto ? "Real photo" : qvGalleryState.colors[ci][0];
+  $("#qvSideLabel").textContent = sideIdx ? "Back" : "Front";
   $$("#qvSwatches .qv-swatch").forEach((b, i) => b.setAttribute("aria-pressed", String(i === ci)));
-  $$("#qvSides .qv-side-btn").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.qvSide) === idx % 2)));
+  $$("#qvSides .qv-side-btn").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.qvSide) === sideIdx)));
 }
-/* FRONT / BACK without swiping (2026-11-05): the toggle scrolls the
-   gallery to the current colorway's front or back frame. The color
-   buttons above it (the swatch row) jump to a colorway's front. */
+/* FRONT / BACK without swiping (2026-11-05; Round 2 retarget): the
+   toggle scrolls the gallery to the REAL PHOTO frames (frame 0 =
+   front photo, frame 1 = back photo). The color buttons above it
+   (the swatch row) jump to a colorway's front illustration frame,
+   which now sits after the two photo frames. */
 $$("#qvSides .qv-side-btn").forEach((b) => b.addEventListener("click", () => {
   const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
   const w = g.clientWidth || 1;
-  const idx = Math.min(qvGalleryState.colors.length * 2 - 1, Math.max(0, Math.round(g.scrollLeft / w)));
-  const ci = Math.floor(idx / 2);
-  g.scrollTo({ left: (ci * 2 + Number(b.dataset.qvSide)) * w, behavior: "smooth" });
+  g.scrollTo({ left: Number(b.dataset.qvSide) * w, behavior: "smooth" });
 }));
 function openQuickView(card) {
   const qv = $("#quickView"); if (!qv) return;
@@ -549,11 +621,13 @@ function openQuickView(card) {
   $("#qvDesc").textContent = data.desc;
   $("#qvColors").textContent = data.colors.map((c) => c[0]).join(" · ");
   const g = $("#qvGallery");
-  g.innerHTML = data.colors.map(([name]) => ["front", "back"].map((sd) => `<figure class="qv-frame"><img src="/swag/qv/${slug}-${qvColorSlug(name)}-${sd}.svg" alt="${esc(title)} hoodie in ${esc(name)} — ${sd} illustration" loading="lazy" decoding="async" /><figcaption>${sd}</figcaption></figure>`).join("")).join("");
+  const photoFrames = ["front", "back"].map((sd) => `<figure class="qv-frame qv-frame-photo"><img src="/swag/${slug}-${sd}.jpg" alt="${esc(title)} hoodie — real ${sd} photo" loading="lazy" decoding="async" /><figcaption>${sd} · Photo</figcaption></figure>`).join("");
+  const colorFrames = data.colors.map(([name]) => ["front", "back"].map((sd) => `<figure class="qv-frame"><img src="/swag/qv/${slug}-${qvColorSlug(name)}-${sd}.svg" alt="${esc(title)} hoodie in ${esc(name)} — ${sd} illustration" loading="lazy" decoding="async" /><figcaption>${sd}</figcaption></figure>`).join("")).join("");
+  g.innerHTML = photoFrames + colorFrames;
   g.scrollLeft = 0;
-  $("#qvSwatches").innerHTML = data.colors.map(([name, hex], i) => `<button type="button" class="qv-swatch" data-qv-color="${i}" aria-pressed="${i === 0}"><span class="swatch" style="--sw:${hex}"></span>${esc(name)}</button>`).join("");
+  $("#qvSwatches").innerHTML = data.colors.map(([name, hex], i) => `<button type="button" class="qv-swatch" data-qv-color="${i}" aria-pressed="false"><span class="swatch" style="--sw:${hex}"></span>${esc(name)}</button>`).join("");
   $$("#qvSwatches .qv-swatch").forEach((b) => b.addEventListener("click", () => {
-    g.scrollTo({ left: Number(b.dataset.qvColor) * 2 * (g.clientWidth || 1), behavior: "smooth" });
+    g.scrollTo({ left: (2 + Number(b.dataset.qvColor) * 2) * (g.clientWidth || 1), behavior: "smooth" });
   }));
   qvSyncGallery();
   // Price is set ($69.99 across Drop 001 youth hoodies); the size
@@ -575,6 +649,10 @@ function closeQuickView() {
   document.body.classList.remove("qv-open");
 }
 $$("[data-qv-close]").forEach((el) => el.addEventListener("click", closeQuickView));
+/* Dead-end sweep (Round 2, 2026-11-05): the open quick view covers
+   the header logo, so the panel carries its own Home button — close
+   the dialog, then the standard goHome() reset. */
+$("#qvHome")?.addEventListener("click", () => { closeQuickView(); goHome(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuickView(); });
 
 /* ---------------- Hype Frame studio ---------------- */
@@ -586,12 +664,18 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuick
 //   3. Pick a print style — Classic (photo only), Signature (photo +
 //      name / jersey caption), or Hype Frame (grunge frame around the
 //      photo + the HYPE FRAME script lockup under it, drawn onto the
-//      print image itself, not just the preview). The print always
-//      sits at the fixed default placement on the garment.
-//   4. Preview the actual image on a hoodie or T-shirt — and pick the
-//      print side, front or back (the choice rides on the order).
-//   5. Order with parent or guardian approval (an order REQUEST — no
+//      print image itself). The print always sits at the fixed
+//      default placement on the garment.
+//   4. Order with parent or guardian approval (an order REQUEST — no
 //      payment, no price; the owner confirms with the guardian first).
+// Round 2 (2026-11-05): there is NO on-screen garment preview and no
+// apparel / side / colorway pickers any more — the preview block was
+// too confusing. The order payload carries fixed defaults instead
+// (apparel "hoodie", side "front", the default colorway below), so
+// the server contract is unchanged; garment details are confirmed
+// with the guardian afterwards. The hoodie colorway list survives
+// only so the composed print's frame/lockup tone can follow the
+// default garment color.
 // Capture is client-side canvas work: play videos are same-origin hosted
 // files, so drawImage + toDataURL work. Link-posted plays can't be
 // captured (cross-origin embeds) — the studio says so instead of failing.
@@ -602,33 +686,15 @@ const HF_COLORWAYS = {
     { name: "Forest Green", hex: "#14532d" }, { name: "Heather Gray", hex: "#a8abb0" },
     { name: "Light Blue", hex: "#a9d7f0" }, { name: "Olive", hex: "#66704a" },
   ],
-  tee: [
-    { name: "Black", hex: "#17171a" }, { name: "White", hex: "#f5f5f2" },
-    { name: "Cream", hex: "#f3e7cf" }, { name: "Heather Gray", hex: "#a8abb0" },
-    { name: "Navy", hex: "#14264a" }, { name: "Pink", hex: "#f3a8c4" },
-  ],
 };
-// Print areas per garment, as % of the mock box (the garment SVGs share a
-// 640x720 viewBox). The print — frame + caption band + branding lockup,
-// treated as ONE unit — must stay inside its garment's print area.
-const HF_AREAS = {
-  hoodie: { left: 25, top: 30, width: 50, height: 48 },
-  tee: { left: 25, top: 22, width: 50, height: 52 },
-};
-// Print-side (Store v8): the back print rides a little higher on the
-// garment than the chest print, so the back has its own print areas.
-const HF_AREAS_BACK = {
-  hoodie: { left: 25, top: 25.5, width: 50, height: 48 },
-  tee: { left: 25, top: 17.5, width: 50, height: 52 },
-};
-// Placement is stored as percentages RELATIVE to the print area
-// (cx/cy = the print's center, size = print width as % of the area's
-// width), so it maps proportionally when switching garments, and the
-// order request carries it to the server for the printer to reproduce.
+// Placement is stored as percentages RELATIVE to the garment's print
+// area (cx/cy = the print's center, size = print width as % of the
+// area's width), and the order request carries it to the server for
+// the printer to reproduce.
 /* Print size raised 66% -> 78% (2026-11-05): the print read small and
-   washed on the garment at 66%. ONE shared default — preview, the
-   composed print's placement math, and the order payload all read it,
-   front and back (server fallback default matches). */
+   washed on the garment at 66%. ONE shared default — the composed
+   print's placement values and the order payload both read it
+   (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
@@ -649,14 +715,15 @@ function initHfStudio(play) {
   hfState.printDataUrl = "";
   hfState.printAspect = 0;
   hfState.placement = { ...HF_PLACEMENT_DEFAULT };
-  $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, preview it on apparel, and send the request. A parent or guardian confirms before anything is printed.`;
+  $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, and send the request. A parent or guardian confirms before anything is printed.`;
   $("#hfName").value = play.athlete_label || play.player_name || "";
   $("#hfJersey").value = play.jersey || "";
   hfSetPreset("hypeframe");
   $("#hfMsg").textContent = "";
-  $("#hfPrintImg").hidden = true;
-  $("#hfPrintEmpty").hidden = false;
-  hfApplyPlacement();
+  // Round 2 defaults ride on every order (no pickers in the studio).
+  hfState.apparel = "hoodie";
+  hfState.side = "front";
+  hfState.colorway = (HF_COLORWAYS.hoodie[0] || {}).name || "Black";
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
   v.pause(); v.removeAttribute("src"); v.load();
   photo.removeAttribute("src");
@@ -673,8 +740,6 @@ function initHfStudio(play) {
     v.hidden = true; photo.hidden = true; scrubRow.style.display = "none";
     linkNote.hidden = false; freezeBtn.disabled = true;
   }
-  hfSetApparel("hoodie");
-  hfSetSide("front");
   hfBuildStrip();
 }
 /* Frame filmstrip (2026-11-05): thumbnails captured client-side from
@@ -846,12 +911,12 @@ function hfDrawLockup(x, W, H, bandH, tone) {
 }
 // Compose the FINAL print image: the frozen frame, the optional HYPE
 // FRAME poster treatment (grunge frame + lockup band), and the name /
-// jersey caption under the frame. The apparel preview and the
-// submitted order both use this exact image — what they see is what
-// would print.
+// jersey caption under the frame. The submitted order carries this
+// exact image — what is composed here is what would print. (Round 2:
+// the composition is no longer shown on a garment preview in the
+// studio; it lives in hfState and rides on the order payload.)
 function composeHfPrint() {
-  const img = $("#hfPrintImg"), empty = $("#hfPrintEmpty");
-  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; img.hidden = true; empty.hidden = false; hfApplyPlacement(); return; }
+  if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; return; }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
@@ -889,9 +954,6 @@ function composeHfPrint() {
   }
   hfState.printDataUrl = c.toDataURL("image/png");
   hfState.printAspect = c.height / c.width;
-  img.src = hfState.printDataUrl;
-  img.hidden = false; empty.hidden = true;
-  hfApplyPlacement();
 }
 // Print style presets: radio behavior over the three options; the
 // choice re-composes the print live, exactly like the old checkbox did.
@@ -899,132 +961,6 @@ function hfSetPreset(p) {
   hfState.preset = p;
   $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
   if (hfState.frozen) composeHfPrint();
-}
-/* "See it finished" (2026-11-05, from Emil's poster): the current
-   composed print layered onto a fixed lineup of example garments —
-   black hoodie BACK, cream tee FRONT, heather-gray hoodie BACK,
-   white tee FRONT. The figures clone the studio's own garment SVGs
-   (fabric recolored per example), and each print is positioned with
-   the same placement + per-garment print-area math as the main mock,
-   computed in % so it needs no layout. Re-renders whenever the print
-   or placement changes (hfApplyPlacement calls it on every path). */
-const HF_FINISHED = [
-  { apparel: "hoodie", side: "back", hex: "#17171a", label: "Black hoodie · Back" },
-  { apparel: "tee", side: "front", hex: "#f3e7cf", label: "Cream tee · Front" },
-  { apparel: "hoodie", side: "back", hex: "#a8abb0", label: "Heather gray hoodie · Back" },
-  { apparel: "tee", side: "front", hex: "#f5f5f2", label: "White tee · Front" },
-];
-function hfBuildFinished() {
-  const row = $("#hfFinRow");
-  if (!row || row.children.length) return;
-  row.innerHTML = HF_FINISHED.map((f, i) => `<figure class="hf-fin" data-fin="${i}"><div class="hf-fin-stage"></div><figcaption>${f.label}</figcaption></figure>`).join("");
-  HF_FINISHED.forEach((f, i) => {
-    const src = document.querySelector(`.hf-garment-${f.apparel}-${f.side}`);
-    const stage = row.querySelector(`[data-fin="${i}"] .hf-fin-stage`);
-    if (!src || !stage) return;
-    const clone = src.cloneNode(true);
-    clone.removeAttribute("hidden");
-    clone.classList.add("hf-fin-garment");
-    clone.querySelectorAll(".hf-fabric").forEach((p) => p.setAttribute("fill", f.hex));
-    const img = document.createElement("img");
-    img.className = "hf-fin-print"; img.alt = ""; img.hidden = true;
-    stage.appendChild(clone); stage.appendChild(img);
-  });
-}
-function hfRenderFinished() {
-  const row = $("#hfFinRow"); if (!row) return;
-  hfBuildFinished();
-  const url = hfState.printDataUrl, aspect = hfState.printAspect;
-  row.querySelectorAll(".hf-fin").forEach((fig, i) => {
-    const f = HF_FINISHED[i], img = fig.querySelector(".hf-fin-print");
-    if (!f || !img) return;
-    if (!url || !aspect) { img.hidden = true; img.removeAttribute("src"); return; }
-    const area = (f.side === "back" ? HF_AREAS_BACK : HF_AREAS)[f.apparel];
-    const p = hfState.placement;
-    const pwPct = area.width * p.size / 100;         // % of stage width
-    const phPct = pwPct * (640 / 720) * aspect;      // % of stage height (stage is 640x720)
-    const cxPct = area.left + area.width * p.cx / 100;
-    const cyPct = area.top + area.height * p.cy / 100;
-    const cxC = pwPct >= area.width ? area.left + area.width / 2 : Math.min(Math.max(cxPct, area.left + pwPct / 2), area.left + area.width - pwPct / 2);
-    const cyC = phPct >= area.height ? area.top + area.height / 2 : Math.min(Math.max(cyPct, area.top + phPct / 2), area.top + area.height - phPct / 2);
-    if (img.getAttribute("src") !== url) img.src = url;
-    img.hidden = false;
-    img.style.width = pwPct + "%";
-    img.style.left = (cxC - pwPct / 2) + "%";
-    img.style.top = (cyC - phPct / 2) + "%";
-  });
-}
-// Position the print layer inside the mock from hfState.placement.
-// Pixel math against the rendered mock, stored back as print-area
-// percentages. When the print fits the area on an axis its center is
-// clamped so it stays fully inside; when it can't fit (a tall portrait
-// print at a big size), it stays centered on that axis instead. With no
-// frozen frame, inline geometry is cleared and the CSS per-garment
-// rules position the empty-state placeholder, exactly as before.
-function hfApplyPlacement() {
-  const mock = $("#hfMock"), print = $("#hfPrint");
-  if (!mock || !print) return;
-  hfRenderFinished();
-  if (!hfState.frozen || !hfState.printAspect) { print.style.left = ""; print.style.top = ""; print.style.width = ""; return; }
-  const r = mock.getBoundingClientRect();
-  if (!r.width || !r.height) return;
-  const areaTable = hfState.side === "back" ? HF_AREAS_BACK : HF_AREAS;
-  const area = areaTable[hfState.apparel] || HF_AREAS.hoodie;
-  const ax = r.width * area.left / 100, ay = r.height * area.top / 100;
-  const aw = r.width * area.width / 100, ah = r.height * area.height / 100;
-  const pw = aw * hfState.placement.size / 100;
-  const ph = pw * hfState.printAspect;
-  let cxp = ax + aw * hfState.placement.cx / 100;
-  let cyp = ay + ah * hfState.placement.cy / 100;
-  cxp = pw >= aw ? ax + aw / 2 : Math.min(Math.max(cxp, ax + pw / 2), ax + aw - pw / 2);
-  cyp = ph >= ah ? ay + ah / 2 : Math.min(Math.max(cyp, ay + ph / 2), ay + ah - ph / 2);
-  hfState.placement.cx = Math.round((cxp - ax) / aw * 1000) / 10;
-  hfState.placement.cy = Math.round((cyp - ay) / ah * 1000) / 10;
-  print.style.width = pw + "px";
-  print.style.left = (cxp - pw / 2) + "px";
-  print.style.top = (cyp - ph / 2) + "px";
-}
-// Exactly one of the four garment SVGs (apparel x side) is visible.
-// Toggle the hidden ATTRIBUTE, not the .hidden property: the garments
-// are SVG elements, where the IDL property does not reliably reflect
-// to the content attribute — and the CSS rule (.hf-garment[hidden])
-// keys off the attribute. toggleAttribute is an Element method, so it
-// works on SVG in every engine.
-function hfSyncGarment() {
-  const a = hfState.apparel, s = hfState.side;
-  $(".hf-garment-hoodie-front").toggleAttribute("hidden", !(a === "hoodie" && s === "front"));
-  $(".hf-garment-hoodie-back").toggleAttribute("hidden", !(a === "hoodie" && s === "back"));
-  $(".hf-garment-tee-front").toggleAttribute("hidden", !(a === "tee" && s === "front"));
-  $(".hf-garment-tee-back").toggleAttribute("hidden", !(a === "tee" && s === "back"));
-  $("#hfMock").dataset.apparel = a;
-  $("#hfMock").dataset.side = s;
-}
-function hfSetSide(s) {
-  hfState.side = s === "back" ? "back" : "front";
-  $("#hfSideFront").setAttribute("aria-pressed", String(hfState.side === "front"));
-  $("#hfSideBack").setAttribute("aria-pressed", String(hfState.side === "back"));
-  hfSyncGarment();
-  hfApplyPlacement();
-}
-function hfSetApparel(a) {
-  hfState.apparel = a;
-  $("#hfAppHoodie").setAttribute("aria-pressed", String(a === "hoodie"));
-  $("#hfAppTee").setAttribute("aria-pressed", String(a === "tee"));
-  hfSyncGarment();
-  const list = HF_COLORWAYS[a];
-  if (!list.some((c) => c.name === hfState.colorway)) hfState.colorway = list[0].name;
-  $("#hfSwatches").innerHTML = list.map((c) => `<button type="button" class="pill hf-swatch" data-colorway="${esc(c.name)}" aria-pressed="${hfState.colorway === c.name}"><span class="swatch" style="--sw:${c.hex}"></span>${esc(c.name)}</button>`).join("");
-  $$("#hfSwatches .hf-swatch").forEach((b) => b.addEventListener("click", () => hfSetColorway(b.dataset.colorway)));
-  hfSetColorway(hfState.colorway);
-  hfApplyPlacement();
-}
-function hfSetColorway(name) {
-  const c = (HF_COLORWAYS[hfState.apparel] || []).find((k) => k.name === name) || HF_COLORWAYS[hfState.apparel][0];
-  hfState.colorway = c.name;
-  $$("#hfMock .hf-fabric").forEach((p) => p.setAttribute("fill", c.hex));
-  $$("#hfSwatches .hf-swatch").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.colorway === c.name)));
-  // The Hype Frame print's frame/lockup tone follows the garment color.
-  if (hfState.frozen && hfState.preset === "hypeframe") composeHfPrint();
 }
 (function () {
   const v = $("#hfVideo");
@@ -1040,14 +976,10 @@ function hfSetColorway(name) {
   $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
   ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
   $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
-  $("#hfAppHoodie").addEventListener("click", () => hfSetApparel("hoodie"));
-  $("#hfAppTee").addEventListener("click", () => hfSetApparel("tee"));
-  $("#hfSideFront").addEventListener("click", () => hfSetSide("front"));
-  $("#hfSideBack").addEventListener("click", () => hfSetSide("back"));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
-  // size controls — hfApplyPlacement positions from the defaults and
-  // the order still carries the placement values to the server.
-  window.addEventListener("resize", hfApplyPlacement);
+  // size controls — and since Round 2 there is no garment preview or
+  // apparel/side/colorway picker either; the order simply carries
+  // the default placement + garment values to the server.
   $("#hfOrderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = $("#hfMsg");
@@ -1274,8 +1206,8 @@ async function loadOwner() {
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
 window.deletePlay = async (id) => { if (!confirm("Delete this play permanently?")) return; await api(`/api/highlights/${id}`, { method: "DELETE" }); loadOwner(); loadData(); };
 $("#ownerBtn").addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
-$("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); localStorage.setItem("hh_owner_token", t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
-$("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); localStorage.setItem("hh_owner_token", r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
+$("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
+$("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); setOwnerToken(r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
 $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMsg"); m.textContent = "Sending…"; try { const r = await api("/api/moderate/request"); m.textContent = r.message; } catch (e) { m.textContent = e.message; } });
 
 /* ---------------- boot / hashes ---------------- */
