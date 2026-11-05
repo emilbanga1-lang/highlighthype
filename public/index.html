@@ -477,7 +477,7 @@
   <div class="wrap">
     <article class="store-card" aria-label="Wear The Hype — the Drop 001 store">
       <div class="store-card-media">
-        <video src="/swag-film.mp4" poster="/swag-poster-v4.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
+        <video src="/swag-film.mp4" poster="/swag-poster-v5.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
         <span class="store-card-badge"><span class="dot"></span> Drop 001 · The Film</span>
       </div>
       <div class="store-card-body">
@@ -487,9 +487,9 @@
         <div class="store-cta-actions">
           <a class="btn btn-lime btn-hero" href="#shop" data-store-link>Enter the Store</a>
           <div class="store-cta-sub">
-            <a class="girls-link" href="#hype-girls" data-store-link data-store-target="hype-girls">Hype Girls</a>
-            <span aria-hidden="true">·</span>
             <a href="#hype-boys" data-store-link data-store-target="hype-boys">Hype Boys</a>
+            <span aria-hidden="true">·</span>
+            <a class="girls-link" href="#hype-girls" data-store-link data-store-target="hype-girls">Hype Girls</a>
           </div>
         </div>
       </div>
@@ -500,20 +500,19 @@
 <!-- ============ THE STORE ============ -->
 <section class="shop" id="shop">
   <div class="wrap">
-    <div class="store-bar">
-      <button type="button" class="back-link" data-home-link>← Back to homepage</button>
-      <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
-    </div>
+    <!-- Store v6: the film leads the Store at the very top of the page
+         (nav floats over it, like the homepage); the store bar moved
+         below the film. -->
     <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
-      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v4.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
+      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v5.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
       <span class="swag-film-hint" id="swagHint">⏸ Pause to shop the look</span>
       <div class="swag-film-overlay swag-hero-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
         <div class="swag-hero-links">
-          <button type="button" class="hero-shop-link hero-shop-girls" data-hero-shop="girls">Shop Girls <span class="chev" aria-hidden="true">›</span></button>
           <button type="button" class="hero-shop-link hero-shop-boys" data-hero-shop="boys">Shop Boys <span class="chev" aria-hidden="true">›</span></button>
+          <button type="button" class="hero-shop-link hero-shop-girls" data-hero-shop="girls">Shop Girls <span class="chev" aria-hidden="true">›</span></button>
         </div>
       </div>
       <button type="button" class="film-toggle" id="swagPlayBtn" aria-label="Pause the Drop 001 film">
@@ -522,10 +521,15 @@
       </button>
       <div class="swag-shop-card" id="swagShopCard" hidden>
         <p class="ssc-kicker">In this scene</p>
-        <h4 id="sscTitle">The Girls Hype Street hoodie</h4>
+        <h4 id="sscTitle">The Boys Hype Street hoodie</h4>
         <p class="ssc-sub" id="sscSub"></p>
         <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
       </div>
+    </div>
+
+    <div class="store-bar">
+      <button type="button" class="back-link" data-home-link>← Back to homepage</button>
+      <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
     </div>
 
     <div class="shop-head shop-head-slim">
@@ -537,13 +541,6 @@
     </div>
 
     <div class="store-tiles" aria-label="Shop by collection side">
-      <button type="button" class="store-tile store-tile-girls" data-store-tile="girls" aria-label="Shop all Hype Girls">
-        <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
-        <span class="tile-copy">
-          <span class="tile-label">Girls</span>
-          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
-        </span>
-      </button>
       <button type="button" class="store-tile store-tile-boys" data-store-tile="boys" aria-label="Shop all Hype Boys">
         <img src="/swag/tile-boys.jpg" alt="Hype Boys — a model wearing the charcoal Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
         <span class="tile-copy">
@@ -551,25 +548,32 @@
           <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
         </span>
       </button>
+      <button type="button" class="store-tile store-tile-girls" data-store-tile="girls" aria-label="Shop all Hype Girls">
+        <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
+        <span class="tile-copy">
+          <span class="tile-label">Girls</span>
+          <span class="tile-link">Shop All <span class="chev" aria-hidden="true">›</span></span>
+        </span>
+      </button>
     </div>
 
     <div class="store-controls" id="storeControls">
       <div class="store-divseg" role="group" aria-label="Choose a collection side">
-        <button type="button" id="hype-girls" class="divseg-btn divseg-girls" data-store-div="girls" aria-pressed="true">Hype Girls</button>
-        <button type="button" id="hype-boys" class="divseg-btn divseg-boys" data-store-div="boys" aria-pressed="false">Hype Boys</button>
+        <button type="button" id="hype-boys" class="divseg-btn divseg-boys" data-store-div="boys" aria-pressed="true">Hype Boys</button>
+        <button type="button" id="hype-girls" class="divseg-btn divseg-girls" data-store-div="girls" aria-pressed="false">Hype Girls</button>
       </div>
       <div class="store-chips" role="group" aria-label="Filter by collection">
         <button type="button" class="store-chip" data-store-chip="all" aria-pressed="true">All</button>
         <button type="button" class="store-chip" data-store-chip="street" aria-pressed="false">Street</button>
         <button type="button" class="store-chip" data-store-chip="athletics" aria-pressed="false">Athletics</button>
-        <button type="button" class="store-chip" data-store-chip="essentials" data-chip-div="girls" aria-pressed="false">Essentials</button>
-        <button type="button" class="store-chip" data-store-chip="unleashed" data-chip-div="boys" aria-pressed="false" hidden>Unleashed</button>
+        <button type="button" class="store-chip" data-store-chip="essentials" data-chip-div="girls" aria-pressed="false" hidden>Essentials</button>
+        <button type="button" class="store-chip" data-store-chip="unleashed" data-chip-div="boys" aria-pressed="false">Unleashed</button>
       </div>
       <span id="coordinating" class="store-anchor" aria-hidden="true"></span>
     </div>
 
     <div class="prod-grid" id="collections" aria-label="Drop 001 products">
-      <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie">
+      <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie" hidden>
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/girls-street-front.jpg" alt="Girls Hype Street charcoal hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back with pink hibiscus flowers and white HYPE script, worn" loading="lazy" decoding="async" />
@@ -586,7 +590,7 @@
         </div>
       </article>
 
-      <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie">
+      <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie" hidden>
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/girls-athletics-front.jpg" alt="Girls Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/girls-athletics-back.jpg" alt="Girls Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
@@ -603,7 +607,7 @@
         </div>
       </article>
 
-      <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie">
+      <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie" hidden>
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/girls-essentials-front.jpg" alt="Girls Hype Essentials pink hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/girls-essentials-back.jpg" alt="Girls Hype Essentials pink hoodie — back with a large hibiscus, worn" loading="lazy" decoding="async" />
@@ -620,7 +624,7 @@
         </div>
       </article>
 
-      <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie" hidden>
+      <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie">
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/boys-street-front.jpg" alt="Boys Hype Street washed black hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/boys-street-back.jpg" alt="Boys Hype Street washed black hoodie — back with a large white crown and diagonal HYPE script, worn" loading="lazy" decoding="async" />
@@ -637,7 +641,7 @@
         </div>
       </article>
 
-      <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie" hidden>
+      <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie">
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/boys-athletics-front.jpg" alt="Boys Hype Athletics cream hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/boys-athletics-back.jpg" alt="Boys Hype Athletics cream hoodie — back with green HYPE Athletic Club design, worn" loading="lazy" decoding="async" />
@@ -654,7 +658,7 @@
         </div>
       </article>
 
-      <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie" hidden>
+      <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie">
         <div class="prod-media">
           <img class="prod-img prod-front" src="/swag/boys-unleashed-front.jpg" alt="Boys Hype Unleashed blue and yellow lightning-print hoodie — front, worn" loading="lazy" decoding="async" />
           <img class="prod-img prod-back" src="/swag/boys-unleashed-back.jpg" alt="Boys Hype Unleashed purple lightning-print hoodie — back with a neon crown outline, worn" loading="lazy" decoding="async" />

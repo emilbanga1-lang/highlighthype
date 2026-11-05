@@ -26,10 +26,13 @@
   /* ---------- nav ---------- */
   /* V20: no header bar on the homepage — the nav floats over the hero film
      (logo left, hamburger top-right), so the video runs full-bleed to the
-     top of the page under just the slim prototype ribbon. In the Store view
-     the bar returns — solid, in flow — so the shop keeps its own frame. */
+     top of the page under just the slim prototype ribbon.
+     Store v6 (2026-11-04): the Store gets the same treatment — the nav
+     floats over the store film too (Emil: "like the home page, the video
+     at the top with the logo on it"), so the solid in-flow store bar is
+     gone and the film starts at the very top of the page. */
   .nav{position:absolute;top:var(--ribbonh,34px);left:0;right:0;z-index:70;background:transparent;border-bottom:0}
-  body.store-open .nav{position:relative;top:auto;background:rgba(10,10,10,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  body.store-open .nav{position:absolute;top:0;background:transparent;backdrop-filter:none;border-bottom:0}
   .nav .wrap{display:flex;align-items:center;gap:22px;padding-top:13px;padding-bottom:13px}
   .brand{display:flex;align-items:center;text-decoration:none;color:#fff;flex:none}
   /* V18: the new logo lockup (JPG on black) replaces the drawn crown + text
@@ -585,6 +588,10 @@
   .shop{display:none}
   body.store-open .shop{display:block}
   body.store-open .view-home{display:none}
+  /* Store v6: in the Store view the film starts at the very top of the
+     page (the nav floats over it) — no section padding or top border
+     above the film. */
+  body.store-open .shop{padding-top:0;border-top:0}
   .store-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:32px;padding-bottom:18px;border-bottom:1px solid var(--line)}
   .back-link{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--line2);color:#fff;border-radius:999px;padding:9px 18px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;transition:border-color .15s ease}
   .back-link:hover{border-color:#fff}
@@ -816,6 +823,11 @@
   .film-toggle.is-paused .ic-pause{display:none}
   .film-toggle.is-paused .ic-play{display:block}
   .swag-film-hero .swag-shop-card{bottom:88px}
+  /* Store v6: the floating nav (logo left, hamburger right, ~70px tall)
+     now sits over the film, so the hero's badge + hint pill drop below
+     the nav line instead of colliding with it. */
+  .swag-film-hero .swag-film-badge{top:82px}
+  .swag-film-hero .swag-film-hint{top:82px}
   .store-tiles{display:flex;flex-direction:column;gap:14px;margin:0 0 22px}
   .store-tile{appearance:none;position:relative;display:block;width:100%;padding:0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#000;cursor:pointer;text-align:left;font:inherit;aspect-ratio:21/10}
   @media (max-width:640px){ .store-tile{aspect-ratio:4/3} }
