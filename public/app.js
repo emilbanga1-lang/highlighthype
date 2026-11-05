@@ -422,6 +422,10 @@ function showHome() {
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
   const hv = $("#heroVideo"); if (hv) { const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  // Round 4 fix (2026-11-05): showStore() pauses every .view-home video,
+  // and an explicitly paused video does NOT resume on its own when its
+  // view becomes visible again — resume the homepage Hype Frame film too.
+  const hfHome = $("#hfExamplesHome video"); if (hfHome) { const p = hfHome.play(); if (p && p.catch) p.catch(() => {}); }
 }
 /* One home reset for every logo / home link (2026-11-04): leave the
    store, land on the plays board, scroll to the top, and drop a stale
@@ -805,6 +809,9 @@ window.openHypeFrame = (id) => {
   showHome(); closeMenu(false); showPanel("hypeframe");
   history.replaceState(null, "", `#hype-frame-${id}`);
   initHfStudio(play);
+  // Round 4 fix (2026-11-05): the studio film lives in .view-home, so a
+  // store visit leaves it paused (see showHome) — start it explicitly.
+  const hfFilm = document.querySelector("#hypeframe .hf-film video"); if (hfFilm) { const p = hfFilm.play(); if (p && p.catch) p.catch(() => {}); }
   document.getElementById("hypeframe").scrollIntoView({ behavior: "smooth" });
 };
 function initHfStudio(play) {
