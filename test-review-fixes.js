@@ -99,14 +99,18 @@ try {
   // outline button toggles playback instead (wiring asserted in §6).
   assert(home.includes('id="swagVideo"') && !/id="swagVideo"[^>]*\bcontrols\b/.test(home), "swag film has NO native controls (v2 cinematic hero)");
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
-  // Store v4 (2026-11-04): the film was rebuilt from four 10s clips of
-  // youth wearing the actual Drop 001 designs, so the scene map is now
-  // four collection scenes on the measured boundaries (10/20/30s) — the
+  // Store v4 (2026-11-04): the film was rebuilt from 10s clips of
+  // youth wearing the actual Drop 001 designs, so the scene map is
+  // collection scenes on the measured boundaries (10/20/30/40s) — the
   // old title-card and Hype All Day scenes are gone (asserted in §8).
+  // Film v5 (2026-11-04): the Boys Unleashed clip, whose generation
+  // failed during v4, was retried and cut in as the fifth scene.
   assert(sceneRe("10", "girls-street").test(appJs), "scene 0–10s (Girls Street clip) maps to girls-street");
   assert(sceneRe("20", "girls-essentials").test(appJs), "scene 10–20s (Girls Essentials clip) maps to girls-essentials");
   assert(sceneRe("30", "boys-street").test(appJs), "scene 20–30s (Boys Street clip) maps to boys-street");
-  assert(sceneRe("Infinity", "boys-athletics").test(appJs), "scene 30s–end (Boys Athletics clip) maps to boys-athletics");
+  assert(sceneRe("40", "boys-athletics").test(appJs), "scene 30–40s (Boys Athletics clip) maps to boys-athletics");
+  assert(sceneRe("Infinity", "boys-unleashed").test(appJs), "scene 40s–end (Boys Unleashed clip) maps to boys-unleashed");
+  assert(appJs.includes("The Boys Hype Unleashed hoodie"), "Unleashed scene card carries the collection title");
   assert(home.includes('id="hype-girls"') && home.includes('id="hype-boys"') && home.includes('id="collections"'), "division + grid scroll anchors exist in the Store");
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
@@ -171,7 +175,8 @@ try {
      Emil (2026-11-04 evening): the v3 light re-skin was rejected
      ("looked better before"), so the dark v2 store is restored and:
      (1) the film leads the page, bigger; (2) the film itself is new —
-     four 10s clips of youth wearing the actual Drop 001 designs;
+     five 10s clips of youth wearing the actual Drop 001 designs
+     (the fifth, Boys Unleashed, was cut in by film v5, 2026-11-04);
      (3) the Hype Frame creative survives, re-skinned for the dark
      store. (The v3 §7 light-skin assertions were replaced by these.) */
   assert(home.includes('class="shop"') && !home.includes("store-light"), "dark v2 store restored (no .store-light scope class)");
@@ -182,13 +187,13 @@ try {
   assert(css.includes(".swag-film-hero{aspect-ratio:auto;height:82vh"), "mobile hero is ~82vh tall (taller than v2's 4/5 crop)");
   const filmRes = await fetch(`${base}/swag-film.mp4`);
   const filmBuf = await filmRes.arrayBuffer();
-  assert(filmRes.status === 200 && filmBuf.byteLength > 5000000 && filmBuf.byteLength < 20000000, `the NEW film serves and is upload-sized (${filmBuf.byteLength} bytes; the old film was 1,519,887)`);
+  assert(filmRes.status === 200 && filmBuf.byteLength > 8000000 && filmBuf.byteLength < 20000000, `the NEW five-clip film serves and is upload-sized (${filmBuf.byteLength} bytes; the four-clip v4 film was 6,996,212)`);
   assert(home.includes('poster="/swag-poster-v4.jpg"'), "hero poster is a frame of the new film (old-design poster retired)");
-  /* Scene table integrity: exactly the four new scenes, on the
+  /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
      scenes (title card / Hype All Day / division & end cards) remain. */
   const scenesBlock = appJs.slice(appJs.indexOf("FILM_SCENES"), appJs.indexOf("];", appJs.indexOf("FILM_SCENES")));
-  assert((scenesBlock.match(/until:/g) || []).length === 4, "scene table has exactly 4 scenes");
+  assert((scenesBlock.match(/until:/g) || []).length === 5, "scene table has exactly 5 scenes");
   assert(!scenesBlock.includes("Hype All Day") && !scenesBlock.includes("hype-girls") && !scenesBlock.includes("hype-boys") && !scenesBlock.includes("coordinating") && !scenesBlock.includes("collections"), "no old-film scene targets remain in the scene table");
   assert(!appJs.includes("The Hype All Day hoodie") && !appJs.includes("Drop 001 — the full drop"), "old title-card / statement-hoodie scene copy is gone from app.js");
   assert(appJs.includes('data-slug="${target}"') || appJs.includes("data-slug="), "scene button resolves its target card by slug (goToStoreScene)");
