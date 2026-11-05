@@ -576,17 +576,24 @@ function filmSceneAt(t) {
 
 /* ---------------- Store: division doors + focus (2026-11-04/05) ----
    Nov 5 (Overtime pattern, Emil): the landing is film → Boys DOOR →
-   Girls DOOR → Hype Frame creative. The doors are the two division
-   banners; NO products are expanded on the landing (the grids are
-   CSS-hidden until a division is focused). Tapping a door (anywhere
-   on the banner, or its button) enters focus mode
+   Girls DOOR → Hype Frame DOOR. The doors are the three banners; NO
+   products are expanded on the landing (the grids are CSS-hidden
+   until a division is focused). Tapping a door (anywhere on the
+   banner, or its button) enters focus mode
    (body[data-store-focus="boys"|"girls"]), which hides the film,
    the store bar/head, and the other division's block, and pins the
    focused block's grid under a slim focus bar; the focus bar's exit
    returns to the doors landing. Also entered from the film overlay
    Shop Boys/Girls links, #hype-boys / #hype-girls links, and the
    film's pause-to-shop card (which focuses the paused scene's
-   division and lands on its card). */
+   division and lands on its card).
+   Round 4 (2026-11-05): the Hype Frame door is a focus door too —
+   it enters body[data-store-focus="hypeframe"], which hides the
+   film, the store bar/head and ALL three door blocks, and reveals
+   the Hype Frame creative + finished-product examples as their own
+   panel under the same focus bar (title "Hype Frame"); the focus
+   bar's exit is the back path to the doors. The creative is NOT in
+   the landing's always-visible flow anymore (CSS-gated). */
 const storeState = { focus: null };
 function setStoreFocus(div) {
   storeState.focus = div || null;
@@ -594,8 +601,12 @@ function setStoreFocus(div) {
   const bar = $("#storeFocusBar");
   if (bar) {
     bar.hidden = !div;
-    if (div) $("#storeFocusTitle").textContent = `Hype ${div === "girls" ? "Girls" : "Boys"} — Drop 001`;
+    if (div) $("#storeFocusTitle").textContent = div === "hypeframe" ? "Hype Frame" : `Hype ${div === "girls" ? "Girls" : "Boys"} — Drop 001`;
   }
+}
+function openStoreHf() {
+  setStoreFocus("hypeframe");
+  setTimeout(() => document.getElementById("storeFocusBar")?.scrollIntoView({ behavior: "smooth" }), 60);
 }
 function flashStoreCards(selector) {
   const cards = $$(selector || ".prod-card");
@@ -624,20 +635,21 @@ function goToStoreScene(target) {
   }
 }
 $$("[data-hero-shop]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.heroShop === "girls" ? "hype-girls" : "hype-boys")));
-$$("[data-store-focus]").forEach((b) => b.addEventListener("click", () => goToStoreScene(b.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys")));
+$$("[data-store-focus]").forEach((b) => b.addEventListener("click", () => {
+  if (b.dataset.storeFocus === "hypeframe") { openStoreHf(); return; }
+  goToStoreScene(b.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys");
+}));
 /* The whole banner is the door (2026-11-05): tapping anywhere on it
-   opens that division, not just on the underlined button. */
+   opens that door, not just on the underlined button. Round 4: the
+   Hype Frame banner routes to its panel (openStoreHf) the same way
+   the division banners route to their focus. */
 $$(".store-banner").forEach((banner) => banner.addEventListener("click", (e) => {
   if (e.target.closest("[data-store-focus]")) return; // the button has its own handler
   const btn = banner.querySelector("[data-store-focus]");
-  if (btn) goToStoreScene(btn.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys");
+  if (!btn) return;
+  if (btn.dataset.storeFocus === "hypeframe") { openStoreHf(); return; }
+  goToStoreScene(btn.dataset.storeFocus === "girls" ? "hype-girls" : "hype-boys");
 }));
-/* Third door (Round 3, 2026-11-05): the Hype Frame banner is a door
-   like the divisions, but it is NOT a division — no focus mode. The
-   whole banner (and its button) smooth-scrolls to the Hype Frame
-   creative that lives on the same store landing. */
-$$("[data-hf-door]").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("hype-frame")?.scrollIntoView({ behavior: "smooth" }); }));
-$$(".store-banner-hf").forEach((banner) => banner.addEventListener("click", () => { document.getElementById("hype-frame")?.scrollIntoView({ behavior: "smooth" }); }));
 $("#storeFocusExit")?.addEventListener("click", () => { setStoreFocus(null); document.getElementById("collections")?.scrollIntoView({ behavior: "smooth" }); });
 $$(".prod-card").forEach((card) => {
   const flip = card.querySelector("[data-flip]");

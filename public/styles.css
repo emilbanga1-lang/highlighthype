@@ -925,7 +925,8 @@
      padding hack is reverted. */
   .store-focusbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 2px;border-bottom:1px solid var(--line);margin-bottom:22px;scroll-margin-top:calc(var(--navh,70px) + 8px)}
   body.store-open[data-store-focus="boys"] .shop,
-  body.store-open[data-store-focus="girls"] .shop{padding-top:calc(var(--navh,70px) + 12px)}
+  body.store-open[data-store-focus="girls"] .shop,
+  body.store-open[data-store-focus="hypeframe"] .shop{padding-top:calc(var(--navh,70px) + 12px)}
   .store-focusbar[hidden]{display:none}
   .store-focusbar .back-link{flex:none}
   .store-focus-title{font-family:"Anton",sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.02em}
@@ -937,13 +938,31 @@
   body[data-store-focus="girls"] .shop-head{display:none}
   body[data-store-focus="boys"] .store-block[data-store-block="girls"],
   body[data-store-focus="girls"] .store-block[data-store-block="boys"]{display:none}
-  /* The Hype Frame door (Round 3, 2026-11-05) is a third landing block
-     but NOT a division: it hides in either division's focus mode and
-     never gets a focus state of its own. */
+  /* The Hype Frame door (Round 3, 2026-11-05) is a third landing
+     block: it hides in either division's focus mode. Round 4
+     (2026-11-05): it DOES get a focus state of its own —
+     data-store-focus="hypeframe" hides the film, the store bar/head
+     and all three door blocks, and reveals the Hype Frame creative
+     panel (gated below). */
   body[data-store-focus="boys"] .store-block[data-store-block="hypeframe"],
   body[data-store-focus="girls"] .store-block[data-store-block="hypeframe"]{display:none}
+  body[data-store-focus="hypeframe"] .swag-film-hero,
+  body[data-store-focus="hypeframe"] .store-bar,
+  body[data-store-focus="hypeframe"] .shop-head{display:none}
+  body[data-store-focus="hypeframe"] .store-block{display:none}
   .store-banner-copy h3 .purple{color:var(--hf-purple-soft)}
   .hf-creative{scroll-margin-top:calc(var(--navh,70px) + 12px)}
+  /* Round 4 (2026-11-05): the Hype Frame creative + the store's
+     finished-product examples are the Hype Frame door's PANEL, not
+     landing content — hidden on the doors landing and in either
+     division's focus, shown only in the hypeframe focus state. (The
+     homepage #hfExamplesHome block and the studio's examples are
+     different elements and are NOT gated.) In the panel the creative
+     sits directly under the focus bar, so its landing separator
+     spacing/border is dropped. */
+  body:not([data-store-focus="hypeframe"]) .shop .hf-creative,
+  body:not([data-store-focus="hypeframe"]) #hfExamples{display:none}
+  body[data-store-focus="hypeframe"] .hf-creative{margin-top:0;padding-top:10px;border-top:0}
   body[data-store-focus="boys"] .store-block[data-store-block="boys"],
   body[data-store-focus="girls"] .store-block[data-store-block="girls"]{margin-top:6px}
   /* Doors landing (2026-11-05, Overtime pattern): on the landing the

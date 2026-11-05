@@ -248,11 +248,13 @@
       <h4>What yours could look like</h4>
       <p>Example finishes — yours is made from your own play. Pick a play on the board and tap “Create a Hype Frame” to freeze your moment.</p>
     </div>
-    <!-- Hype Frame film (Round 3, 2026-11-05): assembled from real
-         assets — Nicholas's actual home-run clip, its frozen frame, and
-         the finished-product poster crops. No generated footage. -->
+    <!-- Hype Frame film (Round 4, 2026-11-05): built around the
+         sweatshirt player — the cream hoodie's printed player comes
+         to life and plays out his swing, then the finished-product
+         examples. Replaced the Round 3 real-clip assembly at Emil's
+         direction. -->
     <div class="hf-film">
-      <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a real highlight freezes and becomes a printed hoodie"></video>
+      <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the player printed on the sweatshirt comes to life, then finished-product examples"></video>
     </div>
     <div class="hf-examples-grid">
       <figure class="hf-example hf-example-hoodie">
@@ -327,7 +329,7 @@
          first, data collection last. -->
     <div class="hf-payoff">
       <div class="hf-film">
-        <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a real highlight freezes and becomes a printed hoodie"></video>
+        <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the player printed on the sweatshirt comes to life, then finished-product examples"></video>
       </div>
       <p class="hf-payoff-line">This is what your moment becomes.</p>
       <div class="hf-examples hf-examples-studio">
@@ -655,17 +657,20 @@
         </div>
       </div>
       <!-- Third door (Round 3, 2026-11-05): Hype Frame gets a door
-           like the two divisions. It is NOT a division — no focus
-           mode; tapping it scrolls to the Hype Frame creative below
-           (data-hf-door wiring in app.js). Hidden in focus mode like
-           the other doors' blocks. -->
+           like the two divisions. Round 4 (2026-11-05): the door is
+           now a real focus door — tapping it opens the Hype Frame
+           creative as its own panel (data-store-focus="hypeframe"
+           wiring in app.js + styles.css), so the creative and the
+           finished-product examples are no longer part of the
+           landing's always-visible flow. The focus bar's exit is the
+           back path to the doors. -->
       <div class="store-block" data-store-block="hypeframe">
         <div class="store-banner store-banner-hf">
           <img src="/swag/hf-door.jpg" alt="Hype Frame — a frozen baseball moment printed on the back of a cream hoodie" loading="lazy" decoding="async" />
           <div class="store-banner-copy">
             <h3>Hype <span class="purple">Frame</span></h3>
             <p>Turn your highlight into wearable hype</p>
-            <button type="button" class="store-banner-btn" data-hf-door>Create yours <span class="chev" aria-hidden="true">›</span></button>
+            <button type="button" class="store-banner-btn" data-store-focus="hypeframe">Create yours <span class="chev" aria-hidden="true">›</span></button>
           </div>
         </div>
       </div>
