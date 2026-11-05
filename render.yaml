@@ -1,7 +1,8 @@
 # Render blueprint — deploys HighlightHype as a single web service.
-# IMPORTANT: on Render's free tier the filesystem is ephemeral, so uploads and
-# votes can be lost on a restart. Attach a persistent disk (see README) for
-# any beta that matters, or use a paid instance.
+# The live service runs on the Starter plan with the 1 GB persistent
+# disk below mounted at /var/data (uploads, votes and the SQLite DB
+# live there). Keep this plan in sync with the dashboard service:
+# a free-tier redeploy has an ephemeral filesystem and would lose data.
 services:
   - type: web
     name: highlighthype

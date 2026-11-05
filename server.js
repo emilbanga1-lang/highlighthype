@@ -25,6 +25,21 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // They are never listed on any public endpoint.
 const HYPEFRAME_DIR = path.join(DATA_DIR, "hype-frames");
 fs.mkdirSync(HYPEFRAME_DIR, { recursive: true });
+const DB_PATH = path.join(DATA_DIR, "highlighthype.db");
+
+// ---- Hardening (2026-11-04, security/infra review follow-up) ----
+// Named thresholds for the upload guards in POST /api/highlights:
+// refuse file writes when the data volume is nearly full, and cap how
+// many plays one connection can create per hour. Beta traffic is a
+// handful of uploads a day, so both limits sit far above real use and
+// exist only to stop a stranger filling the disk that holds the DB.
+const MIN_FREE_BYTES = 200 * 1024 * 1024; // free-space floor: 200 MB
+const UPLOAD_RATE_LIMIT = 20;             // uploads per IP per window
+const UPLOAD_RATE_WINDOW_MS = 60 * 60 * 1000;
+const uploadHitsByIp = new Map();
+// Backup file downloads may only ever serve files inside these two
+// data subdirectories (the DB is served by its own snapshot endpoint).
+const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
 
 
 // ---- Pending-approval email notification (zero-dependency SMTP) ----
@@ -92,7 +107,7 @@ function notifyPending(title, sport, id, review) {
 // numbers only, and only where the guardian checked the opt-in box.
 function sendText(to, body) {
   const sid = process.env.TWILIO_ACCOUNT_SID, auth = process.env.TWILIO_AUTH_TOKEN, from = process.env.TWILIO_FROM;
-  if (!sid || !auth || !from) { console.log(`[sms] TWILIO_* env vars not set — text NOT sent (would text ${to}: "${String(body).slice(0, 80)}")`); return Promise.resolve(false); }
+  if (!sid || !auth || !from) { const masked = to ? "***" + String(to).replace(/\D/g, "").slice(-2) : "(no number)"; console.log(`[sms] TWILIO_* env vars not set — text NOT sent (guardian number ${masked}; message body withheld from logs)`); return Promise.resolve(false); }
   if (!to) return Promise.resolve(false);
   const creds = Buffer.from(`${sid}:${auth}`).toString("base64");
   return fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
@@ -100,7 +115,7 @@ function sendText(to, body) {
     headers: { authorization: `Basic ${creds}`, "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ From: from, To: to, Body: String(body) }).toString(),
   }).then(async (r) => {
-    if (!r.ok) { console.error("sendText failed:", r.status, (await r.text().catch(() => "")).slice(0, 200)); return false; }
+    if (!r.ok) { console.error("sendText failed:", r.status); return false; }
     return true;
   }).catch((e) => { console.error("sendText failed:", e.message); return false; });
 }
@@ -132,7 +147,7 @@ function preReview({ title, sport, playType, playerName, story, mediaKind, mime,
   return { verdict: flags.length ? "FLAGGED — needs a closer look" : "Clean — no flags found", flags, checkedAt: new Date().toISOString() };
 }
 
-const db = new DatabaseSync(path.join(DATA_DIR, "highlighthype.db"));
+const db = new DatabaseSync(DB_PATH);
 db.exec(`
 CREATE TABLE IF NOT EXISTS highlights(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -431,19 +446,42 @@ function notifyHypeFrameRequest(order, play) {
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
 function publicHighlight(row, voterToken = "") {
-  // Private guardian contact fields are stripped here — the single choke
-  // point every public response flows through (board, athlete collections,
-  // contest). guardian_phone / text_consent must never be added to `safe`.
-  const { notify_email, guardian_phone, text_consent, ...safe } = row;
+  // Public shape is an explicit ALLOWLIST (hardening, 2026-11-04): only
+  // the fields the client renders are returned. The old spread-minus-
+  // three also leaked internal columns — above all `review`, the agent
+  // pre-review JSON — and would have leaked any future column by
+  // default. Private guardian contact fields (notify_email,
+  // guardian_phone, text_consent) are NOT on the list and must never
+  // be added; owner endpoints attach guardian details separately,
+  // after their own authorization check. This is the single choke
+  // point every public response flows through (board, athlete
+  // collections, contest).
   // Athlete display: first name + last initial (+ team in the UI). The
   // HH-#### tag is only exposed when two different athletes share the
   // same name+team group, so it appears exactly when disambiguation is
   // needed and stays out of the way otherwise.
   const collision = athleteCollision(row.athlete_group || "");
   return {
-    ...safe,
-    athlete_label: row.player_name ? athleteDisplayName(row.player_name) : "",
+    id: row.id,
+    title: row.title,
+    sport: row.sport,
+    play_type: row.play_type,
+    player_name: row.player_name,
+    story: row.story,
+    media_kind: row.media_kind,
+    media_url: row.media_url,
+    mime: row.mime,
+    embed_url: row.embed_url,
+    host_label: row.host_label,
+    status: row.status,
+    created_at: row.created_at,
+    division: row.division,
+    team: row.team,
+    athlete_id: row.athlete_id,
     athlete_tag: collision ? (row.athlete_tag || "") : "",
+    athlete_group: row.athlete_group,
+    jersey: row.jersey,
+    athlete_label: row.player_name ? athleteDisplayName(row.player_name) : "",
     athlete_collision: collision,
     // Boolean only — the guardian email itself is never exposed publicly.
     // Used to mark contest prize eligibility (winners are contacted
@@ -461,12 +499,116 @@ function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z
 
 const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
 
+// ---- Backup endpoints (hardening, 2026-11-04) ----
+// Read-only off-site backup pull for Muse's nightly job. Auth is a
+// dedicated BACKUP_TOKEN env var (separate from the owner and
+// moderation tokens), compared in constant time. When BACKUP_TOKEN is
+// unset the feature is OFF: every backup route answers 403. The token
+// itself is set by Emil in the Render dashboard and kept in Muse's
+// Secure Vault — it never appears in code, git, or chat. See
+// BACKUP-RESTORE.md for the pull schedule and restore steps.
+function backupAuthorized(req) {
+  const expected = process.env.BACKUP_TOKEN;
+  if (!expected) return false;
+  const provided = req.headers["x-backup-token"];
+  if (!provided) return false;
+  const a = Buffer.from(String(provided)), b = Buffer.from(String(expected));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+// Recursive file listing for the manifest: paths relative to DATA_DIR
+// with forward slashes, sorted, so nightly pulls can diff cheaply.
+function walkDataFiles(dir) {
+  const out = [];
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true }).sort((x, y) => x.name.localeCompare(y.name))) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (e.isFile()) out.push({ path: path.relative(DATA_DIR, full).split(path.sep).join("/"), size: fs.statSync(full).size });
+    }
+  };
+  if (fs.existsSync(dir)) walk(dir);
+  return out;
+}
+function clientIp(req) {
+  const fwd = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return fwd || req.socket?.remoteAddress || "unknown";
+}
+// Per-IP in-memory upload rate limit (see constants at the top).
+// Counts attempts, not just successes. Returns true when limited.
+function uploadRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (uploadHitsByIp.get(ip) || []).filter((t) => now - t < UPLOAD_RATE_WINDOW_MS);
+  if (hits.length >= UPLOAD_RATE_LIMIT) { uploadHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  uploadHitsByIp.set(ip, hits);
+  return false;
+}
+// True when the data volume is below the free-space floor. Fails OPEN
+// (returns false) if the platform cannot report free space — a backup
+// guard must never take the beta down by itself.
+function storageIsFull() {
+  try {
+    const s = fs.statfsSync(DATA_DIR);
+    return Number(s.bavail) * Number(s.bsize) < MIN_FREE_BYTES;
+  } catch { return false; }
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, "http://localhost");
     const p = u.pathname;
 
+    // Security headers on EVERY response (hardening, 2026-11-04). The
+    // CSP is deliberately frame-ancestors only: the app uses inline
+    // scripts/styles and embeds third-party video, so a broad policy
+    // would break it — this one only stops other sites framing us.
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Referrer-Policy", "same-origin");
+    res.setHeader("Content-Security-Policy", "frame-ancestors 'self'");
+
     if (p === "/api/health") return sendJson(res, 200, { ok: true, period: currentPeriod() });
+
+    // ---- Backup pull (token-gated; 403 for everyone when off) ----
+    if (p.startsWith("/api/backup/")) {
+      if (!backupAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Backup access required." });
+      if (p === "/api/backup/db" && req.method === "GET") {
+        // Consistent snapshot of the LIVE database: VACUUM INTO writes
+        // a complete, transactionally consistent copy to a temp file
+        // inside the data dir; we stream it, then delete the temp.
+        const tmpSnap = path.join(DATA_DIR, `.backup-${Date.now()}-${crypto.randomBytes(4).toString("hex")}.sqlite`);
+        db.exec(`VACUUM INTO '${tmpSnap.replace(/'/g, "''")}'`);
+        const size = fs.statSync(tmpSnap).size;
+        res.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": 'attachment; filename="highlighthype-db.sqlite"', "content-length": size });
+        const stream = fs.createReadStream(tmpSnap);
+        let cleaned = false;
+        const cleanup = () => { if (!cleaned) { cleaned = true; try { fs.unlinkSync(tmpSnap); } catch {} } };
+        stream.on("error", cleanup);
+        res.on("finish", cleanup);
+        res.on("close", cleanup);
+        return stream.pipe(res);
+      }
+      if (p === "/api/backup/manifest" && req.method === "GET") {
+        const files = BACKUP_FILE_DIRS.flatMap((d) => walkDataFiles(d)).sort((a, b) => a.path.localeCompare(b.path));
+        const dbSize = fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0;
+        return sendJson(res, 200, { ok: true, generatedAt: new Date().toISOString(), db: { path: "highlighthype.db", size: dbSize }, dbSize, files });
+      }
+      if (p === "/api/backup/file" && req.method === "GET") {
+        const rel = u.searchParams.get("path") || "";
+        // Traversal guard: no empty/absolute/NUL paths, and the fully
+        // resolved path must stay inside one of the backup file dirs
+        // (which also keeps the DB file itself out of this route).
+        if (!rel || rel.includes("\0") || path.isAbsolute(rel)) return sendJson(res, 400, { ok: false, message: "Invalid backup path." });
+        const resolved = path.resolve(DATA_DIR, rel);
+        const allowed = BACKUP_FILE_DIRS.some((d) => resolved.startsWith(d + path.sep));
+        if (!allowed) return sendJson(res, 403, { ok: false, message: "Path is outside the backup file directories." });
+        if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) return sendJson(res, 404, { ok: false, message: "Backup file not found." });
+        res.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": `attachment; filename="${path.basename(resolved)}"`, "content-length": fs.statSync(resolved).size });
+        return fs.createReadStream(resolved).pipe(res);
+      }
+      return sendJson(res, 404, { ok: false, message: "Unknown backup route." });
+    }
 
     // ---- Owner claim (one-time; token is returned ONCE and never again) ----
     if (p === "/api/owner/status" && req.method === "GET")
@@ -522,6 +664,7 @@ const server = http.createServer(async (req, res) => {
 
     // ---- Create a play: always starts PENDING (private beta lockdown) ----
     if (p === "/api/highlights" && req.method === "POST") {
+      if (uploadRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many uploads from this connection right now — please try again in a little while." });
       const buf = await readBody(req);
       const ct = req.headers["content-type"] || "";
       let fields = {}, file = null;
@@ -542,6 +685,7 @@ const server = http.createServer(async (req, res) => {
         const ext = EXT[file.ctype] || path.extname(file.filename).replace(".", "").toLowerCase();
         if (!["mp4", "webm", "mov", "avi", "jpg", "jpeg", "png", "gif", "webp"].includes(ext) || !(file.ctype.startsWith("video/") || file.ctype.startsWith("image/")))
           return sendJson(res, 400, { ok: false, message: "Upload a video or photo file." });
+        if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
         const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
         fs.writeFileSync(path.join(UPLOAD_DIR, name), file.data);
         media_kind = "file"; media_url = `/uploads/${name}`; mime = file.ctype;
@@ -609,6 +753,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, message: "That print image is too large — try freezing the frame again." });
       if (imgBuf.subarray(0, 4).toString("hex") !== "89504e47")
         return sendJson(res, 400, { ok: false, message: "The print image must be a PNG — try freezing the frame again." });
+      if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
       const imgName = `hf-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.png`;
       fs.writeFileSync(path.join(HYPEFRAME_DIR, imgName), imgBuf);
       // Placement: percentages relative to the garment print area.

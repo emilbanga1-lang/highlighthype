@@ -8,6 +8,8 @@
 // 8. Store v4/v6: dark store, film-first hero, Boys-first recut.
 // 9. Tonight batch (2026-11-04): transparent logo, proof panel removed,
 //    autoplay plays, native share + deep links, recut hero, focus mode.
+// 10. Hardening follow-up (2026-11-04): backup endpoints, headers, log
+//     redaction, upload guards, API allowlist, focus-exit + share fixes.
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -292,6 +294,23 @@ try {
   fs.writeFileSync(heroFile, Buffer.from(heroBuf));
   const heroDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", heroFile]).toString().trim());
   assert(heroDur > 12.5 && heroDur < 13.6, `hero runs ~13.1s after the recut (${heroDur}s — 9.08s montage, logo ending cut, + 4.0s golf close)`);
+
+  /* ---- 10. Hardening follow-up (2026-11-04 night, post-tonight-batch):
+     backup endpoints + headers + log redaction + upload guards +
+     public-API allowlist (server behavior itself is exercised in
+     test.js; these are the static wiring checks), the render.yaml plan
+     fix, the store focus-exit clearance, and the share label flip. */
+  const serverJs = fs.readFileSync(path.join(root, "server.js"), "utf8");
+  const renderYaml = fs.readFileSync(path.join(root, "render.yaml"), "utf8");
+  assert(serverJs.includes('req.headers["x-backup-token"]') && serverJs.includes("timingSafeEqual"), "backup endpoints are gated by a constant-time BACKUP_TOKEN check");
+  assert(serverJs.includes("VACUUM INTO") && serverJs.includes("/api/backup/manifest") && serverJs.includes("/api/backup/file"), "backup snapshot + manifest + file endpoints exist");
+  assert(serverJs.includes("Strict-Transport-Security") && serverJs.includes("frame-ancestors 'self'") && serverJs.includes("X-Content-Type-Options") && serverJs.includes("Referrer-Policy"), "security headers are set on responses (frame-ancestors-only CSP)");
+  assert(!serverJs.includes("would text ${to}") && serverJs.includes("guardian number ${masked}"), "guardian phone numbers are never logged in plaintext (SMS fallback masks to last-2)");
+  assert(serverJs.includes("statfsSync") && serverJs.includes("MIN_FREE_BYTES") && serverJs.includes("UPLOAD_RATE_LIMIT"), "upload guards present: free-space floor + per-IP rate-limit constants");
+  assert(!serverJs.includes("...safe") && serverJs.includes("athlete_label: row.player_name"), "publicHighlight is an explicit allowlist (internal columns like review no longer spread into public output)");
+  assert(renderYaml.includes("plan: starter"), "render.yaml matches the live Starter service");
+  assert(/\.store-focusbar\{[^}]*padding:12px 64px 12px 2px/.test(css) && css.includes("scroll-margin-top:calc(var(--navh,70px) + 8px)"), "store focus-exit pill clears the floating hamburger (64px right clearance + scroll margin)");
+  assert(appJs.includes("sharePlay(${h.id}, this)") && appJs.includes("Link copied ✓") && appJs.includes("share-copied"), "share fallback flips the clicked button to 'Link copied ✓' (impossible-to-miss confirmation)");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
