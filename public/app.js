@@ -312,16 +312,19 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
 //   7.5–end  End card           -> #collections (the full Drop 001 boards)
 // Preview only: the button says "View this look" — no prices, no cart,
 // no checkout anywhere in this flow.
-/* Store v4 film (2026-11-04): four 10-second clips of youth wearing the
+/* Store v4 film (2026-11-04): 10-second clips of youth wearing the
    actual Drop 001 designs, assembled in shop order — Girls Street (0-10s),
    Girls Essentials (10-20s), Boys Street (20-30s), Boys Athletics (30-40s).
+   Film v5 (2026-11-04): the Boys Unleashed clip (40-50s) was retried after
+   a generation failure and cut in as the fifth scene.
    Each scene's card targets that collection's grid card by slug. The old
    film's title-card and Hype All Day scenes are gone with the old film. */
 const FILM_SCENES = [
   { until: 10, title: "The Girls Hype Street hoodie", sub: "You paused on the Girls Street scene — washed charcoal with the hibiscus HYPE print.", btn: "View this look", target: "girls-street" },
   { until: 20, title: "The Girls Hype Essentials hoodie", sub: "You paused on the Girls Essentials scene — the pink hoodie, The Hype Starts Here.", btn: "View this look", target: "girls-essentials" },
   { until: 30, title: "The Boys Hype Street hoodie", sub: "You paused on the Boys Street scene — washed black with the crown HYPE chest.", btn: "View this look", target: "boys-street" },
-  { until: Infinity, title: "The Boys Hype Athletics hoodie", sub: "You paused on the Boys Athletics scene — cream varsity with green stripes, Hype Is Earned.", btn: "View this look", target: "boys-athletics" },
+  { until: 40, title: "The Boys Hype Athletics hoodie", sub: "You paused on the Boys Athletics scene — cream varsity with green stripes, Hype Is Earned.", btn: "View this look", target: "boys-athletics" },
+  { until: Infinity, title: "The Boys Hype Unleashed hoodie", sub: "You paused on the Boys Unleashed scene — blue and yellow lightning print, It's Hype or Nothing.", btn: "View this look", target: "boys-unleashed" },
 ];
 function filmSceneAt(t) {
   return FILM_SCENES.find((s) => t < s.until) || FILM_SCENES[FILM_SCENES.length - 1];
