@@ -320,6 +320,14 @@ $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; r
    7.0s at ~1.3x speed (~35s total): Boys Street (0-7s), Boys Athletics
    (7-14s), Boys Unleashed (14-21s), Girls Street (21-28s), Girls
    Essentials (28s-end).
+   Film v7 (2026-11-04): Emil asked for true widescreen (no blurred-fill
+   borders) and sports-theme backgrounds — five NEW native 1280x720
+   clips, a different sport setting per scene, real movement at natural
+   speed, each trimmed to 7.0s (35s total, same boundaries): Boys Street
+   on a basketball court (0-7s), Boys Athletics on a baseball field
+   (7-14s), Boys Unleashed on a football field (14-21s), Girls Street on
+   a soccer field (21-28s), Girls Essentials on a running track
+   (28s-end).
    Each scene's card targets that collection's grid card by slug. The old
    film's title-card and Hype All Day scenes are gone with the old film. */
 const FILM_SCENES = [
