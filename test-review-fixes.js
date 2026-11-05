@@ -332,7 +332,7 @@ try {
   assert(serverJs.includes("statfsSync") && serverJs.includes("MIN_FREE_BYTES") && serverJs.includes("UPLOAD_RATE_LIMIT"), "upload guards present: free-space floor + per-IP rate-limit constants");
   assert(!serverJs.includes("...safe") && serverJs.includes("athlete_label: row.player_name"), "publicHighlight is an explicit allowlist (internal columns like review no longer spread into public output)");
   assert(renderYaml.includes("plan: starter"), "render.yaml matches the live Starter service");
-  assert(/body\.store-open\[data-store-focus="boys"\] \.shop,\s*body\.store-open\[data-store-focus="girls"\] \.shop\{padding-top:calc\(var\(--navh,70px\) \+ 12px\)\}/.test(css), "focus mode pads the shop below the floating nav band, so the exit pill is fully mouse-clickable (v8 root-cause fix)");
+  assert(/body\.store-open\[data-store-focus="boys"\] \.shop,\s*body\.store-open\[data-store-focus="girls"\] \.shop,\s*body\.store-open\[data-store-focus="hypeframe"\] \.shop\{padding-top:calc\(var\(--navh,70px\) \+ 12px\)\}/.test(css), "focus mode pads the shop below the floating nav band, so the exit pill is fully mouse-clickable (v8 root-cause fix; Round 4 adds the hypeframe state)");
   assert(!/\.store-focusbar\{[^}]*padding:12px 64px/.test(css) && css.includes("scroll-margin-top:calc(var(--navh,70px) + 8px)"), "the ineffective 64px focusbar padding hack is gone; scroll margin kept");
   assert(appJs.includes("sharePlay(${h.id}, this)") && appJs.includes("Link copied ✓") && appJs.includes("share-copied"), "share fallback flips the clicked button to 'Link copied ✓' (impossible-to-miss confirmation)");
 
@@ -560,13 +560,15 @@ try {
   const hfDoorIdx = home.indexOf('data-store-block="hypeframe"');
   assert(hfDoorIdx > girlsBlockIdx && hfDoorIdx < creativeIdx, "landing order: Boys door -> Girls door -> Hype Frame door -> Hype Frame creative");
   const doorSlice = home.slice(hfDoorIdx, creativeIdx);
-  assert(doorSlice.includes("data-hf-door") && doorSlice.includes("Turn your highlight into wearable hype") && doorSlice.includes("/swag/hf-door.jpg"), "the third door is labeled Hype Frame with its tagline and banner art");
-  assert(!doorSlice.includes("data-store-focus"), "the Hype Frame door carries NO division focus control (it must not enter focus mode)");
-  assert(appJs.includes('$$("[data-hf-door]")') && appJs.includes('getElementById("hype-frame")') && appJs.includes("scrollIntoView"), "the door scrolls to the store's Hype Frame creative");
+  assert(doorSlice.includes('data-store-focus="hypeframe"') && doorSlice.includes("Turn your highlight into wearable hype") && doorSlice.includes("/swag/hf-door.jpg"), "the third door is labeled Hype Frame with its tagline and banner art");
+  assert(!doorSlice.includes('data-store-focus="boys"') && !doorSlice.includes('data-store-focus="girls"') && !doorSlice.includes("data-hf-door"), "Round 4: the Hype Frame door carries its OWN focus control (hypeframe), not a division's, and the old scroll-door attribute is gone");
+  assert(appJs.includes("function openStoreHf") && appJs.includes('setStoreFocus("hypeframe")'), "Round 4: the door opens the Hype Frame panel via the focus mechanics (openStoreHf)");
   assert(css.includes('[data-store-focus="boys"] .store-block[data-store-block="hypeframe"]') && css.includes('[data-store-focus="girls"] .store-block[data-store-block="hypeframe"]'), "the door's block hides in either division's focus mode");
-  assert(css.includes(".hf-creative{scroll-margin-top"), "the creative clears the floating nav when the door scrolls to it");
-  // The film itself: serves, ~15s, 1280x720 (assembled from real
-  // assets — Nicholas's clip, its freeze, the poster crops).
+  assert(css.includes(".hf-creative{scroll-margin-top"), "the creative keeps its nav-clearing scroll margin");
+  // The film itself: serves, ~15s, 1280x720 (Round 3: assembled from
+  // real assets — Nicholas's clip, its freeze, the poster crops.
+  // Round 4 replaced it with the sweatshirt-player film; the serve /
+  // duration / dimension facts asserted here are unchanged).
   const hfFilmRes = await fetch(`${base}/hype-frame-film.mp4`);
   const hfFilmBuf = Buffer.from(await hfFilmRes.arrayBuffer());
   assert(hfFilmRes.status === 200 && hfFilmBuf.byteLength > 500000, `the Hype Frame film serves (${hfFilmBuf.byteLength} bytes)`);
@@ -587,6 +589,41 @@ try {
   // Server: size column + sanitizer + owner-email surfacing.
   assert(serverJs.includes('ADD COLUMN size TEXT') && serverJs.includes('"YXXS", "YXS", "YS", "YM", "YL", "YXL"'), "server stores the HF order size (additive column + whitelist)");
   assert(serverJs.includes("Size: ${order.size"), "the owner notification email enumerates the size alongside the colorway");
+
+  /* ---- 17. Round 4 (2026-11-05, evening): Hype Frame content moves
+     behind the door click; new sweatshirt-player film ----
+     Emil, reviewing Round 3 on his phone: (1) ALL Hype Frame content
+     on the swag page should sit UNDER the button click — the creative
+     was part of the landing's always-visible flow; (2) the Round 3
+     film showed Nicholas's clip but the sweatshirt examples showed a
+     different player — build the film around the player ON the
+     sweatshirt instead. Confirmed mapping: creative + finished-
+     product examples become the hypeframe focus panel; homepage
+     examples and the studio stay as they are. */
+  // (1a) The creative + examples are CSS-gated OUT of the default
+  // store view and the division focuses — only the hypeframe focus
+  // state reveals them.
+  assert(css.includes('body:not([data-store-focus="hypeframe"]) .shop .hf-creative') && css.includes('body:not([data-store-focus="hypeframe"]) #hfExamples{display:none}'), "Round 4: the store creative + examples are hidden unless the Hype Frame panel is open");
+  assert(css.includes('body[data-store-focus="hypeframe"] .store-block{display:none}'), "Round 4: the hypeframe panel hides all three door blocks");
+  assert(css.includes('body[data-store-focus="hypeframe"] .swag-film-hero') && css.includes('body[data-store-focus="hypeframe"] .shop-head{display:none}'), "Round 4: the hypeframe panel hides the film + store head like a division focus");
+  assert(css.includes('body[data-store-focus="hypeframe"] .hf-creative{margin-top:0;padding-top:10px;border-top:0}'), "Round 4: in the panel the creative sits directly under the focus bar (landing separator dropped)");
+  // (1b) The gating must NOT swallow the other examples blocks: the
+  // homepage block and the studio strip carry different hooks.
+  assert(home.includes('id="hfExamplesHome"') && home.includes('class="hf-examples hf-examples-studio"'), "Round 4: homepage + studio examples blocks keep their own hooks (not gated by the store rule)");
+  // (1c) Wiring: both the door button and a tap anywhere on the
+  // banner route hypeframe to the panel; the focus bar (with its
+  // exit) is the panel chrome and the back path.
+  assert(appJs.includes('if (b.dataset.storeFocus === "hypeframe") { openStoreHf(); return; }') && appJs.includes('if (btn.dataset.storeFocus === "hypeframe") { openStoreHf(); return; }'), "Round 4: door button AND banner tap both route hypeframe to openStoreHf");
+  assert(appJs.includes('div === "hypeframe" ? "Hype Frame"'), "Round 4: the focus bar titles the panel 'Hype Frame'");
+  assert(appJs.includes('$("#storeFocusExit")') && appJs.includes("setStoreFocus(null)"), "Round 4: the focus-bar exit clears the focus (back to the doors landing)");
+  assert(!appJs.includes('$$("[data-hf-door]")') && !appJs.includes('$$(".store-banner-hf")'), "Round 4: the old scroll-to-creative door handlers are gone");
+  // (1d) The panel's CTA keeps its exact Round 3 wiring into the
+  // studio path (data-tablink to the plays panel).
+  const hfCreativeSlice = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
+  assert(hfCreativeSlice.includes('class="hfc-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 4: the panel's 'Create a Hype Frame' CTA is unchanged (opens the studio exactly as before)");
+  // (2) The new film: same slot facts as Round 3 (serves, ~13-15s,
+  // 1280x720) — asserted in section 16 above against the live file;
+  // its composition is the sweatshirt-player build (see DEPLOY-NOTES).
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
