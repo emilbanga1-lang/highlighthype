@@ -1,5 +1,6 @@
 // Checks for Emil's 2026-11-04 site-review fixes. Run: node test-review-fixes.js
-// 1. Sport pills are dynamic (rendered from the sports present in data).
+// 1. Sport filters are dynamic (rendered from the sports present in
+//    data). Rounds 1-4: pill rows. Round 5: native dropdown selects.
 // 2. Upload form is file-only (no video-link field) and file upload works.
 // 3. Modernized upload form keeps every field id/name + the dropzone.
 // 4. Hype Frame: pause-overlay scene map hits the right Store targets.
@@ -88,16 +89,18 @@ try {
   const mine = pub.body.highlights.find((h) => h.id === up.body.id);
   assert(mine && mine.media_kind === "file", "approved file play is public with media_kind=file");
 
-  /* ---- 1. Dynamic sport pills ---- */
-  assert(appJs.includes("function sportsInData"), "app.js derives pill sports from data (sportsInData)");
-  assert(appJs.includes('data-sport="all"') && appJs.includes("All sports"), "an 'All sports' pill is always rendered");
-  assert(/renderPills\(\$\("#monthSportPills"\), monthSport, monthSports/.test(appJs), "month pills render from contest-entry sports");
-  assert(/renderPills\(\$\("#allSportPills"\), allSport, allSports/.test(appJs), "All Hypes pills render from all-play sports");
+  /* ---- 1. Dynamic sport filters (Round 5: dropdown selects) ---- */
+  assert(appJs.includes("function sportsInData"), "app.js derives filter sports from data (sportsInData)");
+  assert(appJs.includes('<option value="all"') && appJs.includes("All sports"), "an 'All sports' option is always rendered");
+  assert(/renderSportSelect\(\$\("#monthSportSelect"\), monthSport, monthSports/.test(appJs), "month dropdown renders from contest-entry sports");
+  assert(/renderSportSelect\(\$\("#allSportSelect"\), allSport, allSports/.test(appJs), "All Hypes dropdown renders from all-play sports");
   assert(appJs.includes('monthSport = "all"') && appJs.includes('allSport = "all"'), "stale sport selection falls back to All");
+  assert(home.includes('id="monthSportSelect"') && home.includes('id="allSportSelect"') && !home.includes('id="monthSportPills"') && !home.includes('id="allSportPills"'), "both board views carry a sport <select>; the pill containers are gone");
+  assert(!appJs.includes("renderPills") && !appJs.includes("monthSportPills") && !appJs.includes("allSportPills"), "no pill renderer or pill container references remain in app.js");
   // With only a baseball play approved, baseball is the ONLY sport in the
-  // data the pills are derived from — so Baseball is the only sport pill.
+  // data the options are derived from — so Baseball is the only sport option.
   const sportsPresent = [...new Set(pub.body.highlights.map((h) => h.sport))];
-  assert(sportsPresent.length === 1 && sportsPresent[0] === "baseball", "test data has exactly one sport (baseball) for the pills to render");
+  assert(sportsPresent.length === 1 && sportsPresent[0] === "baseball", "test data has exactly one sport (baseball) for the dropdowns to render");
 
   /* ---- 4. Film shop-the-look scene map ---- */
   // Renamed 2026-11-04: Emil moved the "Hype Frame" name to the
@@ -634,6 +637,120 @@ try {
     /#hfExamplesHome video/.test(appJs) && /hfHome\.play\(\)/.test(appJs));
   assert("18.2 openHypeFrame plays the studio film",
     /#hypeframe \.hf-film video/.test(appJs) && /hfFilm\.play\(\)/.test(appJs));
+
+  /* ---- 19. Round 5 (2026-11-05, night): homepage condense, sport
+     dropdowns, Hall of Fame videos ----
+     Emil, after Round 4: (1) tighten ALL the homepage spacing —
+     condense it, not as much scrolling; (2) drop the sports into a
+     dropdown to get the pill rows' space back; (3) the Hall of Fame
+     should also show videos (it was a names-only leaderboard whose
+     rows didn't even link anywhere). Mapping confirmed in chat:
+     spacing = air only (no content, no type changes), home view
+     only, studio keeps its spacing; dropdowns on both board views
+     with the pills' dynamic rule; fame rows get playing video
+     thumbnails and tap through to the play's card. ---- */
+  // (1) Condense facts (CSS): hero air, panel rhythm, cards, examples.
+  assert(css.includes("min-height:min(80vh,680px)") && !css.includes("min-height:min(92vh,780px)"), "Round 5: hero min-height trimmed (92vh/780px -> 80vh/680px), film untouched");
+  assert(css.includes(".panel{display:none;padding:18px 0 22px}") && css.includes(".panel{padding-top:18px}"), "Round 5: panel rhythm roughly halved (36/42 -> 18/22)");
+  assert(css.includes(".board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}") && css.includes(".card-body{padding:13px 14px 15px;"), "Round 5: tighter board gaps + card padding");
+  assert(css.includes(".hf-examples{margin:22px 0 4px;padding-top:18px;"), "Round 5: homepage examples block air roughly halved");
+  assert(css.includes("footer{background:#000;color:var(--muted);padding:20px 0 70px;"), "Round 5: footer lead-in trimmed, bottom pill clearance kept");
+  assert(css.includes("#hypeframe{padding:36px 0 42px}") && css.includes("#hypeframe .sec-head{margin-bottom:26px}"), "Round 5 scope guard: the studio panel keeps its original spacing");
+  // (2) Dropdowns: styled like the team select; fame rows clickable.
+  assert(css.includes(".team-select,.sport-select,.search-input{") && css.includes(".sport-select:focus-visible"), "Round 5: the sport dropdown carries the team-select chrome + focus ring");
+  assert(css.includes(".fame-thumb video{width:100%;height:100%;object-fit:cover;display:block"), "Round 5: fame video thumbnails fill their frame like the photos do");
+  assert(css.includes(".fame-row{display:grid;") && css.includes("cursor:pointer"), "Round 5: fame rows signal they are tappable");
+  // (3a) Behavioral — the dropdowns, run from the REAL app.js blocks
+  // in a vm with stub selects: options stay dynamic per view, a change
+  // filters that view only, and the two views stay independent.
+  const ddStart = appJs.indexOf("function sportsInData");
+  const ddBlock = appJs.slice(appJs.indexOf("const SPORTS"), appJs.indexOf("const MONTHS")) +
+    appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function renderMonth")) +
+    appJs.slice(ddStart, appJs.indexOf('$("#teamFilter")', ddStart));
+  assert(ddBlock.includes("function renderSportSelect") && ddBlock.includes("function syncFilterUI") && ddBlock.includes("function divMatch"), "Round 5: dropdown test block located (SPORTS + divMatch + sportsInData/renderSportSelect/syncFilterUI)");
+  const mkSelect = () => ({ innerHTML: "", value: "", onchange: null });
+  const monthSel = mkSelect(), allSel = mkSelect();
+  let monthRenders = 0, allRenders = 0;
+  const ddSandbox = {
+    window: {},
+    cap: (s) => { if (s === "fieldhockey") return "Field Hockey"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; },
+    CONTEST: { period: "2026-11", winnerId: null, entries: [
+      { sport: "baseball", division: "boys" }, { sport: "hockey", division: "girls" } ] },
+    ALL_PLAYS: [
+      { sport: "baseball", division: "boys" }, { sport: "soccer", division: "girls" }, { sport: "baseball", division: "girls" } ],
+    monthDiv: "boys", monthSport: "all", allDiv: "all", allSport: "all",
+    $: (sel) => sel === "#monthSportSelect" ? monthSel : sel === "#allSportSelect" ? allSel : null,
+    $$: () => [],
+    renderMonth: () => { monthRenders++; },
+    renderAll2: () => { allRenders++; },
+    console,
+  };
+  const ddCtx = vm.createContext(ddSandbox);
+  vm.runInContext(ddBlock, ddCtx);
+  vm.runInContext("syncFilterUI()", ddCtx);
+  assert(monthSel.innerHTML.includes('<option value="all"') && monthSel.innerHTML.includes(">Baseball<") && !monthSel.innerHTML.includes("Hockey"), "behavioral: month dropdown = All sports + the sports on the boys contest board only (baseball; girls' hockey stays out)");
+  assert(allSel.innerHTML.includes(">Baseball<") && allSel.innerHTML.includes(">Soccer<") && !allSel.innerHTML.includes("Hockey"), "behavioral: All dropdown = All sports + every sport with an approved play (baseball + soccer)");
+  allSel.value = "soccer"; allSel.onchange();
+  assert(vm.runInContext("allSport", ddCtx) === "soccer" && allRenders === 1, "behavioral: choosing Soccer in the All dropdown sets that view's filter and re-renders it");
+  assert(vm.runInContext("monthSport", ddCtx) === "all" && monthSel.value === "all" && monthRenders === 0, "behavioral: the month view is untouched by the All dropdown (independent state, kept in sync on reload)");
+  monthSel.value = "baseball"; monthSel.onchange();
+  assert(vm.runInContext("monthSport", ddCtx) === "baseball" && monthRenders === 1 && vm.runInContext("allSport", ddCtx) === "soccer", "behavioral: the month dropdown filters its own view only; the All filter survives");
+  // (3b) Behavioral — renderFame from the real app.js: video plays
+  // (file + link) render a playing <video>, image plays keep <img>,
+  // embeds keep the sport-name fallback, every row taps to its card.
+  const fameBlock = appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine"));
+  assert(fameBlock.includes("function renderFame") && fameBlock.includes("goToPlayCard"), "Round 5: fame test block located (fameThumbHtml + renderFame)");
+  const fameListStub = { innerHTML: "" };
+  const fameSandbox = {
+    window: {},
+    esc: (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])),
+    cap: ddSandbox.cap,
+    ALL_PLAYS: [
+      { id: 11, title: "File Vid", sport: "baseball", division: "boys", media_kind: "file", mime: "video/mp4", media_url: "/uploads/v.mp4", voteCount: 9 },
+      { id: 12, title: "Photo Play", sport: "soccer", division: "girls", media_kind: "file", mime: "image/png", media_url: "/uploads/i.png", voteCount: 5 },
+      { id: 13, title: "Link Vid", sport: "hockey", division: "boys", media_kind: "link_video", mime: "", media_url: "https://cdn.example/v.mp4", voteCount: 3 },
+      { id: 14, title: "Embed Play", sport: "cheer", division: "girls", media_kind: "link_embed", mime: "", media_url: "", embed_url: "https://youtube.example/embed/x", voteCount: 1 },
+    ],
+    $: (sel) => sel === "#fameList" ? fameListStub : null,
+    console,
+  };
+  const fameCtx = vm.createContext(fameSandbox);
+  vm.runInContext(fameBlock, fameCtx);
+  vm.runInContext("renderFame()", fameCtx);
+  const fameHtml = fameListStub.innerHTML;
+  assert(fameHtml.includes('<video src="/uploads/v.mp4" muted loop playsinline autoplay preload="metadata"></video>'), "behavioral: an uploaded-file video play gets a real playing video thumbnail in the Hall of Fame");
+  assert(fameHtml.includes('<video src="https://cdn.example/v.mp4" muted loop playsinline autoplay preload="metadata"></video>'), "behavioral: a link-video play gets the same video thumbnail treatment");
+  assert(fameHtml.includes('<img src="/uploads/i.png" alt="">') && !fameHtml.includes('<video src="/uploads/i.png"'), "behavioral: an image play keeps its photo (no video element)");
+  const embedRow = fameHtml.slice(fameHtml.indexOf("Embed Play") - 200);
+  assert(!embedRow.includes("<video") && !embedRow.includes("<iframe") && embedRow.includes("Cheer"), "behavioral: an embed play keeps the sport-name fallback (no fake video)");
+  assert(fameHtml.indexOf("File Vid") < fameHtml.indexOf("Photo Play") && fameHtml.indexOf("Photo Play") < fameHtml.indexOf("Link Vid"), "behavioral: fame rows stay ranked by all-time votes");
+  for (const pid of [11, 12, 13, 14]) assert(fameHtml.includes(`onclick="goToPlayCard(${pid})"`), `behavioral: fame row for play ${pid} taps through to its card`);
+  // (3c) Behavioral — goToPlayCard wiring: resets the All filters,
+  // switches to the All view, sets the shared-play hash, and flashes
+  // the card inside #allBoard (scoped on purpose, see app.js note).
+  const gtcBlock = appJs.slice(appJs.indexOf("window.goToPlayCard"), appJs.indexOf("/* ---------------- athlete collection"));
+  assert(gtcBlock.includes('switchView("all")') && gtcBlock.includes("#allBoard [data-play-id="), "Round 5: goToPlayCard block located (All view + scoped card lookup)");
+  const gtcCalls = [];
+  const gtcSandbox = {
+    window: {},
+    allDiv: "boys", allSport: "soccer", allTeam: "plainview-hawks", allSearch: "left",
+    showHome: () => gtcCalls.push("showHome"),
+    showPanel: (n) => gtcCalls.push("panel:" + n),
+    switchView: (v) => gtcCalls.push("view:" + v),
+    renderAll2: () => gtcCalls.push("renderAll2"),
+    syncFilterUI: () => gtcCalls.push("syncFilterUI"),
+    history: { replaceState: (a, b, url) => gtcCalls.push("hash:" + url) },
+    document: { querySelector: (sel) => { gtcCalls.push("qs:" + sel); return { classList: { add: (c) => gtcCalls.push("class:" + c) }, scrollIntoView: () => gtcCalls.push("scroll") }; } },
+    $: () => ({ value: "left" }),
+    setTimeout: (fn) => { fn(); return 0; },
+    console,
+  };
+  const gtcCtx = vm.createContext(gtcSandbox);
+  vm.runInContext(gtcBlock, gtcCtx);
+  gtcSandbox.window.goToPlayCard(7);
+  assert(gtcSandbox.allDiv === "all" && gtcSandbox.allSport === "all" && gtcSandbox.allTeam === "all" && gtcSandbox.allSearch === "", "behavioral: a fame tap resets every All Hypes filter so the card is rendered");
+  assert(gtcCalls.includes("view:all") && gtcCalls.includes("hash:#play-7"), "behavioral: a fame tap switches to All Hypes and sets the shared-play hash");
+  assert(gtcCalls.includes('qs:#allBoard [data-play-id="7"]') && gtcCalls.includes("class:flash") && gtcCalls.includes("scroll"), "behavioral: a fame tap flash-highlights the play's All-board card and scrolls to it");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
