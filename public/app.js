@@ -478,16 +478,50 @@ $$(".prod-card").forEach((card) => {
   card.addEventListener("click", () => openQuickView(card));
   card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openQuickView(card); } });
 });
+/* Store v8 (2026-11-04): quick-view product data lives here, not in
+   card chrome — the cards are name + price + size run (Overtime-style),
+   and the quick view carries the story plus the full colorway gallery.
+   Gallery frames are the flat board illustrations recolored per
+   colorway at build time (/swag/qv/<slug>-<color>-<side>.svg) — no
+   worn/model photos anywhere in product views. */
+const QV_PRODUCTS = {
+  "boys-street": { side: "Boys Collection · Crown motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", colors: [["Black", "#2e2e31"], ["Denim Blue", "#3f5f82"], ["Gray", "#8b8e93"], ["Olive", "#5f6a45"]] },
+  "boys-athletics": { side: "Boys Collection · Crown motif", slogan: "Hype Is Earned", desc: "Performance. Pride. Community.", colors: [["Cream", "#f3e7cf"], ["Heather Gray", "#a8abb0"], ["Forest Green", "#1e5138"], ["Navy", "#1c3054"]] },
+  "boys-unleashed": { side: "Boys Collection · Crown motif", slogan: "It’s Hype or Nothing", desc: "Bold designs. High energy. No limits.", colors: [["Blue Lightning", "#37b6ff"], ["Fire Orange", "#ff7a1a"], ["Purple Lightning", "#7e22ce"], ["Teal Lightning", "#14b8a6"]] },
+  "girls-street": { side: "Girls Collection · Tiara motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", colors: [["Black", "#2d2d31"], ["Pink", "#efa7c6"], ["Cream", "#f3e7cf"], ["Light Blue", "#a9d7f0"]] },
+  "girls-athletics": { side: "Girls Collection · Tiara motif", slogan: "Hype Is Earned", desc: "Performance. Pride. Community.", colors: [["Cream", "#f3e7cf"], ["Forest Green", "#1e5138"], ["Navy", "#1c3054"], ["Heather Gray", "#a8abb0"]] },
+  "girls-essentials": { side: "Girls Collection · Tiara motif", slogan: "The Hype Starts Here", desc: "Comfort. Creativity. Confidence.", colors: [["Sky Blue", "#8ec9ee"], ["Cream", "#f3e7cf"], ["Pink", "#f6a8c5"], ["Lavender", "#c2ade0"]] },
+};
+const qvColorSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+let qvGalleryState = { slug: "", colors: [] };
+function qvSyncGallery() {
+  const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
+  const w = g.clientWidth || 1;
+  const idx = Math.min(qvGalleryState.colors.length * 2 - 1, Math.max(0, Math.round(g.scrollLeft / w)));
+  const ci = Math.floor(idx / 2);
+  $("#qvColorName").textContent = qvGalleryState.colors[ci][0];
+  $("#qvSideLabel").textContent = idx % 2 ? "Back" : "Front";
+  $$("#qvSwatches .qv-swatch").forEach((b, i) => b.setAttribute("aria-pressed", String(i === ci)));
+}
 function openQuickView(card) {
   const qv = $("#quickView"); if (!qv) return;
-  const front = card.querySelector(".prod-front"), back = card.querySelector(".prod-back"), flat = card.querySelector(".prod-flat");
-  const qf = $("#qvFront"), qb = $("#qvBack"), qfl = $("#qvFlat");
-  qf.src = front.src; qf.alt = front.alt; qb.src = back.src; qb.alt = back.alt; qfl.src = flat.src; qfl.alt = flat.alt;
-  $("#qvSide").textContent = card.querySelector(".prod-side").textContent;
-  $("#qvTitle").textContent = card.querySelector("h4").textContent;
-  $("#qvSlogan").textContent = card.querySelector(".prod-slogan").textContent;
-  $("#qvDesc").textContent = card.querySelector(".prod-desc").textContent;
-  $("#qvColors").textContent = card.querySelector(".prod-colors").textContent;
+  const slug = card.dataset.slug;
+  const data = QV_PRODUCTS[slug]; if (!data) return;
+  qvGalleryState = { slug, colors: data.colors };
+  const title = card.querySelector("h4").textContent;
+  $("#qvSide").textContent = data.side;
+  $("#qvTitle").textContent = title;
+  $("#qvSlogan").textContent = data.slogan;
+  $("#qvDesc").textContent = data.desc;
+  $("#qvColors").textContent = data.colors.map((c) => c[0]).join(" · ");
+  const g = $("#qvGallery");
+  g.innerHTML = data.colors.map(([name]) => ["front", "back"].map((sd) => `<figure class="qv-frame"><img src="/swag/qv/${slug}-${qvColorSlug(name)}-${sd}.svg" alt="${esc(title)} hoodie in ${esc(name)} — ${sd} illustration" loading="lazy" decoding="async" /><figcaption>${sd}</figcaption></figure>`).join("")).join("");
+  g.scrollLeft = 0;
+  $("#qvSwatches").innerHTML = data.colors.map(([name, hex], i) => `<button type="button" class="qv-swatch" data-qv-color="${i}" aria-pressed="${i === 0}"><span class="swatch" style="--sw:${hex}"></span>${esc(name)}</button>`).join("");
+  $$("#qvSwatches .qv-swatch").forEach((b) => b.addEventListener("click", () => {
+    g.scrollTo({ left: Number(b.dataset.qvColor) * 2 * (g.clientWidth || 1), behavior: "smooth" });
+  }));
+  qvSyncGallery();
   // Price is set ($69.99 across Drop 001 youth hoodies); the size
   // selector is selection state only — no cart, no checkout — and it
   // resets each time the quick view opens.
@@ -495,7 +529,9 @@ function openQuickView(card) {
   qv.hidden = false;
   document.body.classList.add("qv-open");
   qv.querySelector(".qv-close")?.focus();
+  requestAnimationFrame(qvSyncGallery);
 }
+$("#qvGallery")?.addEventListener("scroll", () => requestAnimationFrame(qvSyncGallery), { passive: true });
 $$("#qvSizes .qv-size").forEach((b) => b.addEventListener("click", () => {
   $$("#qvSizes .qv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
 }));
@@ -514,10 +550,12 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuick
 //   2. Freeze your favorite frame using a video timeline (scrub, ±1s
 //      step buttons, freeze — works while the video plays).
 //   3. Pick a print style — Classic (photo only), Signature (photo +
-//      name / jersey caption), or Hype Frame (crown + wordmark drawn
-//      onto the print image itself, not just the preview). The print
-//      always sits at the fixed default placement on the garment.
-//   4. Preview the actual image on a hoodie or T-shirt.
+//      name / jersey caption), or Hype Frame (grunge frame around the
+//      photo + the HYPE FRAME script lockup under it, drawn onto the
+//      print image itself, not just the preview). The print always
+//      sits at the fixed default placement on the garment.
+//   4. Preview the actual image on a hoodie or T-shirt — and pick the
+//      print side, front or back (the choice rides on the order).
 //   5. Order with parent or guardian approval (an order REQUEST — no
 //      payment, no price; the owner confirms with the guardian first).
 // Capture is client-side canvas work: play videos are same-origin hosted
@@ -543,16 +581,21 @@ const HF_AREAS = {
   hoodie: { left: 25, top: 30, width: 50, height: 48 },
   tee: { left: 25, top: 22, width: 50, height: 52 },
 };
+// Print-side (Store v8): the back print rides a little higher on the
+// garment than the chest print, so the back has its own print areas.
+const HF_AREAS_BACK = {
+  hoodie: { left: 25, top: 25.5, width: 50, height: 48 },
+  tee: { left: 25, top: 17.5, width: 50, height: 52 },
+};
 // Placement is stored as percentages RELATIVE to the print area
 // (cx/cy = the print's center, size = print width as % of the area's
 // width), so it maps proportionally when switching garments, and the
 // order request carries it to the server for the printer to reproduce.
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 66 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
-const hfCrown = new Image();
-let hfCrownReady = false;
-hfCrown.onload = () => { hfCrownReady = true; if (hfState.frozen) composeHfPrint(); };
-hfCrown.src = "/crown.png";
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
+// (Store v8: the Hype Frame lockup — purple crown, script, underline —
+// is drawn as canvas vector work in hfDrawLockup, so the old crown.png
+// image loader is gone.)
 
 window.openHypeFrame = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || (CONTEST.entries || []).find((p) => p.id === id);
@@ -593,6 +636,7 @@ function initHfStudio(play) {
     linkNote.hidden = false; freezeBtn.disabled = true;
   }
   hfSetApparel("hoodie");
+  hfSetSide("front");
 }
 function hfFmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function hfUpdateTime() {
@@ -620,10 +664,94 @@ function freezeHfFrame() {
   hfState.frozen = true;
   composeHfPrint();
 }
+// Print tone for the Hype Frame frame + lockup: bone on dark garments,
+// ink on light ones, derived from the selected colorway's hex.
+function hfPrintTone() {
+  const list = HF_COLORWAYS[hfState.apparel] || [];
+  const cw = list.find((k) => k.name === hfState.colorway) || list[0];
+  const hex = (cw && cw.hex) || "#17171a";
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255;
+  return lum > 0.55 ? "#181209" : "#f6f1e4";
+}
+// The poster's grunge frame: each edge is walked in short segments
+// with jittered offsets and occasional gaps, over three passes of
+// varying weight and alpha — a rough brush stroke, not a ruler line.
+// A fixed seed keeps the frame identical on every recompose.
+function hfGrungeFrame(x, W, H, tone) {
+  let seed = 20261104;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const ins = W * 0.016;
+  x.save();
+  x.strokeStyle = tone; x.lineCap = "round";
+  for (const [wf, alpha] of [[0.020, 0.35], [0.013, 0.85], [0.007, 0.9]]) {
+    const lw = Math.max(2, W * wf);
+    x.lineWidth = lw; x.globalAlpha = alpha;
+    const edges = [
+      [ins, ins, W - ins, ins], [W - ins, ins, W - ins, H - ins],
+      [W - ins, H - ins, ins, H - ins], [ins, H - ins, ins, ins],
+    ];
+    for (const [x1, y1, x2, y2] of edges) {
+      const len = Math.hypot(x2 - x1, y2 - y1), steps = Math.max(8, Math.round(len / (W * 0.055)));
+      for (let i = 0; i < steps; i++) {
+        if (rnd() < 0.10) continue; // distressed gap in the stroke
+        const t0 = i / steps, t1 = (i + 1) / steps;
+        const j = () => (rnd() - 0.5) * lw * 1.1;
+        x.beginPath();
+        x.moveTo(x1 + (x2 - x1) * t0 + j(), y1 + (y2 - y1) * t0 + j());
+        x.lineTo(x1 + (x2 - x1) * t1 + j(), y1 + (y2 - y1) * t1 + j());
+        x.stroke();
+      }
+    }
+  }
+  x.restore();
+}
+// The lockup band under the photo: purple crown (the poster's accent),
+// HYPE FRAME in a heavy italic with a slight tilt (brush-script
+// stand-in from the loaded font stack — no external font files), a
+// purple brush underline swash, and HIGHLIGHTHYPE small beneath.
+function hfDrawLockup(x, W, H, bandH, tone) {
+  const cx = W / 2;
+  x.save();
+  x.textAlign = "center"; x.textBaseline = "middle";
+  const cw = W * 0.115, ch = cw * 0.56, crownX = cx - cw / 2, crownY = H + bandH * 0.04;
+  x.fillStyle = "#8b3dff";
+  x.beginPath();
+  x.moveTo(crownX, crownY + ch);
+  x.lineTo(crownX + cw * 0.06, crownY + ch * 0.18);
+  x.lineTo(crownX + cw * 0.30, crownY + ch * 0.52);
+  x.lineTo(crownX + cw * 0.50, crownY);
+  x.lineTo(crownX + cw * 0.70, crownY + ch * 0.52);
+  x.lineTo(crownX + cw * 0.94, crownY + ch * 0.18);
+  x.lineTo(crownX + cw, crownY + ch);
+  x.closePath(); x.fill();
+  const fs = Math.round(W * 0.088);
+  x.translate(cx, H + bandH * 0.56); x.rotate(-0.018);
+  x.font = `italic 900 ${fs}px Archivo, "Arial Black", Arial, sans-serif`;
+  try { x.letterSpacing = "1px"; } catch {}
+  x.fillStyle = tone;
+  x.fillText("HYPE FRAME", 0, 0);
+  const tw = x.measureText("HYPE FRAME").width;
+  x.strokeStyle = "#8b3dff"; x.lineCap = "round"; x.lineWidth = Math.max(3, W * 0.011);
+  x.beginPath();
+  x.moveTo(-tw * 0.52, fs * 0.52);
+  x.quadraticCurveTo(0, fs * 0.66, tw * 0.52, fs * 0.44);
+  x.stroke();
+  x.restore();
+  const fs2 = Math.max(11, Math.round(W * 0.030));
+  x.save();
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.font = `800 ${fs2}px Archivo, Arial, sans-serif`;
+  try { x.letterSpacing = "5px"; } catch {}
+  x.globalAlpha = 0.85; x.fillStyle = tone;
+  x.fillText("HIGHLIGHTHYPE", cx, H + bandH * 0.90);
+  x.restore();
+}
 // Compose the FINAL print image: the frozen frame, the optional HYPE
-// FRAME lockup drawn into the frame's corner, and the name / jersey
-// caption under the frame. The apparel preview and the submitted order
-// both use this exact image — what they see is what would print.
+// FRAME poster treatment (grunge frame + lockup band), and the name /
+// jersey caption under the frame. The apparel preview and the
+// submitted order both use this exact image — what they see is what
+// would print.
 function composeHfPrint() {
   const img = $("#hfPrintImg"), empty = $("#hfPrintEmpty");
   if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; img.hidden = true; empty.hidden = false; hfApplyPlacement(); return; }
@@ -631,33 +759,26 @@ function composeHfPrint() {
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
   // Look presets (2026-11-04): Classic = photo only, Signature = photo
-  // + name/number caption band, Hype Frame = photo + corner branding.
+  // + name/number caption band, Hype Frame = photo + poster treatment.
   const branding = hfState.preset === "hypeframe";
   const caption = hfState.preset === "signature"
     ? [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ")
     : "";
-  const bandH = caption ? Math.round(W * 0.17) : 0;
+  const bandH = caption ? Math.round(W * 0.17) : branding ? Math.round(W * 0.30) : 0;
   const c = document.createElement("canvas");
   c.width = W; c.height = H + bandH;
   const x = c.getContext("2d");
   x.drawImage(fc, 0, 0);
   if (branding) {
-    const m = Math.round(W * 0.03);
-    const cw = Math.round(W * 0.17), ch = Math.round(cw * 290 / 518);
-    if (hfCrownReady) x.drawImage(hfCrown, W - cw - m, m, cw, ch);
-    else { // fallback crown if the image hasn't loaded: simple gold spikes
-      x.save(); x.fillStyle = "#e3b93e"; x.beginPath();
-      const bx = W - cw - m, by = m + ch * 0.25;
-      x.moveTo(bx, by + ch * 0.6); x.lineTo(bx + cw * 0.08, by); x.lineTo(bx + cw * 0.3, by + ch * 0.38); x.lineTo(bx + cw * 0.5, by - ch * 0.22); x.lineTo(bx + cw * 0.7, by + ch * 0.38); x.lineTo(bx + cw * 0.92, by); x.lineTo(bx + cw, by + ch * 0.6); x.closePath(); x.fill(); x.restore();
-    }
-    const fs = Math.max(14, Math.round(W * 0.034));
-    x.font = `800 ${fs}px Archivo, Arial, sans-serif`;
-    x.textAlign = "right"; x.textBaseline = "top";
-    try { x.letterSpacing = "2px"; } catch {}
-    x.lineWidth = Math.max(2, fs / 6); x.strokeStyle = "rgba(0,0,0,.6)";
-    const ly = m + ch + Math.round(W * 0.008);
-    x.strokeText("HYPE FRAME", W - m, ly);
-    x.fillStyle = "#ffffff"; x.fillText("HYPE FRAME", W - m, ly);
+    // Poster identity (Store v8, from Emil's concept poster): a grunge
+    // brush-stroke frame around the photo, and the lockup — purple
+    // crown, HYPE FRAME script, HIGHLIGHTHYPE — in the band UNDER the
+    // photo, replacing the old corner branding. Frame + script tone
+    // follows the chosen garment colorway (bone on dark, ink on
+    // light) so the print reads on whatever it is printed on.
+    const tone = hfPrintTone();
+    hfGrungeFrame(x, W, H, tone);
+    hfDrawLockup(x, W, H, bandH, tone);
   }
   if (caption) {
     const fs = Math.round(W * 0.072);
@@ -695,7 +816,8 @@ function hfApplyPlacement() {
   if (!hfState.frozen || !hfState.printAspect) { print.style.left = ""; print.style.top = ""; print.style.width = ""; return; }
   const r = mock.getBoundingClientRect();
   if (!r.width || !r.height) return;
-  const area = HF_AREAS[hfState.apparel] || HF_AREAS.hoodie;
+  const areaTable = hfState.side === "back" ? HF_AREAS_BACK : HF_AREAS;
+  const area = areaTable[hfState.apparel] || HF_AREAS.hoodie;
   const ax = r.width * area.left / 100, ay = r.height * area.top / 100;
   const aw = r.width * area.width / 100, ah = r.height * area.height / 100;
   const pw = aw * hfState.placement.size / 100;
@@ -710,18 +832,33 @@ function hfApplyPlacement() {
   print.style.left = (cxp - pw / 2) + "px";
   print.style.top = (cyp - ph / 2) + "px";
 }
+// Exactly one of the four garment SVGs (apparel x side) is visible.
+// Toggle the hidden ATTRIBUTE, not the .hidden property: the garments
+// are SVG elements, where the IDL property does not reliably reflect
+// to the content attribute — and the CSS rule (.hf-garment[hidden])
+// keys off the attribute. toggleAttribute is an Element method, so it
+// works on SVG in every engine.
+function hfSyncGarment() {
+  const a = hfState.apparel, s = hfState.side;
+  $(".hf-garment-hoodie-front").toggleAttribute("hidden", !(a === "hoodie" && s === "front"));
+  $(".hf-garment-hoodie-back").toggleAttribute("hidden", !(a === "hoodie" && s === "back"));
+  $(".hf-garment-tee-front").toggleAttribute("hidden", !(a === "tee" && s === "front"));
+  $(".hf-garment-tee-back").toggleAttribute("hidden", !(a === "tee" && s === "back"));
+  $("#hfMock").dataset.apparel = a;
+  $("#hfMock").dataset.side = s;
+}
+function hfSetSide(s) {
+  hfState.side = s === "back" ? "back" : "front";
+  $("#hfSideFront").setAttribute("aria-pressed", String(hfState.side === "front"));
+  $("#hfSideBack").setAttribute("aria-pressed", String(hfState.side === "back"));
+  hfSyncGarment();
+  hfApplyPlacement();
+}
 function hfSetApparel(a) {
   hfState.apparel = a;
   $("#hfAppHoodie").setAttribute("aria-pressed", String(a === "hoodie"));
   $("#hfAppTee").setAttribute("aria-pressed", String(a === "tee"));
-  $("#hfMock").dataset.apparel = a;
-  // Toggle the hidden ATTRIBUTE, not the .hidden property: the garments
-  // are SVG elements, where the IDL property does not reliably reflect
-  // to the content attribute — and the CSS rule (.hf-garment[hidden])
-  // keys off the attribute. toggleAttribute is an Element method, so it
-  // works on SVG in every engine.
-  $(".hf-garment-hoodie").toggleAttribute("hidden", a !== "hoodie");
-  $(".hf-garment-tee").toggleAttribute("hidden", a !== "tee");
+  hfSyncGarment();
   const list = HF_COLORWAYS[a];
   if (!list.some((c) => c.name === hfState.colorway)) hfState.colorway = list[0].name;
   $("#hfSwatches").innerHTML = list.map((c) => `<button type="button" class="pill hf-swatch" data-colorway="${esc(c.name)}" aria-pressed="${hfState.colorway === c.name}"><span class="swatch" style="--sw:${c.hex}"></span>${esc(c.name)}</button>`).join("");
@@ -734,6 +871,8 @@ function hfSetColorway(name) {
   hfState.colorway = c.name;
   $$("#hfMock .hf-fabric").forEach((p) => p.setAttribute("fill", c.hex));
   $$("#hfSwatches .hf-swatch").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.colorway === c.name)));
+  // The Hype Frame print's frame/lockup tone follows the garment color.
+  if (hfState.frozen && hfState.preset === "hypeframe") composeHfPrint();
 }
 (function () {
   const v = $("#hfVideo");
@@ -751,6 +890,8 @@ function hfSetColorway(name) {
   $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
   $("#hfAppHoodie").addEventListener("click", () => hfSetApparel("hoodie"));
   $("#hfAppTee").addEventListener("click", () => hfSetApparel("tee"));
+  $("#hfSideFront").addEventListener("click", () => hfSetSide("front"));
+  $("#hfSideBack").addEventListener("click", () => hfSetSide("back"));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
   // size controls — hfApplyPlacement positions from the defaults and
   // the order still carries the placement values to the server.
@@ -770,6 +911,7 @@ function hfSetColorway(name) {
         jersey: $("#hfJersey").value.trim(),
         branding: hfState.preset === "hypeframe",
         apparel: hfState.apparel,
+        side: hfState.side,
         colorway: hfState.colorway,
         placement: hfState.placement,
         guardianName: $("#hfGuardianName").value.trim(),
@@ -966,7 +1108,7 @@ async function loadOwner() {
           <div class="hf-req-body">
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
-            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)}<br>
+            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Print side: ${o.side === "back" ? "Back" : "Front"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
             <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>

@@ -3,6 +3,7 @@
     --white:#ffffff; --muted:#a8a8a0; --muted2:#7c7c74;
     --volt:#c8ff00; --volt-ink:#131a00;
     --gold:#e3b93e;
+    --hf-purple:#8b3dff; --hf-purple-soft:#b78cff;
     --line:#262622; --line2:#33332c;
   }
   *{box-sizing:border-box}
@@ -757,6 +758,17 @@
   .hf-print{position:absolute;display:block}
   .hf-mock[data-apparel="hoodie"] .hf-print{left:33.4%;top:40.5%;width:33.2%}
   .hf-mock[data-apparel="tee"] .hf-print{left:34.4%;top:32.5%;width:31.2%}
+  /* Print side (Store v8): on the back, the print sits a touch higher
+     (upper back, below the hood/collar) than the chest placement. */
+  .hf-mock[data-apparel="hoodie"][data-side="back"] .hf-print{left:33.4%;top:35.5%;width:33.2%}
+  .hf-mock[data-apparel="tee"][data-side="back"] .hf-print{left:34.4%;top:27.5%;width:31.2%}
+  .hf-side-seg{margin-top:10px}
+  /* Purple accent — Hype Frame surfaces ONLY (Store v8, from Emil's
+     concept poster): the studio tag, the active print-style preset,
+     and nothing else on the page. Freeze stays volt; the rest of the
+     site keeps its volt/gold system. */
+  #hypeframe .sec-tag{color:var(--hf-purple-soft)}
+  #hypeframe .hf-presets button[aria-pressed="true"]{background:var(--hf-purple);color:#fff}
   .hf-print img{width:100%;height:auto;display:block;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,.35)}
   .hf-print-empty{margin:0;border:1.5px dashed rgba(255,255,255,.4);border-radius:8px;background:rgba(127,127,127,.20);color:#fff;font-size:12.5px;font-weight:700;text-align:center;padding:18px 10px}
   .hf-print img{-webkit-user-drag:none;user-select:none;-webkit-user-select:none}
@@ -828,16 +840,27 @@
   .store-banner-btn{appearance:none;border:0;background:none;padding:0;font:inherit;font-weight:800;font-size:17.5px;color:#fff;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-shadow:0 2px 12px rgba(0,0,0,.5);cursor:pointer}
   .store-banner-btn .chev{text-decoration:none;display:inline-block}
   .store-banner-btn:focus-visible{outline:2px solid var(--volt);outline-offset:3px}
-  /* Focus-exit clearance (hardening follow-up, 2026-11-04): in focus
-     mode the bar sits at the very top of the store, directly under the
-     floating nav (z-index 70), and the exit pill's right edge landed
-     under the 44px hamburger — mouse clicks hit the menu button
-     instead. padding-right:64px parks the pill fully left of the
-     hamburger at desktop and phone widths, and scroll-margin-top
-     keeps scrollIntoView from tucking the bar under the nav either.
-     The hamburger and the floating-header-over-film layout are
-     untouched. */
-  .store-focusbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 64px 12px 2px;border-bottom:1px solid var(--line);margin-bottom:22px;scroll-margin-top:calc(var(--navh,70px) + 8px)}
+  /* Focus-exit overlap — ROOT CAUSE (found in Store v8, 2026-11-04):
+     the .nav is position:absolute, full-width, z-index 70, sitting in
+     the top ~70px band of the document. In focus mode the film is
+     hidden, so the focus bar becomes the FIRST in-flow element of the
+     store and renders at document top — inside that band, across its
+     whole width. The nav layer therefore paints and hit-tests above
+     the entire bar (not just near the hamburger), so mouse clicks on
+     the "← All collections" pill landed on the nav. The hardening
+     build's padding-right:64px only shifted the pill sideways and
+     could never fix a vertical overlap. scrollIntoView can't rescue
+     it either: the document cannot scroll above 0, so the bar's top
+     stays at viewport y=0 under the nav.
+     FIX: in focus mode only, the shop gains top padding equal to the
+     nav band + 12px, so the focus bar renders fully BELOW the
+     floating header — pill clickable at desktop and phone widths,
+     hamburger still usable, and the landing view (film first, header
+     floating over it) is byte-for-byte unchanged. The 64px side
+     padding hack is reverted. */
+  .store-focusbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:12px 2px;border-bottom:1px solid var(--line);margin-bottom:22px;scroll-margin-top:calc(var(--navh,70px) + 8px)}
+  body.store-open[data-store-focus="boys"] .shop,
+  body.store-open[data-store-focus="girls"] .shop{padding-top:calc(var(--navh,70px) + 12px)}
   .store-focusbar[hidden]{display:none}
   .store-focusbar .back-link{flex:none}
   .store-focus-title{font-family:"Anton",sans-serif;font-size:22px;text-transform:uppercase;letter-spacing:.02em}
@@ -857,8 +880,11 @@
   .prod-card:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .prod-card.flash{animation:prodFlash 1.1s ease-in-out 2}
   @keyframes prodFlash{0%,100%{box-shadow:0 0 0 0 rgba(200,255,0,0)}50%{box-shadow:0 0 0 3px var(--volt)}}
-  .prod-media{position:relative;aspect-ratio:4/5;background:#111;overflow:hidden}
-  .prod-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 18%;display:block}
+  /* Store v8 (2026-11-04): cards show the flat garment illustrations
+     (no worn photos anywhere in product views) at their native 8/9 —
+     the whole garment is always in frame. */
+  .prod-media{position:relative;aspect-ratio:8/9;background:#111;overflow:hidden}
+  .prod-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block}
   .prod-img.prod-back{opacity:0;transition:opacity .25s ease}
   @media (hover:hover){ .prod-card:hover .prod-img.prod-back{opacity:1} }
   .prod-card.show-back .prod-img.prod-back{opacity:1}
@@ -870,8 +896,9 @@
   .prod-slogan{font-weight:800;color:var(--volt);margin:4px 0 2px}
   [data-division="girls"] .prod-slogan{color:#ff8fc0}
   .prod-desc{color:var(--muted);margin:0 0 12px;font-size:14px}
-  .prod-flat{width:100%;border-radius:10px;display:block;border:1px solid var(--line)}
-  .prod-colors{color:var(--muted2);font-size:12.5px;font-weight:600;margin:8px 0 0}
+  /* (Store v8: the card body is name + price + size run only, Overtime
+     style — the colorway strip and color list moved into the quick
+     view's swipeable gallery, so .prod-flat / .prod-colors are gone.) */
   .hypeframe-banner{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;margin:34px 0 6px;padding:22px 0 4px}
   .hf-banner-main{flex:1 1 320px;min-width:260px}
   .hf-banner-sub{color:var(--muted);margin:8px 0 14px;max-width:560px}
@@ -883,11 +910,23 @@
   .qv-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
   .qv-panel{position:relative;background:#0d0d0f;border:1px solid var(--line2);border-radius:18px;max-width:560px;width:calc(100% - 32px);max-height:88vh;overflow:auto;padding:20px}
   .qv-close{position:absolute;top:12px;right:12px;z-index:2;appearance:none;border:1px solid var(--line2);background:rgba(0,0,0,.55);color:#fff;width:36px;height:36px;border-radius:50%;font-size:15px;cursor:pointer}
-  .qv-media{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .qv-media figure{margin:0}
-  .qv-media img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 18%;border-radius:12px;display:block}
-  .qv-media figcaption{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);margin-top:6px;text-align:center}
-  .qv-flat{width:100%;border-radius:10px;margin:14px 0 4px;border:1px solid var(--line);display:block}
+  /* Store v8: the quick view leads with ONE big swipeable gallery —
+     every colorway's front and back as flat garment illustrations,
+     scroll-snapped, with the live color name above it and swatch
+     chips that jump the gallery to a color. No worn photos. */
+  .qv-colorline{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:2px 0 8px}
+  .qv-colorline #qvColorName{font-family:"Anton",sans-serif;font-size:19px;letter-spacing:.03em;text-transform:uppercase;color:#fff}
+  .qv-side-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+  .qv-gallery{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;border-radius:14px;background:#111;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .qv-gallery::-webkit-scrollbar{display:none}
+  .qv-frame{flex:0 0 100%;margin:0;scroll-snap-align:start;scroll-snap-stop:always;position:relative}
+  .qv-frame img{width:100%;aspect-ratio:8/9;object-fit:cover;display:block}
+  .qv-frame figcaption{position:absolute;left:10px;bottom:10px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+  .qv-swatches{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 2px}
+  .qv-swatch{display:inline-flex;align-items:center;gap:8px;appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:700;font-size:13px;padding:7px 13px 7px 8px;border-radius:999px;cursor:pointer}
+  .qv-swatch .swatch{width:16px;height:16px;flex:0 0 auto;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);box-shadow:inset 0 0 0 2px rgba(0,0,0,.18)}
+  .qv-swatch[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
+  .qv-swatch:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .qv-panel h4{font-family:"Anton",sans-serif;font-size:30px;text-transform:uppercase;margin:2px 0 0;color:#fff}
   .qv-colors-label{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2);margin:14px 0 2px}
   .qv-colors{color:#e8e8e8;font-weight:600;margin:0}
@@ -915,7 +954,7 @@
   .hf-creative{display:grid; grid-template-columns:1.02fr .98fr; gap:60px; align-items:center;
     margin:76px 0 8px; padding-top:60px; border-top:1px solid var(--line)}
   @media (max-width:900px){ .hf-creative{grid-template-columns:1fr; gap:44px; margin-top:58px; padding-top:46px} }
-  .hf-creative .sec-tag{color:var(--volt)}
+  .hf-creative .sec-tag{color:var(--hf-purple-soft)}
   .hfc-title{font-family:"Anton",sans-serif; font-style:italic; font-size:clamp(42px,5.6vw,66px); line-height:.98;
     text-transform:uppercase; letter-spacing:.01em; color:var(--white); margin:0 0 20px}
   .hfc-sub{color:var(--muted); font-size:17px; line-height:1.55; max-width:470px; margin:0 0 10px}
@@ -924,9 +963,9 @@
     font-size:12px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--muted)}
   .hfc-steps li{display:inline-flex; align-items:baseline; gap:7px}
   .hfc-steps li:not(:last-child)::after{content:"·"; margin-left:12px; color:var(--muted2)}
-  .hfc-steps .n{font-family:"Anton",sans-serif; font-size:13px; letter-spacing:.05em; color:var(--gold)}
+  .hfc-steps .n{font-family:"Anton",sans-serif; font-size:13px; letter-spacing:.05em; color:var(--hf-purple-soft)}
   .hfc-cta{display:inline-block; font-weight:800; font-size:17.5px; color:var(--white); text-decoration:underline;
-    text-decoration-color:var(--volt); text-decoration-thickness:2.5px; text-underline-offset:6px}
+    text-decoration-color:var(--hf-purple); text-decoration-thickness:2.5px; text-underline-offset:6px}
   .hfc-cta:hover{text-decoration-color:var(--white)}
   .hfc-cta .chev{text-decoration:none; display:inline-block}
   .hfc-stage{position:relative; width:100%; max-width:540px; margin:0 auto; aspect-ratio:1/1.12}
@@ -941,7 +980,7 @@
   .hfc-garment{width:100%; height:auto; display:block}
   .hfc-printbox{position:absolute; left:33.4%; top:40.5%; width:33.2%; box-shadow:0 3px 10px rgba(0,0,0,.35); background:#000}
   .hfc-printbox>img{width:100%; aspect-ratio:16/10.5; object-fit:cover; object-position:center 22%; display:block}
-  .hfc-printcap{display:flex; flex-direction:column; gap:1px; background:#101010; color:#fff; padding:4px 6px 5px}
+  .hfc-printcap{display:flex; flex-direction:column; gap:1px; background:#101010; color:#fff; padding:4px 6px 5px; border-top:2px solid var(--hf-purple)}
   .hfc-printcap .cap-top{display:flex; align-items:center; gap:5px; font-size:8.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase}
   .hfc-printcap .cap-top img{height:10px; width:auto; display:block}
   .hfc-printcap .cap-name{font-size:8px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,255,255,.75)}
