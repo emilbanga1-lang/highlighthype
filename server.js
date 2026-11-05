@@ -677,7 +677,7 @@ const server = http.createServer(async (req, res) => {
       // If the guardian opted into texts, send the claim text — inert
       // (log line only) until Emil activates Twilio; see sendText.
       if (wrow) notifyGuardianText(wrow, `HighlightHype: your athlete's play "${wrow.title}" won Hype of the Month! Reply to this text or check your email to claim. — HighlightHype`);
-      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email and no consented guardian text number on file, so the winner's parent/guardian cannot be contacted — it is not prize-eligible until one is added." });
+      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email and no consented guardian text number on file, so the winner's parent/guardian cannot be contacted — it can't be featured as Hype of the Month until one is added." });
     }
 
     // ---- Email moderation (works on any device; see moderateToken) ----

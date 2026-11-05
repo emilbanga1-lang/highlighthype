@@ -86,8 +86,10 @@ try {
   assert(mockHtml.indexOf("hf-garment-tee") > -1 && mockHtml.indexOf('id="hfPrint"') > mockHtml.indexOf("hf-garment-tee"), "print layer follows both garment SVGs in the mock, so it paints above the active garment");
   assert((mockHtml.match(/<svg class="hf-garment /g) || []).length === 2, "mock contains exactly two garment SVGs (one per apparel)");
   assert(/<svg class="hf-garment hf-garment-tee"[^>]*hidden>/.test(mockHtml) && !/<svg class="hf-garment hf-garment-hoodie"[^>]*hidden>/.test(mockHtml), "markup opens with only the tee garment hidden, so the first apparel switch has a state to flip");
-  const storeSection = home.slice(home.indexOf('id="shop"'));
-  assert(!storeSection.includes("$"), "no prices anywhere in the Store section (Hype Frame included)");
+  // Prices exist in the Store now (Drop 001 cards, 2026-11-04) — but
+  // the Hype Frame creative inside the Store stays price-free.
+  const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
+  assert(!hfCreative.includes("$"), "Hype Frame creative carries no price (prices live on the product cards only)");
 
   /* ---- setup: a pending play and an approved play ---- */
   const claim = await j("/api/owner/claim", { method: "POST" });
@@ -142,9 +144,20 @@ try {
   const imgBytes = Buffer.from(await img.arrayBuffer());
   assert(imgBytes.subarray(0, 4).toString("hex") === "89504e47", "stored print image bytes are the submitted PNG");
 
-  /* ---- 5. Print placement: controls, defaults, round-trip, clamping ---- */
-  for (const id of ["hfPlace", "hfSize", "hfSizeMinus", "hfSizePlus", "hfSizeVal", "hfPlaceReset"]) assert(home.includes(`id="${id}"`), `placement control present: #${id}`);
-  assert(appJs.includes("function hfApplyPlacement") && appJs.includes("placement: hfState.placement"), "studio applies placement and sends it with the order");
+  /* ---- 5. Placement (fixed) + look presets (2026-11-04) ----
+     The studio no longer offers drag/size placement: the print always
+     renders at the fixed default (50 / 42 · 66%) and the order still
+     carries those values. The server keeps accepting, storing and
+     clamping placement exactly as before (round-trip checks below).
+     The branding checkbox became three look presets; the frozen-frame
+     box is gone (the frame shows on the garment mock only). */
+  for (const id of ["hfPlace", "hfSize", "hfSizeMinus", "hfSizePlus", "hfSizeVal", "hfPlaceReset", "hfBranding", "hfStillWrap", "hfStill"]) assert(!home.includes(`id="${id}"`), `removed studio control stays gone: #${id}`);
+  for (const p of ["classic", "signature", "hypeframe"]) assert(home.includes(`data-hf-preset="${p}"`), `print-style preset present: ${p}`);
+  assert(home.includes('data-hf-preset="hypeframe" aria-pressed="true"'), "Hype Frame is the default preset");
+  assert(home.includes('id="hfStepBack"') && home.includes('id="hfStepFwd"'), "±1s step buttons flank the Freeze button");
+  assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
+  assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
+  assert(appJs.includes("function hfApplyPlacement") && appJs.includes("placement: hfState.placement"), "studio applies the (fixed) placement and sends it with the order");
   assert(appJs.includes("Placement:") && appJs.includes("% size"), "Owner view displays each request's placement for the printer");
   // Unadjusted order -> studio defaults are stored.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });

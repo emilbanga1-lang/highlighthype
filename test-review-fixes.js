@@ -3,10 +3,11 @@
 // 2. Upload form is file-only (no video-link field) and file upload works.
 // 3. Modernized upload form keeps every field id/name + the dropzone.
 // 4. Hype Frame: pause-overlay scene map hits the right Store targets.
-// 5. Store redesign: filterable product grid with real lookbook photos.
-// 6. Store v2: full-bleed cinematic film hero + photo nav tiles.
-// 7. Store v3: Suitsupply editorial — light canvas, framed-print cards
-//    and tiles, text-tab controls, designed Hype Frame creative.
+// 5. Store: product blocks with real lookbook photos (one per division).
+// 6. Store film hero: full-bleed cinematic, music, no round button.
+// 8. Store v4/v6: dark store, film-first hero, Boys-first recut.
+// 9. Tonight batch (2026-11-04): transparent logo, proof panel removed,
+//    autoplay plays, native share + deep links, recut hero, focus mode.
 import { spawn, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -32,22 +33,29 @@ try {
   for (const f of FIELDS) assert(home.includes(`name="${f}"`), `upload form keeps field name="${f}"`);
   assert(home.includes('id="dropzone"') && home.includes('id="fileInput"') && home.includes('id="dzFile"'), "dropzone markup present (dropzone/fileInput/dzFile)");
   assert(home.includes('accept="video/*,image/*"'), "file input keeps the same accept types");
-  // Stepped form (Emil, 2026-11-04): the old single-page section title
-  // "The play" became Step 1 "Your video"; the other two section titles
-  // carry over unchanged as Steps 2 and 3.
-  for (const label of ["Your video", "The athlete", "Parent/guardian (private)"]) assert(home.includes(label), `form section label present: ${label}`);
+  // Quick Upload (Emil, 2026-11-04 night): the wizard's three section
+  // titles are gone with the steps; the quick questions carry the form.
+  for (const label of ["Athlete's first name", "Boys or Girls", "What happened? (optional)"]) assert(home.includes(label), `quick question present: ${label}`);
 
-  /* ---- 3b. Wizard structure: 3 steps, progress, fields exactly once -- */
-  assert((home.match(/class="form-section form-step"/g) || []).length === 3, "upload form has exactly 3 wizard steps");
-  for (const n of ["1", "2", "3"]) assert(home.includes(`data-step="${n}"`), `wizard step ${n} present`);
-  assert(home.includes('id="uploadProgress"') && home.includes('id="uploadStepLabel"') && home.includes('id="uploadBarFill"'), "wizard progress chrome present (label + bar)");
-  assert(home.includes('id="upBack"') && home.includes('id="upNext"'), "wizard Back/Continue buttons present");
-  for (const f of FIELDS) assert((home.split(`name="${f}"`).length - 1) === 1, `field name="${f}" appears exactly once in the stepped form`);
-  const step2At = home.indexOf('data-step="2"'), step3At = home.indexOf('data-step="3"');
-  assert(home.indexOf('name="division"') > step2At && home.indexOf('name="division"') < step3At, "division select lives in Step 2 (The athlete)");
-  assert(home.indexOf('id="athletePrompt"') > step2At && home.indexOf('id="athletePrompt"') < step3At, "athlete prompt lives inside Step 2");
-  assert(home.indexOf('id="uploadMsg"') > step3At, "upload messages show in Step 3 with the Submit button");
-  assert(appJs.includes("function showUploadStep") && appJs.includes("function validUploadStep"), "wizard navigation + per-step validation wired in app.js");
+  /* ---- 3b. Quick Upload: ONE screen (Emil, 2026-11-04 night) -------
+     The 3-step wizard is replaced by a single quick form: clip picker
+     first (phone-first copy, playing preview once picked), a few quick
+     questions (name, Boys/Girls toggle, sport pills, optional title),
+     everything else in a collapsed "Add more (optional)" section — all
+     with the SAME field names/payload as the wizard had. */
+  for (const f of FIELDS) assert((home.split(`name="${f}"`).length - 1) === 1, `field name="${f}" appears exactly once in the quick form`);
+  assert(!home.includes("form-step") && !home.includes('id="uploadProgress"') && !home.includes('id="upNext"') && !home.includes('id="upBack"') && !appJs.includes("showUploadStep") && !appJs.includes("validUploadStep"), "the 3-step wizard is gone (steps, progress chrome, nav buttons, wizard JS)");
+  assert(home.includes("Tap to pick a clip from your camera roll"), "dropzone leads with the phone-first camera-roll copy (drag & drop still offered)");
+  assert(!home.includes("MOV") && !home.includes("most reliably"), "the MP4/.MOV warning text is removed entirely");
+  assert(home.includes('id="dzPreview"') && home.includes('id="dzVideo"') && appJs.includes("Your clip is in") && appJs.includes("createObjectURL"), "a picked clip previews playing in the dropzone with a '✓ Your clip is in' state");
+  assert(home.includes('data-div-pick="boys"') && home.includes('data-div-pick="girls"') && home.includes('name="division" value="boys"') && appJs.includes("setDivPick"), "Boys/Girls big toggle writes the division field (default Boys)");
+  assert((home.match(/data-sport-pick=/g) || []).length === 12 && home.includes('name="sport" value=""') && appJs.includes("setSportPick"), "sport is one-tap pills (12 sports, same list/order as the old select) writing the sport field");
+  assert(home.includes("What happened? (optional)") && appJs.includes("'s highlight`"), "the title is one optional 'What happened?' line; blank auto-fills as <Name>'s highlight at submit");
+  const moreAt = home.indexOf("Add more (optional)");
+  assert(moreAt > -1 && home.includes('class="quick-more"'), "'Add more (optional)' collapsed section present");
+  for (const f of ["playType", "story", "jersey", "team", "notifyEmail", "guardianPhone", "textConsent"]) assert(home.indexOf(`name="${f}"`) > moreAt, `optional field lives inside Add more: ${f}`);
+  assert(home.includes("Add a parent/guardian contact so we can reach you if this play wins — winners are featured on our socials."), "guardian-contact line sits under the optional section (featured framing, no prize promise)");
+  assert(home.includes("Post my hype"), "submit button reads 'Post my hype'");
   assert(home.includes("Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete."), "text opt-in copy is EXACTLY the current copy");
   assert(!/name="textConsent"[^>]*checked/.test(home), "text opt-in checkbox is unchecked by default");
   assert(home.includes('id="athletePrompt"'), "athlete disambiguation prompt container preserved");
@@ -114,17 +122,25 @@ try {
   assert(sceneRe("Infinity", "girls-essentials").test(appJs), "scene 28s–end (Girls Essentials clip) maps to girls-essentials");
   assert(appJs.includes("The Boys Hype Unleashed hoodie"), "Unleashed scene card carries the collection title");
   assert(home.includes('<h4 id="sscTitle">The Boys Hype Street hoodie</h4>'), "pause card placeholder title matches the new first scene (Boys Street)");
-  assert(home.includes('id="hype-girls"') && home.includes('id="hype-boys"') && home.includes('id="collections"'), "division + grid scroll anchors exist in the Store");
+  assert(home.includes('data-store-block="boys"') && home.includes('data-store-block="girls"') && home.includes('id="collections"') && home.includes('id="storeFocusBar"'), "division blocks + grid anchor + focus bar exist in the Store");
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
-  assert(!storeSection.includes("$"), "no prices anywhere in the Store section");
+  // Prices landed with the tonight additions (Emil, 2026-11-04, BL101
+  // pattern): $69.99 + the youth size run, INSIDE the Store only.
+  assert((storeSection.match(/\$69\.99/g) || []).length >= 7, "Drop 001 price $69.99 shows on all six cards + quick view");
+  assert(storeSection.includes("YXXS · YXS · YS · YM · YL · YXL") && storeSection.includes("Youth sizes"), "youth size run shown in the Store (YXXS–YXL)");
+  assert(home.includes('id="qvSizes"') && (home.match(/data-qv-size=/g) || []).length === 6, "quick view has the six-size tappable selector");
+  assert(appJs.includes("qv-size"), "quick-view size selection wired (state only — no cart/checkout)");
+  assert(!home.slice(0, home.indexOf('id="shop"')).includes("$69.99"), "no prices outside the Store (homepage + boards stay price-free)");
+  assert(storeSection.includes("Drop 001 — ordering opens soon"), "store status line: 'Drop 001 — ordering opens soon' (no preview-only phrasing)");
 
-  /* ---- 5. Store redesign: product grid with real lookbook photos ----
-     Emil (2026-11-04): the six stacked illustrated boards became one
-     filterable product grid using photos cropped from the Drop 001
-     lookbook. The scene targets above keep their names but now drive
-     the grid (division filter + highlight), so the old board markup
-     assertions were replaced by the grid assertions below. */
+  /* ---- 5. Store: product blocks with real lookbook photos ----
+     Emil (2026-11-04): the six stacked illustrated boards became a
+     product grid using photos cropped from the Drop 001 lookbook.
+     Tonight batch (2026-11-04): the filter toggle + chips are gone —
+     the grid is now two always-visible division blocks (banner header
+     + 3 cards each) with a focus mode, so the old filter assertions
+     were replaced by the block assertions below. */
   const SLUGS = ["girls-street", "girls-athletics", "girls-essentials", "boys-street", "boys-athletics", "boys-unleashed"];
   assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
   for (const slug of SLUGS) {
@@ -138,41 +154,44 @@ try {
   }
   assert(!home.includes("/swag-boards/"), "illustrated board SVGs are no longer referenced by the Store");
   assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
-  assert(home.includes('data-store-div="girls"') && home.includes('data-store-div="boys"'), "Girls/Boys division toggle present");
-  for (const chip of ["all", "street", "athletics", "essentials", "unleashed"]) assert(home.includes(`data-store-chip="${chip}"`), `collection filter chip present: ${chip}`);
+  assert(!home.includes("data-store-div=") && !home.includes("data-store-chip=") && !home.includes('class="store-controls"'), "division toggle + collection chips are gone (blocks replace filters)");
+  assert(home.includes('data-store-focus="boys"') && home.includes('data-store-focus="girls"'), "each block banner carries its focus button");
+  assert(!(home.match(/<article class="prod-card"[^>]*>/g) || []).some((t) => t.includes("hidden")), "no product card starts hidden on the landing (all six show)");
   assert(home.includes('id="quickView"') && home.includes('id="qvFront"') && home.includes('id="qvBack"') && home.includes('id="qvFlat"'), "quick-view overlay present with front/back/flat images");
   assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
-  assert(appJs.includes("applyStoreFilter") && appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "grid filtering + quick view wired in app.js");
-  assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button drives the grid (filter + highlight)");
+  assert(appJs.includes("setStoreFocus") && !appJs.includes("applyStoreFilter") && !appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "focus mode + quick view wired in app.js (old filter functions gone)");
+  assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button focuses the card's division and highlights the card");
   // Hype Frame in the Store: the v3 creative section (layered prints,
   // manifesto headline, steps line, CTA) was ported into the restored
   // v2 store and re-skinned dark — asserted in §8 below.
 
-  /* ---- 6. Store v2: full-bleed cinematic hero + photo nav tiles ----
+  /* ---- 6. Store film hero: full-bleed cinematic, music, no button ----
      Emil (2026-11-04, with Overtime shop screenshots): the film leads
      the Store as an edge-to-edge autoplay hero — bold italic title,
-     underlined Shop Girls / Shop Boys link-buttons, one round outline
-     pause/play button, no native controls — and two full-width photo
-     tiles cropped from the lookbook's sunset banner act as navigation
-     (whole tile tappable -> division filter + scroll to grid). */
+     underlined Shop Girls / Shop Boys link-buttons, no native controls.
+     Tonight batch: the round pause/play button is REMOVED (tapping the
+     film pauses for pause-to-shop), the film carries the homepage
+     music bed (probed in §8), and the photo nav tiles became the
+     division blocks' banner headers (§5/§8). */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
   assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
   assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
   const css = await text("/styles.css");
   assert(css.includes(".swag-film-hero") && css.includes("100vw"), "styles.css bleeds the hero edge-to-edge (100vw)");
-  assert(css.includes(".film-toggle") && css.includes(".store-tile"), "styles.css carries the round toggle button + nav tile rules");
+  assert(!css.includes(".film-toggle") && !css.includes(".store-tile") && !css.includes(".store-controls"), "styles.css: round toggle, nav tile and filter-control rules are gone");
+  assert(css.includes(".store-banner") && css.includes('body[data-store-focus="boys"]') && css.includes('body[data-store-focus="girls"]'), "styles.css carries the banner + focus-mode rules");
   assert(home.includes('data-hero-shop="girls"') && home.includes('data-hero-shop="boys"'), "hero overlay has Shop Girls / Shop Boys link-buttons");
   assert(home.includes("Shop Girls") && home.includes("Shop Boys"), "hero shop links are labelled Shop Girls / Shop Boys");
-  assert(home.includes('id="swagPlayBtn"') && home.includes('class="film-toggle"'), "round outline pause/play button present in the hero");
-  assert(appJs.includes("swagPlayBtn"), "pause/play button wired in app.js");
+  assert(!home.includes('id="swagPlayBtn"') && !appJs.includes("swagPlayBtn"), "round outline pause/play button removed from markup and JS");
+  assert(appJs.includes("sv.muted = false"), "entering the Store attempts an unmuted (music) start, first-tap fallback");
   assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"'), "pause-to-shop scene card still present under the hero");
   for (const side of ["girls", "boys"]) {
-    assert(home.includes(`data-store-tile="${side}"`) && home.includes(`/swag/tile-${side}.jpg`), `nav tile present with lookbook crop: ${side}`);
+    assert(home.includes(`data-store-block="${side}"`) && home.includes(`/swag/tile-${side}.jpg`), `division block banner present with its photo: ${side}`);
     const r = await fetch(`${base}/swag/tile-${side}.jpg`);
     const buf = await r.arrayBuffer();
-    assert(r.status === 200 && buf.byteLength > 5000, `tile crop serves and is non-trivial: /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
+    assert(r.status === 200 && buf.byteLength > 5000, `banner photo serves and is non-trivial: /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
   }
-  assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-tile]") && appJs.includes("goToStoreScene"), "hero links + tiles wired to the division filter + grid scroll in app.js");
+  assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-focus]") && appJs.includes("goToStoreScene"), "hero links + banner buttons wired to focus mode in app.js");
 
   /* ---- 8. Store v4/v6: dark store, film-first hero, Boys-first recut ----
      Emil (2026-11-04 evening): the v3 light re-skin was rejected
@@ -188,8 +207,10 @@ try {
      Boys-first recut of the film (~35s). */
   assert(home.includes('class="shop"') && !home.includes("store-light"), "dark v2 store restored (no .store-light scope class)");
   assert(!css.includes(".store-light") && !css.includes("#f4f1ea"), "no light-canvas rules remain in styles.css");
-  const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf("swag-film-hero"), headIdx = home.indexOf("shop-head"), tilesIdx = home.indexOf("store-tiles");
-  assert(heroIdx > shopIdx && heroIdx < headIdx && heroIdx < tilesIdx, "film hero is the first element of the Store (before the intro copy and tiles)");
+  const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf("swag-film-hero"), headIdx = home.indexOf("shop-head");
+  assert(heroIdx > shopIdx && heroIdx < headIdx, "film hero is the first element of the Store (before the intro copy)");
+  const boysBlockIdx = home.indexOf('data-store-block="boys"'), girlsBlockIdx = home.indexOf('data-store-block="girls"'), creativeIdx = home.indexOf('class="hf-creative"');
+  assert(headIdx < boysBlockIdx && boysBlockIdx < girlsBlockIdx && girlsBlockIdx < creativeIdx, "landing order: film → intro → Boys block → Girls block → Hype Frame creative");
   assert(css.includes("aspect-ratio:16/9;max-height:92vh"), "desktop hero runs 16/9 with a generous max-height");
   assert(css.includes(".swag-film-hero{aspect-ratio:auto;height:82vh"), "mobile hero is ~82vh tall (taller than v2's 4/5 crop)");
   const filmRes = await fetch(`${base}/swag-film.mp4`);
@@ -198,7 +219,9 @@ try {
   const filmFile = path.join(tmp, "film-probe.mp4");
   fs.writeFileSync(filmFile, Buffer.from(filmBuf));
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
-  assert(filmDur > 34 && filmDur < 36, `the v7 film runs ~35s (${filmDur}s — five 7.0s scenes, widescreen sport-setting clips at natural speed)`);
+  assert(filmDur > 34 && filmDur < 36, `the film still runs ~35s (${filmDur}s — five 7.0s scenes; scene 1 is now the blue-sky Boys Street clip)`);
+  const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
+  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "the film now carries the homepage music bed (audio stream present)");
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
@@ -213,13 +236,17 @@ try {
   assert(home.includes('class="hf-creative"') && !home.includes("hypeframe-banner") && !home.includes("hf-steps-strip"), "Hype Frame creative section replaces the slim banner");
   assert(home.includes('class="hfc-print hfc-print-moment"') && home.includes('class="hfc-print hfc-print-hoodie"'), "creative layers a moment print over a hoodie print");
   assert(home.includes('class="hfc-printbox"') && home.includes('class="hfc-garment"'), "hoodie print reuses the studio garment mock with a composed print in its print area");
-  assert((home.split("/swag/boys-unleashed-front.jpg").length - 1) >= 3, "the same dynamic lookbook moment appears on the card, the moment print, and the hoodie print");
+  assert((home.split("/swag/hfc-action.jpg").length - 1) === 2, "the creative's sports-action still (from the hero film) appears on BOTH figures — moment print and hoodie print");
+  const hfcRes = await fetch(`${base}/swag/hfc-action.jpg`);
+  const hfcBuf = await hfcRes.arrayBuffer();
+  assert(hfcRes.status === 200 && hfcBuf.byteLength > 5000, `action still serves and is non-trivial: /swag/hfc-action.jpg (${hfcBuf.byteLength} bytes)`);
   assert(home.includes("Your moment.") && home.includes("Your hype.") && css.includes(".hfc-title"), "creative headline is the manifesto line");
   assert(css.includes(".hf-creative{display:grid") && css.includes("border-top:1px solid var(--line)"), "creative is styled for the dark store (v2 palette, unscoped by .store-light)");
   assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "creative subline: freeze a frame from your own highlight video — and wear it");
   for (const step of ["Pick your play", "Freeze the frame", "Make it yours", "Preview it", "Guardian approves"]) assert(home.includes(step), `creative steps line includes: ${step}`);
   assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
   const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
+  assert(!hfCreative.includes("$"), "Hype Frame creative stays price-free (prices live on the product cards only)");
   assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
   assert(hfCreative.includes("parent or guardian confirms by email before anything is printed"), "creative keeps the guardian-approval framing (no payment/checkout language)");
 
@@ -231,18 +258,40 @@ try {
   const barIdx = home.indexOf("store-bar");
   assert(barIdx > heroIdx && barIdx < headIdx, "store bar (Back + breadcrumb) sits below the film, above the intro copy");
   assert(css.includes(".swag-film-hero .swag-film-badge{top:82px") && css.includes(".swag-film-hero .swag-film-hint{top:82px"), "film badge + hint pill drop below the floating nav line (no logo overlap)");
-  assert(appJs.includes('const storeState = { division: "boys"'), "store defaults to the Boys division");
+  assert(appJs.includes("const storeState = { focus: null }"), "store starts unfocused (full landing: film, Boys, Girls, Hype Frame)");
   assert(home.indexOf('data-hero-shop="boys"') < home.indexOf('data-hero-shop="girls"'), "hero overlay links: Shop Boys before Shop Girls");
-  assert(home.indexOf('data-store-div="boys"') < home.indexOf('data-store-div="girls"'), "division toggle: Hype Boys before Hype Girls");
-  assert(home.indexOf('data-store-tile="boys"') < home.indexOf('data-store-tile="girls"'), "photo tiles: Boys before Girls");
+  assert(home.indexOf('data-store-focus="boys"') < home.indexOf('data-store-focus="girls"'), "banner focus buttons: Boys before Girls");
   assert(home.indexOf('data-store-target="hype-boys"') < home.indexOf('data-store-target="hype-girls"'), "homepage store card links: Hype Boys before Hype Girls");
-  assert(/id="hype-boys"[^>]*aria-pressed="true"/.test(home) && /id="hype-girls"[^>]*aria-pressed="false"/.test(home), "toggle initial state: Boys pressed, Girls not");
-  const chipTag = (chip) => (home.match(new RegExp(`<button[^>]*data-store-chip="${chip}"[^>]*>`)) || [""])[0];
-  assert(chipTag("unleashed") !== "" && !chipTag("unleashed").includes("hidden"), "Unleashed chip visible in the initial (Boys) state");
-  assert(chipTag("essentials").includes("hidden"), "Essentials chip hidden in the initial (Boys) state");
   const cardTag = (slug) => (home.match(new RegExp(`<article class="prod-card"[^>]*data-slug="${slug}"[^>]*>`)) || [""])[0];
-  for (const slug of ["boys-street", "boys-athletics", "boys-unleashed"]) assert(cardTag(slug) !== "" && !cardTag(slug).includes("hidden"), `initial HTML shows the card: ${slug}`);
-  for (const slug of ["girls-street", "girls-athletics", "girls-essentials"]) assert(cardTag(slug).includes("hidden"), `initial HTML hides the card: ${slug}`);
+  for (const slug of SLUGS) assert(cardTag(slug) !== "" && !cardTag(slug).includes("hidden"), `initial HTML shows the card: ${slug}`);
+
+  /* ---- 9. Tonight batch: logo, hero, proof removal, share, autoplay --
+     Emil (2026-11-04 night): (1) the logo's black JPEG box showed on
+     bright film frames — it is now a transparent PNG everywhere it
+     sits over video; (2) the hero's logo ending is cut and a golf
+     scene closes the film instead; (12) "What's on the line" is
+     removed, its two useful lines folded into How it works;
+     (17) Share uses the native sheet + deep links that land on the
+     play from any view; (9) board videos autoplay. */
+  assert(home.includes('href="/logo-transparent.png"'), "logo preload points at the transparent PNG");
+  assert((home.split('src="/logo-transparent.png"').length - 1) === 2, "header + footer logos use the transparent PNG");
+  const logoRes = await fetch(`${base}/logo-transparent.png`);
+  const logoBuf = Buffer.from(await logoRes.arrayBuffer());
+  assert(logoRes.status === 200 && logoBuf.subarray(1, 4).toString() === "PNG" && logoBuf.byteLength > 5000, `transparent logo serves as a real PNG (${logoBuf.byteLength} bytes)`);
+  assert(!css.includes("mix-blend-mode:screen"), "the screen-blend workaround is gone (real transparency now)");
+  assert(!home.includes('data-panel-btn="proof"') && !home.includes('id="proof"') && !appJs.includes("proof") && !css.includes(".proof"), "What's on the line is gone: menu button, panel, JS and CSS");
+  const howPanel = home.slice(home.indexOf('data-panel="how"'), home.indexOf('id="owner"'));
+  assert(howPanel.includes("What's on the line") && howPanel.includes("parent or guardian") && howPanel.includes("featured on the homepage") && howPanel.includes("shoutout on HighlightHype socials"), "How it works carries the folded lines (contest + bragging-rights prize + guardian contact)");
+  assert(!home.includes("free piece") && !home.includes("claims the Drop 001 piece"), "no swag/merch prize promised anywhere on the homepage");
+  assert(appJs.includes("navigator.share") && appJs.includes('title: "HighlightHype"'), "sharePlay uses the native share sheet when available");
+  assert(appJs.includes('switchView("all")') && appJs.includes("#play-"), "deep links switch to All Hypes and land on the play card");
+  assert(appJs.includes('preload="auto" autoplay'), "board videos autoplay with preload=auto (muted + loop already present)");
+  const heroRes = await fetch(`${base}/hero.mp4`);
+  const heroBuf = await heroRes.arrayBuffer();
+  const heroFile = path.join(tmp, "hero-probe.mp4");
+  fs.writeFileSync(heroFile, Buffer.from(heroBuf));
+  const heroDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", heroFile]).toString().trim());
+  assert(heroDur > 12.5 && heroDur < 13.6, `hero runs ~13.1s after the recut (${heroDur}s — 9.08s montage, logo ending cut, + 4.0s golf close)`);
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
