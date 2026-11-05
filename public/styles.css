@@ -693,7 +693,11 @@
   .quick-more{border:1px solid var(--line);border-radius:12px;padding:4px 16px;margin:4px 0 14px;background:var(--card2)}
   .quick-more summary{cursor:pointer;font-weight:800;font-size:15px;color:#fff;padding:12px 0;list-style-position:inside}
   .quick-more-body{padding:4px 0 6px}
-  .quick-contact-note{margin:0 0 14px}
+  /* Guardian contact (Round 6, 2026-11-05): out of the collapsed
+     "Add more" section into the main form, framed like the optional
+     block so it reads as one part of the quick screen. */
+  .guardian-block{border:1px solid var(--line);border-radius:12px;padding:16px;background:var(--card2)}
+  .guardian-block label:last-of-type{margin-bottom:0}
   /* Drag-and-drop dropzone (wired in app.js to the same name="file" input) */
   .dropzone{border:1.5px dashed var(--line2);border-radius:16px;background:rgba(255,255,255,.02);padding:34px 20px 28px;text-align:center;cursor:pointer;margin:0 0 14px;transition:border-color .15s ease,background .15s ease}
   .dropzone:hover,.dropzone:focus-visible{border-color:#55554a;background:rgba(255,255,255,.04);outline:none}
@@ -725,6 +729,11 @@
   .card-msg-text{margin:0;font-size:13.5px;font-weight:600;color:#fff;line-height:1.45}
   .card-msg-text.err{color:#ffb9be}
   .card-msg-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  /* Report panel (Round 6, 2026-11-05): the optional reason field
+     inside the per-card report slot. */
+  .card-msg .report-reason{display:block;margin-top:10px;font-weight:700;font-size:13px;color:#fff}
+  .card-msg .report-reason textarea{display:block;width:100%;margin-top:6px;background:#0d0d0d;border:1px solid var(--line2);border-radius:10px;color:#fff;font:inherit;font-size:14px;font-weight:500;padding:10px 12px;resize:vertical}
+  .card-msg .report-reason textarea:focus{outline:none;border-color:var(--volt);box-shadow:0 0 0 3px rgba(200,255,0,.16)}
   .athlete-link{background:none;border:0;color:var(--volt);font:inherit;font-weight:800;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
   .tagchip{display:inline-block;background:#fff;color:#0a0a0a;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:999px;vertical-align:2px}
   .tagchip.warn{background:transparent;border:1px solid var(--line2);color:var(--muted)}

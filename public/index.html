@@ -183,18 +183,39 @@
           <option value="baseball">Baseball</option>
           <option value="basketball">Basketball</option>
           <option value="cheer">Cheer</option>
+          <option value="dance">Dance</option>
           <option value="fieldhockey">Field Hockey</option>
           <option value="football">Football</option>
+          <option value="golf">Golf</option>
           <option value="gymnastics">Gymnastics</option>
           <option value="hockey">Hockey</option>
           <option value="lacrosse">Lacrosse</option>
           <option value="other">Other</option>
           <option value="soccer">Soccer</option>
           <option value="softball">Softball</option>
+          <option value="swimming">Swimming</option>
+          <option value="tennis">Tennis</option>
+          <option value="track">Track &amp; Field</option>
           <option value="volleyball">Volleyball</option>
+          <option value="wrestling">Wrestling</option>
         </select>
       </div>
       <label>What happened? (optional) <input type="text" name="title" placeholder="e.g. Walk-off home run — blank is fine, we title it from the athlete's name"></label>
+
+      <!-- Guardian contact (Round 6, 2026-11-05): this used to sit
+           inside the collapsed optional section below, so a kid could
+           post, collect votes and only learn at the Enter step that
+           the play can't be featured without it (youth rerun v3's #1
+           finding). It now lives in the main form, in plain words.
+           Still OPTIONAL for posting — only placement/framing changed;
+           field names and the payload are exactly as before. -->
+      <div class="quick-field guardian-block">
+        <span class="quick-label" id="guardianPickLabel">Parent or guardian — needed to win 🏆</span>
+        <p class="small">To win Hype of the Month, we need a parent or guardian we can reach — ask a parent first. You can still post without it; your play just can't be featured until we have it. Private — never shown on the site. We only use it to tell you when the play is approved and to reach a parent/guardian if the play wins; texts go out only if the box below is checked.</p>
+        <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
+        <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
+        <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+      </div>
 
       <details class="quick-more">
         <summary>Add more (optional)</summary>
@@ -205,13 +226,8 @@
             <label>Jersey number <input type="text" name="jersey" placeholder="e.g. 13"></label>
             <label>Team name <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
           </div>
-          <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
-          <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
-          <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
-          <p class="small">Private — never shown on the site. The email and number are only used to tell you when the play is approved and to reach a parent/guardian if the play wins; texts go out only if the box above is checked. A play can only be featured as Hype of the Month if we can reach a parent/guardian — by the email above, or by a mobile number with the text box checked.</p>
         </div>
       </details>
-      <p class="small quick-contact-note">Add a parent/guardian contact so we can reach you if this play wins — winners are featured on our socials.</p>
 
       <div id="athletePrompt" class="athlete-prompt" hidden></div>
       <button type="submit" class="btn btn-lime submit-btn">Post my hype</button>

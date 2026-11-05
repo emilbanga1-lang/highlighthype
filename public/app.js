@@ -42,9 +42,16 @@ const api = async (path, opts = {}) => {
   return j;
 };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
+const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-const SPORTS = ["baseball", "basketball", "cheer", "fieldhockey", "football", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "volleyball"];
+/* Round 6 (2026-11-05): Dance, Golf, Swimming, Tennis, Track & Field
+   and Wrestling join the list (youth rerun v3: kids in those sports
+   had to pick "Other"). Alphabetical, with "other" keeping its
+   long-standing slot between Lacrosse and Soccer. This constant, the
+   upload form's <option> list and cap()'s special labels are the
+   three places a sport lives; the server stores whatever key it is
+   sent (lowercased), so no server list needs to match. */
+const SPORTS = ["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ---------------- data ---------------- */
@@ -107,6 +114,7 @@ function cardHtml(h, opts = {}) {
         ${ownerToken() && opts.inContest ? `<button type="button" class="mini-btn" onclick="markWinner(${h.id})">Mark winner (owner)</button>` : ""}
       </div>
       <div class="card-msg" data-enter-msg${ENTER_MSGS.has(h.id) ? "" : " hidden"}>${ENTER_MSGS.get(h.id) || ""}</div>
+      <div class="card-msg" data-report-msg${REPORT_MSGS.has(h.id) ? "" : " hidden"}>${REPORT_MSGS.get(h.id) || ""}</div>
     </div>
   </article>`;
 }
@@ -222,7 +230,47 @@ async function submitContestEntry(id) {
     setEnterMsg(id, `<p class="card-msg-text err">${esc(e.message)}</p>`);
   }
 }
-window.reportPlay = async (id) => { const reason = prompt("Why are you reporting this play? (optional)") || "Reported by a user"; try { const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) }); alert(r.message); } catch (e) { alert(e.message); } };
+/* Report feedback (Round 6, 2026-11-05): reporting used to run
+   through the browser's built-in prompt and alert dialogs, which
+   in-app browsers can swallow entirely — the button read as
+   completely dead (youth rerun v3). It now mirrors the enter-contest
+   pattern above: an inline panel in a per-card slot fed from
+   REPORT_MSGS, so a board re-render can neither duplicate the panel
+   nor drop it mid-flow. The API contract is unchanged — POST
+   /api/highlights/:id/report with { reason }, an empty reason still
+   landing as "Reported by a user" (now client-side, matching the
+   server's own default). Cancel closes the panel and sends nothing. */
+const REPORT_MSGS = new Map();
+function setReportMsg(id, html) {
+  if (html) REPORT_MSGS.set(id, html); else REPORT_MSGS.delete(id);
+  $$(`.card[data-play-id="${id}"] [data-report-msg]`).forEach((slot) => {
+    slot.innerHTML = html || "";
+    slot.hidden = !html;
+  });
+}
+window.reportPlay = (id) => {
+  setReportMsg(id, `<p class="card-msg-text">Report this play? The owner reviews every report.</p>
+    <label class="report-reason">Reason (optional)
+      <textarea data-report-reason rows="2" maxlength="500" placeholder="What's wrong with this play?"></textarea>
+    </label>
+    <div class="card-msg-btns">
+      <button type="button" class="mini-btn" onclick="sendReport(${id}, this)">Send report</button>
+      <button type="button" class="mini-btn" onclick="cancelReport(${id})">Cancel</button>
+    </div>`);
+};
+window.cancelReport = (id) => setReportMsg(id, "");
+window.sendReport = async (id, btn) => {
+  const card = btn ? btn.closest(`.card[data-play-id="${id}"]`) : null;
+  const ta = card ? card.querySelector("[data-report-reason]") : null;
+  const reason = (ta && ta.value.trim()) || "Reported by a user";
+  setReportMsg(id, `<p class="card-msg-text">Sending…</p>`);
+  try {
+    const r = await api(`/api/highlights/${id}/report`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ reason }) });
+    setReportMsg(id, `<p class="card-msg-text ok">${esc(r.message)}</p>`);
+  } catch (e) {
+    setReportMsg(id, `<p class="card-msg-text err">${esc(e.message)}</p>`);
+  }
+};
 window.markWinner = async (id) => { try { const r = await api("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); if (r.warning) alert(r.warning); await loadData(); } catch (e) { alert(e.message); } };
 window.sharePlay = async (id, btn) => {
   const url = `${location.origin}${location.pathname}#play-${id}`;
