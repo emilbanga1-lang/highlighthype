@@ -11,6 +11,7 @@
 // 10. Hardening follow-up (2026-11-04): backup endpoints, headers, log
 //     redaction, upload guards, API allowlist, focus-exit + share fixes.
 import { spawn, execFileSync } from "node:child_process";
+import vm from "node:vm";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -428,6 +429,123 @@ try {
   const queueRes = await fetch(`${base}/moderate-queue`);
   const queueBody = await queueRes.text();
   assert(queueRes.status === 403 && queueBody.includes('<a href="/">'), "the served moderation-queue 403 page links home");
+
+  /* ---- 14. Enter-contest inline feedback (Fixes batch, 2026-11-05):
+     the enter flow's confirm()/alert() can be blocked or
+     auto-dismissed in in-app browsers, so the button read as
+     completely dead (youth rerun: tapped twice, nothing happened).
+     All enter feedback is now inline in a per-card message slot fed
+     from ENTER_MSGS — one slot per card, rendered by cardHtml, so a
+     board re-render can neither duplicate it nor drop a message
+     mid-flow. The API contract is unchanged. ---- */
+  const enterBlock = appJs.slice(appJs.indexOf("const ENTER_MSGS"), appJs.indexOf("window.reportPlay"));
+  assert(enterBlock.includes("window.enterContest") && enterBlock.includes("submitContestEntry"), "enter flow block located (enterContest + submitContestEntry)");
+  assert(!enterBlock.includes("confirm(") && !enterBlock.includes("alert("), "the enter path uses NO native dialogs (confirm/alert gone from the whole enter flow)");
+  assert(appJs.includes('onclick="enterContest(${h.id}, this)"'), "the Enter button still calls enterContest from the card");
+  assert(appJs.includes('class="card-msg"') && appJs.includes("data-enter-msg"), "cards render the per-card enter message slot");
+  assert(appJs.includes("ENTER_MSGS.get(h.id)") && appJs.includes("ENTER_MSGS.has(h.id)"), "cardHtml renders the slot from ENTER_MSGS (re-render safe, exactly one slot per card)");
+  assert(enterBlock.includes("can't be featured yet") && enterBlock.includes("parent/guardian email on file") && enterBlock.includes("It can still collect votes"), "the no-guardian prompt explains the rule inline, in plain words");
+  assert(enterBlock.includes("Enter anyway") && enterBlock.includes("Not now"), "the inline prompt offers Enter anyway / Not now");
+  assert(enterBlock.includes("enterContestAnyway") && enterBlock.includes("enterContestDismiss"), "both inline choices are wired (anyway -> submit, dismiss -> clear)");
+  assert(enterBlock.includes('api("/api/contest/enter"') && enterBlock.includes("highlightId: id"), "the enter POST contract is unchanged (/api/contest/enter, highlightId)");
+  assert(enterBlock.includes("await loadData()"), "a successful enter still refreshes the board (loadData)");
+  assert(css.includes(".card-msg{") && css.includes(".card-msg[hidden]{display:none}"), "the enter slot is styled, with an explicit [hidden] guard");
+  // Behavioral: run the real enter block in a vm with stubbed api /
+  // DOM and drive all three paths (prompt, direct, refusal).
+  const enterCalls = [];
+  const enterSandbox = {
+    window: {},
+    ALL_PLAYS: [
+      { id: 41, hasGuardianEmail: false, hasGuardianText: false },
+      { id: 42, hasGuardianEmail: true, hasGuardianText: false },
+      { id: 43, hasGuardianEmail: true, hasGuardianText: false },
+    ],
+    CONTEST: { period: "2026-11", entries: [], winnerId: null },
+    api: async (p, opts) => {
+      const body = JSON.parse(opts.body);
+      enterCalls.push({ path: p, body });
+      if (body.highlightId === 43) throw new Error("This play is already in this month's contest.");
+      return { message: "You're in — good luck!" };
+    },
+    loadData: async () => {},
+    esc: (s) => String(s ?? ""),
+    $: () => null,
+    $$: () => [], // app.js's selector helpers: no live DOM in the sandbox (slot writes land in ENTER_MSGS)
+    document: { querySelectorAll: () => [] },
+    console,
+  };
+  const enterCtx = vm.createContext(enterSandbox);
+  vm.runInContext(enterBlock, enterCtx);
+  const enterMsgOf = (id) => vm.runInContext(`ENTER_MSGS.get(${id}) || ""`, enterCtx);
+  enterSandbox.window.enterContest(41);
+  assert(enterCalls.length === 0, "behavioral: a no-guardian tap does NOT post — it asks inline first");
+  assert(enterMsgOf(41).includes("Enter anyway") && enterMsgOf(41).includes("Not now"), "behavioral: the inline prompt (both choices) is stored for the card slot");
+  enterSandbox.window.enterContestDismiss(41);
+  assert(enterMsgOf(41) === "", "behavioral: Not now dismisses the prompt");
+  await enterSandbox.window.enterContestAnyway(41);
+  assert(enterCalls.length === 1 && enterCalls[0].path === "/api/contest/enter" && enterCalls[0].body.highlightId === 41, "behavioral: Enter anyway posts the same payload as the old dialog flow");
+  assert(enterMsgOf(41).includes("You're in — good luck!"), "behavioral: the server's success message lands inline on the card");
+  await enterSandbox.window.enterContest(42);
+  assert(enterCalls.length === 2 && enterCalls[1].body.highlightId === 42, "behavioral: a play WITH guardian contact enters directly (no prompt)");
+  assert(enterMsgOf(42).includes("You're in — good luck!"), "behavioral: direct-enter success is inline too");
+  await enterSandbox.window.enterContest(43);
+  assert(enterCalls.length === 3, "behavioral: the refusal path still posts (server decides)");
+  assert(enterMsgOf(43).includes("already in this month's contest") && enterMsgOf(43).includes("err"), "behavioral: a server refusal shows inline on the card as an error, not an alert");
+
+  /* ---- 15. Vote in-flight guard (Fixes batch, 2026-11-05): voting
+     is a toggle, so a second tap during a slow first request fired a
+     parallel POST that toggled the vote back off — the user
+     cancelled their own vote. While a vote is in flight the button
+     ignores further clicks and shows a pending state; the guard
+     releases on every exit path. Round 2's retry + friendly failure
+     behavior is preserved (asserted in §12 and re-verified below). ---- */
+  assert(css.includes(".votebtn.vote-pending"), "the pending vote state is styled");
+  const voteBlock = appJs.slice(appJs.indexOf("const isNetworkFailure"), appJs.indexOf("const ENTER_MSGS"));
+  assert(voteBlock.includes('btn.dataset.voteBusy === "1"') && voteBlock.includes('btn.dataset.voteBusy = "1"') && voteBlock.includes("delete btn.dataset.voteBusy"), "toggleVote sets, checks and releases the in-flight guard (dataset.voteBusy)");
+  assert(voteBlock.includes('btn.textContent = "Voting…"') && voteBlock.includes('"vote-pending"'), "toggleVote shows the pending label + style while in flight");
+  assert(voteBlock.includes("finally"), "the guard release lives in a finally (all exit paths)");
+  let voteApiCalls = 0, voteLoads = 0, voteMode = "gate";
+  let releaseVote = null;
+  const mkVoteBtn = () => {
+    const classes = new Set();
+    return { dataset: {}, disabled: false, isConnected: true, textContent: "Vote",
+      classList: { add: (c) => classes.add(c), remove: (c) => classes.delete(c), contains: (c) => classes.has(c) } };
+  };
+  const voteSandbox = {
+    window: {},
+    voterToken: "v_guard_test",
+    api: async () => {
+      voteApiCalls++;
+      if (voteMode === "gate") await new Promise((r) => { releaseVote = r; });
+      if (voteMode === "fail") throw new Error("Server refused the vote");
+      if (voteMode === "flaky") { voteMode = "ok"; throw new TypeError("Failed to fetch"); }
+      return { ok: true };
+    },
+    loadData: async () => { voteLoads++; },
+    setTimeout: () => 0, // showVoteFailure's restore timer: captured, never scheduled
+    console,
+  };
+  const voteCtx = vm.createContext(voteSandbox);
+  vm.runInContext(voteBlock, voteCtx);
+  const vbtn = mkVoteBtn();
+  const inFlight = voteSandbox.window.toggleVote(7, vbtn);
+  assert(vbtn.dataset.voteBusy === "1" && vbtn.disabled === true && vbtn.textContent === "Voting…" && vbtn.classList.contains("vote-pending"), "behavioral: while a vote is in flight the button shows the pending state");
+  await voteSandbox.window.toggleVote(7, vbtn); // the impatient second tap
+  assert(voteApiCalls === 1, "behavioral: a second tap during flight is ignored (no parallel toggle POST)");
+  releaseVote(); voteMode = "ok";
+  await inFlight;
+  assert(voteApiCalls === 1 && voteLoads === 1, "behavioral: the single flight posted once and refreshed the board");
+  assert(!vbtn.dataset.voteBusy && vbtn.disabled === false && !vbtn.classList.contains("vote-pending") && vbtn.textContent === "Vote", "behavioral: the guard fully releases after success (label restored)");
+  voteMode = "fail";
+  const fbtn = mkVoteBtn();
+  await voteSandbox.window.toggleVote(8, fbtn);
+  assert(fbtn.textContent === "Didn't go through — tap to try again" && fbtn.classList.contains("vote-failed"), "behavioral: a final failure still lands on showVoteFailure's friendly label");
+  assert(!fbtn.dataset.voteBusy && fbtn.disabled === false && !fbtn.classList.contains("vote-pending"), "behavioral: the guard fully releases after a failure too");
+  voteMode = "flaky"; voteApiCalls = 0; voteLoads = 0;
+  const rbtn = mkVoteBtn();
+  await voteSandbox.window.toggleVote(9, rbtn);
+  assert(voteApiCalls === 2 && voteLoads === 1, "behavioral: Round 2's retry still works under the guard (network failure -> one retry -> success)");
+  assert(!rbtn.dataset.voteBusy && rbtn.disabled === false, "behavioral: the guard releases after the retry path");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {

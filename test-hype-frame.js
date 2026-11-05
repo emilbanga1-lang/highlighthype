@@ -163,6 +163,29 @@ try {
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
   assert(appJs.includes("Placement:") && appJs.includes("% size"), "Owner view displays each request's placement for the printer");
+  /* ---- 5c. Freeze confirmation (Fixes batch, 2026-11-05) ----
+     Round 2 removed the studio preview, and with it the ONLY visible
+     sign a freeze had worked (youth rerun: "I tapped freeze and…
+     nothing"). The fix is deliberately NOT the apparel preview: a
+     compact thumbnail of the COMPOSED print under the freeze row +
+     the Freeze button relabels, synced from composeHfPrint — the
+     single choke point that freeze, print-style presets and
+     name/jersey edits all flow through — so the thumbnail always
+     tracks the current print style automatically. */
+  assert(home.includes('id="hfFrozenWrap"') && home.includes('id="hfFrozenImg"'), "studio carries the freeze-confirmation block (wrapper + print image)");
+  assert(/<div class="hf-frozen" id="hfFrozenWrap" hidden>/.test(home), "the confirmation wrapper starts hidden (no empty box before the first freeze)");
+  assert(home.includes("Your frozen frame — this is the print"), "confirmation caption: the thumbnail IS the print, not a garment mock");
+  assert(/\.hf-frozen\[hidden\]\s*\{\s*display:\s*none/.test(css), "the wrapper's [hidden] state has an explicit display:none guard (the #hfPhoto lesson)");
+  assert(css.includes(".hf-frozen img") && css.includes("max-height:180px"), "the confirmation thumbnail is compact (max-height 180px)");
+  assert(!home.includes('id="hfFrozenMock"') && !css.includes(".hf-frozen .hf-garment"), "the confirmation is not the removed apparel preview sneaking back (no garment mock)");
+  const composeBody = appJs.slice(appJs.indexOf("function composeHfPrint()"), appJs.indexOf("function hfSetPreset"));
+  assert((composeBody.match(/hfSyncFrozenThumb\(\)/g) || []).length >= 2, "composeHfPrint syncs the confirmation on BOTH exits (print cleared + print composed) — the choke point");
+  assert(appJs.includes("img.src = hfState.printDataUrl"), "the confirmation thumbnail shows the COMPOSED print (hfState.printDataUrl)");
+  assert(appJs.includes('btn.textContent = "Frame frozen ✓ — tap to re-freeze"'), "a successful freeze relabels the Freeze button");
+  assert(appJs.includes('HF_FREEZE_LABEL = "📸 Freeze this frame"') && appJs.includes("btn.textContent = HF_FREEZE_LABEL"), "the original Freeze label is restored when there is no print");
+  const initBody = appJs.slice(appJs.indexOf("function initHfStudio"), appJs.indexOf("/* Frame filmstrip"));
+  assert(initBody.includes("hfSyncFrozenThumb()"), "opening a new play in the studio resets the confirmation (block hidden, label restored)");
+  assert((appJs.match(/if \(hfState\.frozen\) composeHfPrint\(\)/g) || []).length >= 2, "preset + name/jersey edits recompose when frozen, so the thumbnail tracks the print style on its own");
   // Unadjusted order -> studio defaults are stored.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });
   assert(r.status === 201, "order without placement is created (defaults apply)");
