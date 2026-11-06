@@ -190,6 +190,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''");
 // a phone stored WITHOUT consent is never treated as textable.
 try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_phone TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
+// Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
+// AI-generated seed clips) that show newcomers how the board works.
+// They render with a SAMPLE badge, can collect votes and be used in
+// the Hype Frame studio, but they can NEVER enter the contest or
+// appear in the Hall of Fame (enforced at the contest endpoints and
+// in the contest/board queries below). Default 0 = a real family play.
+try { db.exec("ALTER TABLE highlights ADD COLUMN is_sample INTEGER DEFAULT 0"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -501,6 +508,11 @@ function publicHighlight(row, voterToken = "") {
     // consent (i.e. reachable by text). The number itself never leaves
     // the server except on owner-authorized endpoints.
     hasGuardianText: !!row.guardian_phone && !!row.text_consent,
+    // Sample/demo play flag (Round 7) — a plain boolean, safe to be
+    // public: the client renders the SAMPLE badge from it, and the
+    // Hall of Fame ranking drops samples client-side as a second
+    // layer under the server-side contest exclusions.
+    isSample: !!row.is_sample,
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
@@ -803,8 +815,12 @@ const server = http.createServer(async (req, res) => {
       const period = u.searchParams.get("period") || currentPeriod();
       const voter = u.searchParams.get("voterToken") || "";
       const winnerId = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period)?.highlight_id;
+      // Defensive (Round 7): samples are refused at the enter
+      // endpoint, but even a legacy/hand-made entry row for a sample
+      // must never surface on the month board or the podium — the
+      // query itself excludes them.
       const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
-        WHERE e.period=? AND h.status='approved'`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: prizeEligibleFor(r) }));
+        WHERE e.period=? AND h.status='approved' AND COALESCE(h.is_sample,0)=0`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: prizeEligibleFor(r) }));
       rows.sort((a, b) => b.voteCount - a.voteCount || a.id - b.id);
       const sportCounts = {};
       for (const r of rows) sportCounts[r.sport] = (sportCounts[r.sport] || 0) + 1;
@@ -817,6 +833,9 @@ const server = http.createServer(async (req, res) => {
       if (!/^\d{4}-\d{2}$/.test(period)) return sendJson(res, 400, { ok: false, message: "Invalid month." });
       const row = db.prepare("SELECT * FROM highlights WHERE id=? AND status='approved'").get(id);
       if (!row) return sendJson(res, 404, { ok: false, message: "Play not found, or it is still in review — approved plays only can enter." });
+      // Sample plays are demos (Round 7): they can collect votes but
+      // can never take a contest slot or a prize.
+      if (row.is_sample) return sendJson(res, 400, { ok: false, message: "Sample plays can't enter Hype of the Month." });
       const dup = db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period);
       if (dup) return sendJson(res, 200, { ok: false, alreadyEntered: true, message: "This play is already entered in Hype of the Month." });
       const info = db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
@@ -829,6 +848,10 @@ const server = http.createServer(async (req, res) => {
       const id = Number(body.highlightId);
       if (!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period))
         return sendJson(res, 400, { ok: false, message: "That play is not entered in this month's contest." });
+      const wrowPre = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      // Defensive (Round 7): a sample can never be crowned, even if an
+      // entry row somehow existed for it.
+      if (wrowPre && wrowPre.is_sample) return sendJson(res, 400, { ok: false, message: "Sample plays can't enter Hype of the Month." });
       db.prepare("INSERT INTO contest_winners(period,highlight_id) VALUES(?,?) ON CONFLICT(period) DO UPDATE SET highlight_id=excluded.highlight_id").run(period, id);
       const wrow = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       // If the guardian opted into texts, send the claim text — inert
@@ -926,9 +949,15 @@ const server = http.createServer(async (req, res) => {
       if (!["approved", "hidden", "pending"].includes(body.status)) return sendJson(res, 400, { ok: false, message: "Invalid status." });
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(statusMatch[1]));
       db.prepare("UPDATE highlights SET status=? WHERE id=?").run(body.status, Number(statusMatch[1]));
+      // Sample flag rides the same call (Round 7): { sample: true }
+      // flags the play as a sample IN THE SAME STEP as the status
+      // change, so "Approve as Sample play" is a single owner action;
+      // { sample: false } removes the mark. Absent = flag untouched.
+      const hasSample = Object.prototype.hasOwnProperty.call(body, "sample");
+      if (hasSample) db.prepare("UPDATE highlights SET is_sample=? WHERE id=?").run(body.sample ? 1 : 0, Number(statusMatch[1]));
       if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (body.status === "approved" && before && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
-      return sendJson(res, 200, { ok: true, status: body.status });
+      return sendJson(res, 200, { ok: true, status: body.status, isSample: hasSample ? !!body.sample : !!(before && before.is_sample) });
     }
     const delMatch = p.match(/^\/api\/highlights\/(\d+)$/);
     if (delMatch && req.method === "DELETE") {

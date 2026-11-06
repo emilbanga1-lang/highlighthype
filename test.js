@@ -35,7 +35,7 @@ try {
   pub = await j("/api/highlights"); assert(pub.body.highlights.length === 1, "approved play is public");
   // 3b. Public shape is an explicit allowlist (hardening): every field the
   // client uses is present, and NO internal pre-review JSON leaks.
-  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "voteCount", "hasVoted"];
+  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "isSample", "voteCount", "hasVoted"];
   const pubKeys = Object.keys(pub.body.highlights[0]);
   assert(ALLOW.every((k) => pubKeys.includes(k)), "public play carries every allowlisted field the client uses");
   assert(pubKeys.every((k) => ALLOW.includes(k)), "public play carries NOTHING outside the allowlist");

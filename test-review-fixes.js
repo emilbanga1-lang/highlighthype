@@ -12,6 +12,7 @@
 // 10. Hardening follow-up (2026-11-04): backup endpoints, headers, log
 //     redaction, upload guards, API allowlist, focus-exit + share fixes.
 import { spawn, execFileSync } from "node:child_process";
+import { DatabaseSync } from "node:sqlite";
 import vm from "node:vm";
 import fs from "node:fs";
 import os from "node:os";
@@ -903,6 +904,134 @@ try {
   assert(JSON.stringify(vm.runInContext("SPORTS", sportsCtx)) === JSON.stringify(["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the client SPORTS constant is the full 18, alphabetical with Other between Lacrosse and Soccer");
   for (const [k, label] of [["dance", "Dance"], ["golf", "Golf"], ["swimming", "Swimming"], ["tennis", "Tennis"], ["track", "Track & Field"], ["wrestling", "Wrestling"]])
     assert(vm.runInContext(`cap("${k}")`, sportsCtx) === label, `Round 6: cap("${k}") renders the label "${label}"`);
+
+  /* ---- 22. Round 7 (2026-11-05, late): sample plays ----
+     Owner-approved board seeding with AI-generated SAMPLE plays:
+     a first-class is_sample flag. Samples render with a badge, can
+     collect votes and feed the Hype Frame studio, but can NEVER
+     enter the contest, be crowned, surface on the month board /
+     podium, or take a Hall of Fame slot. The flag is set in ONE
+     owner call ({status:"approved", sample:true}); the migration
+     is the same idempotent ALTER pattern as every prior column. ---- */
+  // (a) Structure: badge + explainer on the shared card renderer, the
+  // Enter button hidden for samples, the client enter guard, the HoF
+  // filter, the owner-queue actions, the CSS, and the truthful board
+  // note (samples are HighlightHype demos, not family uploads).
+  assert(appJs.includes("⭐ SAMPLE PLAY") && appJs.includes("Sample play — posted by HighlightHype to show how it works."), "Round 7: cards render the SAMPLE badge pill and the kid-readable explainer line");
+  assert(appJs.includes('h.isSample ? "" : `<button type="button" class="mini-btn" onclick="enterContest'), "Round 7: the Enter button is not offered on sample cards");
+  assert(appJs.includes("Sample plays can't enter Hype of the Month."), "Round 7: the client enter flow guards samples with the same message the server returns");
+  assert(appJs.includes("[...ALL_PLAYS].filter((h) => !h.isSample)"), "Round 7: the Hall of Fame ranking filters samples out at its computation point");
+  assert(appJs.includes("Approve as Sample play") && appJs.includes("Remove sample mark") && appJs.includes("window.setSample"), "Round 7: the owner queue carries Approve-as-Sample and Remove-sample-mark actions");
+  assert(css.includes(".sample-badge"), "Round 7: the sample badge pill is styled");
+  assert(home.includes("⭐ SAMPLE PLAY are demos posted by HighlightHype to show how it works") && !home.includes("every play here was uploaded by a family"), "Round 7: the board note is truthful with samples present (demos are HighlightHype's, not family uploads)");
+  // (b) End-to-end against the real server (fresh DB — booting at all
+  // proves the is_sample migration ran): upload -> ONE approve-as-
+  // sample call -> isSample in the public payload + owner queue.
+  const mkUp7 = async (fields) => {
+    const f = new FormData();
+    f.append("title", fields.title); f.append("sport", fields.sport); f.append("division", "boys"); f.append("playerName", fields.playerName);
+    f.append("file", new Blob([png], { type: "image/png" }), "play.png");
+    return j("/api/highlights", { method: "POST", body: f });
+  };
+  const upS = await mkUp7({ title: "Round 7 Sample Play", sport: "baseball", playerName: "Demo" });
+  assert(upS.status === 201 && upS.body.status === "pending", "Round 7: the sample candidate uploads and starts pending");
+  const sampleId = upS.body.id;
+  const asSample = await j(`/api/highlights/${sampleId}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved", sample: true }) });
+  assert(asSample.body.status === "approved" && asSample.body.isSample === true, "Round 7: ONE owner call approves AND flags the play as a sample");
+  const upR = await mkUp7({ title: "Round 7 Real Play", sport: "baseball", playerName: "Rea" });
+  const realId = upR.body.id;
+  const apprR = await j(`/api/highlights/${realId}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved" }) });
+  assert(apprR.body.status === "approved" && apprR.body.isSample === false, "Round 7: a plain approve leaves the sample flag off (fresh-DB default 0)");
+  const pub7 = await j("/api/highlights?division=all");
+  const samplePub = pub7.body.highlights.find((h) => h.id === sampleId);
+  const realPub = pub7.body.highlights.find((h) => h.id === realId);
+  assert(samplePub && samplePub.isSample === true, "Round 7: isSample=true survives the public allowlist on the sample");
+  assert(realPub && realPub.isSample === false, "Round 7: isSample=false on a real play");
+  const queue7 = await j("/api/owner/queue", { headers: { "x-owner-token": tok } });
+  const sampleQ = queue7.body.queue.find((h) => h.id === sampleId);
+  assert(sampleQ && sampleQ.isSample === true, "Round 7: the owner queue payload carries isSample so the UI can show the Sample tag/actions");
+  // (c) Voting on a sample is ALLOWED (that's the demo) — and the
+  // sample ends up with MORE votes than the real play.
+  for (const vt of ["r7v1", "r7v2", "r7v3"]) {
+    const v = await j(`/api/highlights/${sampleId}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: vt }) });
+    assert(v.status === 200 && v.body.ok, `Round 7: vote ${vt} lands on the sample play`);
+  }
+  const vReal = await j(`/api/highlights/${realId}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "r7v1" }) });
+  assert(vReal.status === 200 && vReal.body.voteCount === 1, "Round 7: the real play takes its one vote");
+  const pub7b = await j("/api/highlights?division=all");
+  const samplePub2 = pub7b.body.highlights.find((h) => h.id === sampleId);
+  assert(samplePub2.voteCount === 3, "Round 7: the sample holds 3 votes — more than any real play here");
+  // (d) Contest protection: enter refuses the sample with the exact
+  // message; the real play still enters fine.
+  const enterS = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: sampleId }) });
+  assert(enterS.status === 400 && enterS.body.message === "Sample plays can't enter Hype of the Month.", "Round 7: entering a sample is refused with the exact message");
+  const enterR = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: realId }) });
+  assert(enterR.status === 201 && enterR.body.ok, "Round 7: a real play still enters the contest");
+  // (e) Defensive layer: hand-insert a contest entry for the sample
+  // straight into the DB (as if it somehow existed) — the month
+  // board/podium query must still exclude it, and crowning it must
+  // be refused.
+  const period7 = new Date().toISOString().slice(0, 7);
+  const dbFile7 = path.join(tmp, "highlighthype.db");
+  const rawDb = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(dbFile7); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
+  rawDb((d) => d.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(sampleId, period7));
+  const contest7 = await j("/api/contest");
+  assert(!(contest7.body.entries || []).some((h) => h.id === sampleId), "Round 7: even with a hand-made entry row, the sample never surfaces on the month board / podium");
+  assert((contest7.body.entries || []).some((h) => h.id === realId), "Round 7: the real entry still shows on the month board");
+  const crownS = await j("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ highlightId: sampleId, period: period7 }) });
+  assert(crownS.status === 400 && crownS.body.message === "Sample plays can't enter Hype of the Month.", "Round 7: crowning a sample is refused defensively");
+  rawDb((d) => d.prepare("DELETE FROM contest_entries WHERE highlight_id=? AND period=?").run(sampleId, period7));
+  // (f) Hall of Fame: the ranking is computed client-side from
+  // ALL_PLAYS — drive the REAL fameThumbHtml/renderFame block in a vm
+  // with the served payloads (sample ahead 3-1 on votes) and prove
+  // the sample is nowhere in the rendered list.
+  const fameBlock7 = appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine"));
+  const fameEl7 = { innerHTML: "" };
+  const fameSandbox7 = {
+    ALL_PLAYS: pub7b.body.highlights,
+    $: () => fameEl7,
+    esc: (s) => String(s ?? ""),
+    cap: (s) => String(s ?? ""),
+    console,
+  };
+  const fameCtx7 = vm.createContext(fameSandbox7);
+  vm.runInContext(fameBlock7, fameCtx7);
+  vm.runInContext("renderFame()", fameCtx7);
+  assert(fameEl7.innerHTML.includes("Round 7 Real Play") && !fameEl7.innerHTML.includes("Round 7 Sample Play"), "Round 7: the Hall of Fame excludes the sample even though it has the most votes");
+  // (g) Un-flagging: same endpoint, sample:false — the play keeps its
+  // status and becomes a normal play again.
+  const unflag = await j(`/api/highlights/${sampleId}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved", sample: false }) });
+  assert(unflag.body.status === "approved" && unflag.body.isSample === false, "Round 7: un-flagging removes the sample mark in the same call shape");
+  const pub7c = await j("/api/highlights?division=all");
+  assert(pub7c.body.highlights.find((h) => h.id === sampleId).isSample === false, "Round 7: the un-flagged play is served as a normal play");
+  // (h) Migration on a LEGACY (pre-round-7) DB: a highlights table
+  // with the original base schema and one approved row, no
+  // is_sample column anywhere — a fresh server boot must add the
+  // column idempotently and serve the row as a non-sample.
+  const legacyDir = fs.mkdtempSync(path.join(os.tmpdir(), "hh-legacy-"));
+  const legacyDb = new DatabaseSync(path.join(legacyDir, "highlighthype.db"));
+  legacyDb.exec(`CREATE TABLE highlights(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL, sport TEXT NOT NULL DEFAULT 'other',
+    play_type TEXT DEFAULT '', player_name TEXT DEFAULT '', story TEXT DEFAULT '',
+    media_kind TEXT NOT NULL, media_url TEXT NOT NULL, mime TEXT DEFAULT '',
+    embed_url TEXT DEFAULT '', host_label TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO highlights(title,sport,media_kind,media_url,mime,status) VALUES('Legacy Play','baseball','file','/uploads/legacy.png','image/png','approved');`);
+  legacyDb.close();
+  const PORT7 = 3459;
+  const child7 = spawn(process.execPath, ["server.js"], { cwd: root, env: { ...process.env, PORT: String(PORT7), DATA_DIR: legacyDir }, stdio: "pipe" });
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${PORT7}/api/health`); break; } catch { await wait(200); } }
+    const legacyPub = await (await fetch(`http://localhost:${PORT7}/api/highlights?division=all`)).json();
+    const legacyRow = (legacyPub.highlights || []).find((h) => h.title === "Legacy Play");
+    assert(legacyRow && legacyRow.isSample === false, "Round 7: a pre-round-7 DB migrates on boot — the legacy play serves with isSample=false");
+  } finally {
+    child7.kill();
+    fs.rmSync(legacyDir, { recursive: true, force: true });
+  }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
