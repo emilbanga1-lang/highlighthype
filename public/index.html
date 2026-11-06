@@ -18,6 +18,14 @@
     <a class="brand" href="#top" aria-label="HighlightHype home">
       <img class="brand-logo" src="/logo-transparent.png" alt="HighlightHype" width="1244" height="420" fetchpriority="high" />
     </a>
+    <!-- Round 9 (2026-11-05): the store link used to live only inside
+         the ☰ menu ("Swag Shop — Rep The Hype") and Nicholas could
+         not find it ("on the home page there is no link for the swag
+         store"). This is a real button in the header bar itself —
+         lime pill, ≥44px tall, present on every view — wired through
+         the same data-store-link handler as the menu entry, which
+         stays as a second path. -->
+    <a class="nav-store-btn" href="#shop" data-store-link aria-label="Open the HighlightHype store">🛍️ Store</a>
     <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
       <button type="button" data-panel-btn="plays" aria-current="true">Plays</button>
@@ -114,6 +122,11 @@
     </div>
 
     <div id="viewMonth">
+      <!-- Round 9 (2026-11-05): last month's winner strip — filled by
+           renderMonth from the previous period's contest ONLY when a
+           winner was actually crowned; stays hidden (empty) until
+           then. No placeholder, no fake winner. -->
+      <div class="last-winner" id="lastWinner" hidden></div>
       <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
       <div class="filters" id="boardFilters">
         <div class="seg" role="group" aria-label="Division" id="monthDivSeg">
@@ -124,6 +137,10 @@
       </div>
       <div class="tile-grid" id="board"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
+      <!-- Round 9 (2026-11-05): Nicholas worried a play "deletes"
+           when the month ends — it never does. This line shows
+           whenever the current month has no entries (renderMonth). -->
+      <p class="board-note never-disappear" id="neverDisappear" hidden>Plays never disappear — when a month ends, its plays stay in All Hypes.</p>
       <p class="board-note">This is the live board: plays here were uploaded by families and approved by the owner. A few early plays marked ⭐ SAMPLE PLAY are demos posted by HighlightHype to show how it works. Tap a player's name on any card to see all of that athlete's plays.</p>
     </div>
 
@@ -211,7 +228,7 @@
            field names and the payload are exactly as before. -->
       <div class="quick-field guardian-block">
         <span class="quick-label" id="guardianPickLabel">Parent or guardian — needed to win 🏆</span>
-        <p class="small">To win Hype of the Month, we need a parent or guardian we can reach — ask a parent first. You can still post without it; your play just can't be featured until we have it. Private — never shown on the site. We only use it to tell you when the play is approved and to reach a parent/guardian if the play wins; texts go out only if the box below is checked.</p>
+        <p class="small">Email or mobile — either one is enough. We only use it to contact the winner's parent or guardian — ask a parent first. You can still post with neither; your play just can't be featured until we have one. Private — never shown on the site. We also use it to tell you when the play is approved; texts go out only if the box below is checked.</p>
         <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
         <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
         <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
@@ -529,11 +546,14 @@
       <span class="store-focus-title" id="storeFocusTitle">Hype Boys — Drop 001</span>
       <button type="button" class="back-link" id="storeFocusExit">← All collections</button>
     </div>
-<!-- Nov 5 batch (2026-11-05): the film is SILENT (Emil reversed the music add) and two scenes are now back views (Boys Athletics + Girls Street). The floating hint pill is gone — a real pause/play button is docked in the film's bottom-right corner, mirroring the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. -->
+<!-- Nov 5 batch (2026-11-05): two scenes are back views (Boys Athletics + Girls Street). The floating hint pill is gone — real controls are docked in the film's bottom-right corner, mirroring the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. Round 9 (2026-11-05): the film carries a QUIET music bed again (the hero's master bed mixed at 0.2 gain — Nicholas asked for sound, owner approved, reversing the silent cut); it still autoplays MUTED and the docked speaker toggle beside Pause is the unmute path. -->
     <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
+      <div class="swag-film-controls">
+        <button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film's sound on" aria-pressed="false">🔇 <span>Sound off</span></button>
+        <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
+      </div>
       <div class="swag-film-overlay swag-hero-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
