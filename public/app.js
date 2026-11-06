@@ -185,16 +185,98 @@ function cardHtml(h, opts = {}) {
    the media (above the video, below the winner badge / rank chip;
    the Vote button lives in .tile-body and is untouched) and opens
    the same detail. The tile's own click/keyboard handlers stay. */
+/* Round 14 (2026-11-06): YouTube-style tile furniture, from the
+   owner's look-and-feel comparison against YouTube.
+   (1) DURATION PILL: a small black pill at the thumbnail's
+   bottom-right ("0:08") — the corner YouTube trains eyes to check.
+   The API returns NO duration, and no tile text ever carried one,
+   so the value comes from the tile's own <video> element metadata
+   (fameThumbHtml already renders that video with
+   preload="metadata"): the pill renders empty + hidden,
+   hydrateDurPills fills it when loadedmetadata lands, and a
+   per-media_url cache (TILE_DURATIONS) lets re-renders — every
+   vote refresh rebuilds the boards — paint it instantly with no
+   flicker. Image / embed / watch-link plays have no client-side
+   duration and get no pill. The pill is visual only
+   (pointer-events:none) and sits in the one media corner nothing
+   else uses: the winner badge owns top-left, the rank tag
+   top-right, and the SAMPLE badge lives in the tile body below.
+   (2) INFO LINE: "<first name> · <N> votes · <age>" in the tile's
+   grey secondary style, under the Sport · Division line. It
+   replaces the old name-only line (the athlete's first name rides
+   here now, YouTube-metadata style) and uses ONLY fields the API
+   already returns — athlete label / player name, the same vote
+   count the tile's vote row shows, and created_at. The site does
+   not track views, so no view count is shown or invented. */
+const TILE_DURATIONS = new Map(); // media_url -> seconds (video metadata)
+function fmtDur(t) { t = Math.max(0, Math.floor(Number(t) || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
+function playHasVideo(h) { return h.media_kind === "link_video" || (h.media_kind === "file" && !(h.mime || "").startsWith("image/")); }
+function durPillHtml(h) {
+  if (!playHasVideo(h)) return "";
+  const secs = TILE_DURATIONS.get(h.media_url);
+  if (secs != null) return `<span class="dur-pill" aria-hidden="true">${fmtDur(secs)}</span>`;
+  return `<span class="dur-pill" aria-hidden="true" hidden></span>`;
+}
+function fillDurPill(host) {
+  const pill = host.querySelector(".dur-pill");
+  const video = host.querySelector("video");
+  if (!pill || !video || !(video.duration > 0)) return;
+  const src = video.getAttribute("src");
+  if (src) TILE_DURATIONS.set(src, video.duration);
+  pill.textContent = fmtDur(video.duration);
+  pill.hidden = false;
+}
+/* Wire every rendered .dur-host (tile media + Up-next thumbs) to
+   fill its pill from its own video's metadata. Idempotent: filling
+   an already-filled pill writes the same text, and re-renders
+   build fresh elements that this pass wires again. Called at the
+   end of the board renders and the detail render. */
+function hydrateDurPills() {
+  $$(".dur-host").forEach((host) => {
+    const video = host.querySelector("video");
+    if (!video) return;
+    if (video.readyState >= 1) fillDurPill(host);
+    video.addEventListener("loadedmetadata", () => fillDurPill(host), { once: true });
+  });
+}
+function firstNameOf(h) { const label = h.athlete_label || h.player_name || ""; return label.trim().split(/\s+/)[0] || ""; }
+/* created_at arrives as SQLite UTC text ("2026-11-05 21:59:00") or
+   ISO; normalize the space form to explicit UTC before parsing, so
+   ages never shift with the viewer's timezone. */
+function parsePlayDate(s) { if (!s) return NaN; let t = String(s).trim().replace(" ", "T"); if (!/[zZ]$|[+-]\d{2}:?\d{2}$/.test(t)) t += "Z"; return Date.parse(t); }
+function humanAge(createdAt, now = Date.now()) {
+  const then = parsePlayDate(createdAt);
+  if (!Number.isFinite(then)) return "";
+  const secs = Math.floor((now - then) / 1000);
+  if (secs < 60) return "just now";
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 52) return `${weeks}w ago`;
+  return `${Math.floor(weeks / 52)}y ago`;
+}
+function tileInfoHtml(h, votes) {
+  const parts = [];
+  const first = firstNameOf(h);
+  if (first) parts.push(esc(first));
+  parts.push(`${votes} vote${votes === 1 ? "" : "s"}`);
+  const age = humanAge(h.created_at);
+  if (age) parts.push(age);
+  return `<p class="tile-meta tile-info">${parts.join(" · ")}</p>`;
+}
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
-  const name = h.athlete_label || h.player_name || "";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
     <div class="tile-body">
       <h3 class="tile-title">${esc(h.title)}</h3>
       <p class="tile-meta"><b>${esc(cap(h.sport))}</b> · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
-      ${name ? `<p class="tile-meta">${esc(name)}</p>` : ""}
+      ${tileInfoHtml(h, votes)}
       ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
       <div class="tile-votes">
         <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
@@ -417,6 +499,7 @@ function renderMonth() {
     </div>`).join("") : `<div class="pod"><div class="pod-text"><div class="who">No entries yet this month</div><div class="what">Enter an approved play to start the board.</div></div></div>`;
   const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
   $("#board").innerHTML = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount })).join("");
+  hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
   /* Round 9: (a) the never-disappear line — keyed to the CURRENT
      MONTH's entries (not the filtered list): whenever the month has
@@ -497,6 +580,7 @@ function renderAll2() { /* All Hypes view */
   const emptyEl = $("#allEmpty");
   emptyEl.textContent = "No plays match — try a different board, sport, or search.";
   $("#allBoard").innerHTML = filtered.map((h, i) => tileHtml(h, { rank: i + 1 })).join("");
+  hydrateDurPills();
   emptyEl.style.display = filtered.length ? "none" : "block";
 }
 /* ---------------- play detail (Round 8, 2026-11-05) ----------------
@@ -520,9 +604,44 @@ function renderPlayDetail() {
   const entry = (CONTEST.entries || []).find((p) => p.id === detailPlayId);
   const play = entry || ALL_PLAYS.find((p) => p.id === detailPlayId);
   if (!play) { hidePlayDetail(); return; }
-  body.innerHTML = entry
+  body.innerHTML = (entry
     ? cardHtml(entry, { monthVotes: entry.voteCount, inContest: true, prizeEligible: entry.prizeEligible })
-    : cardHtml(play, {});
+    : cardHtml(play, {})) + upNextHtml(play);
+  hydrateDurPills();
+}
+/* Round 14 (2026-11-06): "Up next" in the play detail — the third
+   owner-approved borrow from the YouTube comparison. Below the full
+   card, up to 4 OTHER approved plays (ALL_PLAYS is the approved
+   set; the open play is always excluded): same sport first, then
+   votes descending, then newest. Each row is a compact horizontal
+   card — poster thumb with its duration pill, title, athlete first
+   name + votes — and tapping it goes through openPlayDetail, so
+   the dialog swaps in place (full card render, vote state, sample
+   pill), the #play- hash follows, and this list rebuilds around
+   the new play. There is NO autoplay-advance: a tap is the only
+   way on. With no other approved plays the section renders nothing
+   at all. Because renderPlayDetail appends it, the section is
+   identical however the detail was opened — All Hypes tile, Month
+   tile, athlete-page card link, Hall of Fame, shared #play- link. */
+function upNextFor(play) {
+  const stamp = (p) => { const t = parsePlayDate(p.created_at); return Number.isFinite(t) ? t : (p.id || 0); };
+  return ALL_PLAYS.filter((p) => p.id !== play.id).sort((a, b) =>
+    ((b.sport === play.sport) - (a.sport === play.sport)) ||
+    ((b.voteCount || 0) - (a.voteCount || 0)) ||
+    (stamp(b) - stamp(a)) ||
+    (b.id - a.id)).slice(0, 4);
+}
+function upNextHtml(play) {
+  const next = upNextFor(play);
+  if (!next.length) return "";
+  const rows = next.map((p) => {
+    const first = firstNameOf(p);
+    return `<button type="button" class="upnext-row" onclick="openPlayDetail(${p.id})" aria-label="Up next: ${esc(p.title)}">
+      <span class="upnext-thumb dur-host">${fameThumbHtml(p)}${durPillHtml(p)}</span>
+      <span class="upnext-text"><span class="upnext-name">${esc(p.title)}</span><span class="upnext-meta">${first ? `${esc(first)} · ` : ""}${p.voteCount || 0} vote${p.voteCount === 1 ? "" : "s"}</span></span>
+    </button>`;
+  }).join("");
+  return `<div class="upnext"><h4 class="upnext-title">Up next</h4>${rows}</div>`;
 }
 window.openPlayDetail = (id, opts = {}) => {
   const exists = ALL_PLAYS.some((p) => p.id === id) || (CONTEST.entries || []).some((p) => p.id === id);
@@ -532,6 +651,7 @@ window.openPlayDetail = (id, opts = {}) => {
   const wrap = $("#playDetail");
   if (!wrap) return;
   wrap.hidden = false;
+  wrap.scrollTop = 0; // an Up-next swap (Round 14) starts at the new play's top
   document.body.classList.add("detail-open");
   if (!opts.keepHash) history.replaceState(null, "", `#play-${id}`);
   wrap.querySelector(".play-detail-back")?.focus();

@@ -778,6 +778,25 @@
   .tile .votebtn{padding:7px 14px;font-size:13px}
   .tile .votecount{font-size:12.5px}
   .tile .votecount b{font-size:14px}
+  /* Round 14 (2026-11-06): duration pill + info line + Up next.
+     The pill anchors the thumbnail's bottom-right — the corner the
+     winner badge (top-left), rank tag (top-right) and the tile-tap
+     layer leave free; it is pointer-events:none so the tap layer
+     underneath keeps the whole media tappable. */
+  .dur-pill{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.82);color:#fff;font-size:11px;font-weight:700;line-height:1;padding:4px 6px;border-radius:6px;letter-spacing:.02em;pointer-events:none;z-index:2}
+  .dur-pill[hidden]{display:none}
+  .tile-info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .upnext{margin-top:20px}
+  .upnext-title{font-family:"Anton",sans-serif;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:#fff;margin:0 0 6px}
+  .upnext-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 4px;background:none;border:0;border-top:1px solid var(--line);cursor:pointer;text-align:left;color:#fff;font:inherit}
+  .upnext-row:hover{background:rgba(255,255,255,.04)}
+  .upnext-row:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .upnext-thumb{position:relative;width:112px;aspect-ratio:16/9;flex:0 0 auto;background:#000;border-radius:8px;overflow:hidden}
+  .upnext-thumb img,.upnext-thumb video{width:100%;height:100%;object-fit:cover;display:block}
+  .upnext-thumb .dur-pill{right:5px;bottom:5px;font-size:10px;padding:3px 5px}
+  .upnext-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .upnext-name{font-weight:800;font-size:14.5px;line-height:1.2}
+  .upnext-meta{color:var(--muted);font-size:12.5px;font-weight:500}
   /* Play detail overlay: the store quick view's pattern (fixed
      overlay + dimmed backdrop, panel scrolls) at the same z-index;
      the panel holds one full .card plus its ← Back affordance. */
