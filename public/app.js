@@ -1189,26 +1189,32 @@ $$(".prod-card").forEach((card) => {
    illustrations recolored per colorway at build time
    (/swag/qv/<slug>-<color>-<side>.svg) follow after them. */
 const QV_PRODUCTS = {
-  "boys-street": { side: "Boys Collection · Crown motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", colors: [["Black", "#2e2e31"], ["Denim Blue", "#3f5f82"], ["Gray", "#8b8e93"], ["Olive", "#5f6a45"]] },
+  "boys-street": { side: "Boys Collection · Crown motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", leadPhoto: "/swag/boys-street-model.jpg", colors: [["Black", "#2e2e31"], ["Denim Blue", "#3f5f82"], ["Gray", "#8b8e93"], ["Olive", "#5f6a45"]] },
   "boys-athletics": { side: "Boys Collection · Crown motif", slogan: "Hype Is Earned", desc: "Performance. Pride. Community.", colors: [["Cream", "#f3e7cf"], ["Heather Gray", "#a8abb0"], ["Forest Green", "#1e5138"], ["Navy", "#1c3054"]] },
   "boys-unleashed": { side: "Boys Collection · Crown motif", slogan: "It’s Hype or Nothing", desc: "Bold designs. High energy. No limits.", colors: [["Blue Lightning", "#37b6ff"], ["Fire Orange", "#ff7a1a"], ["Purple Lightning", "#7e22ce"], ["Teal Lightning", "#14b8a6"]] },
-  "girls-street": { side: "Girls Collection · Tiara motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", colors: [["Black", "#2d2d31"], ["Pink", "#efa7c6"], ["Cream", "#f3e7cf"], ["Light Blue", "#a9d7f0"]] },
+  "girls-street": { side: "Girls Collection · Tiara motif", slogan: "Hype Is Life", desc: "Everyday style. Youth culture.", leadPhoto: "/swag/girls-street-model.jpg", colors: [["Black", "#2d2d31"], ["Pink", "#efa7c6"], ["Cream", "#f3e7cf"], ["Light Blue", "#a9d7f0"]] },
   "girls-athletics": { side: "Girls Collection · Tiara motif", slogan: "Hype Is Earned", desc: "Performance. Pride. Community.", colors: [["Cream", "#f3e7cf"], ["Forest Green", "#1e5138"], ["Navy", "#1c3054"], ["Heather Gray", "#a8abb0"]] },
   "girls-essentials": { side: "Girls Collection · Tiara motif", slogan: "The Hype Starts Here", desc: "Comfort. Creativity. Confidence.", colors: [["Sky Blue", "#8ec9ee"], ["Cream", "#f3e7cf"], ["Pink", "#f6a8c5"], ["Lavender", "#c2ade0"]] },
 };
 const qvColorSlug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 /* Gallery layout (Round 2): frame 0 = real FRONT photo, frame 1 =
    real BACK photo, then two frames per colorway (front, back) of the
-   illustration gallery. Total frames = colors * 2 + 2. */
-let qvGalleryState = { slug: "", colors: [] };
-function qvFrameCount() { return qvGalleryState.colors.length * 2 + 2; }
+   illustration gallery. Total frames = colors * 2 + 2.
+   Round 20 (2026-11-06): the two lead cards (boys-street,
+   girls-street) carry a leadPhoto — the new model shot — which is
+   PREPENDED as frame 0, ahead of the front/back photos; those
+   galleries have colors * 2 + 3 frames and the model frame counts
+   as the FRONT side for the toggle. */
+let qvGalleryState = { slug: "", colors: [], photos: 2 };
+function qvFrameCount() { return qvGalleryState.colors.length * 2 + (qvGalleryState.photos || 2); }
 function qvSyncGallery() {
   const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
   const w = g.clientWidth || 1;
+  const photos = qvGalleryState.photos || 2;
   const idx = Math.min(qvFrameCount() - 1, Math.max(0, Math.round(g.scrollLeft / w)));
-  const isPhoto = idx < 2;
-  const ci = isPhoto ? -1 : Math.floor((idx - 2) / 2);
-  const sideIdx = isPhoto ? idx : (idx - 2) % 2;
+  const isPhoto = idx < photos;
+  const ci = isPhoto ? -1 : Math.floor((idx - photos) / 2);
+  const sideIdx = isPhoto ? (idx === photos - 1 ? 1 : 0) : (idx - photos) % 2;
   $("#qvColorName").textContent = isPhoto ? "Real photo" : qvGalleryState.colors[ci][0];
   $("#qvSideLabel").textContent = sideIdx ? "Back" : "Front";
   $$("#qvSwatches .qv-swatch").forEach((b, i) => b.setAttribute("aria-pressed", String(i === ci)));
@@ -1222,13 +1228,16 @@ function qvSyncGallery() {
 $$("#qvSides .qv-side-btn").forEach((b) => b.addEventListener("click", () => {
   const g = $("#qvGallery"); if (!g || !qvGalleryState.colors.length) return;
   const w = g.clientWidth || 1;
-  g.scrollTo({ left: Number(b.dataset.qvSide) * w, behavior: "smooth" });
+  /* Round 20: with a lead model frame, BACK lives at frame
+     photos-1 (not frame 1); FRONT is always frame 0. */
+  const target = b.dataset.qvSide === "1" ? (qvGalleryState.photos || 2) - 1 : 0;
+  g.scrollTo({ left: target * w, behavior: "smooth" });
 }));
 function openQuickView(card) {
   const qv = $("#quickView"); if (!qv) return;
   const slug = card.dataset.slug;
   const data = QV_PRODUCTS[slug]; if (!data) return;
-  qvGalleryState = { slug, colors: data.colors };
+  qvGalleryState = { slug, colors: data.colors, photos: data.leadPhoto ? 3 : 2 };
   const title = card.querySelector("h4").textContent;
   $("#qvSide").textContent = data.side;
   $("#qvTitle").textContent = title;
@@ -1236,13 +1245,14 @@ function openQuickView(card) {
   $("#qvDesc").textContent = data.desc;
   $("#qvColors").textContent = data.colors.map((c) => c[0]).join(" · ");
   const g = $("#qvGallery");
-  const photoFrames = ["front", "back"].map((sd) => `<figure class="qv-frame qv-frame-photo"><img src="/swag/${slug}-${sd}.jpg" alt="${esc(title)} hoodie — real ${sd} photo" loading="lazy" decoding="async" /><figcaption>${sd} · Photo</figcaption></figure>`).join("");
+  const leadFrame = data.leadPhoto ? `<figure class="qv-frame qv-frame-photo"><img src="${data.leadPhoto}" alt="${esc(title)} hoodie — model photo with the gold crest" loading="lazy" decoding="async" /><figcaption>Model · Photo</figcaption></figure>` : "";
+  const photoFrames = leadFrame + ["front", "back"].map((sd) => `<figure class="qv-frame qv-frame-photo"><img src="/swag/${slug}-${sd}.jpg" alt="${esc(title)} hoodie — real ${sd} photo" loading="lazy" decoding="async" /><figcaption>${sd} · Photo</figcaption></figure>`).join("");
   const colorFrames = data.colors.map(([name]) => ["front", "back"].map((sd) => `<figure class="qv-frame"><img src="/swag/qv/${slug}-${qvColorSlug(name)}-${sd}.svg" alt="${esc(title)} hoodie in ${esc(name)} — ${sd} illustration" loading="lazy" decoding="async" /><figcaption>${sd}</figcaption></figure>`).join("")).join("");
   g.innerHTML = photoFrames + colorFrames;
   g.scrollLeft = 0;
   $("#qvSwatches").innerHTML = data.colors.map(([name, hex], i) => `<button type="button" class="qv-swatch" data-qv-color="${i}" aria-pressed="false"><span class="swatch" style="--sw:${hex}"></span>${esc(name)}</button>`).join("");
   $$("#qvSwatches .qv-swatch").forEach((b) => b.addEventListener("click", () => {
-    g.scrollTo({ left: (2 + Number(b.dataset.qvColor) * 2) * (g.clientWidth || 1), behavior: "smooth" });
+    g.scrollTo({ left: (qvGalleryState.photos + Number(b.dataset.qvColor) * 2) * (g.clientWidth || 1), behavior: "smooth" });
   }));
   qvSyncGallery();
   // Price is set ($69.99 across Drop 001 youth hoodies); the size
