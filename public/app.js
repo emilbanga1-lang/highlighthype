@@ -598,6 +598,16 @@ function renderAll2() { /* All Hypes view */
    drop nor duplicate them. */
 let detailPlayId = null;
 let handledPlayHash = "";
+/* Round 15 (2026-11-06): autoplay-advance state — session-only.
+   detailAutoplay starts ON at page load (the owner's call) and is
+   never persisted anywhere; detailPlayedIds is the per-detail-
+   session set of plays already watched, so autoplay can walk the
+   Up next pool exactly once and never cycle. The set resets when
+   a detail is opened fresh from outside (see openPlayDetail). */
+let detailAutoplay = true;
+const detailPlayedIds = new Set();
+let detailEndedVideo = null;
+let detailEndedHandler = null;
 function renderPlayDetail() {
   const body = $("#playDetailBody");
   if (!body || detailPlayId == null) return;
@@ -608,6 +618,7 @@ function renderPlayDetail() {
     ? cardHtml(entry, { monthVotes: entry.voteCount, inContest: true, prizeEligible: entry.prizeEligible })
     : cardHtml(play, {})) + upNextHtml(play);
   hydrateDurPills();
+  wireDetailAutoplay(play);
 }
 /* Round 14 (2026-11-06): "Up next" in the play detail — the third
    owner-approved borrow from the YouTube comparison. Below the full
@@ -618,18 +629,24 @@ function renderPlayDetail() {
    name + votes — and tapping it goes through openPlayDetail, so
    the dialog swaps in place (full card render, vote state, sample
    pill), the #play- hash follows, and this list rebuilds around
-   the new play. There is NO autoplay-advance: a tap is the only
-   way on. With no other approved plays the section renders nothing
-   at all. Because renderPlayDetail appends it, the section is
-   identical however the detail was opened — All Hypes tile, Month
-   tile, athlete-page card link, Hall of Fame, shared #play- link. */
+   the new play. With no other approved plays the section renders
+   nothing at all. Because renderPlayDetail appends it, the section
+   is identical however the detail was opened — All Hypes tile, Month
+   tile, athlete-page card link, Hall of Fame, shared #play- link.
+   Round 15 (2026-11-06) supersedes Round 14's "no autoplay" line:
+   the pool now also excludes this detail session's already-played
+   plays (detailPlayedIds), and the section heading carries the
+   Autoplay toggle — see wireDetailAutoplay below. */
 function upNextFor(play) {
   const stamp = (p) => { const t = parsePlayDate(p.created_at); return Number.isFinite(t) ? t : (p.id || 0); };
-  return ALL_PLAYS.filter((p) => p.id !== play.id).sort((a, b) =>
+  return ALL_PLAYS.filter((p) => p.id !== play.id && !detailPlayedIds.has(p.id)).sort((a, b) =>
     ((b.sport === play.sport) - (a.sport === play.sport)) ||
     ((b.voteCount || 0) - (a.voteCount || 0)) ||
     (stamp(b) - stamp(a)) ||
     (b.id - a.id)).slice(0, 4);
+}
+function autoplayToggleHtml() {
+  return `<button type="button" class="autoplay-toggle${detailAutoplay ? " on" : ""}" onclick="toggleDetailAutoplay()" aria-pressed="${detailAutoplay ? "true" : "false"}" aria-label="Autoplay: roll into the next play automatically">Autoplay <span class="autoplay-state">${detailAutoplay ? "On" : "Off"}</span></button>`;
 }
 function upNextHtml(play) {
   const next = upNextFor(play);
@@ -641,11 +658,70 @@ function upNextHtml(play) {
       <span class="upnext-text"><span class="upnext-name">${esc(p.title)}</span><span class="upnext-meta">${first ? `${esc(first)} · ` : ""}${p.voteCount || 0} vote${p.voteCount === 1 ? "" : "s"}</span></span>
     </button>`;
   }).join("");
-  return `<div class="upnext"><h4 class="upnext-title">Up next</h4>${rows}</div>`;
+  return `<div class="upnext"><div class="upnext-head"><h4 class="upnext-title">Up next</h4>${autoplayToggleHtml()}</div>${rows}</div>`;
+}
+/* Round 15: the Autoplay switch flips the session variable and
+   repaints ITSELF in place — a full detail re-render would restart
+   the playing video, so the toggle never goes through one. */
+window.toggleDetailAutoplay = () => {
+  detailAutoplay = !detailAutoplay;
+  $$(".autoplay-toggle").forEach((btn) => paintAutoplayToggle(btn));
+};
+function paintAutoplayToggle(btn) {
+  if (!btn) return;
+  if (typeof btn.setAttribute === "function") btn.setAttribute("aria-pressed", detailAutoplay ? "true" : "false");
+  if (btn.classList && typeof btn.classList.toggle === "function") btn.classList.toggle("on", detailAutoplay);
+  const state = typeof btn.querySelector === "function" ? btn.querySelector(".autoplay-state") : null;
+  if (state) state.textContent = detailAutoplay ? "On" : "Off";
+}
+/* Round 15: autoplay-advance wiring. renderPlayDetail calls this
+   after every detail render (opens, swaps and data refreshes all
+   rebuild the card's DOM, so the handler is re-attached to the
+   fresh <video> each time and torn down from the discarded one).
+   Only real video plays wire up: image plays have no <video>, and
+   embeds are iframes with no ended semantics the page can hear.
+   The shared mediaHtml renders detail videos with a loop
+   attribute, under which the ended event can never fire — the
+   detail's own copy has it removed here (board thumbs and athlete
+   cards, rendered by other paths, keep looping). Only the ended
+   event advances: pausing, seeking and looping never do. */
+function teardownDetailAutoplay() {
+  if (detailEndedVideo && detailEndedHandler && typeof detailEndedVideo.removeEventListener === "function") detailEndedVideo.removeEventListener("ended", detailEndedHandler);
+  detailEndedVideo = null;
+  detailEndedHandler = null;
+}
+function wireDetailAutoplay(play) {
+  teardownDetailAutoplay();
+  if (!play || !playHasVideo(play)) return;
+  const body = $("#playDetailBody");
+  const video = body && typeof body.querySelector === "function" ? body.querySelector("video") : null;
+  if (!video || typeof video.addEventListener !== "function") return;
+  if (typeof video.removeAttribute === "function") video.removeAttribute("loop");
+  const fromId = play.id;
+  detailEndedHandler = () => advanceDetailAutoplay(fromId);
+  detailEndedVideo = video;
+  video.addEventListener("ended", detailEndedHandler);
+}
+function advanceDetailAutoplay(fromId) {
+  if (!detailAutoplay) return;
+  if (detailPlayId !== fromId) return; // a stale handler on a swapped-out play
+  const entry = (CONTEST.entries || []).find((p) => p.id === fromId);
+  const play = entry || ALL_PLAYS.find((p) => p.id === fromId);
+  if (!play) return;
+  const next = upNextFor(play)[0];
+  if (!next) return; // pool exhausted: stop at the end — no wrap, no replay
+  openPlayDetail(next.id);
 }
 window.openPlayDetail = (id, opts = {}) => {
   const exists = ALL_PLAYS.some((p) => p.id === id) || (CONTEST.entries || []).some((p) => p.id === id);
   if (!exists) return;
+  /* Round 15 session bookkeeping: opening while NO detail is open
+     (board tile, athlete page, Hall of Fame, winner strip) — or an
+     explicitly fresh route (a shared #play- link) — starts a new
+     played set; opening while a detail IS open can only be an
+     Up-next tap or an autoplay advance, and ADDS to the set. */
+  if (detailPlayId == null || opts.fresh) detailPlayedIds.clear();
+  detailPlayedIds.add(id);
   detailPlayId = id;
   renderPlayDetail();
   const wrap = $("#playDetail");
@@ -657,6 +733,7 @@ window.openPlayDetail = (id, opts = {}) => {
   wrap.querySelector(".play-detail-back")?.focus();
 };
 function hidePlayDetail() {
+  teardownDetailAutoplay(); // Round 15: nothing advances in the background once closed
   const wrap = $("#playDetail");
   if (wrap) wrap.hidden = true;
   document.body.classList.remove("detail-open");
@@ -694,7 +771,7 @@ function highlightSharedPlay() {
   const entry = (CONTEST.entries || []).find((p) => p.id === id);
   if (!entry && !ALL_PLAYS.some((p) => p.id === id)) return;
   switchView(entry ? "month" : "all");
-  openPlayDetail(id, { keepHash: true });
+  openPlayDetail(id, { keepHash: true, fresh: true });
 }
 /* Hall of Fame rows open the play's detail (Round 8, 2026-11-05):
    same destination as a shared link — leave the store, land on the

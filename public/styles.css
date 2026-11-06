@@ -788,6 +788,13 @@
   .tile-info{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .upnext{margin-top:20px}
   .upnext-title{font-family:"Anton",sans-serif;font-size:15px;letter-spacing:.04em;text-transform:uppercase;color:#fff;margin:0 0 6px}
+  .upnext-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 6px}
+  .upnext-head .upnext-title{margin:0}
+  .autoplay-toggle{background:transparent;border:1px solid var(--line2);color:var(--muted);border-radius:999px;font:inherit;font-size:12px;font-weight:800;letter-spacing:.03em;padding:6px 12px;cursor:pointer}
+  .autoplay-toggle .autoplay-state{color:#fff}
+  .autoplay-toggle.on{border-color:var(--volt);color:var(--volt)}
+  .autoplay-toggle.on .autoplay-state{color:var(--volt)}
+  .autoplay-toggle:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
   .upnext-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 4px;background:none;border:0;border-top:1px solid var(--line);cursor:pointer;text-align:left;color:#fff;font:inherit}
   .upnext-row:hover{background:rgba(255,255,255,.04)}
   .upnext-row:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
