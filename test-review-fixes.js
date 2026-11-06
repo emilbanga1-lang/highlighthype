@@ -1249,7 +1249,7 @@ try {
   assert(css.includes("#boardFilters,#allFilters{row-gap:14px}"), "Round 9: stacked board control rows are >=12px apart");
   assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px;display:flex;align-items:center;justify-content:center;color:#e8e8e2"), "Round 9: inactive segmented labels are near-white, not the dim muted gray");
   // (3) Tile tap layer: drive the REAL tileHtml and inspect order.
-  const tileFn9 = appJs.slice(appJs.indexOf("function tileHtml"), appJs.indexOf("/* Vote hardening"));
+  const tileFn9 = appJs.slice(appJs.indexOf("const TILE_DURATIONS"), appJs.indexOf("/* Vote hardening")); // Round 14: the slice starts at the tile helpers tileHtml now calls
   const tileSandbox9 = {
     esc: (s) => String(s ?? ""), cap: (s) => String(s ?? ""),
     fameThumbHtml: () => '<video src="/uploads/x.mp4"></video>',
@@ -1310,6 +1310,7 @@ try {
     MONTHS: MONTHS9,
     $: (sel) => (rmEls9[sel] ||= { innerHTML: "", textContent: "", style: {}, hidden: true }),
     esc: (s) => String(s ?? ""), cap: (s) => String(s ?? ""),
+    hydrateDurPills: () => {}, // Round 14: renderMonth ends with a duration-pill hydration pass (stubbed here; §29 drives the real one)
     console,
   };
   const rmCtx9 = vm.createContext(rmSandbox9);
@@ -1368,6 +1369,7 @@ try {
     allDiv: "all", allSport: "all", allSearch: "",
     $: (sel) => (r10Els[sel] ||= { innerHTML: "", textContent: "", style: {} }),
     tileHtml: (h) => `TILE:${h.id};`,
+    hydrateDurPills: () => {}, // Round 14: renderAll2 ends with a duration-pill hydration pass (stubbed here; §29 drives the real one)
   };
   const r10Block = appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function ", appJs.indexOf("function divMatch") + 10)) +
     appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
@@ -1705,6 +1707,164 @@ try {
   const plainApprove28 = await modPost28({ id: String(pendingId28), token: modToken28, action: "approve" });
   const pendingRow28 = modDb28((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(pendingId28));
   assert(plainApprove28.status === 200 && plainApprove28.body.includes("Approved — this play is now live on the board.") && pendingRow28.status === "approved" && pendingRow28.is_sample === 0, "Round 13: plain approve on a pending play is byte-unchanged — original message, approved, unmarked");
+
+  /* ---- 29. Round 14 (2026-11-06): YouTube tile furniture ----
+     The owner's look-and-feel comparison against YouTube approved
+     exactly three borrows. (1) DURATION PILL: a black "0:08" pill
+     at the thumbnail's bottom-right on BOTH boards' tiles. The API
+     returns no duration and no tile text ever carried one, so the
+     value comes from the tile's own <video> metadata: the pill
+     renders empty + hidden, hydrateDurPills fills it on
+     loadedmetadata, and TILE_DURATIONS caches per media_url so
+     re-renders paint it instantly. It is pointer-events:none
+     (visual only — the tile-tap layer keeps the tap) and sits in
+     the only free media corner (winner badge top-left, rank tag
+     top-right, SAMPLE badge in the tile BODY). (2) INFO LINE:
+     "<first name> · <N> votes · <age>" under Sport · Division,
+     replacing the name-only line, built ONLY from API fields
+     (athlete label / player name, the tile's own vote count,
+     created_at) — no view counts exist or are invented. (3) UP
+     NEXT in the play detail: up to 4 other approved plays,
+     same-sport first, then votes desc, then newest; a tap swaps
+     the dialog through openPlayDetail (hash follows, list
+     rebuilds); NO autoplay-advance; hidden when no other plays.
+     Harness repairs this round forced in earlier sections: §24's
+     tile slice now starts at the Round 14 helpers, and the §24/§25
+     board drives stub hydrateDurPills (the real one is driven
+     below). ---- */
+  {
+    const css14 = fs.readFileSync(path.join(root, "public", "styles.css"), "utf8");
+    const tileBlock14 = appJs.slice(appJs.indexOf("const TILE_DURATIONS"), appJs.indexOf("/* Vote hardening"));
+    const detailBlock14 = appJs.slice(appJs.indexOf("function renderPlayDetail"), appJs.indexOf("window.openPlayDetail"));
+    // (1) Source pins — pill CSS + placement, info line, Up next.
+    const pillRule14 = css14.slice(css14.indexOf(".dur-pill{"), css14.indexOf("}", css14.indexOf(".dur-pill{")));
+    assert(pillRule14.includes("position:absolute") && pillRule14.includes("right:8px") && pillRule14.includes("bottom:8px"), "Round 14: the duration pill anchors the thumbnail's bottom-right corner");
+    assert(pillRule14.includes("pointer-events:none") && pillRule14.includes("background:rgba(0,0,0,.82)") && pillRule14.includes("color:#fff"), "Round 14: the pill is a black YouTube-style chip and pointer-events:none — visual only, the tile tap is untouched");
+    assert(css14.includes(".dur-pill[hidden]{display:none}"), "Round 14: an unfilled pill stays display:none until its video's metadata lands");
+    assert(tileBlock14.includes('class="tile-media dur-host"') && tileBlock14.indexOf("${durPillHtml(h)}") > tileBlock14.indexOf("ranktag"), "Round 14: the pill renders inside the tile media, after the badge/rank slots");
+    assert(tileBlock14.indexOf("${durPillHtml(h)}") < tileBlock14.indexOf('class="tile-body"') && tileBlock14.indexOf("sample-badge") > tileBlock14.indexOf('class="tile-body"'), "Round 14: pill (media, bottom-right) and SAMPLE badge (tile body) can never collide — they live in different boxes");
+    assert(!appJs.includes("viewCount") && !appJs.includes("onended"), "Round 14: no view-count field is read or invented anywhere, and no onended autoplay-advance exists");
+    assert(detailBlock14.includes("upNextHtml(play)") && detailBlock14.includes("hydrateDurPills()"), "Round 14: the detail render appends Up next and hydrates duration pills");
+    const monthBlock14 = appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml"));
+    const allBlock14 = appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
+    assert(monthBlock14.includes("hydrateDurPills();") && allBlock14.includes("hydrateDurPills();"), "Round 14: BOTH board renders end with the duration-pill hydration pass");
+    assert(css14.includes(".upnext-row{") && css14.includes(".upnext-thumb{") && css14.includes(".tile-info{"), "Round 14: Up-next rows/thumbs and the tile info line have their styles");
+
+    // (2) Behavioral — the real helpers + tileHtml + detail
+    // machinery in a vm, §23-style.
+    const ago14 = (ms) => new Date(Date.now() - ms).toISOString();
+    const plays14 = [
+      { id: 201, title: "Goal Fest", sport: "soccer", division: "girls", athlete_label: "Sofia R.", player_name: "Sofia Reyes", media_kind: "file", media_url: "/uploads/s1.mp4", mime: "video/mp4", voteCount: 3, hasVoted: false, isSample: false, isWinner: false, created_at: ago14(2 * 864e5 + 6e4) },
+      { id: 202, title: "Second Strike", sport: "soccer", division: "boys", athlete_label: "Liam O.", player_name: "Liam Ortiz", media_kind: "file", media_url: "/uploads/s2.mp4", mime: "video/mp4", voteCount: 9, hasVoted: false, isSample: false, isWinner: false, created_at: ago14(5 * 36e5 + 6e4) },
+      { id: 203, title: "Quiet Keeper", sport: "soccer", division: "girls", athlete_label: "Ava B.", player_name: "Ava Brooks", media_kind: "file", media_url: "/uploads/s3.mp4", mime: "video/mp4", voteCount: 1, hasVoted: false, isSample: true, isWinner: false, created_at: ago14(21 * 864e5 + 36e5) },
+      { id: 204, title: "Grand Slam", sport: "baseball", division: "boys", athlete_label: "Jayden C.", player_name: "Jayden Cole", media_kind: "file", media_url: "/uploads/s4.mp4", mime: "video/mp4", voteCount: 50, hasVoted: false, isSample: false, isWinner: false, created_at: ago14(36e5) },
+      { id: 205, title: "Top Shelf", sport: "hockey", division: "boys", athlete_label: "Noah R.", player_name: "Noah Reed", media_kind: "file", media_url: "/uploads/s5.mp4", mime: "video/mp4", voteCount: 40, hasVoted: false, isSample: false, isWinner: false, created_at: ago14(3 * 864e5) },
+      { id: 206, title: "Long Bomb", sport: "football", division: "boys", athlete_label: "Eli F.", player_name: "Eli Ford", media_kind: "file", media_url: "/uploads/s6.mp4", mime: "video/mp4", voteCount: 30, hasVoted: false, isSample: false, isWinner: false, created_at: ago14(4 * 864e5) },
+    ];
+    const bodyEl14 = { innerHTML: "" };
+    const wrap14 = { hidden: true, scrollTop: 0, querySelector: () => ({ focus: () => {} }) };
+    const classes14 = new Set();
+    const loc14 = { hash: "" };
+    const durHosts14 = [];
+    const doc14 = {
+      querySelector: (sel) => (sel === "#playDetail" ? wrap14 : sel === "#playDetailBody" ? bodyEl14 : null),
+      querySelectorAll: () => [],
+      addEventListener: () => {},
+      body: { classList: { add: (c) => classes14.add(c), remove: (c) => classes14.delete(c) } },
+    };
+    const sb14 = {
+      console, window: {},
+      document: doc14,
+      $: (sel) => doc14.querySelector(sel),
+      $$: (sel) => (sel === ".dur-host" ? durHosts14 : []),
+      location: loc14,
+      history: { replaceState: (a, b, url) => { loc14.hash = url; } },
+      switchView: () => {}, showHome: () => {}, showPanel: () => {},
+      ownerToken: () => "",
+      ALL_PLAYS: plays14,
+      CONTEST: { period: "2026-11", entries: [], winnerId: null },
+    };
+    const ctx14 = vm.createContext(sb14);
+    vm.runInContext(appJs.slice(appJs.indexOf("const esc ="), appJs.indexOf("/* ---------------- data")), ctx14);
+    vm.runInContext(appJs.slice(appJs.indexOf("function mediaHtml"), appJs.indexOf("/* ---------------- views")), ctx14);
+    vm.runInContext(appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine")), ctx14);
+    vm.runInContext(appJs.slice(appJs.indexOf("let detailPlayId"), appJs.indexOf("/* ---------------- athlete collection")), ctx14);
+    vm.runInContext("var openPlayDetail = window.openPlayDetail, closePlayDetail = window.closePlayDetail;", ctx14);
+    const r14 = (code) => vm.runInContext(code, ctx14);
+
+    // Formatting + age units, driven directly with a fixed clock.
+    const NOW14 = Date.parse("2026-11-06T12:00:00Z");
+    assert(r14(`fmtDur(8.2)`) === "0:08" && r14(`fmtDur(65)`) === "1:05" && r14(`fmtDur(600)`) === "10:00" && r14(`fmtDur(0)`) === "0:00", "Round 14: fmtDur renders m:ss the YouTube way");
+    assert(r14(`humanAge("2026-11-06T11:59:30Z", ${NOW14})`) === "just now" && r14(`humanAge("2026-11-06T11:45:00Z", ${NOW14})`) === "15m ago" && r14(`humanAge("2026-11-06T07:00:00Z", ${NOW14})`) === "5h ago" && r14(`humanAge("2026-11-04T12:00:00Z", ${NOW14})`) === "2d ago" && r14(`humanAge("2026-10-16T12:00:00Z", ${NOW14})`) === "3w ago", "Round 14: humanAge covers just now / minutes / hours / days / weeks");
+    assert(r14(`humanAge("2026-11-06 11:59:30", ${NOW14})`) === "just now", "Round 14: the SQLite space-form created_at parses as UTC (no viewer-timezone shift)");
+    assert(r14(`humanAge("", ${NOW14})`) === "" && r14(`humanAge("junk", ${NOW14})`) === "", "Round 14: a missing or junk created_at yields no age (the info line just omits it)");
+
+    // Tiles: pill present (empty + hidden pre-metadata) on video
+    // tiles of both boards, absent where no duration can exist;
+    // info line format, month count, singular.
+    const tAll14 = r14("tileHtml(ALL_PLAYS[0])");
+    assert(tAll14.includes('class="tile-media dur-host"') && tAll14.includes('<span class="dur-pill" aria-hidden="true" hidden></span>'), "Round 14: an All Hypes video tile carries the duration pill (empty + hidden until metadata)");
+    const tMonth14 = r14("tileHtml(ALL_PLAYS[0], { monthVotes: 7 })");
+    assert(tMonth14.includes('<span class="dur-pill" aria-hidden="true" hidden></span>'), "Round 14: a Month-board tile carries the same pill (one tileHtml serves both boards)");
+    assert(tAll14.includes("Sofia · 3 votes · 2d ago"), "Round 14: the info line reads '<first name> · <N> votes · <age>' from API fields only");
+    assert(tMonth14.includes("Sofia · 7 votes · 2d ago"), "Round 14: on the Month board the info line carries the MONTH vote count, matching the tile's vote row");
+    assert(tAll14.includes("<b>Soccer</b> · Girls"), "Round 14: the Sport · Division line is unchanged above the info line");
+    const tOne14 = r14("tileHtml(ALL_PLAYS[2])");
+    assert(tOne14.includes("Ava · 1 vote · 3w ago"), "Round 14: the info line singularizes '1 vote' and humanizes weeks");
+    assert(tOne14.includes("⭐ SAMPLE PLAY") && tOne14.includes("dur-pill"), "Round 14: a sample tile carries BOTH the SAMPLE badge and the duration pill");
+    const bodyPart14 = tAll14.slice(tAll14.indexOf('class="tile-body"'));
+    assert(!/\b\d+:\d{2}\b/.test(bodyPart14), "Round 14: the duration appears ONLY in the pill — no m:ss text anywhere in the tile body (no double display)");
+    assert(!r14("tileHtml({ id: 301, title: 'Pic', sport: 'cheer', division: 'girls', player_name: 'Kim', media_kind: 'file', media_url: '/uploads/p.png', mime: 'image/png', voteCount: 0, hasVoted: false, created_at: '' })").includes("dur-pill"), "Round 14: an image play gets NO pill (no client-side duration exists)");
+    assert(!r14("tileHtml({ id: 302, title: 'Emb', sport: 'cheer', division: 'girls', player_name: 'Kim', media_kind: 'link_embed', media_url: '', embed_url: 'https://youtube.example/embed/x', voteCount: 0, hasVoted: false, created_at: '' })").includes("dur-pill"), "Round 14: an embed play gets NO pill (its duration is not readable client-side)");
+
+    // Hydration: readyState path fills + caches; the
+    // loadedmetadata path fills on the event; a re-render then
+    // paints the pill instantly from the cache.
+    const mkHost14 = (src, dur, readyState) => {
+      const listeners = {};
+      const video = { duration: dur, readyState, getAttribute: (a) => (a === "src" ? src : null), addEventListener: (ev, fn) => { listeners[ev] = fn; } };
+      const pill = { textContent: "", hidden: true };
+      return { host: { querySelector: (sel) => (sel === "video" ? video : sel === ".dur-pill" ? pill : null) }, video, pill, listeners };
+    };
+    const hReady14 = mkHost14("/uploads/s1.mp4", 65.4, 4);
+    durHosts14.push(hReady14.host);
+    r14("hydrateDurPills()");
+    assert(hReady14.pill.textContent === "1:05" && hReady14.pill.hidden === false, "Round 14: hydration fills the pill from the video's metadata when it is already loaded");
+    assert(r14(`TILE_DURATIONS.get("/uploads/s1.mp4")`) === 65.4, "Round 14: the filled duration is cached by media_url");
+    const tCached14 = r14("tileHtml(ALL_PLAYS[0])");
+    assert(tCached14.includes('<span class="dur-pill" aria-hidden="true">1:05</span>'), "Round 14: a re-render paints the pill instantly from the cache — no hidden flash after a vote refresh");
+    const hLate14 = mkHost14("/uploads/s2.mp4", 0, 0);
+    durHosts14.length = 0; durHosts14.push(hLate14.host);
+    r14("hydrateDurPills()");
+    assert(hLate14.pill.hidden === true && hLate14.pill.textContent === "", "Round 14: before metadata the pill stays hidden and empty");
+    hLate14.video.duration = 8.2; hLate14.listeners.loadedmetadata();
+    assert(hLate14.pill.textContent === "0:08" && hLate14.pill.hidden === false, "Round 14: loadedmetadata fills the pill with the video's own duration");
+    durHosts14.length = 0;
+
+    // Up next: order, exclusion, cap — then the tap swap.
+    r14("window.openPlayDetail(201)");
+    assert(r14("detailPlayId") === 201 && bodyEl14.innerHTML.includes('data-play-id="201"'), "Round 14: the detail opens on the tapped play as before");
+    const up14 = bodyEl14.innerHTML.slice(bodyEl14.innerHTML.indexOf('class="upnext"'));
+    assert(up14.includes("Up next"), "Round 14: the detail carries an Up next section below the card");
+    const order14 = [202, 203, 204, 205].map((id) => up14.indexOf(`openPlayDetail(${id})`));
+    assert(order14.every((i) => i > -1) && order14[0] < order14[1] && order14[1] < order14[2] && order14[2] < order14[3], "Round 14: Up next orders same-sport first (202's 9 votes, then 203), then the rest by votes desc (204's 50, 205's 40)");
+    assert(!up14.includes("openPlayDetail(201)") && !up14.includes("openPlayDetail(206)"), "Round 14: Up next never lists the open play, and the 4-row cap drops the 5th candidate (206)");
+    assert((up14.match(/upnext-row/g) || []).length === 4, "Round 14: Up next lists exactly 4 rows here");
+    assert(up14.includes("Second Strike") && up14.includes("Liam · 9 votes") && up14.includes("dur-pill"), "Round 14: a row shows poster thumb + duration pill, title, athlete first name + votes");
+    wrap14.scrollTop = 999;
+    r14("window.openPlayDetail(202)");
+    assert(r14("detailPlayId") === 202 && loc14.hash === "#play-202" && bodyEl14.innerHTML.includes('data-play-id="202"'), "Round 14: tapping an Up-next row swaps the dialog to that play and moves the #play- hash with it");
+    assert(wrap14.scrollTop === 0, "Round 14: the swap restarts the overlay at the new play's top");
+    const up14b = bodyEl14.innerHTML.slice(bodyEl14.innerHTML.indexOf('class="upnext"'));
+    assert(!up14b.includes("openPlayDetail(202)") && up14b.includes("openPlayDetail(201)"), "Round 14: the rebuilt Up next excludes the NEW open play and offers the previous one");
+    r14("window.closePlayDetail()");
+    assert(wrap14.hidden === true && loc14.hash === "#top", "Round 14: ← Back still closes the detail and drops its hash (unchanged)");
+    // Single-play board: no section at all.
+    r14("ALL_PLAYS = [ALL_PLAYS[0]]; CONTEST = { period: '2026-11', entries: [], winnerId: null };");
+    r14("window.openPlayDetail(201)");
+    assert(bodyEl14.innerHTML.includes('data-play-id="201"') && !bodyEl14.innerHTML.includes('class="upnext"'), "Round 14: with a single approved play the Up next section is hidden entirely");
+    r14("window.closePlayDetail()");
+  }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
