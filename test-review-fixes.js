@@ -1233,13 +1233,15 @@ try {
      film's quiet music bed + docked sound toggle (the file itself
      is probed in §8). Deliberately NOT here: separate Boys/Girls
      contest pages — the owner is still deciding. */
-  // (1) Store button: in the header bar itself, before the ☰ button,
-  // wired through the same data-store-link handler as the menu entry.
+  // (1) Store button in the header bar: added here in Round 9,
+  // REMOVED in Round 12 — the owner cut every header variant
+  // (button, both pills, the plain "Swag" link). These asserts now
+  // pin the ABSENCE; §27 pins the current spec (the store stays
+  // reachable via the ☰ entry, the Entry Card and the doors).
   const headerBlock9 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
-  assert(headerBlock9.includes('class="nav-store-btn" href="#shop" data-store-link') && headerBlock9.includes(">Swag</a>"), "Round 9: the header carries a real store link in the bar itself, not just the buried menu link (Round 11 relabels it 'Swag' — §26 pins the current spec)");
-  assert(headerBlock9.indexOf("nav-store-btn") < headerBlock9.indexOf('id="menuBtn"'), "Round 9: the Store button sits in the bar itself, before the menu button");
-  assert(css.includes(".nav-store-btn{"), "Round 9: the Store button carries its own header rule (the pill era is over — §26 pins the plain-link spec)");
-  assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9: the menu's store entry stays as a second path");
+  assert(!headerBlock9.includes("nav-store-btn") && !home.includes("nav-store-btn"), "Round 9→12: NO header store control remains — the header store anchor is gone from the markup (§27 pins the current spec)");
+  assert(!css.includes(".nav-store-btn"), "Round 9→12: the header store CSS rules are gone with the element — nothing styles a removed control");
+  assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9→12: the menu's store entry stays — it is once again the header's only store path");
   // (2) Board control sizing lives in the stylesheet (both boards).
   assert(css.includes(".viewseg button{min-height:48px"), "Round 9: board view tabs are >=48px tall");
   assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px"), "Round 9: segmented buttons stretch to fill their pill row at ~52px tall, on BOTH boards");
@@ -1339,12 +1341,12 @@ try {
      (Round 11 supersedes (1) and (5): the header control is a
      plain "Swag" link and the film is back to the Round 9 music
      bed — §26 pins both restored specs; the asserts below are
-     maintained to the current state.) */
-  // (1) Store pill: restyle only — element, handler, label unchanged.
-  const pillRule10 = css.slice(css.indexOf(".nav-store-btn{"), css.indexOf("}", css.indexOf(".nav-store-btn{")));
-  assert(!pillRule10.includes("background:#101418") && !pillRule10.includes("border:1.5px"), "Round 10→11: the muted-pill spec is superseded — no near-black fill, no lime outline (§26 pins the plain 'Swag' link spec)");
-  assert(pillRule10.includes("min-height:40px") && !pillRule10.includes("padding:8px 16px") && !pillRule10.includes("background:var(--volt)"), "Round 10→11: only the ≥40px tap target survives the de-pilling — the pill's fill + padding spec is gone (§26)");
-  assert(home.includes('class="nav-store-btn" href="#shop" data-store-link') && home.includes(">Swag</a>") && !home.includes("🛍️ Store"), "Round 10→11: same link, same data-store-link handler — the label is now Nicholas's word 'Swag', emoji gone (§26)");
+     maintained to the current state. Round 12 then removes (1)'s
+     control entirely — §27 pins the header's final state.) */
+  // (1) Store pill: the whole header-store lineage ended in
+  // Round 12 (the element is removed, §27 pins the absence), so
+  // the pill-era asserts collapse into one: no trace survives.
+  assert(!css.includes(".nav-store-btn") && !home.includes("nav-store-btn") && !home.includes("🛍️ Store"), "Round 10→12: the header store control is gone entirely — no pill rule, no link, no emoji (§27 pins the current spec)");
   // (2) Team filter removal: markup, wiring, and behavior.
   assert(!home.includes('id="teamFilter"') && !home.includes('id="teamLabel"') && !home.includes("All teams"), "Round 10: no team select (and no 'All teams' option) anywhere in the served page");
   const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allCount"'));
@@ -1450,6 +1452,7 @@ try {
      The header store control is a plain text link reading "Swag"
      — Nicholas rejected both pill looks and the word "Store"; the
      ☰ entry and the Store Entry Card keep "Store" (out of scope).
+     (Round 12 removes the link entirely — §27 pins the header.)
      (4) The store film's audio is the Round 9 quiet MUSIC bed
      again — the Round 10 stadium crowd is reverted with the file
      byte-identical to Round 9's; the Sound/Pause row stays below
@@ -1528,15 +1531,13 @@ try {
   vm.runInContext(divBlock26, vm.createContext(divSb26));
   divBtns26[1].clickFn();
   assert(divForm26.elements.division.value === "girls" && divBtns26[1].pressed === "true" && divBtns26[0].pressed === "false", "behavioral (Round 11): the Girls toggle's real click handler flips the hidden division field to 'girls' and the aria-pressed pair with it");
-  // (3) "Swag": exact label, plain-link computed spec in the rule,
-  // click path unchanged, out-of-scope surfaces untouched.
+  // (3) "Swag" link: REMOVED in Round 12 — the owner found the
+  // plain link weirdly floating in the bar and cut it. These
+  // asserts now pin the absence; §27 pins the current spec.
   const headerBlock26 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
-  assert(headerBlock26.includes('data-store-link aria-label="Open the HighlightHype store">Swag</a>'), "Round 11: the header store control reads exactly 'Swag'");
-  assert(!home.includes("🛍️"), "Round 11: the bag emoji is gone from the page (it lived only on the header pill)");
-  const swagRule26 = css.slice(css.indexOf(".nav-store-btn{"), css.indexOf("}", css.indexOf(".nav-store-btn{")));
-  assert(swagRule26.includes("background:transparent") && swagRule26.includes("border:0") && swagRule26.includes("color:#b6f34a") && swagRule26.includes("font-weight:600"), "Round 11: the 'Swag' link is plain — transparent background, no border, lime semibold text");
-  assert(swagRule26.includes("min-height:40px") && !swagRule26.includes("border-radius") && !swagRule26.includes("box-shadow:0 2px"), "Round 11: the tap target stays >=40px tall; the pill chrome (radius, shadow, fill) is gone");
-  assert(headerBlock26.includes("Swag Shop — Rep The Hype") && home.includes("Enter the Store"), "Round 11: the ☰ menu entry and the Store Entry Card keep their wording — out of scope, untouched");
+  assert(!headerBlock26.includes("nav-store-btn") && !css.includes(".nav-store-btn"), "Round 11→12: the 'Swag' link and its rule are gone — the header carries no store control (§27)");
+  assert(!home.includes("🛍️"), "Round 11→12: the bag emoji stays gone from the page (it lived only on the header controls)");
+  assert(headerBlock26.includes("Swag Shop — Rep The Hype") && home.includes("Enter the Store"), "Round 11→12: the ☰ menu entry and the Store Entry Card keep their wording — they carry the store now (§27 drives their handler)");
   // (4) The film file: Round 9's own bytes, same picture as ever.
   const filmPath26 = path.join(root, "public", "swag-film.mp4");
   assert(fs.statSync(filmPath26).size === 9384994, "Round 11: the store film is exactly Round 9's music-bed file (9,384,994 bytes) — reverted, not re-muxed");
@@ -1584,6 +1585,38 @@ try {
   const hidePost26 = await modPost26({ id: String(hideId26), token: modToken26, action: "hide" });
   const hideRow26 = modDb26((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(hideId26));
   assert(hidePost26.status === 200 && hidePost26.body.includes("Declined — this play is hidden") && hideRow26.status === "hidden" && hideRow26.is_sample === 0, "Round 11: hide via the link is unchanged — hidden, and a hide never sets the sample flag");
+
+  /* ---- 27. Round 12 (2026-11-05, night): the header store
+     control is REMOVED entirely. It lived three lives — Round 9's
+     lime button, Round 10's muted pill, Round 11's plain "Swag"
+     link — and the owner cut it for good: the plain link looked
+     like it was weirdly floating in the bar. The header is back
+     to logo + ☰, exactly as it was before Round 9, and the ☰
+     button's base margin-left:auto (the Round 9 override that
+     zeroed it is gone too) pushes it to the right edge again.
+     The store stays reachable via the ☰-menu entry ("Swag Shop —
+     Rep The Hype"), the Store Entry Card ("Enter the Store" +
+     its Hype Boys / Hype Girls door links) and the final CTA —
+     all untouched, all still riding the single [data-store-link]
+     handler in app.js. */
+  const headerBlock27 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
+  assert(!home.includes("nav-store-btn") && !css.includes(".nav-store-btn"), "Round 12: no trace of the header store control — the anchor and every CSS variant (button, muted pill, plain link, :active) are removed");
+  assert(!headerBlock27.includes(">Swag</a>") && headerBlock27.includes('id="menuBtn"') && headerBlock27.includes('class="brand"') && headerBlock27.includes("nav-swag"), "Round 12: the header renders logo + ☰ only — no store anchor floats in the bar; the menu (with its store entry) is intact");
+  assert(!css.includes(".nav .menu-btn{margin-left:0}") && css.includes(".menu-btn{margin-left:auto"), "Round 12: the Round 9 margin override is gone — the base .menu-btn rule's margin-left:auto pushes the ☰ back to the right edge");
+  const storeAnchors27 = [...home.matchAll(/<a [^>]*data-store-link[^>]*>/g)].map((m) => m[0]);
+  assert(storeAnchors27.length === 5 && storeAnchors27.some((a) => a.includes("nav-swag")) && storeAnchors27.some((a) => a.includes("btn-hero")) && storeAnchors27.some((a) => a.includes('data-store-target="hype-boys"')) && storeAnchors27.some((a) => a.includes('data-store-target="hype-girls"')), "Round 12: exactly five data-store-link anchors remain — the ☰ menu entry, the Store Entry Card, its two door links and the final CTA (the header's was the sixth)");
+  // Drive the REAL [data-store-link] handler line from app.js:
+  // every remaining store anchor must still land in showStore.
+  const linkLine27 = appJs.slice(appJs.indexOf('$$("[data-store-link]")'), appJs.indexOf("\n", appJs.indexOf('$$("[data-store-link]")')));
+  assert(linkLine27.includes("showStore"), "Round 12: the shared data-store-link handler line located in app.js");
+  const linkCalls27 = [];
+  const mkAnchor27 = () => ({ dataset: {}, fn: null, addEventListener(ev, fn) { if (ev === "click") this.fn = fn; } });
+  const anchorStubs27 = [mkAnchor27(), mkAnchor27()];
+  const linkSb27 = { console, $$: (sel) => (sel === "[data-store-link]" ? anchorStubs27 : []), closeMenu: () => linkCalls27.push("closeMenu"), showStore: (t) => linkCalls27.push("showStore:" + t) };
+  vm.runInContext(linkLine27, vm.createContext(linkSb27));
+  let prevented27 = false;
+  anchorStubs27[0].fn({ preventDefault: () => { prevented27 = true; } });
+  assert(prevented27 && linkCalls27.join(",") === "closeMenu,showStore:null", "behavioral (Round 12): a click on a remaining data-store-link anchor (menu entry / Entry Card) still routes through closeMenu into showStore — the store opens without the header link");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
