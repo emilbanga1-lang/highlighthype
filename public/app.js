@@ -60,7 +60,7 @@ let CONTEST = { period: "", entries: [], winnerId: null };
 let LAST_MONTH = { period: "", entries: [], winnerId: null }; // previous period's contest (Round 9 winner strip)
 let currentView = "month";
 let monthDiv = "boys", monthSport = "all";
-let allDiv = "all", allSport = "all", allTeam = "all", allSearch = "";
+let allDiv = "all", allSport = "all", allSearch = "";
 /* Default landing view (Round 8, 2026-11-05): the site used to land
    on the Hype of the Month board unconditionally — a dead first
    screen whenever the month has no contest entries yet (samples
@@ -481,28 +481,21 @@ function renderMine() {
     </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
 }
 function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); }
-function renderAll2() { /* All Hypes view */ 
-  const tf = $("#teamFilter");
-  const teams = [...new Set(ALL_PLAYS.map((h) => h.team).filter(Boolean))];
-  const prev = allTeam;
-  tf.innerHTML = `<option value="all">All teams</option>` + teams.map((t) => `<option value="${slugify(t)}">${esc(t)}</option>`).join("") + `<option value="__none">No team tagged</option>`;
-  tf.value = [...tf.options].some((o) => o.value === prev) ? prev : "all";
-  allTeam = tf.value;
+function renderAll2() { /* All Hypes view */
+  // Round 10 (2026-11-05): the "All teams" filter is GONE at the
+  // owner's direction — control, option population and the team
+  // clause all removed; filtering behaves as if the team is always
+  // "all" (team names still match through the search box). No API
+  // change: loadData never sent a team parameter (the server's
+  // /api/highlights team param simply stays at its "all" default).
   const q = allSearch.toLowerCase();
   const filtered = ALL_PLAYS.filter((h) =>
     divMatch(h, allDiv) &&
     (allSport === "all" || h.sport === allSport) &&
-    (allTeam === "all" || (allTeam === "__none" ? !h.team : slugify(h.team) === allTeam)) &&
     (!q || [h.title, h.player_name, h.story, h.team, h.sport].join(" ").toLowerCase().includes(q)));
   $("#allCount").textContent = `${filtered.length} of ${ALL_PLAYS.length} plays`;
   const emptyEl = $("#allEmpty");
-  if (allTeam === "plainview-hawks" && !filtered.length) {
-    $("#allBoard").innerHTML = "";
-    emptyEl.textContent = "The Plainview Hawks board is waiting for its first approved Hawks-tagged play — post one and tag the team Plainview Hawks.";
-    emptyEl.style.display = "block";
-    return;
-  }
-  emptyEl.textContent = "No plays match — try a different board, sport, team, or search.";
+  emptyEl.textContent = "No plays match — try a different board, sport, or search.";
   $("#allBoard").innerHTML = filtered.map((h, i) => tileHtml(h, { rank: i + 1 })).join("");
   emptyEl.style.display = filtered.length ? "none" : "block";
 }
@@ -593,6 +586,23 @@ window.goToPlayCard = (id) => {
   openPlayDetail(id);
 };
 
+/* Montage strips (Round 10, 2026-11-05): the homepage's three sport
+   strips are real buttons — tapping one lands on All Hypes with the
+   All-board sport filter set to that sport, through the same state
+   the dropdown writes (allSport + syncFilterUI + renderAll2), so
+   the dropdown, the board and the counts all agree afterwards. A
+   sport with no plays falls back to "All sports" inside
+   syncFilterUI, exactly as a stale dropdown selection does. */
+window.goToSportBoard = (sport) => {
+  showHome();
+  showPanel("plays");
+  allSport = sport;
+  syncFilterUI();
+  switchView("all");
+  renderAll2();
+  $("#viewAll")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 /* ---------------- athlete collection ---------------- */
 window.openAthlete = async (athleteId) => {
   showPanel("athlete");
@@ -650,11 +660,12 @@ function showStore(target) {
   $$(".view-home video").forEach((v) => v.pause());
   const sv = $("#swagVideo");
   if (sv) {
-    // Round 9 (2026-11-05): the film HAS a quiet music bed again
-    // (Nicholas asked for sound; owner approved). Browsers only
-    // allow muted autoplay, so every store entry (re)starts muted
-    // and the docked speaker toggle in the film block below is the
-    // unmute path; its label syncs off the muted state.
+    // Round 9 (2026-11-05): the film HAS quiet sound again (Nicholas
+    // asked for sound; owner approved). Round 10 (2026-11-05): the
+    // sound is a stadium crowd bed, not music. Browsers only allow
+    // muted autoplay, so every store entry (re)starts muted and the
+    // speaker toggle below the film is the unmute path; its label
+    // syncs off the muted state.
     sv.muted = true;
     const p = sv.play(); if (p && p.catch) p.catch(() => {});
   }
@@ -733,7 +744,6 @@ function syncFilterUI() {
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
 }
-$("#teamFilter").addEventListener("change", (e) => { allTeam = e.target.value; if (allTeam !== "all") history.replaceState(null, "", `#team-${allTeam}`); renderAll2(); });
 $("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; renderAll2(); });
 
 /* ---------------- Swag film: pause to shop the look ---------------- */
@@ -1666,8 +1676,6 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
 
 /* ---------------- boot / hashes ---------------- */
 (function boot() {
-  const tm = location.hash.match(/^#team-(.+)$/);
-  if (tm) { bootHashTarget = true; allTeam = tm[1]; switchView("all"); }
   const am = location.hash.match(/^#athlete-(.+)$/);
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   // Explicit hash targets (Round 8): any of these wins over the

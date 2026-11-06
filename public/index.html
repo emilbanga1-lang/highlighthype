@@ -157,15 +157,11 @@
           <button type="button" data-div="girls" aria-pressed="false">Girls</button>
         </div>
         <select class="sport-select" id="allSportSelect" aria-label="Sport — all plays"></select>
-        <span class="tool-label" id="teamLabel">Team</span>
-        <select class="team-select" id="teamFilter" aria-labelledby="teamLabel">
-          <option value="all">All teams</option>
-        </select>
         <input class="search-input" id="allSearch" type="search" placeholder="Search plays, sports, teams…" aria-label="Search all plays" />
       </div>
       <p class="all-count" id="allCount"></p>
       <div class="tile-grid" id="allBoard"></div>
-      <div class="empty" id="allEmpty">No plays match — try a different board, sport, team, or search.</div>
+      <div class="empty" id="allEmpty">No plays match — try a different board, sport, or search.</div>
     </div>
 
     <form id="uploadForm" class="upload-card">
@@ -256,19 +252,25 @@
   </div>
 
   <!-- ============ MONTAGE (energy strip) ============ -->
+  <!-- Round 10 (2026-11-05): the strips are real buttons now — each
+       one jumps to All Hypes filtered to its sport (goToSportBoard).
+       They used to be pure decoration wearing a ▶ + "· Video" label,
+       so tapping them did nothing (Nicholas reported exactly that).
+       The video keeps autoplaying muted underneath; pointer-events
+       are off on the video so the surface can't swallow the tap. -->
   <div class="wrap">
-    <div class="montage" aria-label="Sports video montage — auto-playing muted clips">
-      <figure>
+    <div class="montage" aria-label="Sports videos — tap a sport to watch its plays on the All Hypes board">
+      <figure role="button" tabindex="0" data-sport="baseball" aria-label="Baseball — watch the plays" onclick="goToSportBoard('baseball')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('baseball')}">
         <video src="/play-baseball.mp4" poster="/play-baseball.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>▶ Baseball · Video</figcaption>
+        <figcaption>Baseball — watch the plays →</figcaption>
       </figure>
-      <figure>
+      <figure role="button" tabindex="0" data-sport="basketball" aria-label="Basketball — watch the plays" onclick="goToSportBoard('basketball')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('basketball')}">
         <video src="/play-basketball.mp4" poster="/play-basketball.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>▶ Basketball · Video</figcaption>
+        <figcaption>Basketball — watch the plays →</figcaption>
       </figure>
-      <figure>
+      <figure role="button" tabindex="0" data-sport="soccer" aria-label="Soccer — watch the plays" onclick="goToSportBoard('soccer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('soccer')}">
         <video src="/play-soccer.mp4" poster="/play-soccer.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>▶ Soccer · Video</figcaption>
+        <figcaption>Soccer — watch the plays →</figcaption>
       </figure>
     </div>
   </div>
@@ -546,14 +548,10 @@
       <span class="store-focus-title" id="storeFocusTitle">Hype Boys — Drop 001</span>
       <button type="button" class="back-link" id="storeFocusExit">← All collections</button>
     </div>
-<!-- Nov 5 batch (2026-11-05): two scenes are back views (Boys Athletics + Girls Street). The floating hint pill is gone — real controls are docked in the film's bottom-right corner, mirroring the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. Round 9 (2026-11-05): the film carries a QUIET music bed again (the hero's master bed mixed at 0.2 gain — Nicholas asked for sound, owner approved, reversing the silent cut); it still autoplays MUTED and the docked speaker toggle beside Pause is the unmute path. -->
+<!-- Nov 5 batch (2026-11-05): two scenes are back views (Boys Athletics + Girls Street). The floating hint pill is gone — real controls mirror the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. Round 9 (2026-11-05): the film carries quiet sound again (Nicholas asked for sound, owner approved, reversing the silent cut); it still autoplays MUTED and the speaker toggle beside Pause is the unmute path. Round 10 (2026-11-05): the sound is now a stadium CROWD bed, not music (Nicholas's suggestion), and the Sound/Pause controls moved OUT of the film overlay into a row below the film — docked over the picture they covered the film's Shop Girls link. -->
     <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
       <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
       <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      <div class="swag-film-controls">
-        <button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film's sound on" aria-pressed="false">🔇 <span>Sound off</span></button>
-        <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
-      </div>
       <div class="swag-film-overlay swag-hero-overlay">
         <p class="kicker">Drop 001 · Limited Drop</p>
         <h3>Wear the <span class="lime">hype</span></h3>
@@ -568,6 +566,13 @@
         <p class="ssc-sub" id="sscSub"></p>
         <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
       </div>
+    </div>
+    <!-- Round 10 (2026-11-05): the film's Sound + Pause controls live
+         BELOW the film now, in their own right-aligned row — as an
+         overlay they sat on top of the Shop Boys / Shop Girls links. -->
+    <div class="swag-film-controls">
+      <button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film's sound on" aria-pressed="false">🔇 <span>Sound off</span></button>
+      <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
     </div>
 
     <div class="store-bar">
