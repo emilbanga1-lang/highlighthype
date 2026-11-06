@@ -1325,3 +1325,52 @@
     #uploadForm .dropzone{padding-top:20px;padding-bottom:18px}
     #uploadForm .dropzone .dz-big{font-size:20px}
   }
+
+  /* ===== Round 18 (2026-11-06): DESKTOP upload-form two-column layout =====
+     Emil, on his laptop: the header is right now, but "Post a Play"
+     still reads as a narrow card floating in space and the stacked
+     fields take a lot of scrolling (the 640px column measured
+     ~1317px tall). Approved redesign, desktop only (min-width:761px
+     — the same fence as Rounds 16/17; the phone layout below 761px
+     is byte-for-byte untouched):
+       1. The form becomes a wide panel — max-width 640px -> 1120px
+          (the board grid above it spans the 1180px wrap, so the
+          panel now lines up with the page instead of floating in
+          it) — laid out as a three-track grid: a left column for
+          the clip, then two half columns for the fields. Round 17's
+          centered margins and its compact dropzone padding carry
+          over; only the max-width is superseded.
+       2. Left column: the dropzone, stretched over the field rows
+          and flex-centered so it reads as one tall drop panel. The
+          picked-clip preview (#dzPreview / #dzFile) lives INSIDE
+          the dropzone in the DOM, so it stays in the left column
+          with no JS or markup change.
+       3. Fields pair up: athlete first name beside the Boys/Girls
+          toggle, Sport beside "What happened?". The guardian block
+          spans both half columns and pairs its own email / mobile
+          labels the same way (heading, explainer and the text
+          opt-in stay full width inside it). The collapsed
+          "Add more" details and the same-athlete prompt sit under
+          the fields; the submit button runs the full width of the
+          panel bottom. Placement rides on DOM order + column spans,
+          so a hidden #athletePrompt simply collapses its row.
+       4. Roomier-but-tighter panel: card padding 30px -> 24px/26px
+          and the stacked field gaps 16px -> 12px inside this form,
+          so the whole form fits a 1440x900 screen with no scrolling.
+     Every selector is scoped to #uploadForm: the Hype Frame studio
+     reuses .upload-card and keeps its current single-column layout,
+     and no field, validation or upload behaviour changes — this is
+     placement only. */
+  @media (min-width:761px){
+    #uploadForm{max-width:1120px;display:grid;grid-template-columns:minmax(320px,400px) minmax(0,1fr) minmax(0,1fr);column-gap:24px;row-gap:0;padding:24px 26px}
+    #uploadForm>h3,#uploadForm>p{grid-column:1/-1}
+    #uploadForm>p:first-of-type{margin-bottom:14px}
+    #uploadForm .dropzone{grid-column:1;grid-row:3/8;margin-bottom:0;display:flex;flex-direction:column;justify-content:center}
+    #uploadForm>label,#uploadForm>.quick-field{margin-bottom:12px}
+    #uploadForm>.guardian-block{grid-column:2/-1;display:grid;grid-template-columns:1fr 1fr;column-gap:16px}
+    #uploadForm>.guardian-block>span,#uploadForm>.guardian-block>p,#uploadForm>.guardian-block>label.checkline{grid-column:1/-1}
+    #uploadForm>.quick-more{grid-column:2/-1}
+    #uploadForm>.athlete-prompt{grid-column:2/-1}
+    #uploadForm .submit-btn{grid-column:1/-1}
+    #uploadForm .seg button{padding-left:14px;padding-right:14px}
+  }
