@@ -317,7 +317,7 @@ try {
   assert(howPanel.includes("What's on the line") && howPanel.includes("parent or guardian") && howPanel.includes("featured on the homepage") && howPanel.includes("shoutout on HighlightHype socials"), "How it works carries the folded lines (contest + bragging-rights prize + guardian contact)");
   assert(!home.includes("free piece") && !home.includes("claims the Drop 001 piece"), "no swag/merch prize promised anywhere on the homepage");
   assert(appJs.includes("navigator.share") && appJs.includes('title: "HighlightHype"'), "sharePlay uses the native share sheet when available");
-  assert(appJs.includes('switchView("all")') && appJs.includes("#play-"), "deep links switch to All Hypes and land on the play card");
+  assert(appJs.includes('switchView("all")') && appJs.includes("#play-"), "deep links land on the play (All Hypes hosts the tiles; a #play- link opens the play's detail — Round 8, §23)");
   assert(appJs.includes('preload="auto" autoplay'), "board videos autoplay with preload=auto (muted + loop already present)");
   const heroRes = await fetch(`${base}/hero.mp4`);
   const heroBuf = await heroRes.arrayBuffer();
@@ -730,32 +730,24 @@ try {
   assert(!embedRow.includes("<video") && !embedRow.includes("<iframe") && embedRow.includes("Cheer"), "behavioral: an embed play keeps the sport-name fallback (no fake video)");
   assert(fameHtml.indexOf("File Vid") < fameHtml.indexOf("Photo Play") && fameHtml.indexOf("Photo Play") < fameHtml.indexOf("Link Vid"), "behavioral: fame rows stay ranked by all-time votes");
   for (const pid of [11, 12, 13, 14]) assert(fameHtml.includes(`onclick="goToPlayCard(${pid})"`), `behavioral: fame row for play ${pid} taps through to its card`);
-  // (3c) Behavioral — goToPlayCard wiring: resets the All filters,
-  // switches to the All view, sets the shared-play hash, and flashes
-  // the card inside #allBoard (scoped on purpose, see app.js note).
+  // (3c) Behavioral — goToPlayCard wiring (Round 8): the Hall of
+  // Fame tap now opens the play's DETAIL (the full card in the
+  // overlay) instead of Round 5's reset-filters + flash + scroll to
+  // the All-board card; §23 covers the detail itself end to end.
   const gtcBlock = appJs.slice(appJs.indexOf("window.goToPlayCard"), appJs.indexOf("/* ---------------- athlete collection"));
-  assert(gtcBlock.includes('switchView("all")') && gtcBlock.includes("#allBoard [data-play-id="), "Round 5: goToPlayCard block located (All view + scoped card lookup)");
+  assert(gtcBlock.includes("openPlayDetail(id)") && !gtcBlock.includes("#allBoard [data-play-id="), "Round 8: goToPlayCard block located (opens the play detail; the scoped board-card lookup is gone)");
   const gtcCalls = [];
   const gtcSandbox = {
     window: {},
-    allDiv: "boys", allSport: "soccer", allTeam: "plainview-hawks", allSearch: "left",
     showHome: () => gtcCalls.push("showHome"),
     showPanel: (n) => gtcCalls.push("panel:" + n),
-    switchView: (v) => gtcCalls.push("view:" + v),
-    renderAll2: () => gtcCalls.push("renderAll2"),
-    syncFilterUI: () => gtcCalls.push("syncFilterUI"),
-    history: { replaceState: (a, b, url) => gtcCalls.push("hash:" + url) },
-    document: { querySelector: (sel) => { gtcCalls.push("qs:" + sel); return { classList: { add: (c) => gtcCalls.push("class:" + c) }, scrollIntoView: () => gtcCalls.push("scroll") }; } },
-    $: () => ({ value: "left" }),
-    setTimeout: (fn) => { fn(); return 0; },
+    openPlayDetail: (id) => gtcCalls.push("detail:" + id),
     console,
   };
   const gtcCtx = vm.createContext(gtcSandbox);
   vm.runInContext(gtcBlock, gtcCtx);
   gtcSandbox.window.goToPlayCard(7);
-  assert(gtcSandbox.allDiv === "all" && gtcSandbox.allSport === "all" && gtcSandbox.allTeam === "all" && gtcSandbox.allSearch === "", "behavioral: a fame tap resets every All Hypes filter so the card is rendered");
-  assert(gtcCalls.includes("view:all") && gtcCalls.includes("hash:#play-7"), "behavioral: a fame tap switches to All Hypes and sets the shared-play hash");
-  assert(gtcCalls.includes('qs:#allBoard [data-play-id="7"]') && gtcCalls.includes("class:flash") && gtcCalls.includes("scroll"), "behavioral: a fame tap flash-highlights the play's All-board card and scrolls to it");
+  assert(gtcCalls.join("|") === "showHome|panel:plays|detail:7", "behavioral: a fame tap leaves the store, lands on the plays panel and opens the play's detail");
 
   /* ---- 20. Round 5b (2026-11-05, night): the upload form's sport
      picker becomes a dropdown too ----
@@ -1031,6 +1023,184 @@ try {
   } finally {
     child7.kill();
     fs.rmSync(legacyDir, { recursive: true, force: true });
+  }
+
+  /* ---- 23. Round 8 (2026-11-05): default landing view + board
+     tiles + play detail. CHANGE 1: on first load the site lands on
+     All Hypes unless this month's contest already has an entry (the
+     Month board used to be a dead first screen whenever the contest
+     was empty — samples can never be entries). The rule fires once,
+     inside loadData BEFORE the first renderAll, and an explicit
+     boot hash target always wins. CHANGE 2: both board lists render
+     compact tiles (thumbnail-first, fameThumbHtml media) instead of
+     full cards; tapping a tile opens the play's FULL cardHtml card
+     in the play-detail overlay; #play- links and Hall of Fame taps
+     route to the same detail; athlete pages keep full cards. ---- */
+  {
+    const html8 = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
+    const css8 = fs.readFileSync(path.join(root, "public", "styles.css"), "utf8");
+
+    // Structure: tile grids on the two boards ONLY; the overlay
+    // markup exists with its ← Back close affordance.
+    assert(html8.includes('<div class="tile-grid" id="board"></div>') && html8.includes('<div class="tile-grid" id="allBoard"></div>'), "Round 8: both board lists are tile grids");
+    assert(html8.includes('<div class="board" id="athleteBoard"></div>'), "Round 8: the athlete board keeps the full-card .board grid (athlete pages are NOT tiled)");
+    assert(html8.includes('id="playDetail"') && html8.includes('id="playDetailBody"') && html8.includes("data-detail-close") && html8.includes("← Back"), "Round 8: the play-detail overlay markup is present with a ← Back close affordance");
+    assert(css8.includes(".tile-grid{display:grid;grid-template-columns:repeat(2,1fr)") && css8.includes(".play-detail{position:fixed") && css8.includes(".play-detail[hidden]{display:none}") && css8.includes("body.detail-open{overflow:hidden}"), "Round 8: tile-grid (2 per phone row) and detail-overlay CSS are in place");
+    assert(css8.includes(".board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}"), "Round 8: the .board card grid CSS is untouched (athlete pages)");
+
+    // Wiring: both board renders use tiles; the athlete page still
+    // renders full cards; the default rule runs inside loadData
+    // before the first render; panel navigation hides the detail;
+    // the hashchange route forces a fresh #play- routing.
+    const monthBlock8 = appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml"));
+    assert(monthBlock8.includes("tileHtml(h, { monthVotes: h.voteCount })") && !monthBlock8.includes("cardHtml(h"), "Round 8: the Month board renders tiles (podium above it unchanged)");
+    const allBlock8 = appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
+    assert(allBlock8.includes("tileHtml(h, { rank: i + 1 })") && !allBlock8.includes("cardHtml(h"), "Round 8: All Hypes renders tiles");
+    const athleteBlock8 = appJs.slice(appJs.indexOf("window.openAthlete = async"), appJs.indexOf("/* ---------------- panels / menu / store"));
+    assert(athleteBlock8.includes("cardHtml(h)") && !athleteBlock8.includes("tileHtml"), "Round 8: athlete pages still render FULL cards (no tiles)");
+    const loadBlock8 = appJs.slice(appJs.indexOf("async function loadData"), appJs.indexOf("function applyDefaultView"));
+    assert(loadBlock8.includes("applyDefaultView();") && loadBlock8.indexOf("applyDefaultView();") < loadBlock8.indexOf("renderAll();"), "Round 8: loadData decides the default view BEFORE the first board render (no visible flash)");
+    const panelBlock8 = appJs.slice(appJs.indexOf("function showPanel"), appJs.indexOf("function showStore"));
+    assert(panelBlock8.includes("hidePlayDetail();"), "Round 8: panel navigation hides the play detail");
+    assert(appJs.includes('handledPlayHash = ""; highlightSharedPlay();'), "Round 8: a #play- hashchange forces a fresh detail routing");
+
+    // (a) Default-view rule, vm-level: the real loadData +
+    // applyDefaultView + renderAll chain with stubbed api parts.
+    const dvSlice = appJs.slice(appJs.indexOf("let ALL_PLAYS"), appJs.indexOf("/* ---------------- media + cards"));
+    const dvRun = async (entries, hashTarget) => {
+      const calls = [];
+      const sb = {
+        console, setTimeout, clearTimeout,
+        voterToken: "tok",
+        api: async (url) => (String(url).includes("contest") ? { monthKey: "2026-11", monthLabel: "November 2026", entries, winner: null } : { highlights: [] }),
+        switchView: (v) => calls.push("view:" + v),
+        renderAll: () => calls.push("render"),
+      };
+      const ctx = vm.createContext(sb);
+      vm.runInContext(dvSlice, ctx);
+      if (hashTarget) vm.runInContext("bootHashTarget = true;", ctx);
+      await vm.runInContext("loadData()", ctx);
+      return { calls, ctx };
+    };
+    const dv0 = await dvRun([], false);
+    assert(dv0.calls[0] === "view:all" && dv0.calls[1] === "render", "behavioral: 0 contest entries → the site lands on All Hypes, decided before the first render");
+    await vm.runInContext("loadData()", dv0.ctx);
+    assert(dv0.calls.filter((c) => c.startsWith("view:")).length === 1, "behavioral: the default-view rule fires ONCE — later data refreshes never yank the visitor's view");
+    const dv1 = await dvRun([{ id: 1 }], false);
+    assert(dv1.calls[0] === "view:month", "behavioral: ≥1 contest entry → the site lands on Hype of the Month, as before");
+    const dvH = await dvRun([], true);
+    assert(!dvH.calls.some((c) => c.startsWith("view:")), "behavioral: an explicit boot hash target wins — the default rule does not switch the view");
+
+    // (b) Tiles + detail, vm-level: the real esc/cap, mediaHtml,
+    // cardHtml, tileHtml, fameThumbHtml and the detail machinery
+    // against stub plays.
+    const r8Plays = [
+      { id: 101, title: "Big Play", sport: "baseball", division: "boys", athlete_label: "Jayden", player_name: "Jayden", media_kind: "file", media_url: "/uploads/a.mp4", mime: "video/mp4", voteCount: 5, hasVoted: false, isSample: false, isWinner: false, prizeEligible: true, created_at: "2026-11-05T00:00:00Z" },
+      { id: 102, title: "Voted Play", sport: "softball", division: "girls", athlete_label: "Maya", player_name: "Maya", media_kind: "file", media_url: "/uploads/b.png", mime: "image/png", voteCount: 9, hasVoted: true, isSample: false, isWinner: false, prizeEligible: true, created_at: "2026-11-05T00:00:00Z" },
+      { id: 103, title: "Sample Play", sport: "soccer", division: "girls", athlete_label: "Sofia", player_name: "Sofia", media_kind: "file", media_url: "/uploads/c.mp4", mime: "video/mp4", voteCount: 2, hasVoted: false, isSample: true, isWinner: false, prizeEligible: false, created_at: "2026-11-05T00:00:00Z" },
+    ];
+    const r8Entry = { id: 104, title: "Contest Play", sport: "hockey", division: "boys", athlete_label: "Liam", player_name: "Liam", media_kind: "file", media_url: "/uploads/d.mp4", mime: "video/mp4", voteCount: 7, hasVoted: false, isSample: false, isWinner: false, prizeEligible: true, created_at: "2026-11-05T00:00:00Z" };
+    const r8Calls = [];
+    const r8BodyEl = { innerHTML: "" };
+    const r8Wrap = { hidden: true, querySelector: () => ({ focus: () => r8Calls.push("focus") }) };
+    const r8Classes = new Set();
+    const r8Loc = { hash: "" };
+    let r8EscListener = null;
+    const r8Doc = {
+      querySelector: (sel) => (sel === "#playDetail" ? r8Wrap : sel === "#playDetailBody" ? r8BodyEl : null),
+      querySelectorAll: () => [],
+      addEventListener: (ev, fn) => { if (ev === "keydown") r8EscListener = fn; },
+      body: { classList: { add: (c) => r8Classes.add(c), remove: (c) => r8Classes.delete(c) } },
+    };
+    const r8Sb = {
+      console, window: {},
+      document: r8Doc,
+      $: (sel) => r8Doc.querySelector(sel),
+      $$: () => [],
+      location: r8Loc,
+      history: { replaceState: (a, b, url) => { r8Loc.hash = url; } },
+      switchView: (v) => r8Calls.push("view:" + v),
+      showHome: () => r8Calls.push("showHome"),
+      showPanel: (n) => r8Calls.push("panel:" + n),
+      ownerToken: () => "",
+      ALL_PLAYS: [...r8Plays, r8Entry],
+      CONTEST: { monthKey: "2026-11", monthLabel: "November 2026", entries: [r8Entry], winner: null },
+    };
+    const r8Ctx = vm.createContext(r8Sb);
+    vm.runInContext(appJs.slice(appJs.indexOf("const esc ="), appJs.indexOf("/* ---------------- data")), r8Ctx);
+    vm.runInContext(appJs.slice(appJs.indexOf("function mediaHtml"), appJs.indexOf("/* ---------------- views")), r8Ctx);
+    vm.runInContext(appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine")), r8Ctx);
+    vm.runInContext(appJs.slice(appJs.indexOf("let detailPlayId"), appJs.indexOf("/* ---------------- athlete collection")), r8Ctx);
+    // In a browser, window.* assignments ARE globals (highlightSharedPlay
+    // calls bare openPlayDetail); mirror that in the vm context.
+    vm.runInContext("var openPlayDetail = window.openPlayDetail, closePlayDetail = window.closePlayDetail, goToPlayCard = window.goToPlayCard;", r8Ctx);
+    const r8 = (code) => vm.runInContext(code, r8Ctx);
+
+    // Tiles: media, meta, vote wiring + state; samples badged with
+    // NO Enter affordance on the tile itself.
+    const t1 = r8("tileHtml(ALL_PLAYS[0])");
+    assert(t1.includes('class="tile"') && t1.includes('data-tile-id="101"') && t1.includes("openPlayDetail(101)"), "Round 8: a tile opens the play's detail on tap");
+    assert(t1.includes("<video") && t1.includes('muted loop playsinline') && t1.includes('preload="metadata"'), "Round 8: a video tile's thumbnail plays in place (fameThumbHtml treatment)");
+    assert(t1.includes("Big Play") && t1.includes("Baseball") && t1.includes("Boys") && t1.includes("Jayden"), "Round 8: a tile shows title, sport · division and the athlete's name");
+    assert(t1.includes("toggleVote(101, this)") && t1.includes('aria-pressed="false"') && t1.includes("<b>5</b>"), "Round 8: the tile Vote button is wired to toggleVote with the un-voted state and count");
+    assert(!t1.includes("enterContest("), "Round 8: tiles carry no Enter affordance (Enter lives on the full card in the detail)");
+    const t2 = r8("tileHtml(ALL_PLAYS[1])");
+    assert(t2.includes("<img") && t2.includes('aria-pressed="true"') && t2.includes("You voted — tap to remove"), "Round 8: an image tile shows the photo and the voted state");
+    const t3 = r8("tileHtml(ALL_PLAYS[2])");
+    assert(t3.includes("⭐ SAMPLE PLAY") && !t3.includes("enterContest("), "Round 8: a sample tile carries the SAMPLE badge and no Enter affordance");
+    const t4 = r8("tileHtml(CONTEST.entries[0], { monthVotes: 7 })");
+    assert(t4.includes("<b>7</b>") && t4.includes("this month"), "Round 8: a Month-board tile shows the month vote count");
+
+    // Detail: the FULL card, with the play's own context.
+    r8("window.openPlayDetail(101)");
+    assert(r8Wrap.hidden === false && r8("detailPlayId") === 101 && r8Classes.has("detail-open"), "Round 8: openPlayDetail shows the overlay for the tapped play");
+    assert(r8BodyEl.innerHTML.includes('data-play-id="101"') && r8BodyEl.innerHTML.includes("enterContest(101, this)"), "Round 8: the detail holds the FULL card — Enter present for a non-sample play");
+    assert(r8BodyEl.innerHTML.includes("data-report-msg") && r8Loc.hash === "#play-101", "Round 8: the detail card carries the inline Report message slot, and opening sets the shareable #play- hash");
+    r8("window.openPlayDetail(102)");
+    assert(r8BodyEl.innerHTML.includes("You voted — tap to remove"), "Round 8: the detail card shows the play's live vote state");
+    r8("window.openPlayDetail(103)");
+    assert(r8BodyEl.innerHTML.includes("⭐ SAMPLE PLAY") && r8BodyEl.innerHTML.includes("Sample play — posted by HighlightHype") && !r8BodyEl.innerHTML.includes("enterContest("), "Round 8: a sample's detail keeps the badge + explainer and hides Enter");
+    r8("window.openPlayDetail(104)");
+    assert(r8BodyEl.innerHTML.includes("<b>7</b>") && r8BodyEl.innerHTML.includes("this month votes"), "Round 8: a contest entry's detail opens with its month context (month vote count + label)");
+
+    // Report from the detail: reportPlay stores the panel HTML in
+    // REPORT_MSGS and setReportMsg paints it into the card's slot;
+    // cardHtml re-injects the Map on every render, so the open
+    // panel (and later the confirmation) survives the detail's
+    // re-renders exactly as it did on the board.
+    r8("window.openPlayDetail(101)");
+    r8("window.reportPlay(101); renderPlayDetail();");
+    assert(r8BodyEl.innerHTML.includes("Report this play?") && r8BodyEl.innerHTML.includes("data-report-reason") && r8BodyEl.innerHTML.includes("Send report"), "Round 8: the report flow works from the detail — the inline panel opens inside the detail card and survives its re-render");
+    r8('REPORT_MSGS.set(101, "Thanks — the owner will take a look."); renderPlayDetail();');
+    assert(r8BodyEl.innerHTML.includes("Thanks — the owner will take a look."), "Round 8: a report confirmation renders in the detail card");
+    r8("REPORT_MSGS.delete(101); renderPlayDetail();");
+
+    // #play- routing: entry → Month board behind the detail,
+    // non-entry → All Hypes; routed once per hash; unknown play is
+    // a no-op; Escape + closePlayDetail dismiss and drop the hash.
+    r8("window.closePlayDetail()");
+    r8Calls.length = 0;
+    r8Loc.hash = "#play-101"; r8("highlightSharedPlay()");
+    assert(r8Calls.includes("view:all") && r8("detailPlayId") === 101 && r8Wrap.hidden === false, "Round 8: loading with #play-<id> opens that play's detail (All Hypes behind it)");
+    r8("hidePlayDetail(); highlightSharedPlay();");
+    assert(r8("detailPlayId") === null && r8Wrap.hidden === true, "Round 8: a routed #play- hash is handled once — later refreshes don't resurrect a closed detail");
+    r8Loc.hash = "#play-104"; r8("highlightSharedPlay()");
+    assert(r8Calls.includes("view:month") && r8("detailPlayId") === 104, "Round 8: a contest entry's #play- link lands on the Month board behind its detail");
+    r8Loc.hash = "#play-999"; r8("highlightSharedPlay()");
+    assert(r8("detailPlayId") === 104, "Round 8: a #play- link for a play that doesn't exist does nothing");
+    r8EscListener({ key: "Escape" });
+    assert(r8("detailPlayId") === null && r8Wrap.hidden === true, "Round 8: Escape closes the detail");
+    r8("window.openPlayDetail(101)"); r8Loc.hash = "#play-101"; r8("window.closePlayDetail()");
+    assert(r8Wrap.hidden === true && r8Loc.hash === "#top", "Round 8: the ← Back close hides the detail and drops its #play- hash");
+
+    // Hall of Fame tap-through (behavioral wiring is §19 (3c);
+    // here: the fame rows still call goToPlayCard, and driving it
+    // lands in the detail).
+    assert(appJs.includes("goToPlayCard(${h.id})"), "Round 8: Hall of Fame rows still tap through via goToPlayCard");
+    r8Calls.length = 0;
+    r8("window.goToPlayCard(102)");
+    assert(r8Calls[0] === "showHome" && r8Calls[1] === "panel:plays" && r8("detailPlayId") === 102 && r8Wrap.hidden === false, "Round 8: a Hall of Fame tap opens the play's detail");
+    r8("window.closePlayDetail()");
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
