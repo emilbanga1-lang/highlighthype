@@ -363,6 +363,11 @@ function moderatePage(row, token, message = "") {
     </form>
     <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
       <input type="hidden" name="id" value="${row.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+      <input type="hidden" name="action" value="approve_sample">
+      <button type="submit" style="font-size:18px;padding:12px 20px">Approve as Sample play</button>
+    </form>
+    <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
+      <input type="hidden" name="id" value="${row.id}"><input type="hidden" name="token" value="${escHtml(token)}">
       <input type="hidden" name="action" value="hide">
       <button type="submit" style="font-size:18px;padding:12px 20px">Decline (hide)</button>
     </form>` : "";
@@ -380,6 +385,21 @@ function moderateQueuePage(rows, token, message = "") {
     <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
       <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)} — Play ID ${r.id}
       <p><a href="/moderate?id=${r.id}&token=${escHtml(token)}">View and approve / decline this play</a></p>
+      <form method="POST" action="/moderate" style="display:inline">
+        <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" style="font-size:18px;padding:12px 20px">Approve</button>
+      </form>
+      <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
+        <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+        <input type="hidden" name="action" value="approve_sample">
+        <button type="submit" style="font-size:18px;padding:12px 20px">Approve as Sample play</button>
+      </form>
+      <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
+        <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+        <input type="hidden" name="action" value="hide">
+        <button type="submit" style="font-size:18px;padding:12px 20px">Decline (hide)</button>
+      </form>
     </div>`).join("") : "<p>No plays are pending right now.</p>";
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderation queue</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
@@ -882,15 +902,24 @@ const server = http.createServer(async (req, res) => {
       if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       const id = Number(params.get("id") || 0);
       const action = params.get("action");
-      if (!["approve", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
-      const status = action === "approve" ? "approved" : "hidden";
+      // Round 11 (2026-11-05): "approve_sample" joins approve/hide —
+      // the owner approves the AI sample plays through this emailed
+      // link and needs them sample-marked in the same tap. It is a
+      // normal approval PLUS is_sample=1 in the same update; the
+      // notification conditions below key on status, so a sample
+      // approval notifies exactly like a plain one. Hide never sets
+      // the sample flag.
+      if (!["approve", "approve_sample", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
+      const status = action === "hide" ? "hidden" : "approved";
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       if (!before) return sendHtml(res, 404, "<h1>Play not found</h1><p><a href=\"/\">← HighlightHype home</a></p>");
-      db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
+      if (action === "approve_sample") db.prepare("UPDATE highlights SET status=?, is_sample=1 WHERE id=?").run(status, id);
+      else db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (status === "approved" && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       const after = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
-      return sendHtml(res, 200, moderatePage(after, token, status === "approved" ? "Approved — this play is now live on the board." : "Declined — this play is hidden and will not appear on the board."));
+      const message = action === "approve_sample" ? "Approved as a sample play — this play is now live on the board, marked as a sample." : status === "approved" ? "Approved — this play is now live on the board." : "Declined — this play is hidden and will not appear on the board.";
+      return sendHtml(res, 200, moderatePage(after, token, message));
     }
     if (p === "/moderate-queue" && req.method === "GET") {
       const token = u.searchParams.get("token") || "";

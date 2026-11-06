@@ -205,8 +205,9 @@ try {
      Round 9 (2026-11-05): the silence is REVERSED — a quiet sound
      bed is back in the file (§8 probes it) with a speaker toggle
      beside Pause; autoplay still starts muted. Round 10: the bed
-     is a stadium crowd (not music) and the controls row moved
-     BELOW the film (§25). */
+     was a stadium crowd and the controls row moved BELOW the film
+     (§25). Round 11: Nicholas didn't like the crowd — the Round 9
+     music bed is restored (§26); the controls stay below. */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
   assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
   assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
@@ -255,12 +256,12 @@ try {
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
   assert(filmDur > 19 && filmDur < 21, `the film runs ~20s after the Round 3 recut (${filmDur}s — the same five scenes at 4.0s each; Emil: the 7s scenes felt too long)`);
   const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
-  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "Round 10: the film HAS an audio stream — a quiet stadium crowd bed (Round 9 restored sound with music; Nicholas asked for a stadium sound instead, §25 probes the levels)");
+  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "Round 11: the film HAS an audio stream — the quiet MUSIC bed is back (Round 10's stadium crowd, Nicholas's own suggestion, was reverted at his verdict; §26 probes the restored file)");
   const filmPix = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=pix_fmt", "-of", "csv=p=0", filmFile]).toString().trim();
   assert(filmPix === "yuv420p", "Round 9: the film's video stream is still yuv420p (the audio mux did not touch the picture)");
   const filmVol = execFileSync("bash", ["-c", `ffmpeg -i "${filmFile}" -map 0:a -af volumedetect -f null - 2>&1 | grep mean_volume`]).toString();
   const filmMeanDb = Number((/mean_volume:\s*(-?[\d.]+)/.exec(filmVol) || [])[1]);
-  assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 10: the film's crowd bed is QUIET (mean ${filmMeanDb} dB — ambience, not a soundtrack)`);
+  assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 11: the film's music bed is QUIET (mean ${filmMeanDb} dB — background, not a soundtrack)`);
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
@@ -1235,9 +1236,9 @@ try {
   // (1) Store button: in the header bar itself, before the ☰ button,
   // wired through the same data-store-link handler as the menu entry.
   const headerBlock9 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
-  assert(headerBlock9.includes('class="nav-store-btn" href="#shop" data-store-link') && headerBlock9.includes("🛍️ Store"), "Round 9: the header carries a real Store button, not just the buried menu link");
+  assert(headerBlock9.includes('class="nav-store-btn" href="#shop" data-store-link') && headerBlock9.includes(">Swag</a>"), "Round 9: the header carries a real store link in the bar itself, not just the buried menu link (Round 11 relabels it 'Swag' — §26 pins the current spec)");
   assert(headerBlock9.indexOf("nav-store-btn") < headerBlock9.indexOf('id="menuBtn"'), "Round 9: the Store button sits in the bar itself, before the menu button");
-  assert(css.includes(".nav-store-btn{"), "Round 9: the Store button carries its own header rule (Round 10 mutes + shrinks the pill — §25 pins the new spec)");
+  assert(css.includes(".nav-store-btn{"), "Round 9: the Store button carries its own header rule (the pill era is over — §26 pins the plain-link spec)");
   assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9: the menu's store entry stays as a second path");
   // (2) Board control sizing lives in the stylesheet (both boards).
   assert(css.includes(".viewseg button{min-height:48px"), "Round 9: board view tabs are >=48px tall");
@@ -1334,12 +1335,16 @@ try {
      Sound/Pause controls moved OUT of the film overlay into a row
      below the film (they covered the Shop Girls link); (5) the
      film's sound is a stadium CROWD bed now, not music — video
-     stream bit-identical, crowd RMS in the −30..−34 dB band. */
+     stream bit-identical, crowd RMS in the −30..−34 dB band.
+     (Round 11 supersedes (1) and (5): the header control is a
+     plain "Swag" link and the film is back to the Round 9 music
+     bed — §26 pins both restored specs; the asserts below are
+     maintained to the current state.) */
   // (1) Store pill: restyle only — element, handler, label unchanged.
   const pillRule10 = css.slice(css.indexOf(".nav-store-btn{"), css.indexOf("}", css.indexOf(".nav-store-btn{")));
-  assert(pillRule10.includes("background:#101418") && pillRule10.includes("color:#b6f34a") && pillRule10.includes("border:1.5px solid rgba(182,243,74,.55)"), "Round 10: the Store pill is muted — near-black background, lime text, thin lime outline");
-  assert(pillRule10.includes("min-height:40px") && pillRule10.includes("padding:8px 16px") && pillRule10.includes("font-size:15px") && !pillRule10.includes("background:var(--volt)"), "Round 10: the Store pill is slightly smaller (~40px tall, 8px/16px padding) and no longer solid lime");
-  assert(home.includes('class="nav-store-btn" href="#shop" data-store-link') && home.includes("🛍️ Store"), "Round 10: the pill element is unchanged — same link, same data-store-link handler, same 🛍️ label");
+  assert(!pillRule10.includes("background:#101418") && !pillRule10.includes("border:1.5px"), "Round 10→11: the muted-pill spec is superseded — no near-black fill, no lime outline (§26 pins the plain 'Swag' link spec)");
+  assert(pillRule10.includes("min-height:40px") && !pillRule10.includes("padding:8px 16px") && !pillRule10.includes("background:var(--volt)"), "Round 10→11: only the ≥40px tap target survives the de-pilling — the pill's fill + padding spec is gone (§26)");
+  assert(home.includes('class="nav-store-btn" href="#shop" data-store-link') && home.includes(">Swag</a>") && !home.includes("🛍️ Store"), "Round 10→11: same link, same data-store-link handler — the label is now Nicholas's word 'Swag', emoji gone (§26)");
   // (2) Team filter removal: markup, wiring, and behavior.
   assert(!home.includes('id="teamFilter"') && !home.includes('id="teamLabel"') && !home.includes("All teams"), "Round 10: no team select (and no 'All teams' option) anywhere in the served page");
   const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allCount"'));
@@ -1414,16 +1419,171 @@ try {
   assert(home.includes('<button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>'), "Round 10: the Pause button itself is byte-identical (id, classes, label, aria)");
   const controlsRule10 = css.slice(css.indexOf(".swag-film-controls{"), css.indexOf("}", css.indexOf(".swag-film-controls{")));
   assert(controlsRule10.includes("justify-content:flex-end") && !controlsRule10.includes("position:absolute"), "Round 10: the controls cluster is a static right-aligned row below the film, not an absolute overlay");
-  // (5) The film file: video untouched, crowd in the target band.
+  // (5) The film file: video untouched; Round 11 restored the
+  // Round 9 music bed (the crowd band asserts are superseded).
   const filmPath10 = path.join(root, "public", "swag-film.mp4");
   const vHash10 = execFileSync("ffmpeg", ["-v", "error", "-i", filmPath10, "-map", "0:v:0", "-c", "copy", "-f", "streamhash", "-hash", "md5", "-"]).toString();
   assert(vHash10.includes("MD5=2055d4f3e22e7252e90254bfb81d649e"), "Round 10: the film's VIDEO stream is bit-identical to the Round 9 cut (streamhash MD5 matches — only the audio was replaced)");
   const aStats10 = execFileSync("bash", ["-c", `ffmpeg -i "${filmPath10}" -map 0:a -af astats=metadata=1 -f null - 2>&1 | grep -E "RMS level|Peak level" | tail -2`]).toString();
   const rms10 = Number((/RMS level dB:\s*(-?[\d.]+)/.exec(aStats10) || [])[1]);
   const peak10 = Number((/Peak level dB:\s*(-?[\d.]+)/.exec(aStats10) || [])[1]);
-  assert(rms10 <= -30 && rms10 >= -34 && peak10 <= -12, `Round 10: the stadium crowd bed sits in the target band (RMS ${rms10} dB within −30..−34, peak ${peak10} dB ≤ −12)`);
+  assert(rms10 <= -24 && rms10 >= -27 && peak10 <= -12, `Round 11: the restored MUSIC bed sits in its band (RMS ${rms10} dB within −24..−27, peak ${peak10} dB ≤ −12) — the Round 10 crowd band (−30..−34) is superseded (§26)`);
   const aProbe10 = execFileSync("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name,sample_rate,channels", "-of", "csv=p=0", filmPath10]).toString().trim();
-  assert(aProbe10 === "aac,48000,2", `Round 10: the crowd bed is browser-safe AAC 48kHz stereo (got ${aProbe10}) — the music bed is gone`);
+  assert(aProbe10 === "aac,44100,2", `Round 11: the restored music bed is AAC 44.1kHz stereo (got ${aProbe10}) — the file is Round 9's own (§26 pins its size)`);
+
+  /* ---- 26. Round 11 (2026-11-05, night): three fixes from the
+     owner's phone review of Round 10 — (1) the montage clips
+     STOPPED PLAYING: showStore() pauses EVERY .view-home video
+     (montage included) but showHome() resumed only the hero + the
+     Hype Frame film, so one Store visit froze the strips on their
+     posters for the rest of the session; showHome resumes them
+     now, and a visibility observer plays each clip while ≥25% of
+     it is on screen and pauses it off-screen, so a stalled clip
+     self-heals on scroll and off-screen clips stop burning CPU.
+     The posters are real frames extracted from the clips (the old
+     .webp posters were comic illustrations that never matched the
+     photographic clips). (2) The floating "+ Submit a Hype" FAB
+     sits on the upload form's Girls toggle at phone widths and
+     eats the tap — while the form is on screen the FAB fades out
+     (.fab-away) via an IntersectionObserver on #uploadForm; its
+     perch, look and click behavior are otherwise unchanged. (3)
+     The header store control is a plain text link reading "Swag"
+     — Nicholas rejected both pill looks and the word "Store"; the
+     ☰ entry and the Store Entry Card keep "Store" (out of scope).
+     (4) The store film's audio is the Round 9 quiet MUSIC bed
+     again — the Round 10 stadium crowd is reverted with the file
+     byte-identical to Round 9's; the Sound/Pause row stays below
+     the film (§25 placement unchanged). (5) The emailed moderation
+     flow gains "Approve as Sample play" (owner-requested the same
+     night): POST /moderate accepts action=approve_sample — an
+     approval that also sets is_sample=1 in the same update, with
+     the same notifications — and both moderation pages carry the
+     third button. Same moderateAuthorized gate; nothing else in
+     server.js changes. */
+  // (1) Montage resume + observer: wiring, then the real functions
+  // driven in a vm against stub videos.
+  const showHome26 = appJs.slice(appJs.indexOf("function showHome()"), appJs.indexOf("/* One home reset"));
+  assert(showHome26.includes('$$(".montage video")') && showHome26.includes("watchMontageVideos"), "Round 11: showHome's block carries the montage resume + the visibility watcher (the Round 4 resume covered hero + HF film only)");
+  assert(appJs.includes("e.intersectionRatio >= 0.25") && appJs.includes("e.target.pause()") && appJs.includes("threshold: [0, 0.25]"), "Round 11: the montage observer plays at >=25% visibility and pauses below it");
+  assert(home.includes('onclick="goToSportBoard(\'baseball\')"') && home.includes("Baseball — watch the plays →") && css.includes(".montage video{pointer-events:none}"), "Round 11: the montage strips keep their Round 10 button wiring, captions and pointer-events rule untouched");
+  const mkVid26 = () => ({ plays: 0, pauses: 0, play() { this.plays++; return Promise.resolve(); }, pause() { this.pauses++; } });
+  const montageVids26 = [mkVid26(), mkVid26(), mkVid26()];
+  const heroVid26 = mkVid26(), hfVid26 = mkVid26();
+  let ioCb26 = null, ioOpts26 = null; const ioSeen26 = [];
+  class FakeIO26 { constructor(cb, opts) { ioCb26 = cb; ioOpts26 = opts; } observe(v) { ioSeen26.push(v); } }
+  const sb26 = {
+    console, window: {},
+    document: { body: { classList: { contains: () => true, remove: () => {} } } },
+    location: { hash: "#top" }, history: { replaceState: () => {} },
+    setStoreFocus: () => {},
+    IntersectionObserver: FakeIO26,
+    $: (sel) => (sel === "#heroVideo" ? heroVid26 : sel === "#hfExamplesHome video" ? hfVid26 : null),
+    $$: (sel) => (sel === ".montage video" ? montageVids26 : []),
+  };
+  const ctx26 = vm.createContext(sb26);
+  vm.runInContext(showHome26, ctx26);
+  assert(ioSeen26.length === 3 && ioOpts26 && ioOpts26.threshold.includes(0.25), "behavioral (Round 11): the watcher observes all three montage clips with the 25% threshold");
+  vm.runInContext("showHome()", ctx26);
+  assert(montageVids26.every((v) => v.plays === 1) && heroVid26.plays === 1 && hfVid26.plays === 1, "behavioral (Round 11): returning home from the Store plays hero + Hype Frame film + ALL three montage clips (under Round 10 the montage stayed at 0 — frozen on posters)");
+  ioCb26([{ target: montageVids26[0], intersectionRatio: 0.5 }, { target: montageVids26[1], intersectionRatio: 0.1 }, { target: montageVids26[2], intersectionRatio: 0 }]);
+  assert(montageVids26[0].plays === 2 && montageVids26[1].pauses === 1 && montageVids26[2].pauses === 1, "behavioral (Round 11): the observer plays a clip scrolled >=25% into view and pauses the ones below the line / off-screen");
+  for (const p of ["play-baseball.webp", "play-basketball.webp", "play-soccer.webp"]) {
+    const r = await fetch(`${base}/${p}`);
+    const buf = await r.arrayBuffer();
+    assert(r.status === 200 && buf.byteLength > 15000 && buf.byteLength < 200000, `Round 11: montage poster ${p} is a real frame from its clip (${buf.byteLength} bytes — the old comic-illustration posters were 476–766 KB)`);
+  }
+  // (2) FAB vs the upload form: rule, wiring, and a vm drive of the
+  // real observer block.
+  const fabRule26 = css.slice(css.indexOf(".float-submit.fab-away{"), css.indexOf("}", css.indexOf(".float-submit.fab-away{")));
+  assert(fabRule26.includes("visibility:hidden") && fabRule26.includes("pointer-events:none") && fabRule26.includes("opacity:0"), "Round 11: the .fab-away rule fully removes the FAB — invisible AND untappable, not just transparent");
+  const fabBlock26 = appJs.slice(appJs.indexOf('$("#floatSubmit")'), appJs.indexOf('$$("[data-submit-link]")'));
+  assert(fabBlock26.includes('$("#uploadForm")') && fabBlock26.includes('"fab-away"') && fabBlock26.includes("isIntersecting"), "Round 11: an IntersectionObserver on #uploadForm toggles .fab-away on the FAB");
+  assert(fabBlock26.includes('addEventListener("click", goSubmit)'), "Round 11: the FAB's click wiring is untouched (still goSubmit — it just can't be tapped while hidden)");
+  const fabClasses26 = new Set();
+  const fabStub26 = { listeners: {}, addEventListener(ev, fn) { this.listeners[ev] = fn; }, classList: { toggle(cls, force) { if (force) fabClasses26.add(cls); else fabClasses26.delete(cls); } } };
+  const formStub26 = { id: "uploadForm" };
+  let fabCb26 = null, fabSeen26 = null;
+  class FakeIOFab26 { constructor(cb) { fabCb26 = cb; } observe(el) { fabSeen26 = el; } }
+  const fabSb26 = { console, goSubmit: () => {}, IntersectionObserver: FakeIOFab26, $: (sel) => (sel === "#floatSubmit" ? fabStub26 : sel === "#uploadForm" ? formStub26 : null) };
+  vm.runInContext(fabBlock26, vm.createContext(fabSb26));
+  assert(fabSeen26 === formStub26 && typeof fabStub26.listeners.click === "function", "behavioral (Round 11): the FAB observer watches the upload form itself, and the click listener still registers");
+  fabCb26([{ isIntersecting: true }]);
+  assert(fabClasses26.has("fab-away"), "behavioral (Round 11): form on screen -> the FAB gets .fab-away (the Girls toggle is reachable again)");
+  fabCb26([{ isIntersecting: false }]);
+  assert(!fabClasses26.has("fab-away"), "behavioral (Round 11): form scrolled away -> .fab-away removed, the FAB returns");
+  // (2b) The toggle itself: the quick-upload-picks section header
+  // in app.js was an UNTERMINATED block comment — everything from
+  // it to the next */ (setDivPick, setSportPick, the click wiring,
+  // window.syncQuickPicks) was commented out, so the Boys/Girls
+  // toggle has had NO handler since 2026-11-04 (the owner's "can
+  // not click Girls" report; uploads still worked because the
+  // submit handler sits after the closing */). Round 11 closes
+  // the comment; the drive below runs the real resurrected block.
+  assert(appJs.includes("quick upload picks (2026-11-04) ---------------- */"), "Round 11: the quick-upload-picks section header comment is CLOSED — the toggle code below it is live again, not commented out");
+  const divBlock26 = appJs.slice(appJs.indexOf("function setDivPick"), appJs.indexOf("/* ---------------- upload + athlete prompt"));
+  assert(divBlock26.includes("function setSportPick") && divBlock26.includes("window.syncQuickPicks") && divBlock26.includes('addEventListener("click"'), "Round 11: the resurrected block holds setDivPick + setSportPick + the click wiring + syncQuickPicks");
+  const divBtns26 = ["boys", "girls"].map((d) => ({ dataset: { divPick: d }, pressed: null, clickFn: null, setAttribute(k, v) { if (k === "aria-pressed") this.pressed = v; }, addEventListener(ev, fn) { if (ev === "click") this.clickFn = fn; } }));
+  const divForm26 = { elements: { division: { value: "boys" }, sport: { value: "" } } };
+  const divSb26 = { console, window: {}, $: (sel) => (sel === "#uploadForm" ? divForm26 : null), $$: (sel) => (sel === "[data-div-pick]" ? divBtns26 : []) };
+  vm.runInContext(divBlock26, vm.createContext(divSb26));
+  divBtns26[1].clickFn();
+  assert(divForm26.elements.division.value === "girls" && divBtns26[1].pressed === "true" && divBtns26[0].pressed === "false", "behavioral (Round 11): the Girls toggle's real click handler flips the hidden division field to 'girls' and the aria-pressed pair with it");
+  // (3) "Swag": exact label, plain-link computed spec in the rule,
+  // click path unchanged, out-of-scope surfaces untouched.
+  const headerBlock26 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
+  assert(headerBlock26.includes('data-store-link aria-label="Open the HighlightHype store">Swag</a>'), "Round 11: the header store control reads exactly 'Swag'");
+  assert(!home.includes("🛍️"), "Round 11: the bag emoji is gone from the page (it lived only on the header pill)");
+  const swagRule26 = css.slice(css.indexOf(".nav-store-btn{"), css.indexOf("}", css.indexOf(".nav-store-btn{")));
+  assert(swagRule26.includes("background:transparent") && swagRule26.includes("border:0") && swagRule26.includes("color:#b6f34a") && swagRule26.includes("font-weight:600"), "Round 11: the 'Swag' link is plain — transparent background, no border, lime semibold text");
+  assert(swagRule26.includes("min-height:40px") && !swagRule26.includes("border-radius") && !swagRule26.includes("box-shadow:0 2px"), "Round 11: the tap target stays >=40px tall; the pill chrome (radius, shadow, fill) is gone");
+  assert(headerBlock26.includes("Swag Shop — Rep The Hype") && home.includes("Enter the Store"), "Round 11: the ☰ menu entry and the Store Entry Card keep their wording — out of scope, untouched");
+  // (4) The film file: Round 9's own bytes, same picture as ever.
+  const filmPath26 = path.join(root, "public", "swag-film.mp4");
+  assert(fs.statSync(filmPath26).size === 9384994, "Round 11: the store film is exactly Round 9's music-bed file (9,384,994 bytes) — reverted, not re-muxed");
+  const vHash26 = execFileSync("ffmpeg", ["-v", "error", "-i", filmPath26, "-map", "0:v:0", "-c", "copy", "-f", "streamhash", "-hash", "md5", "-"]).toString();
+  assert(vHash26.includes("MD5=2055d4f3e22e7252e90254bfb81d649e"), "Round 11: the reverted film's video stream still hashes to the Round 9/10 value — the picture never changed across the sound swaps");
+  // (5) Moderation by email link: "Approve as Sample play" — the
+  // owner approves the AI sample plays from the emailed link and
+  // needs the sample mark set in the same tap (previously he had
+  // to approve by email, then re-mark in the Owner panel).
+  const serverJs26 = fs.readFileSync(path.join(root, "server.js"), "utf8");
+  assert(serverJs26.includes('"approve", "approve_sample", "hide"') && serverJs26.includes("SET status=?, is_sample=1"), "Round 11: POST /moderate accepts approve_sample and sets status + is_sample in the same update");
+  assert((serverJs26.match(/Approve as Sample play/g) || []).length >= 2, "Round 11: BOTH moderation pages (per-play + queue) carry the 'Approve as Sample play' button");
+  const modDb26 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
+  const png26 = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000000020001e221bc330000000049454e44ae426082", "hex");
+  const upMod26 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "baseball"); f.append("division", "boys"); f.append("playerName", "Mod"); f.append("file", new Blob([png26], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 11: moderation fixture uploads pending (${title})`); return r.body.id; };
+  const sampleId26 = await upMod26("Mod Sample Play");
+  const plainId26 = await upMod26("Mod Plain Play");
+  const hideId26 = await upMod26("Mod Hide Play");
+  await fetch(`${base}/moderate?id=${sampleId26}&token=primer`); // a wrong-token hit: 403, and moderateAuthorized's sha compare generates + stores the real token (a tokenless hit short-circuits before that)
+  const modToken26 = modDb26((d) => d.prepare("SELECT value FROM settings WHERE key='moderate_token'").get()?.value);
+  assert(!!modToken26, "Round 11: the stored moderation token is readable for the flow tests");
+  const modPageRes26 = await fetch(`${base}/moderate?id=${sampleId26}&token=${modToken26}`);
+  const modPage26 = await modPageRes26.text();
+  assert(modPageRes26.status === 200 && modPage26.includes('value="approve_sample"') && modPage26.includes("Approve as Sample play"), "Round 11: the per-play moderation page renders the 'Approve as Sample play' button");
+  const modQueueRes26 = await fetch(`${base}/moderate-queue?token=${modToken26}`);
+  const modQueue26 = await modQueueRes26.text();
+  assert(modQueueRes26.status === 200 && modQueue26.includes('value="approve_sample"') && modQueue26.includes("Approve as Sample play"), "Round 11: the moderation QUEUE page renders the 'Approve as Sample play' button on pending plays");
+  const modPost26 = async (fields) => { const r = await fetch(`${base}/moderate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields).toString() }); return { status: r.status, body: await r.text() }; };
+  const badTok26 = await modPost26({ id: String(plainId26), token: "definitely-wrong", action: "approve_sample" });
+  assert(badTok26.status === 403, "Round 11: approve_sample with an invalid token still 403s (same moderateAuthorized gate, no new auth surface)");
+  const afterBad26 = modDb26((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(plainId26));
+  assert(afterBad26.status === "pending" && afterBad26.is_sample === 0, "Round 11: the rejected approve_sample changed nothing (play still pending, unmarked)");
+  const samplePost26 = await modPost26({ id: String(sampleId26), token: modToken26, action: "approve_sample" });
+  assert(samplePost26.status === 200 && samplePost26.body.includes("Approved as a sample play"), "Round 11: the approve_sample result page says the play was approved as a sample play");
+  const sampleRow26 = modDb26((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(sampleId26));
+  assert(sampleRow26.status === "approved" && sampleRow26.is_sample === 1, "Round 11: approve_sample approved the play AND set is_sample=1 in one action");
+  const pub26 = await j("/api/highlights?division=all");
+  const pubSample26 = pub26.body.highlights.find((h) => h.id === sampleId26);
+  assert(pubSample26 && pubSample26.isSample === true, "Round 11: the moderation-approved sample shows isSample in the public API");
+  const enter26 = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: sampleId26 }) });
+  assert(enter26.status === 400 && String(enter26.body.message || "").includes("Sample plays can't enter Hype of the Month."), "Round 11: the moderation-approved sample is refused contest entry like every other sample");
+  const plainPost26 = await modPost26({ id: String(plainId26), token: modToken26, action: "approve" });
+  const plainRow26 = modDb26((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(plainId26));
+  assert(plainPost26.status === 200 && plainPost26.body.includes("Approved — this play is now live on the board.") && plainRow26.status === "approved" && plainRow26.is_sample === 0, "Round 11: plain approve via the link is unchanged — approved, NOT sample-marked, original message");
+  const hidePost26 = await modPost26({ id: String(hideId26), token: modToken26, action: "hide" });
+  const hideRow26 = modDb26((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(hideId26));
+  assert(hidePost26.status === 200 && hidePost26.body.includes("Declined — this play is hidden") && hideRow26.status === "hidden" && hideRow26.is_sample === 0, "Round 11: hide via the link is unchanged — hidden, and a hide never sets the sample flag");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
