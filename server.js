@@ -200,7 +200,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN is_sample INTEGER DEFAULT 0"); 
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
-const prizeEligibleFor = (row) => !!row && (!!row.notify_email || (!!row.guardian_phone && !!row.text_consent));
+/* Prize eligibility (Round 9, 2026-11-05): a play can be featured
+   as a winner when the parent/guardian is reachable SOMEHOW — a
+   guardian email OR a guardian mobile on file; either one is
+   enough (the upload form now says exactly that). Text consent is
+   NOT part of eligibility anymore: it still governs whether we may
+   TEXT the number (notifyGuardianText keeps requiring it), but a
+   phone on file makes the play prize-eligible on its own. */
+const prizeEligibleFor = (row) => !!row && (!!row.notify_email || !!row.guardian_phone);
 // Loose phone sanity: keep what the guardian typed, but only store it if
 // it has enough digits to be a real number (drops obvious typos/garbage).
 const cleanPhone = (s) => { const v = String(s || "").trim(); return v.replace(/\D/g, "").length >= 10 ? v.slice(0, 32) : ""; };
@@ -508,6 +515,7 @@ function publicHighlight(row, voterToken = "") {
     // consent (i.e. reachable by text). The number itself never leaves
     // the server except on owner-authorized endpoints.
     hasGuardianText: !!row.guardian_phone && !!row.text_consent,
+    hasGuardianPhone: !!row.guardian_phone,
     // Sample/demo play flag (Round 7) — a plain boolean, safe to be
     // public: the client renders the SAMPLE badge from it, and the
     // Hall of Fame ranking drops samples client-side as a second
@@ -857,7 +865,7 @@ const server = http.createServer(async (req, res) => {
       // If the guardian opted into texts, send the claim text — inert
       // (log line only) until Emil activates Twilio; see sendText.
       if (wrow) notifyGuardianText(wrow, `HighlightHype: your athlete's play "${wrow.title}" won Hype of the Month! Reply to this text or check your email to claim. — HighlightHype`);
-      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email and no consented guardian text number on file, so the winner's parent/guardian cannot be contacted — it can't be featured as Hype of the Month until one is added." });
+      return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email or mobile on file, so the winner's parent/guardian cannot be contacted — it can't be featured as Hype of the Month until one is added." });
     }
 
     // ---- Email moderation (works on any device; see moderateToken) ----

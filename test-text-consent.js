@@ -2,7 +2,9 @@
 // Run: node test-text-consent.js
 // Starts the server on a scratch DATA_DIR with NO Twilio env vars and
 // exercises: capture + consent storage, public stripping, owner-only
-// visibility, prize eligibility (email OR consented phone), invalid
+// visibility, prize eligibility (email OR guardian phone — since
+// Round 9 (2026-11-05) a phone on file is enough on its own; text
+// consent governs only whether we may TEXT it), invalid
 // phone handling, and the inert SMS no-op log line on winner marking.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -65,7 +67,9 @@ try {
   assert(!contest.raw.includes(PHONE_A) && !contest.raw.includes("guardian_phone"), "contest response contains NO phone");
   assert(contest.body.entries.find((x) => x.id === idA)?.prizeEligible === true, "A: prizeEligible TRUE with consented phone and no email");
 
-  // --- Play B: phone WITHOUT consent, no email → stored for owner, NOT textable, NOT eligible ---
+  // --- Play B: phone WITHOUT consent, no email → stored for owner, NOT textable,
+  //     but prize-ELIGIBLE since Round 9 (the phone alone reaches the guardian;
+  //     consent gates texting only, and B must never receive a text) ---
   const PHONE_B = "516-555-9999";
   let b = await upload({ title: "Play B", playerName: "Jo Lee", team: "Plainview Hawks", guardianPhone: PHONE_B });
   const idB = b.body.id;
@@ -75,9 +79,11 @@ try {
   const qB = q.body.queue.find((x) => x.id === idB);
   assert(qB.guardian_phone === PHONE_B && qB.text_consent === false, "B: owner sees phone with text_consent = false (not textable)");
   contest = await j("/api/contest");
-  assert(contest.body.entries.find((x) => x.id === idB)?.prizeEligible === false, "B: prizeEligible FALSE — phone without consent does not count");
+  assert(contest.body.entries.find((x) => x.id === idB)?.prizeEligible === true, "B: prizeEligible TRUE since Round 9 — a guardian phone on file is enough, consent or not");
   pub = await j("/api/highlights");
   assert(!pub.raw.includes(PHONE_B), "B: public board contains NO phone");
+  const pubB = pub.body.highlights.find((x) => x.id === idB);
+  assert(pubB && pubB.hasGuardianPhone === true && pubB.hasGuardianText === false, "B: public booleans — hasGuardianPhone true, hasGuardianText false (phone yes, texting no)");
 
   // --- Play C: neither phone nor email → not eligible (rule not weakened) ---
   let c = await upload({ title: "Play C", playerName: "Pat Kim" });
@@ -114,6 +120,14 @@ try {
   assert(serverLog.includes("[sms] TWILIO_* env vars not set"), "winner A: SMS path is INERT without Twilio env — log line proves no text was sent");
   let winC = await post("/api/contest/winner", { highlightId: idC }, tok);
   assert(winC.body.ok && /cannot be contacted/.test(winC.body.warning || ""), "winner C: warning fires when no guardian contact exists");
+
+  // --- Winner B (Round 9): phone without consent → NO warning (eligible),
+  //     but also NO text attempt — consent still gates texting ---
+  serverLog = "";
+  let winB = await post("/api/contest/winner", { highlightId: idB }, tok);
+  assert(winB.body.ok && winB.body.warning === "", "winner B: no contact warning — phone-only is prize-eligible since Round 9");
+  await wait(400);
+  assert(!serverLog.includes("[sms]"), "winner B: NO text is attempted without consent (eligibility widened, texting rules unchanged)");
 
   console.log("\nALL TEXT-OPT-IN TESTS PASSED");
 } finally {

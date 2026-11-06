@@ -199,9 +199,12 @@ try {
      Tonight batch: the round pause/play button was REMOVED (tapping
      the film pauses for pause-to-shop) and the photo nav tiles became
      the division blocks' banner headers (§5/§8).
-     Nov 5 (2026-11-05): the film is SILENT (music stripped, probed in
-     §8), two scenes are back views, the floating hint pill is gone,
-     and a real pause/play button is docked in the film's corner. */
+     Nov 5 (2026-11-05): the film was made SILENT (music stripped),
+     two scenes are back views, the floating hint pill is gone,
+     and a real pause/play button is docked in the film's corner.
+     Round 9 (2026-11-05): the silence is REVERSED — a quiet music
+     bed is back in the file (§8 probes it) with a docked speaker
+     toggle beside Pause; autoplay still starts muted. */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
   assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
   assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
@@ -250,7 +253,12 @@ try {
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
   assert(filmDur > 19 && filmDur < 21, `the film runs ~20s after the Round 3 recut (${filmDur}s — the same five scenes at 4.0s each; Emil: the 7s scenes felt too long)`);
   const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
-  assert(filmStreams.includes("video") && !filmStreams.includes("audio"), "the film is SILENT (Nov 5): no audio stream at all — the music bed is stripped");
+  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "Round 9: the film HAS an audio stream again — the quiet music bed (the Nov 5 silent cut is reversed at Nicholas's request, owner approved)");
+  const filmPix = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=pix_fmt", "-of", "csv=p=0", filmFile]).toString().trim();
+  assert(filmPix === "yuv420p", "Round 9: the film's video stream is still yuv420p (the audio mux did not touch the picture)");
+  const filmVol = execFileSync("bash", ["-c", `ffmpeg -i "${filmFile}" -map 0:a -af volumedetect -f null - 2>&1 | grep mean_volume`]).toString();
+  const filmMeanDb = Number((/mean_volume:\s*(-?[\d.]+)/.exec(filmVol) || [])[1]);
+  assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 9: the film's bed is QUIET (mean ${filmMeanDb} dB — the hero bed at 0.2 gain: ambience, not a soundtrack)`);
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
@@ -454,7 +462,7 @@ try {
   assert(appJs.includes('onclick="enterContest(${h.id}, this)"'), "the Enter button still calls enterContest from the card");
   assert(appJs.includes('class="card-msg"') && appJs.includes("data-enter-msg"), "cards render the per-card enter message slot");
   assert(appJs.includes("ENTER_MSGS.get(h.id)") && appJs.includes("ENTER_MSGS.has(h.id)"), "cardHtml renders the slot from ENTER_MSGS (re-render safe, exactly one slot per card)");
-  assert(enterBlock.includes("can't be featured yet") && enterBlock.includes("parent/guardian email on file") && enterBlock.includes("It can still collect votes"), "the no-guardian prompt explains the rule inline, in plain words");
+  assert(enterBlock.includes("can't be featured yet") && enterBlock.includes("parent/guardian email or mobile number on file") && enterBlock.includes("It can still collect votes"), "the no-guardian prompt explains the rule inline, in plain words (Round 9: email OR mobile)");
   assert(enterBlock.includes("Enter anyway") && enterBlock.includes("Not now"), "the inline prompt offers Enter anyway / Not now");
   assert(enterBlock.includes("enterContestAnyway") && enterBlock.includes("enterContestDismiss"), "both inline choices are wired (anyway -> submit, dismiss -> clear)");
   assert(enterBlock.includes('api("/api/contest/enter"') && enterBlock.includes("highlightId: id"), "the enter POST contract is unchanged (/api/contest/enter, highlightId)");
@@ -466,9 +474,10 @@ try {
   const enterSandbox = {
     window: {},
     ALL_PLAYS: [
-      { id: 41, hasGuardianEmail: false, hasGuardianText: false },
-      { id: 42, hasGuardianEmail: true, hasGuardianText: false },
-      { id: 43, hasGuardianEmail: true, hasGuardianText: false },
+      { id: 41, hasGuardianEmail: false, hasGuardianText: false, hasGuardianPhone: false },
+      { id: 42, hasGuardianEmail: true, hasGuardianText: false, hasGuardianPhone: false },
+      { id: 43, hasGuardianEmail: true, hasGuardianText: false, hasGuardianPhone: false },
+      { id: 44, hasGuardianEmail: false, hasGuardianText: false, hasGuardianPhone: true },
     ],
     CONTEST: { period: "2026-11", entries: [], winnerId: null },
     api: async (p, opts) => {
@@ -501,6 +510,9 @@ try {
   await enterSandbox.window.enterContest(43);
   assert(enterCalls.length === 3, "behavioral: the refusal path still posts (server decides)");
   assert(enterMsgOf(43).includes("already in this month's contest") && enterMsgOf(43).includes("err"), "behavioral: a server refusal shows inline on the card as an error, not an alert");
+  await enterSandbox.window.enterContest(44);
+  assert(enterCalls.length === 4 && enterCalls[3].body.highlightId === 44, "behavioral (Round 9): a PHONE-ONLY play enters directly — email OR mobile satisfies the featured rule, no prompt");
+  assert(enterMsgOf(44).includes("You're in — good luck!") && !enterMsgOf(44).includes("Enter anyway"), "behavioral (Round 9): the phone-only enter lands the success message, never the no-guardian prompt");
 
   /* ---- 15. Vote in-flight guard (Fixes batch, 2026-11-05): voting
      is a toggle, so a second tap during a slow first request fired a
@@ -820,7 +832,7 @@ try {
   const guardianAt = home.indexOf('class="quick-field guardian-block"');
   const happenedAt = home.indexOf("What happened? (optional)");
   assert(guardianAt > happenedAt && guardianAt < moreAt, "Round 6: the guardian block sits in the main form — after 'What happened?', before the collapsed 'Add more' section");
-  assert(home.includes("Parent or guardian — needed to win") && home.includes("To win Hype of the Month, we need a parent or guardian we can reach — ask a parent first.") && home.includes("You can still post without it; your play just can't be featured until we have it."), "Round 6: the guardian block carries the plain-language eligibility explainer (ask a parent first; posting still allowed)");
+  assert(home.includes("Parent or guardian — needed to win") && home.includes("Email or mobile — either one is enough.") && home.includes("We only use it to contact the winner's parent or guardian") && home.includes("You can still post with neither; your play just can't be featured until we have one."), "Round 6+9: the guardian block carries the plain-language eligibility explainer (Round 9: email OR mobile — either one is enough; posting with neither still allowed, just not featureable)");
   assert(!home.includes("Add a parent/guardian contact so we can reach you if this play wins"), "Round 6: the old guardian pointer note under the optional section is gone (the block itself is in the form now)");
   const moreBlock = home.slice(moreAt, home.indexOf("</details>", moreAt));
   assert(!moreBlock.includes("notifyEmail") && !moreBlock.includes("guardianPhone") && !moreBlock.includes("textConsent"), "Round 6: no guardian field remains inside the collapsed section");
@@ -846,7 +858,7 @@ try {
   const pub2 = await j("/api/highlights?division=all");
   const playA = pub2.body.highlights.find((h) => h.id === upA.body.id);
   const playB = pub2.body.highlights.find((h) => h.id === upB.body.id);
-  assert(playA && playA.hasGuardianEmail === false && playA.hasGuardianText === false, "Round 6: the no-guardian play reports no guardian contact on file");
+  assert(playA && playA.hasGuardianEmail === false && playA.hasGuardianText === false && playA.hasGuardianPhone === false, "Round 6: the no-guardian play reports no guardian contact on file (Round 9: hasGuardianPhone false too)");
   assert(playB && playB.sport === "wrestling" && playB.hasGuardianEmail === true, "Round 6: the wrestling play is served with sport=wrestling and its guardian email on file");
   for (const u of [upA, upB]) {
     const e = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: u.body.id }) });
@@ -1202,6 +1214,107 @@ try {
     assert(r8Calls[0] === "showHome" && r8Calls[1] === "panel:plays" && r8("detailPlayId") === 102 && r8Wrap.hidden === false, "Round 8: a Hall of Fame tap opens the play's detail");
     r8("window.closePlayDetail()");
   }
+
+  /* ---- 24. Round 9 (2026-11-05): Nicholas's phone fixes ----
+     From his real-device pass over the round-8 build, owner-approved:
+     (1) an unmissable header Store button (the link lived only in
+     the ☰ menu); (2) board controls with >=48px tap targets and
+     readable inactive labels; (3) a tap layer over tile media (the
+     playing video swallowed taps in his in-app browser); (4)
+     guardian contact = email OR mobile, in the copy AND the rule
+     (server + enter flow; text consent still gates TEXTING — the
+     flipped Play B case lives in test-text-consent.js and the
+     phone-only enter drive is §14); (5) store photos re-cropped
+     full-garment from the older-teen lookbook board; (6) last
+     month's winner strip + the never-disappear line; (7) the store
+     film's quiet music bed + docked sound toggle (the file itself
+     is probed in §8). Deliberately NOT here: separate Boys/Girls
+     contest pages — the owner is still deciding. */
+  // (1) Store button: in the header bar itself, before the ☰ button,
+  // wired through the same data-store-link handler as the menu entry.
+  const headerBlock9 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
+  assert(headerBlock9.includes('class="nav-store-btn" href="#shop" data-store-link') && headerBlock9.includes("🛍️ Store"), "Round 9: the header carries a real Store button, not just the buried menu link");
+  assert(headerBlock9.indexOf("nav-store-btn") < headerBlock9.indexOf('id="menuBtn"'), "Round 9: the Store button sits in the bar itself, before the menu button");
+  assert(css.includes(".nav-store-btn{") && css.includes("min-height:44px"), "Round 9: the Store button is a >=44px pill");
+  assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9: the menu's store entry stays as a second path");
+  // (2) Board control sizing lives in the stylesheet (both boards).
+  assert(css.includes(".viewseg button{min-height:48px"), "Round 9: board view tabs are >=48px tall");
+  assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px"), "Round 9: segmented buttons stretch to fill their pill row at ~52px tall, on BOTH boards");
+  assert(css.includes(".team-select,.sport-select,.search-input{min-height:48px}"), "Round 9: sport/team selects and the search field are >=48px tall");
+  assert(css.includes("#boardFilters,#allFilters{row-gap:14px}"), "Round 9: stacked board control rows are >=12px apart");
+  assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px;display:flex;align-items:center;justify-content:center;color:#e8e8e2"), "Round 9: inactive segmented labels are near-white, not the dim muted gray");
+  // (3) Tile tap layer: drive the REAL tileHtml and inspect order.
+  const tileFn9 = appJs.slice(appJs.indexOf("function tileHtml"), appJs.indexOf("/* Vote hardening"));
+  const tileSandbox9 = {
+    esc: (s) => String(s ?? ""), cap: (s) => String(s ?? ""),
+    fameThumbHtml: () => '<video src="/uploads/x.mp4"></video>',
+    console,
+  };
+  const tileCtx9 = vm.createContext(tileSandbox9);
+  vm.runInContext(tileFn9, tileCtx9);
+  const tile9 = vm.runInContext(`tileHtml({ id: 7, title: "Tap Test", sport: "soccer", division: "boys", player_name: "Nico", voteCount: 3, hasVoted: false })`, tileCtx9);
+  const iVid9 = tile9.indexOf("<video"), iTap9 = tile9.indexOf('class="tile-tap"'), iVote9 = tile9.indexOf("tile-votes");
+  assert(iVid9 > -1 && iTap9 > iVid9 && iVote9 > iTap9, "Round 9: the tap layer sits OVER the tile media and the vote row stays outside it");
+  assert(tile9.includes('onclick="event.stopPropagation();openPlayDetail(7)"'), "Round 9: tapping the media layer opens the play detail via the existing openPlayDetail");
+  assert(css.includes(".tile-tap{position:absolute;inset:0;z-index:1") && css.includes(".tile-media .badge,.tile-media .ranktag{z-index:2}"), "Round 9: tap layer is above the video, below the winner badge / rank chip");
+  // (4) Enter flow guard is email-OR-phone now (behavior in §14).
+  assert(appJs.includes("!play.hasGuardianEmail && !play.hasGuardianPhone"), "Round 9: the enter prompt fires only when NEITHER guardian email nor mobile is on file");
+  // (5) Store photos: all twelve re-crops on disk at 620px wide.
+  for (const slug of ["boys-street", "boys-athletics", "boys-unleashed", "girls-street", "girls-athletics", "girls-essentials"]) {
+    for (const side of ["front", "back"]) {
+      const dims = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", path.join(root, "public", "swag", `${slug}-${side}.jpg`)]).toString().trim();
+      assert(dims === "620,1266", `Round 9: ${slug}-${side}.jpg is the full-garment re-crop at 620px wide (was ~300px) — got ${dims}`);
+    }
+  }
+  // (7) Film sound toggle wiring (the file's audio is probed in §8).
+  assert(home.includes('class="swag-film-controls"') && home.includes('id="swagSoundBtn"') && home.includes('id="swagPauseBtn"'), "Round 9: the film docks a sound toggle beside the pause button");
+  assert(appJs.includes('$("#swagSoundBtn")') && appJs.includes("v.muted = !v.muted") && appJs.includes('"volumechange"'), "Round 9: the toggle flips the film's own muted flag (pausing pauses the sound — same element) and the label re-syncs on volumechange");
+  assert(css.includes(".swag-film-controls{") && css.includes("min-height:44px"), "Round 9: film controls are >=44px targets in one docked cluster");
+  // (6) Winner strip, end to end: seed LAST month with an entered,
+  // crowned play through the real API, then drive the real
+  // renderMonth with the real previous-period payload.
+  assert(appJs.includes("prevPeriodOf(CONTEST.period)") && appJs.includes("/api/contest?period="), "Round 9: loadData fetches the previous period's contest for the strip");
+  const ppCtx9 = vm.createContext({ console });
+  vm.runInContext(appJs.slice(appJs.indexOf("function prevPeriodOf"), appJs.indexOf("/* ---------------- media + cards")), ppCtx9);
+  assert(vm.runInContext(`prevPeriodOf("2026-11")`, ppCtx9) === "2026-10" && vm.runInContext(`prevPeriodOf("2026-01")`, ppCtx9) === "2025-12" && vm.runInContext(`prevPeriodOf("")`, ppCtx9) === "", "Round 9: prevPeriodOf steps back one month, across the year boundary, and bails on junk");
+  const MONTHS9 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const now9 = new Date();
+  const curPeriod9 = `${now9.getUTCFullYear()}-${String(now9.getUTCMonth() + 1).padStart(2, "0")}`;
+  const prevDate9 = new Date(Date.UTC(now9.getUTCFullYear(), now9.getUTCMonth() - 1, 1));
+  const prevPeriod9 = `${prevDate9.getUTCFullYear()}-${String(prevDate9.getUTCMonth() + 1).padStart(2, "0")}`;
+  const prevName9 = MONTHS9[prevDate9.getUTCMonth()];
+  const png9 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  const f9 = new FormData();
+  f9.append("title", "Round 9 Strip Winner"); f9.append("sport", "baseball"); f9.append("division", "boys"); f9.append("playerName", "Nico");
+  f9.append("file", new Blob([png9], { type: "image/png" }), "strip.png");
+  const up9 = await j("/api/highlights", { method: "POST", body: f9 });
+  assert(up9.status === 201, "Round 9: strip-winner play uploads");
+  const stripId = up9.body.id;
+  const ap9 = await j(`/api/highlights/${stripId}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved" }) });
+  assert(ap9.body.status === "approved", "Round 9: strip-winner play approved");
+  const en9 = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: stripId, period: prevPeriod9 }) });
+  assert(en9.status === 201 && en9.body.ok, "Round 9: the play enters LAST month's contest (explicit period)");
+  const win9 = await j("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ highlightId: stripId, period: prevPeriod9 }) });
+  assert(win9.body.ok, "Round 9: the owner crowns last month's winner");
+  const prevContest9 = (await j(`/api/contest?period=${prevPeriod9}`)).body;
+  assert(prevContest9.winnerId === stripId, "Round 9: the previous period's contest payload carries the winnerId — the strip's data source (no new tables)");
+  const rmEls9 = {};
+  const rmSandbox9 = {
+    CONTEST: { period: curPeriod9, entries: [], winnerId: null },
+    LAST_MONTH: prevContest9,
+    MONTHS: MONTHS9,
+    $: (sel) => (rmEls9[sel] ||= { innerHTML: "", textContent: "", style: {}, hidden: true }),
+    esc: (s) => String(s ?? ""), cap: (s) => String(s ?? ""),
+    console,
+  };
+  const rmCtx9 = vm.createContext(rmSandbox9);
+  vm.runInContext(appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml")), rmCtx9);
+  vm.runInContext("renderMonth()", rmCtx9);
+  assert(rmEls9["#lastWinner"].hidden === false && rmEls9["#lastWinner"].innerHTML.includes(`🏆 Last month (${prevName9}): Round 9 Strip Winner — Nico`) && rmEls9["#lastWinner"].innerHTML.includes(`openPlayDetail(${stripId})`), "Round 9: with a crowned past winner, the strip renders and taps through to the play");
+  assert(rmEls9["#neverDisappear"].hidden === false, "Round 9: the never-disappear line shows while the current month has no entries");
+  assert(home.includes("Plays never disappear — when a month ends, its plays stay in All Hypes."), "Round 9: the never-disappear line is in the Month board markup");
+  vm.runInContext(`LAST_MONTH = { period: "${prevPeriod9}", entries: [], winnerId: null }; renderMonth();`, rmCtx9);
+  assert(rmEls9["#lastWinner"].hidden === true && rmEls9["#lastWinner"].innerHTML === "", "Round 9: with NO past winner the strip renders nothing — no placeholder, no fake winner");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
