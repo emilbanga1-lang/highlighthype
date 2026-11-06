@@ -57,6 +57,7 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 /* ---------------- data ---------------- */
 let ALL_PLAYS = [];      // approved, all-time (from /api/highlights?division=all)
 let CONTEST = { period: "", entries: [], winnerId: null };
+let LAST_MONTH = { period: "", entries: [], winnerId: null }; // previous period's contest (Round 9 winner strip)
 let currentView = "month";
 let monthDiv = "boys", monthSport = "all";
 let allDiv = "all", allSport = "all", allTeam = "all", allSearch = "";
@@ -82,8 +83,32 @@ async function loadData() {
   ]);
   ALL_PLAYS = h.highlights || [];
   CONTEST = c;
+  /* Round 9: fetch the PREVIOUS month's contest too — the server
+     already records each period's winner (contest_winners), and
+     renderMonth turns it into the "Last month" winner strip.
+     Best-effort only: a failed fetch leaves LAST_MONTH empty and
+     the strip simply never renders — no placeholder, no fake
+     winner. The fetch completes BEFORE applyDefaultView/renderAll,
+     so the round-8 order (view decision, then first render) is
+     unchanged. */
+  LAST_MONTH = { period: "", entries: [], winnerId: null };
+  const prevPeriod = prevPeriodOf(CONTEST.period);
+  if (prevPeriod) {
+    try {
+      const pc = await api(`/api/contest?period=${prevPeriod}&voterToken=${voterToken}`);
+      if (pc && pc.period === prevPeriod) LAST_MONTH = pc;
+    } catch (e) { /* strip stays hidden */ }
+  }
   applyDefaultView();
   renderAll();
+}
+/* The period ("YYYY-MM") right before the given one. */
+function prevPeriodOf(period) {
+  const m = /^(\d{4})-(\d{2})$/.exec(period || "");
+  if (!m) return "";
+  let y = Number(m[1]), mo = Number(m[2]) - 1;
+  if (mo === 0) { mo = 12; y -= 1; }
+  return `${y}-${String(mo).padStart(2, "0")}`;
 }
 function applyDefaultView() {
   if (!defaultViewPending) return;
@@ -154,12 +179,18 @@ function cardHtml(h, opts = {}) {
    opens the play's FULL card (cardHtml, every action) in the play
    detail overlay — see openPlayDetail. Athlete pages keep the full
    cards; only the two board lists tile. */
+/* Round 9 tap layer: on Nicholas's phone (an in-app browser) the
+   playing <video> surface swallowed taps on the media area, so
+   tiles "did nothing". A transparent .tile-tap span now sits over
+   the media (above the video, below the winner badge / rank chip;
+   the Vote button lives in .tile-body and is untouched) and opens
+   the same detail. The tile's own click/keyboard handlers stay. */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   const name = h.athlete_label || h.player_name || "";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media">${fameThumbHtml(h)}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="tile-media">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
     <div class="tile-body">
       <h3 class="tile-title">${esc(h.title)}</h3>
       <p class="tile-meta"><b>${esc(cap(h.sport))}</b> · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
@@ -269,8 +300,8 @@ window.enterContest = (id) => {
     setEnterMsg(id, `<p class="card-msg-text">Sample plays can't enter Hype of the Month.</p>`);
     return;
   }
-  if (play && !play.hasGuardianEmail && !play.hasGuardianText) {
-    setEnterMsg(id, `<p class="card-msg-text">This play can't be featured yet — it needs a parent/guardian email on file so we can reach the winner. It can still collect votes.</p>
+  if (play && !play.hasGuardianEmail && !play.hasGuardianPhone) {
+    setEnterMsg(id, `<p class="card-msg-text">This play can't be featured yet — it needs a parent/guardian email or mobile number on file so we can reach the winner. It can still collect votes.</p>
       <div class="card-msg-btns">
         <button type="button" class="mini-btn" onclick="enterContestAnyway(${id})">Enter anyway</button>
         <button type="button" class="mini-btn" onclick="enterContestDismiss(${id})">Not now</button>
@@ -387,6 +418,24 @@ function renderMonth() {
   const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
   $("#board").innerHTML = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount })).join("");
   $("#emptyState").style.display = filtered.length ? "none" : "block";
+  /* Round 9: (a) the never-disappear line — keyed to the CURRENT
+     MONTH's entries (not the filtered list): whenever the month has
+     no entries at all, say plainly that plays don't delete when a
+     month ends. (b) Last month's winner strip — renders ONLY when
+     the previous period actually crowned a winner whose play is
+     still on that period's board; otherwise the strip stays empty
+     and hidden (true today: no contest has ever had entries). */
+  const nd = $("#neverDisappear");
+  if (nd) nd.hidden = entries.length !== 0;
+  const strip = $("#lastWinner");
+  if (strip) {
+    const wEntry = LAST_MONTH.winnerId ? (LAST_MONTH.entries || []).find((e) => e.id === LAST_MONTH.winnerId) : null;
+    if (wEntry) {
+      const pm = Number((LAST_MONTH.period || "").slice(5, 7));
+      strip.innerHTML = `<button type="button" class="last-winner-btn" onclick="openPlayDetail(${wEntry.id})">🏆 Last month (${MONTHS[pm - 1] || ""}): ${esc(wEntry.title)} — ${esc(wEntry.athlete_label || wEntry.player_name || "")}</button>`;
+      strip.hidden = false;
+    } else { strip.innerHTML = ""; strip.hidden = true; }
+  }
 }
 /* Hall of Fame thumbnails (Round 5, 2026-11-05): image plays keep
    their photo; video plays — uploaded files and direct link videos,
@@ -601,8 +650,11 @@ function showStore(target) {
   $$(".view-home video").forEach((v) => v.pause());
   const sv = $("#swagVideo");
   if (sv) {
-    // The film is SILENT (2026-11-05): Emil reversed the music add —
-    // the file has no audio track at all, and the video stays muted.
+    // Round 9 (2026-11-05): the film HAS a quiet music bed again
+    // (Nicholas asked for sound; owner approved). Browsers only
+    // allow muted autoplay, so every store entry (re)starts muted
+    // and the docked speaker toggle in the film block below is the
+    // unmute path; its label syncs off the muted state.
     sv.muted = true;
     const p = sv.play(); if (p && p.catch) p.catch(() => {});
   }
@@ -777,6 +829,24 @@ function filmSceneAt(t) {
   v.addEventListener("play", syncPauseBtn);
   pauseBtn?.addEventListener("click", (e) => { e.stopPropagation(); if (v.paused) v.play(); else v.pause(); });
   syncPauseBtn();
+  // Sound toggle (Round 9, 2026-11-05): the film's audio bed is the
+  // hero's master music mixed LOW (0.2 gain in the file itself) —
+  // "quiet, like stadium ambience". The film autoplays muted
+  // (browser rule); this docked speaker button, beside Pause in the
+  // same controls cluster, is the only unmute path. It flips the
+  // SAME media element's muted flag, so pausing the film pauses its
+  // sound too, and the label re-syncs on every volumechange
+  // (including showStore's reset-to-muted on store entry).
+  const soundBtn = $("#swagSoundBtn");
+  const syncSoundBtn = () => {
+    if (!soundBtn) return;
+    soundBtn.innerHTML = v.muted ? "🔇 <span>Sound off</span>" : "🔊 <span>Sound on</span>";
+    soundBtn.setAttribute("aria-label", v.muted ? "Turn the film's sound on" : "Mute the film");
+    soundBtn.setAttribute("aria-pressed", v.muted ? "false" : "true");
+  };
+  v.addEventListener("volumechange", syncSoundBtn);
+  soundBtn?.addEventListener("click", (e) => { e.stopPropagation(); v.muted = !v.muted; syncSoundBtn(); });
+  syncSoundBtn();
   v.addEventListener("click", () => { if (v.paused) v.play(); else v.pause(); });
 })();
 
