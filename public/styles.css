@@ -1299,3 +1299,29 @@
     body:not(.store-open) .nav .brand-logo{height:76px}
     .hero{min-height:min(calc(80vh + 40px),720px)}
   }
+
+  /* ===== Round 17 (2026-11-06): DESKTOP upload-form width =====
+     Emil, testing on a desktop: the "Post a Play" form stretched
+     nearly the full width of the 1220px wrap — the dropzone and
+     every input ran edge to edge and the form took up a lot of
+     space. Desktop only (min-width:761px — the same fence as
+     Round 16; phone CSS is byte-for-byte untouched):
+       1. #uploadForm becomes a centered ~640px column
+          (max-width + auto side margins). Scoped to the id so the
+          Hype Frame studio, which reuses .upload-card, keeps its
+          current width. Inputs already run width:100% of the card,
+          so they stay full-width INSIDE the column, and every
+          field, the Boys/Girls toggle and the guardian block are
+          unchanged apart from the narrower measure.
+       2. The dropzone compacts so the clip picker takes a sensible
+          height within the column instead of reading as a
+          full-width billboard: vertical padding 34px / 28px ->
+          20px / 18px, and .dz-big drops 23px -> 20px — at the
+          column's inner width the 23px headline wrapped to two
+          lines and made the zone TALLER than the wide version;
+          20px keeps it on one line like the desktop original. */
+  @media (min-width:761px){
+    #uploadForm{max-width:640px;margin-left:auto;margin-right:auto}
+    #uploadForm .dropzone{padding-top:20px;padding-bottom:18px}
+    #uploadForm .dropzone .dz-big{font-size:20px}
+  }
