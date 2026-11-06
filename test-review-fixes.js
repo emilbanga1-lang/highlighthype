@@ -1727,7 +1727,10 @@ try {
      NEXT in the play detail: up to 4 other approved plays,
      same-sport first, then votes desc, then newest; a tap swaps
      the dialog through openPlayDetail (hash follows, list
-     rebuilds); NO autoplay-advance; hidden when no other plays.
+     rebuilds); hidden when no other plays. (Autoplay-advance and
+     the session played-set arrived with Round 15 — see §30; the
+     one assert below about the rebuilt list was updated in place
+     there, because played plays now drop out of it.)
      Harness repairs this round forced in earlier sections: §24's
      tile slice now starts at the Round 14 helpers, and the §24/§25
      board drives stub hydrateDurPills (the real one is driven
@@ -1743,7 +1746,7 @@ try {
     assert(css14.includes(".dur-pill[hidden]{display:none}"), "Round 14: an unfilled pill stays display:none until its video's metadata lands");
     assert(tileBlock14.includes('class="tile-media dur-host"') && tileBlock14.indexOf("${durPillHtml(h)}") > tileBlock14.indexOf("ranktag"), "Round 14: the pill renders inside the tile media, after the badge/rank slots");
     assert(tileBlock14.indexOf("${durPillHtml(h)}") < tileBlock14.indexOf('class="tile-body"') && tileBlock14.indexOf("sample-badge") > tileBlock14.indexOf('class="tile-body"'), "Round 14: pill (media, bottom-right) and SAMPLE badge (tile body) can never collide — they live in different boxes");
-    assert(!appJs.includes("viewCount") && !appJs.includes("onended"), "Round 14: no view-count field is read or invented anywhere, and no onended autoplay-advance exists");
+    assert(!appJs.includes("viewCount") && !appJs.includes("onended"), "Round 14/15: no view-count field is read or invented anywhere, and autoplay-advance (Round 15) listens via addEventListener — no inline onended attribute exists");
     assert(detailBlock14.includes("upNextHtml(play)") && detailBlock14.includes("hydrateDurPills()"), "Round 14: the detail render appends Up next and hydrates duration pills");
     const monthBlock14 = appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml"));
     const allBlock14 = appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
@@ -1856,7 +1859,7 @@ try {
     assert(r14("detailPlayId") === 202 && loc14.hash === "#play-202" && bodyEl14.innerHTML.includes('data-play-id="202"'), "Round 14: tapping an Up-next row swaps the dialog to that play and moves the #play- hash with it");
     assert(wrap14.scrollTop === 0, "Round 14: the swap restarts the overlay at the new play's top");
     const up14b = bodyEl14.innerHTML.slice(bodyEl14.innerHTML.indexOf('class="upnext"'));
-    assert(!up14b.includes("openPlayDetail(202)") && up14b.includes("openPlayDetail(201)"), "Round 14: the rebuilt Up next excludes the NEW open play and offers the previous one");
+    assert(!up14b.includes("openPlayDetail(202)") && !up14b.includes("openPlayDetail(201)") && up14b.includes("openPlayDetail(203)"), "Round 15 (supersedes the Round 14 line): the rebuilt Up next excludes the new open play AND the already-played previous one — played plays drop out of the session list, and the next unplayed candidate (203) is offered");
     r14("window.closePlayDetail()");
     assert(wrap14.hidden === true && loc14.hash === "#top", "Round 14: ← Back still closes the detail and drops its hash (unchanged)");
     // Single-play board: no section at all.
@@ -1864,6 +1867,146 @@ try {
     r14("window.openPlayDetail(201)");
     assert(bodyEl14.innerHTML.includes('data-play-id="201"') && !bodyEl14.innerHTML.includes('class="upnext"'), "Round 14: with a single approved play the Up next section is hidden entirely");
     r14("window.closePlayDetail()");
+  }
+
+  /* ---- 30. Round 15 (2026-11-06): autoplay-advance for Up next ----
+     The owner turned ON the YouTube behavior Round 14 deliberately
+     left out: when the open play's video finishes, the detail rolls
+     into the next Up next candidate on its own. Rules: (1) advance
+     goes through openPlayDetail, exactly like a tap (full re-render,
+     hash follows, overlay scrolls to top); (2) NO cycles — a
+     per-detail-session played set (detailPlayedIds) feeds the same
+     candidate logic as the list, so played plays drop out of BOTH,
+     and when no unplayed candidate remains autoplay just stops (no
+     wrap, no replay); the set resets when a detail opens fresh from
+     outside, and within-detail moves (tap or advance) add to it;
+     (3) a small Autoplay switch in the Up next heading, default ON,
+     session-only (a page-load variable, never stored), repainting
+     itself in place so flipping it never restarts the video;
+     (4) guards — only a real file/link video wires an ended
+     listener (image and embed plays never advance; samples advance
+     like any play), only the ended event triggers (pause never
+     does), and closing the detail tears the handler down. The
+     detail video's shared loop attribute is removed for the
+     detail's own copy, or the ended event could never fire. ---- */
+  {
+    const css15 = fs.readFileSync(path.join(root, "public", "styles.css"), "utf8");
+    // (1) Source pins.
+    assert(appJs.includes('addEventListener("ended"') && appJs.includes('removeEventListener("ended"'), "Round 15: the detail video's ended event is wired with addEventListener and torn down with removeEventListener");
+    assert(appJs.includes("let detailAutoplay = true;") && appJs.includes("const detailPlayedIds = new Set();"), "Round 15: autoplay defaults ON at page load (a session-only variable) and the per-session played set exists");
+    assert(appJs.includes("autoplay-toggle") && appJs.includes('onclick="toggleDetailAutoplay()"'), "Round 15: the Up next heading carries the Autoplay toggle switch");
+    const togRule15 = css15.slice(css15.indexOf(".autoplay-toggle.on{"), css15.indexOf("}", css15.indexOf(".autoplay-toggle.on{")));
+    assert(togRule15.includes("var(--volt)"), "Round 15: the toggle's ON state is volt-lime, matching the site's pill language");
+    assert(css15.includes(".upnext-head{"), "Round 15: the Up next heading row (title + toggle) has its layout style");
+
+    // (2) Behavioral — the §29 drive pattern, with a fake detail
+    // video whose listeners the test can inspect and fire.
+    const ago15 = (ms) => new Date(Date.now() - ms).toISOString();
+    const plays15 = [
+      { id: 201, title: "Goal Fest", sport: "soccer", division: "girls", athlete_label: "Sofia R.", player_name: "Sofia Reyes", media_kind: "file", media_url: "/uploads/s1.mp4", mime: "video/mp4", voteCount: 3, hasVoted: false, isSample: false, isWinner: false, created_at: ago15(2 * 864e5 + 6e4) },
+      { id: 202, title: "Second Strike", sport: "soccer", division: "boys", athlete_label: "Liam O.", player_name: "Liam Ortiz", media_kind: "file", media_url: "/uploads/s2.mp4", mime: "video/mp4", voteCount: 9, hasVoted: false, isSample: false, isWinner: false, created_at: ago15(5 * 36e5 + 6e4) },
+      { id: 203, title: "Quiet Keeper", sport: "soccer", division: "girls", athlete_label: "Ava B.", player_name: "Ava Brooks", media_kind: "file", media_url: "/uploads/s3.mp4", mime: "video/mp4", voteCount: 1, hasVoted: false, isSample: true, isWinner: false, created_at: ago15(21 * 864e5 + 36e5) },
+      { id: 204, title: "Grand Slam", sport: "baseball", division: "boys", athlete_label: "Jayden C.", player_name: "Jayden Cole", media_kind: "file", media_url: "/uploads/s4.mp4", mime: "video/mp4", voteCount: 50, hasVoted: false, isSample: false, isWinner: false, created_at: ago15(36e5) },
+      { id: 205, title: "Top Shelf", sport: "hockey", division: "boys", athlete_label: "Noah R.", player_name: "Noah Reed", media_kind: "file", media_url: "/uploads/s5.mp4", mime: "video/mp4", voteCount: 40, hasVoted: false, isSample: false, isWinner: false, created_at: ago15(3 * 864e5) },
+      { id: 206, title: "Long Bomb", sport: "football", division: "boys", athlete_label: "Eli F.", player_name: "Eli Ford", media_kind: "file", media_url: "/uploads/s6.mp4", mime: "video/mp4", voteCount: 30, hasVoted: false, isSample: false, isWinner: false, created_at: ago15(4 * 864e5) },
+    ];
+    const mkVideo15 = () => ({
+      listeners: {}, removedAttrs: [],
+      addEventListener(ev, fn) { this.listeners[ev] = fn; },
+      removeEventListener(ev, fn) { if (this.listeners[ev] === fn) delete this.listeners[ev]; },
+      removeAttribute(a) { this.removedAttrs.push(a); },
+      fire(ev) { if (this.listeners[ev]) this.listeners[ev](); },
+    });
+    let video15 = null;
+    const bodyEl15 = { innerHTML: "", querySelector: (sel) => (sel === "video" ? video15 : null) };
+    const wrap15 = { hidden: true, scrollTop: 0, querySelector: () => ({ focus: () => {} }) };
+    const classes15 = new Set();
+    const loc15 = { hash: "" };
+    const stateSpan15 = { textContent: "On" };
+    const toggleBtn15 = { attrs: {}, classList: { toggles: [], toggle(c, f) { this.toggles.push([c, f]); } }, setAttribute(k, v) { this.attrs[k] = v; }, querySelector: () => stateSpan15 };
+    const doc15 = {
+      querySelector: (sel) => (sel === "#playDetail" ? wrap15 : sel === "#playDetailBody" ? bodyEl15 : null),
+      querySelectorAll: () => [],
+      addEventListener: () => {},
+      body: { classList: { add: (c) => classes15.add(c), remove: (c) => classes15.delete(c) } },
+    };
+    const sb15 = {
+      console, window: {},
+      document: doc15,
+      $: (sel) => doc15.querySelector(sel),
+      $$: (sel) => (sel === ".autoplay-toggle" ? [toggleBtn15] : []),
+      location: loc15,
+      history: { replaceState: (a, b, url) => { loc15.hash = url; } },
+      switchView: () => {}, showHome: () => {}, showPanel: () => {},
+      ownerToken: () => "",
+      ALL_PLAYS: plays15,
+      CONTEST: { period: "2026-11", entries: [], winnerId: null },
+    };
+    const ctx15 = vm.createContext(sb15);
+    vm.runInContext(appJs.slice(appJs.indexOf("const esc ="), appJs.indexOf("/* ---------------- data")), ctx15);
+    vm.runInContext(appJs.slice(appJs.indexOf("function mediaHtml"), appJs.indexOf("/* ---------------- views")), ctx15);
+    vm.runInContext(appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine")), ctx15);
+    vm.runInContext(appJs.slice(appJs.indexOf("let detailPlayId"), appJs.indexOf("/* ---------------- athlete collection")), ctx15);
+    vm.runInContext("var openPlayDetail = window.openPlayDetail, closePlayDetail = window.closePlayDetail;", ctx15);
+    const r15 = (code) => vm.runInContext(code, ctx15);
+    const openWithVideo15 = (id) => { video15 = mkVideo15(); r15(`window.openPlayDetail(${id})`); return video15; };
+
+    // Fresh open: default ON, toggle painted ON in the heading,
+    // ended wired (and ONLY ended), loop stripped, set seeded.
+    const v1 = openWithVideo15(201);
+    assert(r15("detailAutoplay") === true, "Round 15: autoplay is ON by default");
+    assert(r15("detailPlayId") === 201 && typeof v1.listeners.ended === "function" && !("pause" in v1.listeners), "Round 15: a video play's detail wires ONLY the ended event — pausing never advances");
+    assert(v1.removedAttrs.includes("loop"), "Round 15: the detail video's loop attribute is removed, so the ended event can actually fire");
+    const head15 = bodyEl15.innerHTML.slice(bodyEl15.innerHTML.indexOf('class="upnext"'));
+    assert(head15.includes('class="autoplay-toggle on"') && head15.includes('aria-pressed="true"') && head15.includes(">On<"), "Round 15: the Autoplay toggle renders ON in the Up next heading, before the list");
+    assert(r15("detailPlayedIds.has(201)") === true, "Round 15: opening a play seeds the session played set with it");
+
+    // Advance chain: same-sport first, samples included, played
+    // plays drop out of the list as the session progresses.
+    v1.fire("ended");
+    assert(r15("detailPlayId") === 202 && loc15.hash === "#play-202" && bodyEl15.innerHTML.includes('data-play-id="202"'), "Round 15: when a play ends, the view rolls into the first unplayed Up next candidate — content and hash swap exactly like a tap");
+    const up15b = bodyEl15.innerHTML.slice(bodyEl15.innerHTML.indexOf('class="upnext"'));
+    assert(!up15b.includes("openPlayDetail(201)") && !up15b.includes("openPlayDetail(202)"), "Round 15: played plays drop out of the Up next list as the session progresses");
+    video15.fire("ended");
+    assert(r15("detailPlayId") === 203 && bodyEl15.innerHTML.includes("SAMPLE PLAY"), "Round 15: autoplay advances into a SAMPLE play like any other (samples are the board's content)");
+
+    // Toggle off mid-session prevents the next advance; on re-arms.
+    r15("window.toggleDetailAutoplay()");
+    assert(r15("detailAutoplay") === false && toggleBtn15.attrs["aria-pressed"] === "false" && stateSpan15.textContent === "Off", "Round 15: toggling off flips the session variable and repaints the switch in place (no re-render)");
+    video15.fire("ended");
+    assert(r15("detailPlayId") === 203, "Round 15: with autoplay off, a finished play does NOT advance");
+    r15("window.toggleDetailAutoplay()");
+    assert(r15("detailAutoplay") === true && stateSpan15.textContent === "On", "Round 15: toggling back on re-arms autoplay");
+
+    // The walk continues by votes, then stops dead at the pool's end.
+    video15.fire("ended");
+    assert(r15("detailPlayId") === 204, "Round 15: once the same-sport pool is played, advance continues by votes descending");
+    video15.fire("ended");
+    video15.fire("ended");
+    assert(r15("detailPlayId") === 206, "Round 15: autoplay walks the whole pool exactly once");
+    video15.fire("ended");
+    assert(r15("detailPlayId") === 206, "Round 15: with no unplayed candidate left, autoplay STOPS at the end — no wrap-around, no replay");
+
+    // Back tears the handler down; a fresh open resets the set.
+    r15("window.closePlayDetail()");
+    assert(!("ended" in video15.listeners) && r15("detailPlayId") === null, "Round 15: closing the detail (Back) removes the ended handler — nothing advances in the background");
+    video15.fire("ended");
+    assert(r15("detailPlayId") === null, "Round 15: a stray ended event after close changes nothing");
+    const v2 = openWithVideo15(201);
+    const up15c = bodyEl15.innerHTML.slice(bodyEl15.innerHTML.indexOf('class="upnext"'));
+    assert(up15c.includes("openPlayDetail(202)"), "Round 15: reopening fresh from outside RESETS the played set — the first candidate is offered again");
+    v2.fire("ended");
+    assert(r15("detailPlayId") === 202, "Round 15: after the reset, autoplay advances from the top of the pool again");
+    r15("window.closePlayDetail()");
+
+    // Image and embed plays never wire an advance.
+    r15(`ALL_PLAYS = [...ALL_PLAYS, { id: 207, title: "Still Photo", sport: "cheer", division: "girls", player_name: "Kim Park", media_kind: "file", media_url: "/uploads/p.png", mime: "image/png", voteCount: 0, hasVoted: false, created_at: "" }, { id: 208, title: "Embedded Clip", sport: "cheer", division: "girls", player_name: "Kim Park", media_kind: "link_embed", media_url: "", embed_url: "https://youtube.example/embed/x", voteCount: 0, hasVoted: false, created_at: "" }];`);
+    const vImg = openWithVideo15(207);
+    assert(r15("detailPlayId") === 207 && !("ended" in vImg.listeners), "Round 15: an image play registers NO advance (it has no ended event)");
+    r15("window.closePlayDetail()");
+    const vEmb = openWithVideo15(208);
+    assert(r15("detailPlayId") === 208 && !("ended" in vEmb.listeners), "Round 15: an embed play registers NO advance (an iframe's end is not ours to hear)");
+    r15("window.closePlayDetail()");
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
