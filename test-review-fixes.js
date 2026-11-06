@@ -167,10 +167,24 @@ try {
      on disk). The colorway illustration frames still exist — inside
      the quick view, AFTER the two real photo frames (§11/§12). */
   const SLUGS = ["girls-street", "girls-athletics", "girls-essentials", "boys-street", "boys-athletics", "boys-unleashed"];
+  /* Round 20 (2026-11-06): the two LEAD cards (boys-street,
+     girls-street) show the new MODEL photo as their primary image
+     instead of the front lookbook photo; the front/back lookbook
+     files remain on disk and still serve (the quick view keeps
+     them after the lead model frame). */
+  const LEAD_MODEL_SLUGS = ["boys-street", "girls-street"];
   assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
   for (const slug of SLUGS) {
     assert(home.includes(`data-slug="${slug}"`), `grid card present: ${slug}`);
-    assert(home.includes(`/swag/${slug}-front.jpg`), `card ${slug} shows the real FRONT lookbook photo as its primary image`);
+    if (LEAD_MODEL_SLUGS.includes(slug)) {
+      assert(home.includes(`/swag/${slug}-model.jpg`), `card ${slug} shows the Round 20 MODEL photo as its primary image`);
+      assert(appJs.includes(`leadPhoto: "/swag/${slug}-model.jpg"`), `quick view for ${slug} leads its gallery with the model photo (Round 20)`);
+      const mr = await fetch(`${base}/swag/${slug}-model.jpg`);
+      const mbuf = await mr.arrayBuffer();
+      assert(mr.status === 200 && mbuf.byteLength > 5000, `model photo serves and is non-trivial: /swag/${slug}-model.jpg (${mbuf.byteLength} bytes)`);
+    } else {
+      assert(home.includes(`/swag/${slug}-front.jpg`), `card ${slug} shows the real FRONT lookbook photo as its primary image`);
+    }
     assert(home.includes(`/swag/${slug}-back.jpg`), `card ${slug} flip peek shows the real BACK lookbook photo`);
     for (const kind of ["front", "back"]) {
       const r = await fetch(`${base}/swag/${slug}-${kind}.jpg`);
@@ -411,8 +425,8 @@ try {
   // Quick view leads with the real photos, colorway frames after.
   assert(appJs.includes('class="qv-frame qv-frame-photo"'), "quick view builds real-photo frames");
   assert(appJs.includes("/swag/${slug}-${sd}.jpg"), "quick view photo frames use the design's real front/back photos");
-  assert(appJs.includes("2 + Number(b.dataset.qvColor) * 2"), "swatch jumps account for the 2 leading photo frames");
-  assert(appJs.includes('g.scrollTo({ left: Number(b.dataset.qvSide) * w'), "FRONT/BACK buttons target the photo frames");
+  assert(appJs.includes("qvGalleryState.photos + Number(b.dataset.qvColor) * 2"), "swatch jumps account for the leading photo frames (2, or 3 with a Round 20 lead model frame)");
+  assert(appJs.includes("(qvGalleryState.photos || 2) - 1"), "FRONT/BACK buttons target the photo frames (BACK = last photo frame, incl. the Round 20 lead)");
   // Homepage Hype Frame finished-product examples (poster crops).
   assert(home.includes('id="hfExamples"'), "homepage Hype Frame examples strip present");
   assert(home.includes("/swag/hf-example-hoodie-back.jpg") && home.includes("/swag/hf-example-lineup.jpg"), "examples strip uses the two poster crops");
