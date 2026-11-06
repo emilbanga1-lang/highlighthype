@@ -1374,3 +1374,26 @@
     #uploadForm .submit-btn{grid-column:1/-1}
     #uploadForm .seg button{padding-left:14px;padding-right:14px}
   }
+
+  /* ===== Round 19 (2026-11-06): CREST logo on the site =====
+     Emil + Dyanna picked the new crest system (arrow-crown badge +
+     shield HH) and asked for it on the site:
+       1. Header: the old silver/lime wordmark + crown image is
+          replaced by a horizontal crest lockup (badge left,
+          HIGHLIGHT in white / HYPE in gold, one line, no tagline).
+          It keeps the .brand-logo class, so every existing height
+          carries over untouched — Round 16's 76px desktop bar, the
+          38px floating size over the Store film, 33px / 29px on
+          phones.
+       2. Footer: the wide wordmark image is replaced by the FULL
+          stacked lockup WITH the "YOUR MOMENT. YOUR HYPE."
+          tagline. It is a portrait lockup, so it gets its own
+          class and a deliberate height here instead of inheriting
+          the old wordmark's 58px .brand-logo-lg strip (which would
+          shrink the tagline to nothing).
+       3. Favicon: the gold crest badge (link tags in index.html).
+     The site's lime accent palette is untouched — this round is
+     header/footer branding only. */
+  .footer-lockup{height:190px;width:auto;display:block}
+  @media (max-width:760px){ .footer-lockup{height:150px} }
+  @media (max-width:480px){ .footer-lockup{height:132px} }
