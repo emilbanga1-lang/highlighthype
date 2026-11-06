@@ -202,9 +202,11 @@ try {
      Nov 5 (2026-11-05): the film was made SILENT (music stripped),
      two scenes are back views, the floating hint pill is gone,
      and a real pause/play button is docked in the film's corner.
-     Round 9 (2026-11-05): the silence is REVERSED — a quiet music
-     bed is back in the file (§8 probes it) with a docked speaker
-     toggle beside Pause; autoplay still starts muted. */
+     Round 9 (2026-11-05): the silence is REVERSED — a quiet sound
+     bed is back in the file (§8 probes it) with a speaker toggle
+     beside Pause; autoplay still starts muted. Round 10: the bed
+     is a stadium crowd (not music) and the controls row moved
+     BELOW the film (§25). */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
   assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
   assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
@@ -253,12 +255,12 @@ try {
   const filmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", filmFile]).toString().trim());
   assert(filmDur > 19 && filmDur < 21, `the film runs ~20s after the Round 3 recut (${filmDur}s — the same five scenes at 4.0s each; Emil: the 7s scenes felt too long)`);
   const filmStreams = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=codec_type", "-of", "csv=p=0", filmFile]).toString();
-  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "Round 9: the film HAS an audio stream again — the quiet music bed (the Nov 5 silent cut is reversed at Nicholas's request, owner approved)");
+  assert(filmStreams.includes("video") && filmStreams.includes("audio"), "Round 10: the film HAS an audio stream — a quiet stadium crowd bed (Round 9 restored sound with music; Nicholas asked for a stadium sound instead, §25 probes the levels)");
   const filmPix = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=pix_fmt", "-of", "csv=p=0", filmFile]).toString().trim();
   assert(filmPix === "yuv420p", "Round 9: the film's video stream is still yuv420p (the audio mux did not touch the picture)");
   const filmVol = execFileSync("bash", ["-c", `ffmpeg -i "${filmFile}" -map 0:a -af volumedetect -f null - 2>&1 | grep mean_volume`]).toString();
   const filmMeanDb = Number((/mean_volume:\s*(-?[\d.]+)/.exec(filmVol) || [])[1]);
-  assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 9: the film's bed is QUIET (mean ${filmMeanDb} dB — the hero bed at 0.2 gain: ambience, not a soundtrack)`);
+  assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 10: the film's crowd bed is QUIET (mean ${filmMeanDb} dB — ambience, not a soundtrack)`);
   assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
@@ -683,7 +685,7 @@ try {
   const ddStart = appJs.indexOf("function sportsInData");
   const ddBlock = appJs.slice(appJs.indexOf("const SPORTS"), appJs.indexOf("const MONTHS")) +
     appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function renderMonth")) +
-    appJs.slice(ddStart, appJs.indexOf('$("#teamFilter")', ddStart));
+    appJs.slice(ddStart, appJs.indexOf('$("#allSearch")', ddStart));
   assert(ddBlock.includes("function renderSportSelect") && ddBlock.includes("function syncFilterUI") && ddBlock.includes("function divMatch"), "Round 5: dropdown test block located (SPORTS + divMatch + sportsInData/renderSportSelect/syncFilterUI)");
   const mkSelect = () => ({ innerHTML: "", value: "", onchange: null });
   const monthSel = mkSelect(), allSel = mkSelect();
@@ -1235,7 +1237,7 @@ try {
   const headerBlock9 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
   assert(headerBlock9.includes('class="nav-store-btn" href="#shop" data-store-link') && headerBlock9.includes("🛍️ Store"), "Round 9: the header carries a real Store button, not just the buried menu link");
   assert(headerBlock9.indexOf("nav-store-btn") < headerBlock9.indexOf('id="menuBtn"'), "Round 9: the Store button sits in the bar itself, before the menu button");
-  assert(css.includes(".nav-store-btn{") && css.includes("min-height:44px"), "Round 9: the Store button is a >=44px pill");
+  assert(css.includes(".nav-store-btn{"), "Round 9: the Store button carries its own header rule (Round 10 mutes + shrinks the pill — §25 pins the new spec)");
   assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9: the menu's store entry stays as a second path");
   // (2) Board control sizing lives in the stylesheet (both boards).
   assert(css.includes(".viewseg button{min-height:48px"), "Round 9: board view tabs are >=48px tall");
@@ -1315,6 +1317,113 @@ try {
   assert(home.includes("Plays never disappear — when a month ends, its plays stay in All Hypes."), "Round 9: the never-disappear line is in the Month board markup");
   vm.runInContext(`LAST_MONTH = { period: "${prevPeriod9}", entries: [], winnerId: null }; renderMonth();`, rmCtx9);
   assert(rmEls9["#lastWinner"].hidden === true && rmEls9["#lastWinner"].innerHTML === "", "Round 9: with NO past winner the strip renders nothing — no placeholder, no fake winner");
+
+  /* ---- 25. Round 10 (2026-11-05, night): Nicholas's second pass +
+     the owner's screenshot fixes — (1) the header Store pill is
+     MUTED (near-black, lime text, thin lime outline) and slightly
+     smaller (~40px): the solid-lime pill popped too hard and, on
+     the owner's phone, covered the store film model's face; (2)
+     the "All teams" filter is REMOVED — the Month bar never had
+     one; the All bar's team select, its option population, change
+     listener, #team- hash route and the filter clause are all
+     gone, so filtering behaves as team="all" (team names still
+     match through search); no API change — loadData never sent a
+     team parameter, the server default simply stands; (3) the
+     homepage montage strips are REAL BUTTONS (they were decoration
+     wearing a ▶ label — tapping did nothing); (4) the store film's
+     Sound/Pause controls moved OUT of the film overlay into a row
+     below the film (they covered the Shop Girls link); (5) the
+     film's sound is a stadium CROWD bed now, not music — video
+     stream bit-identical, crowd RMS in the −30..−34 dB band. */
+  // (1) Store pill: restyle only — element, handler, label unchanged.
+  const pillRule10 = css.slice(css.indexOf(".nav-store-btn{"), css.indexOf("}", css.indexOf(".nav-store-btn{")));
+  assert(pillRule10.includes("background:#101418") && pillRule10.includes("color:#b6f34a") && pillRule10.includes("border:1.5px solid rgba(182,243,74,.55)"), "Round 10: the Store pill is muted — near-black background, lime text, thin lime outline");
+  assert(pillRule10.includes("min-height:40px") && pillRule10.includes("padding:8px 16px") && pillRule10.includes("font-size:15px") && !pillRule10.includes("background:var(--volt)"), "Round 10: the Store pill is slightly smaller (~40px tall, 8px/16px padding) and no longer solid lime");
+  assert(home.includes('class="nav-store-btn" href="#shop" data-store-link') && home.includes("🛍️ Store"), "Round 10: the pill element is unchanged — same link, same data-store-link handler, same 🛍️ label");
+  // (2) Team filter removal: markup, wiring, and behavior.
+  assert(!home.includes('id="teamFilter"') && !home.includes('id="teamLabel"') && !home.includes("All teams"), "Round 10: no team select (and no 'All teams' option) anywhere in the served page");
+  const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allCount"'));
+  const monthFiltersHtml10 = home.slice(home.indexOf('id="boardFilters"'), home.indexOf('id="board"'));
+  assert(allFiltersHtml10.includes('id="allSportSelect"') && allFiltersHtml10.includes('id="allSearch"') && !allFiltersHtml10.includes("teamFilter") && !allFiltersHtml10.includes("team-select"), "Round 10: the All filter bar keeps sport + search and nothing team-shaped");
+  assert(monthFiltersHtml10.includes('id="monthSportSelect"') && !monthFiltersHtml10.includes("teamFilter") && !monthFiltersHtml10.includes("team-select"), "Round 10: the Month filter bar renders with no team select (it never had one — nothing dangles)");
+  assert(!appJs.includes("teamFilter") && !appJs.includes("allTeam") && !appJs.includes("#team-"), "Round 10: no code path in app.js references the removed element, its state variable, or its #team- hash route");
+  const noTeamProbe10 = await j("/api/highlights?division=all&sort=top");
+  assert(noTeamProbe10.status === 200 && Array.isArray(noTeamProbe10.body.highlights), "Round 10: /api/highlights answers with NO team parameter (its long-standing server default) — the client never sent one, so the contract is untouched");
+  const r10Els = {};
+  const r10Sandbox = {
+    window: {}, console,
+    ALL_PLAYS: [
+      { id: 12, title: "No-Doubt Home Run", sport: "baseball", division: "boys", player_name: "Jayden", team: "Plainview Hawks", story: "", voteCount: 0 },
+      { id: 14, title: "Buzzer-Beater!", sport: "basketball", division: "boys", player_name: "Caleb", team: "", story: "", voteCount: 0 },
+      { id: 15, title: "Top-Corner Goal", sport: "soccer", division: "girls", player_name: "Sofia", team: "Tigers", story: "", voteCount: 0 },
+      { id: 99, title: "Big Hit to the Gap", sport: "softball", division: "boys", player_name: "Maya", team: "", story: "", voteCount: 0 },
+    ],
+    allDiv: "all", allSport: "all", allSearch: "",
+    $: (sel) => (r10Els[sel] ||= { innerHTML: "", textContent: "", style: {} }),
+    tileHtml: (h) => `TILE:${h.id};`,
+  };
+  const r10Block = appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function ", appJs.indexOf("function divMatch") + 10)) +
+    appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
+  assert(r10Block.includes("function renderAll2") && r10Block.includes("function divMatch") && !r10Block.includes("teamFilter"), "Round 10: renderAll2 test block located (divMatch + renderAll2, no team wiring inside)");
+  const r10Ctx = vm.createContext(r10Sandbox);
+  vm.runInContext(r10Block, r10Ctx);
+  vm.runInContext("renderAll2()", r10Ctx);
+  assert(r10Els["#allBoard"].innerHTML === "TILE:12;TILE:14;TILE:15;TILE:99;" && r10Els["#allCount"].textContent === "4 of 4 plays", "behavioral (Round 10): with no team filter, team-tagged AND untagged plays all render — the board behaves as team='all'");
+  r10Sandbox.allSport = "baseball"; vm.runInContext("renderAll2()", r10Ctx);
+  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10): the sport filter still filters on its own (baseball only)");
+  r10Sandbox.allSport = "all"; r10Sandbox.allDiv = "girls"; vm.runInContext("renderAll2()", r10Ctx);
+  assert(r10Els["#allBoard"].innerHTML === "TILE:15;", "behavioral (Round 10): the division segment still filters on its own (girls only)");
+  r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "hawks"; vm.runInContext("renderAll2()", r10Ctx);
+  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10): team names still find plays — through the search box, the surviving path");
+  r10Sandbox.allSearch = "";
+  // (3) Montage strips: markup + the real goToSportBoard chain.
+  for (const s of ["baseball", "basketball", "soccer"]) {
+    assert(home.includes(`onclick="goToSportBoard('${s}')"`) && home.includes(`data-sport="${s}"`), `Round 10: the ${s} montage strip is a real button wired to goToSportBoard`);
+  }
+  assert(home.includes("Baseball — watch the plays →") && home.includes("Basketball — watch the plays →") && home.includes("Soccer — watch the plays →") && !home.includes("· Video</figcaption>"), "Round 10: montage captions say what the tap does — no more fake '· Video' labels");
+  assert(home.includes("tap a sport to watch its plays"), "Round 10: the montage aria-label describes tappable sport buttons, not a passive montage");
+  assert(css.includes(".montage video{pointer-events:none}") && css.includes(".montage figure:active"), "Round 10: the montage video surface can't swallow taps (pointer-events off) and the figure shows a pressed state");
+  const g10Calls = [];
+  const g10Sandbox = {
+    window: {}, console,
+    allSport: "all",
+    showHome: () => g10Calls.push("home"),
+    showPanel: (p) => g10Calls.push("panel:" + p),
+    syncFilterUI: () => g10Calls.push("sync"),
+    switchView: (v) => g10Calls.push("view:" + v),
+    renderAll2: () => g10Calls.push("render"),
+    $: () => ({ scrollIntoView: () => g10Calls.push("scroll") }),
+  };
+  const g10Block = appJs.slice(appJs.indexOf("window.goToSportBoard"), appJs.indexOf("/* ---------------- athlete collection"));
+  assert(g10Block.includes("window.goToSportBoard"), "Round 10: goToSportBoard located in app.js");
+  const g10Ctx = vm.createContext(g10Sandbox);
+  vm.runInContext(g10Block, g10Ctx);
+  for (const [sport, tile] of [["baseball", "TILE:12;"], ["basketball", "TILE:14;"], ["soccer", "TILE:15;"]]) {
+    g10Calls.length = 0;
+    vm.runInContext(`window.goToSportBoard("${sport}")`, g10Ctx);
+    assert(g10Sandbox.allSport === sport && g10Calls.join(",") === "home,panel:plays,sync,view:all,render,scroll", `behavioral (Round 10): tapping the ${sport} strip sets the All-board sport filter and lands on All Hypes (home → plays panel → sync → view:all → render → scroll)`);
+    r10Sandbox.allSport = g10Sandbox.allSport; r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "";
+    vm.runInContext("renderAll2()", r10Ctx);
+    assert(r10Els["#allBoard"].innerHTML === tile, `behavioral (Round 10): after the ${sport} tap, the rendered All board holds exactly that sport's seeded sample play (${tile})`);
+  }
+  // (4) Film controls: out of the overlay, buttons byte-identical.
+  const filmInner10 = home.slice(home.indexOf('class="swag-film swag-film-hero"'), home.indexOf('id="sscBtn"'));
+  assert(!filmInner10.includes("swagSoundBtn") && !filmInner10.includes("swagPauseBtn"), "Round 10: no Sound/Pause buttons inside the film block — nothing overlays the picture or its Shop Boys / Shop Girls links");
+  assert(home.indexOf('class="swag-film-controls"') > home.indexOf('id="sscBtn"') && home.indexOf('class="swag-film-controls"') < home.indexOf('class="store-bar"'), "Round 10: the controls row sits immediately after the film wrapper, inside the store section, before the store bar");
+  assert(home.includes('<button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film\'s sound on" aria-pressed="false">🔇 <span>Sound off</span></button>'), "Round 10: the Sound button itself is byte-identical (id, classes, label, aria)");
+  assert(home.includes('<button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>'), "Round 10: the Pause button itself is byte-identical (id, classes, label, aria)");
+  const controlsRule10 = css.slice(css.indexOf(".swag-film-controls{"), css.indexOf("}", css.indexOf(".swag-film-controls{")));
+  assert(controlsRule10.includes("justify-content:flex-end") && !controlsRule10.includes("position:absolute"), "Round 10: the controls cluster is a static right-aligned row below the film, not an absolute overlay");
+  // (5) The film file: video untouched, crowd in the target band.
+  const filmPath10 = path.join(root, "public", "swag-film.mp4");
+  const vHash10 = execFileSync("ffmpeg", ["-v", "error", "-i", filmPath10, "-map", "0:v:0", "-c", "copy", "-f", "streamhash", "-hash", "md5", "-"]).toString();
+  assert(vHash10.includes("MD5=2055d4f3e22e7252e90254bfb81d649e"), "Round 10: the film's VIDEO stream is bit-identical to the Round 9 cut (streamhash MD5 matches — only the audio was replaced)");
+  const aStats10 = execFileSync("bash", ["-c", `ffmpeg -i "${filmPath10}" -map 0:a -af astats=metadata=1 -f null - 2>&1 | grep -E "RMS level|Peak level" | tail -2`]).toString();
+  const rms10 = Number((/RMS level dB:\s*(-?[\d.]+)/.exec(aStats10) || [])[1]);
+  const peak10 = Number((/Peak level dB:\s*(-?[\d.]+)/.exec(aStats10) || [])[1]);
+  assert(rms10 <= -30 && rms10 >= -34 && peak10 <= -12, `Round 10: the stadium crowd bed sits in the target band (RMS ${rms10} dB within −30..−34, peak ${peak10} dB ≤ −12)`);
+  const aProbe10 = execFileSync("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name,sample_rate,channels", "-of", "csv=p=0", filmPath10]).toString().trim();
+  assert(aProbe10 === "aac,48000,2", `Round 10: the crowd bed is browser-safe AAC 48kHz stereo (got ${aProbe10}) — the music bed is gone`);
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
