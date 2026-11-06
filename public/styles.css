@@ -1272,3 +1272,30 @@
      never cover the film's Shop Boys / Shop Girls links again. */
   .swag-film-controls{display:flex;justify-content:flex-end;gap:8px;margin:10px 0 0}
   .swag-film-controls .swag-pause-btn{position:static;min-height:44px}
+
+  /* ===== Round 16 (2026-11-06): DESKTOP header bar =====
+     Emil, testing on a desktop: the floating transparent header
+     disappeared into the hero — the 38px logo read tiny and washed
+     out, and on shorter laptop windows the hero headline crowded
+     right up under it. Desktop only (min-width:761px — the wide
+     side of the existing 760px logo breakpoint; phone CSS is
+     byte-for-byte untouched):
+       1. Outside the Store, the header becomes a real in-flow bar:
+          position:relative (was absolute, transparent) on the
+          site's near-black with the standard hairline under it,
+          so the hero starts BELOW the bar instead of under it.
+          Scoped to body:not(.store-open) — in the Store the nav
+          keeps its floating-over-the-film rule (and the --navh
+          geometry the store focus bar relies on) exactly as-is.
+       2. The header logo doubles: 38px -> 76px tall. Scoped to
+          .nav so the footer's .brand-logo-lg is untouched.
+       3. The hero gains a little top breathing room on desktop:
+          min-height +40px. The hero content anchors to the hero's
+          bottom edge, so the taller hero moves the headline down
+          and clear of the bar. Film, headline, subcopy and CTAs
+          are otherwise unchanged. */
+  @media (min-width:761px){
+    body:not(.store-open) .nav{position:relative;background:var(--bg);border-bottom:1px solid var(--line)}
+    body:not(.store-open) .nav .brand-logo{height:76px}
+    .hero{min-height:min(calc(80vh + 40px),720px)}
+  }
