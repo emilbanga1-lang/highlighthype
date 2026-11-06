@@ -661,8 +661,9 @@ function showStore(target) {
   const sv = $("#swagVideo");
   if (sv) {
     // Round 9 (2026-11-05): the film HAS quiet sound again (Nicholas
-    // asked for sound; owner approved). Round 10 (2026-11-05): the
-    // sound is a stadium crowd bed, not music. Browsers only allow
+    // asked for sound; owner approved). Round 10 tried a stadium
+    // crowd bed; Round 11 (2026-11-05) reverted to the quiet music
+    // bed at Nicholas's verdict — he didn't like the crowd. Browsers only allow
     // muted autoplay, so every store entry (re)starts muted and the
     // speaker toggle below the film is the unmute path; its label
     // syncs off the muted state.
@@ -686,7 +687,27 @@ function showHome() {
   // and an explicitly paused video does NOT resume on its own when its
   // view becomes visible again — resume the homepage Hype Frame film too.
   const hfHome = $("#hfExamplesHome video"); if (hfHome) { const p = hfHome.play(); if (p && p.catch) p.catch(() => {}); }
+  // Round 11 fix (2026-11-05): showStore() pauses the montage clips
+  // too, and nothing resumed them — after one Store visit the three
+  // sport strips froze on their posters for the rest of the session.
+  $$(".montage video").forEach((v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
 }
+/* Round 11 (2026-11-05): the montage clips keep themselves honest —
+   play while at least ~25% of a strip is on screen, pause when it
+   scrolls away. A clip whose autoplay stalled (or that a Store visit
+   paused) restarts when it scrolls back into view instead of sitting
+   on its poster; off-screen clips stop burning CPU. */
+function watchMontageVideos() {
+  if (typeof IntersectionObserver === "undefined") return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.intersectionRatio >= 0.25) { const p = e.target.play(); if (p && p.catch) p.catch(() => {}); }
+      else e.target.pause();
+    });
+  }, { threshold: [0, 0.25] });
+  $$(".montage video").forEach((v) => io.observe(v));
+}
+watchMontageVideos();
 /* One home reset for every logo / home link (2026-11-04): leave the
    store, land on the plays board, scroll to the top, and drop a stale
    Hype Frame deep link so it can't reopen the studio. */
@@ -709,6 +730,20 @@ window.addEventListener("hashchange", () => {
 });
 function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
 $("#floatSubmit").addEventListener("click", goSubmit);
+/* Round 11 (2026-11-05): the floating Submit button's fixed
+   bottom-right perch lands exactly on the upload form's Girls
+   toggle at phone widths (the Girls half of the full-width seg
+   sits under it when the form is scrolled, worse with the keyboard
+   up) and swallows the tap. While any of the form is on screen the
+   FAB fades out and stops taking taps (the .fab-away rule); it
+   returns when the form scrolls out of view. */
+const floatSubmitBtn = $("#floatSubmit");
+const uploadFormEl = $("#uploadForm");
+if (floatSubmitBtn && uploadFormEl && typeof IntersectionObserver !== "undefined") {
+  new IntersectionObserver((entries) => {
+    entries.forEach((e) => floatSubmitBtn.classList.toggle("fab-away", e.isIntersecting));
+  }).observe(uploadFormEl);
+}
 $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); goSubmit(); }));
 $$("[data-tablink]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); showHome(); showPanel(a.dataset.tablink); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 
@@ -1534,7 +1569,7 @@ function hfBuildColorButtons() {
   });
 })();
 
-/* ---------------- quick upload picks (2026-11-04) ----------------
+/* ---------------- quick upload picks (2026-11-04) ---------------- */
 // The wizard is gone: one screen. Division is a big Boys/Girls toggle
 // (default Boys) writing the hidden division field; sport is a native
 // dropdown (round 5b, 2026-11-05 — one-tap pills until the owner asked

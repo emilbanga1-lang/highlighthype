@@ -21,11 +21,13 @@
     <!-- Round 9 (2026-11-05): the store link used to live only inside
          the ☰ menu ("Swag Shop — Rep The Hype") and Nicholas could
          not find it ("on the home page there is no link for the swag
-         store"). This is a real button in the header bar itself —
-         lime pill, ≥44px tall, present on every view — wired through
-         the same data-store-link handler as the menu entry, which
-         stays as a second path. -->
-    <a class="nav-store-btn" href="#shop" data-store-link aria-label="Open the HighlightHype store">🛍️ Store</a>
+         store"). This is a real link in the header bar itself,
+         present on every view, wired through the same data-store-link
+         handler as the menu entry, which stays as a second path.
+         Round 11 (2026-11-05): both pill looks (solid lime, then
+         muted dark) were rejected by Nicholas — the control is now
+         a plain text link reading "Swag", ≥40px tap target kept. -->
+    <a class="nav-store-btn" href="#shop" data-store-link aria-label="Open the HighlightHype store">Swag</a>
     <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
       <button type="button" data-panel-btn="plays" aria-current="true">Plays</button>
