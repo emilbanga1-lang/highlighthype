@@ -1618,6 +1618,94 @@ try {
   anchorStubs27[0].fn({ preventDefault: () => { prevented27 = true; } });
   assert(prevented27 && linkCalls27.join(",") === "closeMenu,showStore:null", "behavioral (Round 12): a click on a remaining data-store-link anchor (menu entry / Entry Card) still routes through closeMenu into showStore — the store opens without the header link");
 
+  /* ---- 28. Round 13 (2026-11-05, night): the emailed moderation
+     QUEUE learns to retire live plays. The owner swaps sample plays
+     often, and deleting the replaced ones used to mean six separate
+     Owner-view deletes (owner-token device + a native confirm
+     each). Now POST /moderate accepts action=delete behind the
+     SAME moderateAuthorized gate, for a play of ANY status, with
+     cleanup mirrored statement-for-statement from the owner DELETE
+     /api/highlights/:id route (media file, Hype Frame print files,
+     order rows, the play, its votes, its contest entries) — and
+     the queue page lists the approved plays under "Live on the
+     board" with Hide + checkbox-armed Delete forms. The pending
+     section and the per-play page are untouched. ---- */
+  const serverJs28 = fs.readFileSync(path.join(root, "server.js"), "utf8");
+  assert(serverJs28.includes('"approve", "approve_sample", "hide", "delete"'), "Round 13: POST /moderate accepts delete alongside approve / approve_sample / hide (same action list, same token gate)");
+  const modPostBlock28 = serverJs28.slice(serverJs28.indexOf('p === "/moderate" && req.method === "POST"'), serverJs28.indexOf('p === "/moderate-queue"'));
+  assert(modPostBlock28.includes('action === "delete"') && modPostBlock28.includes("DELETE FROM highlights WHERE id=?") && modPostBlock28.includes("DELETE FROM votes WHERE highlight_id=?") && modPostBlock28.includes("DELETE FROM contest_entries WHERE highlight_id=?") && modPostBlock28.includes("DELETE FROM hype_frame_orders WHERE highlight_id=?") && modPostBlock28.includes("fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(before.media_url)))") && modPostBlock28.includes("fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image)))") && modPostBlock28.includes("moderateDeletedPage(before.title, token)"), "Round 13: the delete branch mirrors the owner DELETE cleanup exactly — media unlink, print-image unlinks, orders, play, votes, contest entries — and answers with the by-title confirmation page");
+  assert(serverJs28.includes('moderateQueuePage(rows, token, "", liveRows)') && serverJs28.includes("WHERE status='approved' ORDER BY id DESC") && serverJs28.includes("<h2>Live on the board</h2>") && serverJs28.includes("Yes, delete permanently") && serverJs28.includes('name="confirm" value="yes" required'), "Round 13: the queue route fetches the approved plays and the page renders the 'Live on the board' section with the required confirm checkbox on the delete form");
+  const modDb28 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
+  const png28 = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000000020001e221bc330000000049454e44ae426082", "hex");
+  const upMod28 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "hockey"); f.append("division", "boys"); f.append("playerName", "Queue"); f.append("file", new Blob([png28], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 13: queue fixture uploads pending (${title})`); return r.body.id; };
+  const modPost28 = async (fields) => { const r = await fetch(`${base}/moderate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields).toString() }); return { status: r.status, body: await r.text() }; };
+  await fetch(`${base}/moderate?id=1&token=primer`); // wrong-token primer: generates + stores the real moderation token (same trick as §26)
+  const modToken28 = modDb28((d) => d.prepare("SELECT value FROM settings WHERE key='moderate_token'").get()?.value);
+  assert(!!modToken28, "Round 13: the stored moderation token is readable for the queue flow tests");
+  // Fixtures: two live plays (one of them a sample), one delete
+  // victim carrying a vote + a contest entry + a Hype Frame order,
+  // and one play left pending.
+  const liveId28 = await upMod28("Queue Live Play");
+  const sampleLiveId28 = await upMod28("Queue Live Sample");
+  const victimId28 = await upMod28("Queue Delete Victim");
+  const pendingId28 = await upMod28("Queue Pending Play");
+  await modPost28({ id: String(liveId28), token: modToken28, action: "approve" });
+  await modPost28({ id: String(sampleLiveId28), token: modToken28, action: "approve_sample" });
+  await modPost28({ id: String(victimId28), token: modToken28, action: "approve" });
+  const vote28 = await j(`/api/highlights/${victimId28}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "voter-28" }) });
+  assert(vote28.status === 200 && vote28.body.voteCount === 1, "Round 13: the delete victim carries a real vote into the delete");
+  const enter28 = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: victimId28 }) });
+  assert(enter28.status === 201, "Round 13: the delete victim carries a real contest entry into the delete");
+  const victimMedia28 = modDb28((d) => d.prepare("SELECT media_url FROM highlights WHERE id=?").get(victimId28)).media_url;
+  const victimFile28 = path.join(tmp, "uploads", path.basename(victimMedia28));
+  const printFile28 = path.join(tmp, "hype-frames", "print-28.png");
+  fs.mkdirSync(path.dirname(printFile28), { recursive: true });
+  fs.writeFileSync(printFile28, png28);
+  modDb28((d) => d.prepare("INSERT INTO hype_frame_orders(highlight_id, print_image, guardian_email) VALUES(?,?,?)").run(victimId28, "print-28.png", "guardian@example.com"));
+  assert(fs.existsSync(victimFile28) && fs.existsSync(printFile28), "Round 13: the victim's media file and Hype Frame print file are on disk before the delete");
+  // The queue page: pending above, live below, nothing crossed.
+  const queueRes28 = await fetch(`${base}/moderate-queue?token=${modToken28}`);
+  const queue28 = await queueRes28.text();
+  assert(queueRes28.status === 200 && queue28.includes("<h2>Live on the board</h2>"), "Round 13: the queue page renders the 'Live on the board' section under the pending list");
+  const liveSection28 = queue28.slice(queue28.indexOf("<h2>Live on the board</h2>"));
+  const pendingSection28 = queue28.slice(0, queue28.indexOf("<h2>Live on the board</h2>"));
+  assert(liveSection28.includes("Queue Live Play") && liveSection28.includes("Queue Live Sample") && liveSection28.includes("⭐ SAMPLE PLAY") && liveSection28.includes("Queue Delete Victim"), "Round 13: the Live section lists every approved play, with the SAMPLE badge on the sample one");
+  assert(liveSection28.includes('value="hide"') && liveSection28.includes(">Hide</button>") && liveSection28.includes('value="delete"') && liveSection28.includes(">Delete</button>") && liveSection28.includes('name="confirm" value="yes" required') && liveSection28.includes("Yes, delete permanently"), "Round 13: each Live row carries BOTH forms — Hide, and Delete armed by the required 'Yes, delete permanently' checkbox");
+  assert(!liveSection28.includes("Queue Pending Play") && pendingSection28.includes("Queue Pending Play") && pendingSection28.includes('value="approve_sample"'), "Round 13: the pending play stays in the pending section only (with its Approve as Sample play form) — it is NOT listed as live");
+  // Gate + unknown id: same pages as every other action.
+  const badDel28 = await modPost28({ id: String(victimId28), token: "definitely-wrong", action: "delete", confirm: "yes" });
+  assert(badDel28.status === 403 && badDel28.body.includes("Moderation link not valid"), "Round 13: delete with an invalid token 403s on the same page as the other actions");
+  const survivor28 = modDb28((d) => d.prepare("SELECT status FROM highlights WHERE id=?").get(victimId28));
+  assert(survivor28 && survivor28.status === "approved", "Round 13: the rejected delete changed nothing — the play is still live");
+  const ghost28 = await modPost28({ id: "999999", token: modToken28, action: "delete", confirm: "yes" });
+  assert(ghost28.status === 404 && ghost28.body.includes("Play not found"), "Round 13: deleting a nonexistent id gets the same 404 page as the other actions");
+  // The delete itself: confirm page by title, then total cleanup.
+  const del28 = await modPost28({ id: String(victimId28), token: modToken28, action: "delete", confirm: "yes" });
+  assert(del28.status === 200 && del28.body.includes("Play deleted") && del28.body.includes("Queue Delete Victim"), "Round 13: the delete answers with a confirmation page naming the deleted play by title");
+  const gone28 = modDb28((d) => ({
+    play: d.prepare("SELECT COUNT(*) c FROM highlights WHERE id=?").get(victimId28).c,
+    votes: d.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=?").get(victimId28).c,
+    entries: d.prepare("SELECT COUNT(*) c FROM contest_entries WHERE highlight_id=?").get(victimId28).c,
+    orders: d.prepare("SELECT COUNT(*) c FROM hype_frame_orders WHERE highlight_id=?").get(victimId28).c,
+  }));
+  assert(gone28.play === 0 && gone28.votes === 0 && gone28.entries === 0 && gone28.orders === 0, "Round 13: the delete removed the play row, its votes, its contest entries AND its Hype Frame orders — the full mirrored cleanup");
+  assert(!fs.existsSync(victimFile28) && !fs.existsSync(printFile28), "Round 13: the delete unlinked the uploaded media file and the Hype Frame print image from disk");
+  const pub28 = await j("/api/highlights?division=all");
+  assert(!pub28.body.highlights.some((h) => h.id === victimId28), "Round 13: the deleted play no longer appears in the public API");
+  // Hide from the Live section: same action, same flow — the play
+  // leaves the board (and the Live list) without being deleted.
+  const hideLive28 = await modPost28({ id: String(liveId28), token: modToken28, action: "hide" });
+  const hiddenRow28 = modDb28((d) => d.prepare("SELECT status FROM highlights WHERE id=?").get(liveId28));
+  assert(hideLive28.status === 200 && hiddenRow28 && hiddenRow28.status === "hidden", "Round 13: Hide from the Live section sets an approved play hidden (row kept, board cleared)");
+  const queueAfter28 = await (await fetch(`${base}/moderate-queue?token=${modToken28}`)).text();
+  const liveAfter28 = queueAfter28.slice(queueAfter28.indexOf("<h2>Live on the board</h2>"));
+  assert(!liveAfter28.includes("Queue Live Play") && liveAfter28.includes("Queue Live Sample"), "Round 13: the hidden play leaves the Live list; the other live play stays");
+  // Pending flow is byte-unchanged: plain approve still answers
+  // with the original message (§26 proves approve_sample + hide).
+  const plainApprove28 = await modPost28({ id: String(pendingId28), token: modToken28, action: "approve" });
+  const pendingRow28 = modDb28((d) => d.prepare("SELECT status, is_sample FROM highlights WHERE id=?").get(pendingId28));
+  assert(plainApprove28.status === 200 && plainApprove28.body.includes("Approved — this play is now live on the board.") && pendingRow28.status === "approved" && pendingRow28.is_sample === 0, "Round 13: plain approve on a pending play is byte-unchanged — original message, approved, unmarked");
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();

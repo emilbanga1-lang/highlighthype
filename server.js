@@ -380,7 +380,37 @@ ${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(ro
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
 }
-function moderateQueuePage(rows, token, message = "") {
+function moderateDeletedPage(title, token) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Play deleted</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
+<h1>Play deleted</h1>
+<p><b>${escHtml(title)}</b> was permanently deleted — its uploaded file, votes, contest entries and any Hype Frame requests went with it.</p>
+<p><a href="/moderate-queue?token=${escHtml(token)}">← Back to the moderation queue</a></p>
+<p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
+</body></html>`;
+}
+function moderateQueuePage(rows, token, message = "", liveRows = []) {
+  // Round 13 (2026-11-05): a second section lists the APPROVED plays
+  // ("Live on the board") with Hide + Delete forms, so the owner can
+  // retire replaced samples straight from the emailed queue link —
+  // no Owner-token device, no six separate deletes. Delete carries a
+  // required "Yes, delete permanently" checkbox: the browser's own
+  // validation blocks an unticked submit (zero-JS, no dialogs).
+  const liveItems = liveRows.length ? liveRows.map((r) => `
+    <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
+      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)}${r.player_name ? ` — ${escHtml(r.player_name)}` : ""}${r.is_sample ? " — ⭐ SAMPLE PLAY" : ""} — Play ID ${r.id}
+      <form method="POST" action="/moderate" style="display:inline">
+        <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+        <input type="hidden" name="action" value="hide">
+        <button type="submit" style="font-size:18px;padding:12px 20px">Hide</button>
+      </form>
+      <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
+        <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
+        <input type="hidden" name="action" value="delete">
+        <label style="font-size:18px"><input type="checkbox" name="confirm" value="yes" required> Yes, delete permanently</label>
+        <button type="submit" style="font-size:18px;padding:12px 20px">Delete</button>
+      </form>
+    </div>`).join("") : "<p>Nothing is live on the board right now.</p>";
   const items = rows.length ? rows.map((r) => `
     <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
       <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)} — Play ID ${r.id}
@@ -404,6 +434,7 @@ function moderateQueuePage(rows, token, message = "") {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Moderation queue</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
 <h1>Plays waiting for approval</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}${items}
+<h2>Live on the board</h2>${liveItems}
 <p><a href="/">← Back to the HighlightHype homepage</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
@@ -909,10 +940,31 @@ const server = http.createServer(async (req, res) => {
       // notification conditions below key on status, so a sample
       // approval notifies exactly like a plain one. Hide never sets
       // the sample flag.
-      if (!["approve", "approve_sample", "hide"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
+      // Round 13 (2026-11-05): "delete" joins them — the queue page's
+      // "Live on the board" section retires approved plays from the
+      // same emailed link. It works for a play of ANY status (its
+      // whole purpose is removing approved ones) and mirrors the
+      // owner DELETE /api/highlights/:id cleanup EXACTLY (below).
+      if (!["approve", "approve_sample", "hide", "delete"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       const status = action === "hide" ? "hidden" : "approved";
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       if (!before) return sendHtml(res, 404, "<h1>Play not found</h1><p><a href=\"/\">← HighlightHype home</a></p>");
+      if (action === "delete") {
+        // Cleanup mirrored statement-for-statement from the owner
+        // DELETE route (same route file, below): the uploaded media
+        // file goes, every Hype Frame print image for the play goes,
+        // then the order rows, the play row, its votes and its
+        // contest entries. Same try/catch-tolerant unlinks.
+        if (before.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(before.media_url))); } catch {} }
+        for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(id)) {
+          try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
+        }
+        db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(id);
+        db.prepare("DELETE FROM highlights WHERE id=?").run(id);
+        db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
+        db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
+        return sendHtml(res, 200, moderateDeletedPage(before.title, token));
+      }
       if (action === "approve_sample") db.prepare("UPDATE highlights SET status=?, is_sample=1 WHERE id=?").run(status, id);
       else db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
@@ -925,7 +977,8 @@ const server = http.createServer(async (req, res) => {
       const token = u.searchParams.get("token") || "";
       if (!moderateAuthorized(token)) return sendHtml(res, 403, "<h1>Moderation link not valid</h1><p>Check the link from the approval email, or request a fresh moderation link.</p><p><a href=\"/\">← HighlightHype home</a></p>");
       const rows = db.prepare("SELECT * FROM highlights WHERE status='pending' ORDER BY id DESC").all();
-      return sendHtml(res, 200, moderateQueuePage(rows, token));
+      const liveRows = db.prepare("SELECT * FROM highlights WHERE status='approved' ORDER BY id DESC").all();
+      return sendHtml(res, 200, moderateQueuePage(rows, token, "", liveRows));
     }
     if (p === "/api/moderate/request" && req.method === "GET") {
       // Emails a fresh moderation-queue link to the owner's mailbox only.
