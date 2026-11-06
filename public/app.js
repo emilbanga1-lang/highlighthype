@@ -60,6 +60,20 @@ let CONTEST = { period: "", entries: [], winnerId: null };
 let currentView = "month";
 let monthDiv = "boys", monthSport = "all";
 let allDiv = "all", allSport = "all", allTeam = "all", allSearch = "";
+/* Default landing view (Round 8, 2026-11-05): the site used to land
+   on the Hype of the Month board unconditionally — a dead first
+   screen whenever the month has no contest entries yet (samples
+   can never be entries), while All Hypes holds every play. The
+   default is now decided ONCE, when the first data load lands and
+   BEFORE the first board render (so there is no visible view
+   flash): land on All Hypes unless this month's contest already
+   has at least one entry, in which case the Month board stays the
+   front door. boot() sets bootHashTarget when the URL hash routes
+   somewhere explicit (a shared #play-, an athlete, the studio, the
+   store, a team board, the owner panel) — an explicit target always
+   wins over the default rule, and manual switching is untouched. */
+let defaultViewPending = true;
+let bootHashTarget = false;
 
 async function loadData() {
   const [h, c] = await Promise.all([
@@ -68,7 +82,14 @@ async function loadData() {
   ]);
   ALL_PLAYS = h.highlights || [];
   CONTEST = c;
+  applyDefaultView();
   renderAll();
+}
+function applyDefaultView() {
+  if (!defaultViewPending) return;
+  defaultViewPending = false;
+  if (bootHashTarget) return;
+  switchView((CONTEST.entries || []).length ? "month" : "all");
 }
 
 /* ---------------- media + cards ---------------- */
@@ -116,6 +137,38 @@ function cardHtml(h, opts = {}) {
       </div>
       <div class="card-msg" data-enter-msg${ENTER_MSGS.has(h.id) ? "" : " hidden"}>${ENTER_MSGS.get(h.id) || ""}</div>
       <div class="card-msg" data-report-msg${REPORT_MSGS.has(h.id) ? "" : " hidden"}>${REPORT_MSGS.get(h.id) || ""}</div>
+    </div>
+  </article>`;
+}
+/* Compact board tiles (Round 8, 2026-11-05): the two board lists
+   (Hype of the Month + All Hypes) render THESE instead of full
+   cards — six stacked cards were six phone screens of scrolling.
+   A tile is thumbnail-first, Store-product-card style: the play's
+   media via the Hall of Fame's fameThumbHtml (file/link videos play
+   in place, muted + loop, preload="metadata"; images show; embeds
+   and watch-links get the sport-name face), then title, sport ·
+   division, the athlete's name, the SAMPLE badge, the vote count
+   and a compact Vote button wired to the same toggleVote (guard,
+   retry and voted state included — its click is stopped so it can
+   never also open the detail). Tapping anywhere else on the tile
+   opens the play's FULL card (cardHtml, every action) in the play
+   detail overlay — see openPlayDetail. Athlete pages keep the full
+   cards; only the two board lists tile. */
+function tileHtml(h, opts = {}) {
+  const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
+  const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
+  const name = h.athlete_label || h.player_name || "";
+  return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
+    <div class="tile-media">${fameThumbHtml(h)}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="tile-body">
+      <h3 class="tile-title">${esc(h.title)}</h3>
+      <p class="tile-meta"><b>${esc(cap(h.sport))}</b> · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
+      ${name ? `<p class="tile-meta">${esc(name)}</p>` : ""}
+      ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
+      <div class="tile-votes">
+        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
+        <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
+      </div>
     </div>
   </article>`;
 }
@@ -332,7 +385,7 @@ function renderMonth() {
       <div class="pod-text"><div class="who">${esc(h.title)}</div><div class="what">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"} · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} this month</div></div></div>
     </div>`).join("") : `<div class="pod"><div class="pod-text"><div class="who">No entries yet this month</div><div class="what">Enter an approved play to start the board.</div></div></div>`;
   const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
-  $("#board").innerHTML = filtered.map((h) => cardHtml(h, { monthVotes: h.voteCount, inContest: true, prizeEligible: h.prizeEligible })).join("");
+  $("#board").innerHTML = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount })).join("");
   $("#emptyState").style.display = filtered.length ? "none" : "block";
 }
 /* Hall of Fame thumbnails (Round 5, 2026-11-05): image plays keep
@@ -378,7 +431,7 @@ function renderMine() {
       <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.id)}')">See all plays →</button>
     </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
 }
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); highlightSharedPlay(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); }
 function renderAll2() { /* All Hypes view */ 
   const tf = $("#teamFilter");
   const teams = [...new Set(ALL_PLAYS.map((h) => h.team).filter(Boolean))];
@@ -401,43 +454,94 @@ function renderAll2() { /* All Hypes view */
     return;
   }
   emptyEl.textContent = "No plays match — try a different board, sport, team, or search.";
-  $("#allBoard").innerHTML = filtered.map((h, i) => cardHtml(h, { rank: i + 1 })).join("");
+  $("#allBoard").innerHTML = filtered.map((h, i) => tileHtml(h, { rank: i + 1 })).join("");
   emptyEl.style.display = filtered.length ? "none" : "block";
 }
+/* ---------------- play detail (Round 8, 2026-11-05) ----------------
+   The boards are compact tiles now; the FULL card lives here, in an
+   overlay panel (the store quick view's pattern: fixed overlay,
+   backdrop, ← Back affordance, Escape closes) holding the exact
+   cardHtml render — every action (Vote, Enter, Share, Report,
+   Hype Frame, owner Mark winner) works from the detail exactly as
+   it did on the board, because it IS the same card. A contest entry
+   opens with its month context (month votes, in-contest, prize
+   eligibility), any other play with its all-time card. renderAll
+   re-renders the open detail after every data refresh, so vote /
+   enter state stays live; the enter + report message slots ride in
+   ENTER_MSGS / REPORT_MSGS, so a mid-flow re-render can neither
+   drop nor duplicate them. */
+let detailPlayId = null;
+let handledPlayHash = "";
+function renderPlayDetail() {
+  const body = $("#playDetailBody");
+  if (!body || detailPlayId == null) return;
+  const entry = (CONTEST.entries || []).find((p) => p.id === detailPlayId);
+  const play = entry || ALL_PLAYS.find((p) => p.id === detailPlayId);
+  if (!play) { hidePlayDetail(); return; }
+  body.innerHTML = entry
+    ? cardHtml(entry, { monthVotes: entry.voteCount, inContest: true, prizeEligible: entry.prizeEligible })
+    : cardHtml(play, {});
+}
+window.openPlayDetail = (id, opts = {}) => {
+  const exists = ALL_PLAYS.some((p) => p.id === id) || (CONTEST.entries || []).some((p) => p.id === id);
+  if (!exists) return;
+  detailPlayId = id;
+  renderPlayDetail();
+  const wrap = $("#playDetail");
+  if (!wrap) return;
+  wrap.hidden = false;
+  document.body.classList.add("detail-open");
+  if (!opts.keepHash) history.replaceState(null, "", `#play-${id}`);
+  wrap.querySelector(".play-detail-back")?.focus();
+};
+function hidePlayDetail() {
+  const wrap = $("#playDetail");
+  if (wrap) wrap.hidden = true;
+  document.body.classList.remove("detail-open");
+  detailPlayId = null;
+}
+/* The explicit close affordances (← Back, backdrop, Escape): hide
+   the detail AND drop its #play- hash, so a later data refresh
+   can't resurrect a detail the visitor already closed. Panel
+   navigation hides it via hidePlayDetail (in showPanel) without
+   touching the hash — the #play- hashchange route reads the hash
+   AFTER showPanel runs. */
+window.closePlayDetail = () => {
+  const was = detailPlayId;
+  hidePlayDetail();
+  if (was != null && location.hash === `#play-${was}`) history.replaceState(null, "", "#top");
+};
+$$("[data-detail-close]").forEach((el) => el.addEventListener("click", () => window.closePlayDetail()));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && detailPlayId != null) window.closePlayDetail(); });
+/* Shared-play links (#play-<id>) open the play's detail (Round 8):
+   the overlay replaces Round 5's flash + scroll-to-card. Behind the
+   detail, land on the board the play belongs to — the Month board
+   for a contest entry, All Hypes for everything else (the old
+   fallback's destination) — so closing the detail leaves the
+   visitor somewhere sensible. A play that doesn't exist does
+   nothing, as before. handledPlayHash makes the renderAll-driven
+   calls idempotent: the hash is routed once, not on every refresh
+   (the hashchange route resets it to force a fresh routing). */
 function highlightSharedPlay() {
   const pm = location.hash.match(/^#play-(\d+)$/);
-  if (!pm) return;
-  const id = pm[1];
-  let el = document.querySelector(`[data-play-id="${id}"]`);
-  if (!el) {
-    // Deep-link fallback (2026-11-04): the play may not be rendered in
-    // the current board view (e.g. it's not in this month's contest) —
-    // switch to All Hypes with every filter open, render, then land on
-    // the card. If the play doesn't exist at all, do nothing.
-    if (!ALL_PLAYS.some((h) => String(h.id) === id)) return;
-    allDiv = "all"; allSport = "all"; allTeam = "all"; allSearch = "";
-    const si = $("#allSearch"); if (si) si.value = "";
-    showPanel("plays"); switchView("all"); renderAll2(); syncFilterUI();
-    el = document.querySelector(`[data-play-id="${id}"]`);
-  }
-  if (el) { el.classList.add("flash"); setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }
+  if (!pm) { handledPlayHash = ""; return; }
+  if (handledPlayHash === location.hash) return;
+  handledPlayHash = location.hash;
+  const id = Number(pm[1]);
+  if (detailPlayId === id) return;
+  const entry = (CONTEST.entries || []).find((p) => p.id === id);
+  if (!entry && !ALL_PLAYS.some((p) => p.id === id)) return;
+  switchView(entry ? "month" : "all");
+  openPlayDetail(id, { keepHash: true });
 }
-/* Hall of Fame rows land on the play's full card (Round 5,
-   2026-11-05): reset the All Hypes filters so the card is rendered,
-   switch to that view, set the shared-play hash (#play-<id>, the
-   same URL contract as a shared link) and flash + scroll to the
-   card exactly the way highlightSharedPlay does. The card lookup is
-   scoped to #allBoard on purpose: month-board cards carry the same
-   data-play-id and sit earlier in the DOM, so an unscoped lookup
-   could land on a card in a view the visitor just left. */
+/* Hall of Fame rows open the play's detail (Round 8, 2026-11-05):
+   same destination as a shared link — leave the store, land on the
+   plays panel, open the full card in the detail overlay (which
+   sets the #play-<id> hash, the shared-link URL contract). */
 window.goToPlayCard = (id) => {
   showHome();
-  allDiv = "all"; allSport = "all"; allTeam = "all"; allSearch = "";
-  const si = $("#allSearch"); if (si) si.value = "";
-  showPanel("plays"); switchView("all"); renderAll2(); syncFilterUI();
-  history.replaceState(null, "", `#play-${id}`);
-  const el = document.querySelector(`#allBoard [data-play-id="${id}"]`);
-  if (el) { el.classList.add("flash"); setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "center" }), 150); }
+  showPanel("plays");
+  openPlayDetail(id);
 };
 
 /* ---------------- athlete collection ---------------- */
@@ -471,6 +575,11 @@ menuBtn.addEventListener("click", () => { const open = navMenu.hidden; navMenu.h
 document.addEventListener("click", (e) => { if (!navMenu.hidden && !e.target.closest(".nav")) closeMenu(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !navMenu.hidden) closeMenu(); });
 function showPanel(name) {
+  // Any panel navigation leaves the play detail behind (Round 8):
+  // the overlay belongs to the boards, and panels (athlete, studio,
+  // store…) replace the view. hidePlayDetail leaves the hash alone —
+  // the #play- route reads it after showPanel runs.
+  hidePlayDetail();
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
 }
@@ -533,7 +642,7 @@ window.addEventListener("hashchange", () => {
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   if (hm) openHypeFrame(Number(hm[1]));
   const pm = location.hash.match(/^#play-(\d+)$/);
-  if (pm) { showHome(); showPanel("plays"); highlightSharedPlay(); }
+  if (pm) { showHome(); showPanel("plays"); handledPlayHash = ""; highlightSharedPlay(); }
 });
 function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
 $("#floatSubmit").addEventListener("click", goSubmit);
@@ -1488,12 +1597,15 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
 /* ---------------- boot / hashes ---------------- */
 (function boot() {
   const tm = location.hash.match(/^#team-(.+)$/);
-  if (tm) { allTeam = tm[1]; switchView("all"); }
+  if (tm) { bootHashTarget = true; allTeam = tm[1]; switchView("all"); }
   const am = location.hash.match(/^#athlete-(.+)$/);
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
+  // Explicit hash targets (Round 8): any of these wins over the
+  // default landing-view rule in applyDefaultView.
+  if (am || hm || /^#play-\d+$/.test(location.hash)) bootHashTarget = true;
   syncFilterUI();
   loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); });
-  if (location.hash === "#shop") showStore();
-  if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
-  if (location.hash === "#owner") { $("#ownerPanel").classList.remove("hidden"); loadOwner(); }
+  if (location.hash === "#shop") { bootHashTarget = true; showStore(); }
+  if (location.hash === "#hype-girls" || location.hash === "#hype-boys") { bootHashTarget = true; showStore(location.hash.slice(1)); }
+  if (location.hash === "#owner") { bootHashTarget = true; $("#ownerPanel").classList.remove("hidden"); loadOwner(); }
 })();

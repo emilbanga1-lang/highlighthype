@@ -122,7 +122,7 @@
         </div>
         <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
       </div>
-      <div class="board" id="board"></div>
+      <div class="tile-grid" id="board"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
       <p class="board-note">This is the live board: plays here were uploaded by families and approved by the owner. A few early plays marked ⭐ SAMPLE PLAY are demos posted by HighlightHype to show how it works. Tap a player's name on any card to see all of that athlete's plays.</p>
     </div>
@@ -147,7 +147,7 @@
         <input class="search-input" id="allSearch" type="search" placeholder="Search plays, sports, teams…" aria-label="Search all plays" />
       </div>
       <p class="all-count" id="allCount"></p>
-      <div class="board" id="allBoard"></div>
+      <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board, sport, team, or search.</div>
     </div>
 
@@ -819,6 +819,15 @@
     </div>
   </div>
 </footer>
+
+<!-- ============ PLAY DETAIL (Round 8: full card for a board tile) ============ -->
+<div class="play-detail" id="playDetail" hidden role="dialog" aria-modal="true" aria-label="Play detail">
+  <div class="play-detail-backdrop" data-detail-close></div>
+  <div class="play-detail-panel">
+    <button type="button" class="mini-btn play-detail-back" data-detail-close>← Back</button>
+    <div id="playDetailBody"></div>
+  </div>
+</div>
 
 <script src="app.js"></script>
 </body>
