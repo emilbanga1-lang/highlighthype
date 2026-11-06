@@ -1190,23 +1190,21 @@
   @media (max-width:900px){ .hf-examples-grid{grid-template-columns:1fr} .hf-example-hoodie{max-width:340px} }
 
   /* ===== Round 9 (2026-11-05): Nicholas's phone fixes =====
-     (1) an unmissable Store button in the header bar;
+     (1) an unmissable Store button in the header bar (removed in Round 12);
      (2) board controls with real tap targets;
      (3) the tile media tap layer;
      (4) last month's winner strip + the never-disappear note;
      (5) the store film's sound toggle, docked with Pause. */
 
-  /* (1) Header Store button: in the bar itself, always visible
-     (the menu entry stays as a second path). It takes the auto left
-     margin the menu button used to hold. Round 10 (2026-11-05):
-     muted dark pill. Round 11 (2026-11-05): Nicholas rejected
-     both pills — look AND word — so the control is now a plain
-     text link reading "Swag": no background, no border, no emoji,
-     just lime semibold text like the other header items, with the
-     ≥40px tap target kept. */
-  .nav-store-btn{margin-left:auto;flex:none;display:inline-flex;align-items:center;min-height:40px;padding:8px 10px;background:transparent;color:#b6f34a;font-weight:600;font-size:15.5px;letter-spacing:.01em;text-decoration:none;border:0;box-shadow:none}
-  .nav-store-btn:active{transform:scale(.97)}
-  .nav .menu-btn{margin-left:0}
+  /* (1) Header store control: REMOVED in Round 12 (2026-11-05).
+     The Round 9 button, Round 10 muted pill and Round 11 plain
+     "Swag" link all lived here, rules and margin override alike;
+     the owner found the control weirdly floating in the bar and
+     cut it entirely. With nothing taking its auto left margin,
+     the base .menu-btn rule (margin-left:auto) once again pushes
+     the ☰ to the right edge on its own — no override needed.
+     The store stays reachable via the ☰ menu entry, the Store
+     Entry Card and the store doors. */
 
   /* (2) Board controls: every control >=48px tall, segmented
      buttons ~52px and stretched to fill their pill row, stacked

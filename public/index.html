@@ -18,16 +18,11 @@
     <a class="brand" href="#top" aria-label="HighlightHype home">
       <img class="brand-logo" src="/logo-transparent.png" alt="HighlightHype" width="1244" height="420" fetchpriority="high" />
     </a>
-    <!-- Round 9 (2026-11-05): the store link used to live only inside
-         the ☰ menu ("Swag Shop — Rep The Hype") and Nicholas could
-         not find it ("on the home page there is no link for the swag
-         store"). This is a real link in the header bar itself,
-         present on every view, wired through the same data-store-link
-         handler as the menu entry, which stays as a second path.
-         Round 11 (2026-11-05): both pill looks (solid lime, then
-         muted dark) were rejected by Nicholas — the control is now
-         a plain text link reading "Swag", ≥40px tap target kept. -->
-    <a class="nav-store-btn" href="#shop" data-store-link aria-label="Open the HighlightHype store">Swag</a>
+    <!-- Round 12 (2026-11-05): the header store control (Round 9's
+         button, Round 10's muted pill, Round 11's plain "Swag"
+         link) is GONE — the owner found it weirdly floating in
+         the bar. The store stays reachable via the ☰ menu entry
+         below, the Store Entry Card and the store doors. -->
     <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
       <button type="button" data-panel-btn="plays" aria-current="true">Plays</button>
