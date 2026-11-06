@@ -317,11 +317,13 @@ try {
      removed, its two useful lines folded into How it works;
      (17) Share uses the native sheet + deep links that land on the
      play from any view; (9) board videos autoplay. */
-  assert(home.includes('href="/logo-transparent.png"'), "logo preload points at the transparent PNG");
-  assert((home.split('src="/logo-transparent.png"').length - 1) === 2, "header + footer logos use the transparent PNG");
-  const logoRes = await fetch(`${base}/logo-transparent.png`);
+  assert(home.includes('href="/logo-crest-header.png"'), "logo preload points at the crest header lockup (Round 19)");
+  assert((home.split('src="/logo-crest-header.png"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19)");
+  assert(home.includes('src="/logo-crest-lockup.png"'), "footer uses the full crest lockup with tagline (Round 19)");
+  assert(home.includes('href="/favicon.ico"') && home.includes('href="/favicon.png"'), "favicon is the gold crest badge (Round 19)");
+  const logoRes = await fetch(`${base}/logo-crest-header.png`);
   const logoBuf = Buffer.from(await logoRes.arrayBuffer());
-  assert(logoRes.status === 200 && logoBuf.subarray(1, 4).toString() === "PNG" && logoBuf.byteLength > 5000, `transparent logo serves as a real PNG (${logoBuf.byteLength} bytes)`);
+  assert(logoRes.status === 200 && logoBuf.subarray(1, 4).toString() === "PNG" && logoBuf.byteLength > 5000, `crest header lockup serves as a real PNG (${logoBuf.byteLength} bytes)`);
   assert(!css.includes("mix-blend-mode:screen"), "the screen-blend workaround is gone (real transparency now)");
   assert(!home.includes('data-panel-btn="proof"') && !home.includes('id="proof"') && !appJs.includes("proof") && !css.includes(".proof"), "What's on the line is gone: menu button, panel, JS and CSS");
   const howPanel = home.slice(home.indexOf('data-panel="how"'), home.indexOf('id="owner"'));
