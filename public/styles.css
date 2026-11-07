@@ -1530,6 +1530,10 @@
   .cta-band{text-align:center;padding:34px 0 30px}
   .cta-band .sec-head{margin-bottom:18px}
   .cta-band .sec-head p{margin:10px auto 0}
+  /* Round 31 (Emil, 2026-11-07): the slogan reads as ONE line — at the
+     base .sec-head size it wrapped to "YOUR MOMENT. YOUR / HYPE." on
+     phones. Scoped shrink + nowrap, sized in vw so it tracks the screen. */
+  .cta-band .sec-head h2{white-space:nowrap;font-size:clamp(19px,7.6vw,62px)}
   @media (max-width:760px){
     .cta-band{padding:26px 0 24px}
     .cta-band .btn{width:100%}
