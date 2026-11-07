@@ -83,6 +83,7 @@ try {
   fd.append("sport", "baseball");
   fd.append("division", "boys");
   fd.append("playerName", "Nick");
+  fd.append("guardianConsent", "on");
   fd.append("file", new Blob([png], { type: "image/png" }), "play.png");
   const up = await j("/api/highlights", { method: "POST", body: fd });
   assert(up.status === 201 && up.body.status === "pending", "file upload succeeds and starts pending");
@@ -863,6 +864,7 @@ try {
     const f = new FormData();
     f.append("title", fields.title); f.append("sport", fields.sport); f.append("division", "boys"); f.append("playerName", fields.playerName);
     if (fields.notifyEmail) f.append("notifyEmail", fields.notifyEmail);
+    f.append("guardianConsent", "on"); // Round 21: attestation is required; guardian CONTACT stays the optional thing under test here
     f.append("file", new Blob([png], { type: "image/png" }), "play.png");
     return j("/api/highlights", { method: "POST", body: f });
   };
@@ -953,6 +955,7 @@ try {
   const mkUp7 = async (fields) => {
     const f = new FormData();
     f.append("title", fields.title); f.append("sport", fields.sport); f.append("division", "boys"); f.append("playerName", fields.playerName);
+    f.append("guardianConsent", "on");
     f.append("file", new Blob([png], { type: "image/png" }), "play.png");
     return j("/api/highlights", { method: "POST", body: f });
   };
@@ -1307,6 +1310,7 @@ try {
   const png9 = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
   const f9 = new FormData();
   f9.append("title", "Round 9 Strip Winner"); f9.append("sport", "baseball"); f9.append("division", "boys"); f9.append("playerName", "Nico");
+  f9.append("guardianConsent", "on");
   f9.append("file", new Blob([png9], { type: "image/png" }), "strip.png");
   const up9 = await j("/api/highlights", { method: "POST", body: f9 });
   assert(up9.status === 201, "Round 9: strip-winner play uploads");
@@ -1570,7 +1574,7 @@ try {
   assert((serverJs26.match(/Approve as Sample play/g) || []).length >= 2, "Round 11: BOTH moderation pages (per-play + queue) carry the 'Approve as Sample play' button");
   const modDb26 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
   const png26 = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000000020001e221bc330000000049454e44ae426082", "hex");
-  const upMod26 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "baseball"); f.append("division", "boys"); f.append("playerName", "Mod"); f.append("file", new Blob([png26], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 11: moderation fixture uploads pending (${title})`); return r.body.id; };
+  const upMod26 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "baseball"); f.append("division", "boys"); f.append("playerName", "Mod"); f.append("guardianConsent", "on"); f.append("file", new Blob([png26], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 11: moderation fixture uploads pending (${title})`); return r.body.id; };
   const sampleId26 = await upMod26("Mod Sample Play");
   const plainId26 = await upMod26("Mod Plain Play");
   const hideId26 = await upMod26("Mod Hide Play");
@@ -1655,7 +1659,7 @@ try {
   assert(serverJs28.includes('moderateQueuePage(rows, token, "", liveRows)') && serverJs28.includes("WHERE status='approved' ORDER BY id DESC") && serverJs28.includes("<h2>Live on the board</h2>") && serverJs28.includes("Yes, delete permanently") && serverJs28.includes('name="confirm" value="yes" required'), "Round 13: the queue route fetches the approved plays and the page renders the 'Live on the board' section with the required confirm checkbox on the delete form");
   const modDb28 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
   const png28 = Buffer.from("89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000a49444154789c6360000000020001e221bc330000000049454e44ae426082", "hex");
-  const upMod28 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "hockey"); f.append("division", "boys"); f.append("playerName", "Queue"); f.append("file", new Blob([png28], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 13: queue fixture uploads pending (${title})`); return r.body.id; };
+  const upMod28 = async (title) => { const f = new FormData(); f.append("title", title); f.append("sport", "hockey"); f.append("division", "boys"); f.append("playerName", "Queue"); f.append("guardianConsent", "on"); f.append("file", new Blob([png28], { type: "image/png" }), "play.png"); const r = await j("/api/highlights", { method: "POST", body: f }); assert(r.status === 201 && r.body.status === "pending", `Round 13: queue fixture uploads pending (${title})`); return r.body.id; };
   const modPost28 = async (fields) => { const r = await fetch(`${base}/moderate`, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields).toString() }); return { status: r.status, body: await r.text() }; };
   await fetch(`${base}/moderate?id=1&token=primer`); // wrong-token primer: generates + stores the real moderation token (same trick as §26)
   const modToken28 = modDb28((d) => d.prepare("SELECT value FROM settings WHERE key='moderate_token'").get()?.value);
@@ -2023,6 +2027,122 @@ try {
     const vEmb = openWithVideo15(208);
     assert(r15("detailPlayId") === 208 && !("ended" in vEmb.listeners), "Round 15: an embed play registers NO advance (an iframe's end is not ours to hear)");
     r15("window.closePlayDetail()");
+  }
+
+  /* ---- 31. Round 21 (2026-11-06): guardian attestation ----------
+     The upload form gains ONE required checkbox in the guardian
+     block — "I'm this athlete's parent/guardian, or I have their
+     permission to post this video." Guardian CONTACT stays optional
+     (§21 stands); the ATTESTATION does not. Client blocks an
+     unticked submit with an inline message; the server refuses it
+     (400) before any file is written and stamps guardian_consent_at
+     (ISO) on the play. The timestamp is owner/moderation-only: the
+     public allowlist must not grow. Upload budget note: the suite
+     is at 14 of the server's 20 uploads/hour before this section;
+     these five bring it to 19 — do not add more POSTs above. ---- */
+  assert((home.split('name="guardianConsent"').length - 1) === 1, "Round 21: the upload form carries exactly one guardianConsent checkbox");
+  const gbAt31 = home.indexOf('class="quick-field guardian-block"');
+  assert(gbAt31 > -1 && home.indexOf('name="guardianConsent"') > gbAt31 && home.indexOf('name="guardianConsent"') < moreAt, "Round 21: the attestation checkbox lives inside the guardian block, in the MAIN form before Add more");
+  assert(home.includes("I'm this athlete's parent/guardian, or I have their permission to post this video."), "Round 21: the attestation label is the exact approved copy");
+  assert(!/name="guardianConsent"[^>]*checked/.test(home), "Round 21: the attestation checkbox starts unchecked");
+  assert(appJs.includes("form.elements.guardianConsent") && appJs.includes("Please confirm you're the parent/guardian, or have their permission, to post this video."), "Round 21: an unticked submit is blocked client-side with the inline confirmation message");
+  const db31 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
+  const countTitle31 = (t) => db31((d) => d.prepare("SELECT COUNT(*) c FROM highlights WHERE title=?").get(t).c);
+  const uploadFiles31 = () => fs.readdirSync(path.join(tmp, "uploads")).length;
+  // (a) No attestation (multipart, the real form's shape): 400, the
+  // confirmation message, NO play row and NO orphan file on disk.
+  const filesBefore31 = uploadFiles31();
+  const fNo31 = new FormData();
+  fNo31.append("title", "Round 21 No Consent Play"); fNo31.append("sport", "baseball"); fNo31.append("division", "boys"); fNo31.append("playerName", "Nia");
+  fNo31.append("file", new Blob([png], { type: "image/png" }), "play.png");
+  const noConsent31 = await j("/api/highlights", { method: "POST", body: fNo31 });
+  assert(noConsent31.status === 400 && (noConsent31.body.message || "").includes("Please confirm you're the parent/guardian"), "Round 21: a file upload WITHOUT the attestation is refused (400) with the confirmation message");
+  assert(countTitle31("Round 21 No Consent Play") === 0 && uploadFiles31() === filesBefore31, "Round 21: the refused upload created no play and left no orphan file");
+  // (b) A present-but-false value (JSON path) is refused the same way.
+  const jsonFalse31 = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Round 21 False Consent", sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "false" }) });
+  assert(jsonFalse31.status === 400 && countTitle31("Round 21 False Consent") === 0, "Round 21: guardianConsent='false' is refused too (400, nothing created)");
+  // (c) With attestation but NO media, the refusal is the old media
+  // one — the consent gate passes and the media guard still fires.
+  const noMedia31 = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Round 21 Consent No Media", sport: "baseball", guardianConsent: "true" }) });
+  assert(noMedia31.status === 400 && /file or paste a video link/.test(noMedia31.body.message || ""), "Round 21: attested but medialess still hits the media guard (400, media message)");
+  // (d) The real checkbox value ("on", multipart): 201, and the
+  // attestation timestamp is stored on the play.
+  const fYes31 = new FormData();
+  fYes31.append("title", "Round 21 Consent Play"); fYes31.append("sport", "baseball"); fYes31.append("division", "boys"); fYes31.append("playerName", "Cory");
+  fYes31.append("guardianConsent", "on");
+  fYes31.append("file", new Blob([png], { type: "image/png" }), "play.png");
+  const yes31 = await j("/api/highlights", { method: "POST", body: fYes31 });
+  assert(yes31.status === 201 && yes31.body.status === "pending", "Round 21: an upload WITH the attestation succeeds and starts pending");
+  const consentId31 = yes31.body.id;
+  const row31 = db31((d) => d.prepare("SELECT guardian_consent_at FROM highlights WHERE id=?").get(consentId31));
+  assert(row31 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(row31.guardian_consent_at || "") && !isNaN(Date.parse(row31.guardian_consent_at)), "Round 21: guardian_consent_at is stored on the play as an ISO timestamp from upload time");
+  // (e) JSON "true" is accepted as well.
+  const jsonYes31 = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Round 21 JSON Consent", sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
+  assert(jsonYes31.status === 201, "Round 21: guardianConsent='true' on the JSON path is accepted (201)");
+  // (f) Owner queue carries it; Owner view renders it.
+  const oq31 = await j("/api/owner/queue", { headers: { "x-owner-token": tok } });
+  const oqItem31 = oq31.body.queue.find((h) => h.id === consentId31);
+  assert(oqItem31 && oqItem31.guardian_consent_at === row31.guardian_consent_at, "Round 21: the owner queue payload carries the play's guardian_consent_at");
+  assert(appJs.includes("Guardian consent ✓") && appJs.includes("h.guardian_consent_at"), "Round 21: the Owner view renders the 'Guardian consent ✓ <date>' line from the payload");
+  // (g) Moderation surfaces show it, formatted like the spec example.
+  const dateStr31 = new Date(row31.guardian_consent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+  const queuePage31 = await (await fetch(`${base}/moderate-queue?token=${modToken28}`)).text();
+  assert(queuePage31.includes("Round 21 Consent Play") && queuePage31.includes(`Guardian consent ✓ ${dateStr31}`), "Round 21: the moderation queue lists the pending play with 'Guardian consent ✓ <date>'");
+  const modPage31 = await (await fetch(`${base}/moderate?id=${consentId31}&token=${modToken28}`)).text();
+  assert(modPage31.includes(`Guardian consent ✓ ${dateStr31}`), "Round 21: the per-play moderation page shows the attestation too");
+  // (h) A legacy play (inserted directly, no attestation — the shape
+  // every pre-Round-21 play has) shows NOTHING: no consent line, and
+  // an empty string in the owner payload.
+  db31((d) => d.prepare("INSERT INTO highlights(title,sport,media_kind,media_url,mime,status) VALUES('Round 21 Legacy Play','baseball','file','/uploads/legacy21.png','image/png','pending')").run());
+  const legacyId31 = db31((d) => d.prepare("SELECT id FROM highlights WHERE title='Round 21 Legacy Play'").get().id);
+  const legacyPage31 = await (await fetch(`${base}/moderate?id=${legacyId31}&token=${modToken28}`)).text();
+  assert(legacyPage31.includes("Round 21 Legacy Play") && !legacyPage31.includes("Guardian consent"), "Round 21: a legacy play with no attestation shows no consent line anywhere on its moderation page");
+  const oqLegacy31 = (await j("/api/owner/queue", { headers: { "x-owner-token": tok } })).body.queue.find((h) => h.id === legacyId31);
+  assert(oqLegacy31 && oqLegacy31.guardian_consent_at === "", "Round 21: the owner payload reports an empty attestation for the legacy play");
+  // (i) Public API: even after approval, no consent field leaks.
+  const ap31 = await j(`/api/highlights/${consentId31}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved" }) });
+  assert(ap31.body.status === "approved", "Round 21: the attested play approves normally");
+  const pub31 = await j("/api/highlights?division=all");
+  const pubItem31 = pub31.body.highlights.find((h) => h.id === consentId31);
+  assert(pubItem31 && !("guardian_consent_at" in pubItem31) && !("guardianConsent" in pubItem31), "Round 21: the public payload for the attested play carries NO consent field");
+  const pubRaw31 = await (await fetch(base + "/api/highlights?division=all")).text();
+  assert(!pubRaw31.includes("guardian_consent"), "Round 21: 'guardian_consent' appears NOWHERE in the public API response (allowlist unchanged)");
+  // (j) Migration on a LEGACY (pre-Round-21) DB: base schema only,
+  // no guardian_consent_at column anywhere — a fresh boot must add
+  // it idempotently, default the old row to '', and enforce the
+  // gate for new uploads on that same DB.
+  const legacyDir31 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-legacy21-"));
+  const legacyDb31 = new DatabaseSync(path.join(legacyDir31, "highlighthype.db"));
+  legacyDb31.exec(`CREATE TABLE highlights(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL, sport TEXT NOT NULL DEFAULT 'other',
+    play_type TEXT DEFAULT '', player_name TEXT DEFAULT '', story TEXT DEFAULT '',
+    media_kind TEXT NOT NULL, media_url TEXT NOT NULL, mime TEXT DEFAULT '',
+    embed_url TEXT DEFAULT '', host_label TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  INSERT INTO highlights(title,sport,media_kind,media_url,mime,status) VALUES('Pre Round21 Play','baseball','file','/uploads/old.png','image/png','approved');`);
+  legacyDb31.close();
+  const PORT31 = 3461;
+  const child31 = spawn(process.execPath, ["server.js"], { cwd: root, env: { ...process.env, PORT: String(PORT31), DATA_DIR: legacyDir31 }, stdio: "pipe" });
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${PORT31}/api/health`); break; } catch { await wait(200); } }
+    const cols31 = (() => { const d = new DatabaseSync(path.join(legacyDir31, "highlighthype.db")); try { return d.prepare("PRAGMA table_info(highlights)").all().map((c) => c.name); } finally { d.close(); } })();
+    assert(cols31.includes("guardian_consent_at"), "Round 21: boot adds guardian_consent_at to a pre-Round-21 DB (idempotent ALTER, same pattern as is_sample)");
+    const oldRow31 = (() => { const d = new DatabaseSync(path.join(legacyDir31, "highlighthype.db")); try { return d.prepare("SELECT guardian_consent_at FROM highlights WHERE title='Pre Round21 Play'").get(); } finally { d.close(); } })();
+    assert(oldRow31 && oldRow31.guardian_consent_at === "", "Round 21: the pre-Round-21 play defaults to an empty attestation after migration");
+    const legacyPub31 = await (await fetch(`http://localhost:${PORT31}/api/highlights?division=all`)).json();
+    const legacyPubRow31 = (legacyPub31.highlights || []).find((h) => h.title === "Pre Round21 Play");
+    assert(legacyPubRow31 && !("guardian_consent_at" in legacyPubRow31), "Round 21: the migrated legacy play serves publicly with no consent field");
+    const fOld31 = new FormData();
+    fOld31.append("title", "Post Migration No Consent"); fOld31.append("sport", "baseball"); fOld31.append("division", "boys"); fOld31.append("playerName", "Old");
+    fOld31.append("file", new Blob([png], { type: "image/png" }), "play.png");
+    const oldNoRes31 = await fetch(`http://localhost:${PORT31}/api/highlights`, { method: "POST", body: fOld31 });
+    assert(oldNoRes31.status === 400, "Round 21: the migrated DB's server enforces the attestation gate on new uploads (400)");
+  } finally {
+    child31.kill();
+    fs.rmSync(legacyDir31, { recursive: true, force: true });
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");

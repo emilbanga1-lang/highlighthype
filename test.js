@@ -17,7 +17,7 @@ try {
   for (let i = 0; i < 50; i++) { try { await fetch(base + "/api/health"); break; } catch { await wait(200); } }
   let h = await j("/api/health"); assert(h.body.ok, "health endpoint");
   // 1. Create a link play -> must start pending, must NOT be public
-  let created = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Test Dunk", sport: "basketball", playType: "Dunk", playerName: "Nick", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }) });
+  let created = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Test Dunk", sport: "basketball", playType: "Dunk", playerName: "Nick", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
   assert(created.status === 201 && created.body.status === "pending", "new play starts pending");
   const id = created.body.id;
   let pub = await j("/api/highlights"); assert(pub.body.highlights.length === 0, "pending play is not public");
@@ -79,6 +79,7 @@ try {
   const parts = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="title"\r\n\r\nPhoto Play\r\n`),
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="sport"\r\n\r\nsoccer\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="guardianConsent"\r\n\r\ntrue\r\n`),
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="test.png"\r\nContent-Type: image/png\r\n\r\n`),
     png, Buffer.from(`\r\n--${boundary}--\r\n`),
   ]);
@@ -121,10 +122,10 @@ try {
   // 21st attempt is refused with 429. Runs last; the scratch server is
   // discarded right after.
   for (let i = 0; i < 18; i++) {
-    const rr = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: `Rate Filler ${i}`, sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }) });
+    const rr = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: `Rate Filler ${i}`, sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
     assert(rr.status === 201, `upload ${i + 3} of 20 still allowed`);
   }
-  const over = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "One Too Many", sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }) });
+  const over = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "One Too Many", sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
   assert(over.status === 429 && /Too many uploads/.test(over.body.message || ""), "21st upload within the hour is rate-limited (429)");
   console.log("\nALL TESTS PASSED");
 } finally {

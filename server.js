@@ -197,6 +197,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"
 // appear in the Hall of Fame (enforced at the contest endpoints and
 // in the contest/board queries below). Default 0 = a real family play.
 try { db.exec("ALTER TABLE highlights ADD COLUMN is_sample INTEGER DEFAULT 0"); } catch {}
+// Guardian attestation (Round 21, 2026-11-06): the uploader must
+// confirm they are the athlete's parent/guardian, or have the
+// guardian's permission, to post the video. The upload endpoint
+// REJECTS a new play without it (400, before any file is written)
+// and stamps the attestation time here (ISO). PRIVATE like the other
+// guardian fields: never on the public allowlist — owner queue and
+// moderation pages only. Plays posted before this round keep ''.
+try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_consent_at TEXT DEFAULT ''"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -349,6 +357,13 @@ function moderateMediaHtml(row) {
   if (url) return `<p><a href="${escHtml(url)}" target="_blank" rel="noopener">Open the play media</a> (${escHtml(row.host_label || "external link")})</p>`;
   return `<p>No media preview available.</p>`;
 }
+// Guardian attestation display (Round 21): "Guardian consent ✓ Nov 6,
+// 2026" on the owner-only surfaces (moderation pages; the Owner view
+// renders the same text client-side from guardian_consent_at). Legacy
+// plays posted before the checkbox existed have no timestamp and get
+// an empty string — nothing is shown for them.
+const fmtConsentDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" }); };
+const consentText = (row) => (row && row.guardian_consent_at ? `Guardian consent ✓ ${fmtConsentDate(row.guardian_consent_at)}` : "");
 function moderatePage(row, token, message = "") {
   let review = null; try { review = row.review ? JSON.parse(row.review) : null; } catch {}
   const flags = review?.flags?.length ? `<p><b>Pre-review:</b> ${escHtml(review.verdict)} — ${escHtml(review.flags.join("; "))}</p>` : "";
@@ -375,7 +390,7 @@ function moderatePage(row, token, message = "") {
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
 <h1>Moderate this play</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}
 <p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}${row.athlete_tag ? ` — athlete ${escHtml(row.athlete_tag)}` : ""}</p>
-${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
+${consentText(row) ? `<p>${escHtml(consentText(row))}</p>` : ""}${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
 <p><a href="/">← Back to the HighlightHype homepage</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
@@ -398,7 +413,7 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
   // validation blocks an unticked submit (zero-JS, no dialogs).
   const liveItems = liveRows.length ? liveRows.map((r) => `
     <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
-      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)}${r.player_name ? ` — ${escHtml(r.player_name)}` : ""}${r.is_sample ? " — ⭐ SAMPLE PLAY" : ""} — Play ID ${r.id}
+      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)}${r.player_name ? ` — ${escHtml(r.player_name)}` : ""}${r.is_sample ? " — ⭐ SAMPLE PLAY" : ""} — Play ID ${r.id}${consentText(r) ? `<br>${escHtml(consentText(r))}` : ""}
       <form method="POST" action="/moderate" style="display:inline">
         <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
         <input type="hidden" name="action" value="hide">
@@ -413,7 +428,7 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
     </div>`).join("") : "<p>Nothing is live on the board right now.</p>";
   const items = rows.length ? rows.map((r) => `
     <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
-      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)} — Play ID ${r.id}
+      <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)} — Play ID ${r.id}${consentText(r) ? `<br>${escHtml(consentText(r))}` : ""}
       <p><a href="/moderate?id=${r.id}&token=${escHtml(token)}">View and approve / decline this play</a></p>
       <form method="POST" action="/moderate" style="display:inline">
         <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
@@ -759,6 +774,10 @@ const server = http.createServer(async (req, res) => {
       }
       const title = String(fields.title || "").trim();
       if (!title) return sendJson(res, 400, { ok: false, message: "Title is required." });
+      // Guardian attestation (Round 21): required on every new play,
+      // checked BEFORE any file is written, so a rejected upload
+      // leaves nothing behind — no play row, no orphan upload file.
+      if (!parseConsent(fields.guardianConsent)) return sendJson(res, 400, { ok: false, message: "Please confirm you're the parent/guardian, or have their permission, to post this video." });
       const sport = String(fields.sport || "other").trim().toLowerCase();
       const division = ["girls","boys"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "boys";
       let media_kind, media_url, mime = "", embed_url = "", host_label = "";
@@ -780,8 +799,8 @@ const server = http.createServer(async (req, res) => {
       const athlete = resolveAthlete({ playerName: fields.playerName || "", team: String(fields.team || "").trim(), division, jersey: String(fields.jersey || "").trim(), notifyEmail: String(fields.notifyEmail || "").trim(), athleteChoice: String(fields.athleteChoice || ""), athleteKey: String(fields.athleteKey || "") });
       const guardianPhone = cleanPhone(fields.guardianPhone || "");
       const textConsent = parseConsent(fields.textConsent);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString());
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -1004,7 +1023,7 @@ const server = http.createServer(async (req, res) => {
         // It stays stripped from every public response. Same for the
         // guardian mobile + text opt-in: owner-visible only, and the
         // text_consent flag says whether texting is permitted at all.
-        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent };
+        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "" };
       });
       return sendJson(res, 200, { queue: rows });
     }

@@ -88,7 +88,7 @@ try {
   /* ---- setup: a pending play and an approved play ---- */
   const claim = await j("/api/owner/claim", { method: "POST" });
   const tok = claim.body.token; assert(tok, "owner claim returns token");
-  const mk = async (title) => (await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, sport: "baseball", playerName: "Nick", jersey: "13", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }) })).body.id;
+  const mk = async (title) => (await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, sport: "baseball", playerName: "Nick", jersey: "13", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) })).body.id;
   const pendingId = await mk("Pending Frame Play");
   const approvedId = await mk("Approved Frame Play");
   const appr = await j(`/api/highlights/${approvedId}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ status: "approved" }) });

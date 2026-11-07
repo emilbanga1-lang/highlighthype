@@ -24,7 +24,7 @@ const assert = (cond, msg) => { if (!cond) throw new Error("FAIL: " + msg); cons
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const j = async (p, opts = {}) => { const r = await fetch(base + p, opts); const text = await r.text(); let body = {}; try { body = JSON.parse(text); } catch {} return { status: r.status, body, raw: text }; };
 const post = (p, payload, tok) => j(p, { method: "POST", headers: { "content-type": "application/json", ...(tok ? { "x-owner-token": tok } : {}) }, body: JSON.stringify(payload) });
-const upload = (payload) => post("/api/highlights", { sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", ...payload });
+const upload = (payload) => post("/api/highlights", { sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true", ...payload });
 const approve = (id, tok) => post(`/api/highlights/${id}/status`, { status: "approved" }, tok);
 try {
   for (let i = 0; i < 50; i++) { try { await fetch(base + "/api/health"); break; } catch { await wait(200); } }
