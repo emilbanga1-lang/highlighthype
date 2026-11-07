@@ -2413,8 +2413,9 @@ try {
      like that," but the only submit asks were the hero (a page
      up), the final CTA (below the store) and the floating pill.
      The band sits INSIDE the plays panel, between the board
-     wrap and the montage wrap: the mission line as the heading
-     (the .sec-head h2 accent pattern — .lime renders gold since
+     wrap and the montage wrap: the slogan as the heading
+     (Round 26 — it replaced the Round 25 mission line;
+     the .sec-head h2 accent pattern — .lime renders gold since
      Round 22), one subline, and the lime button at hero size.
      The button is a <button data-submit-link> — NOT an
      href="#post" anchor — so it routes through goSubmit and
@@ -2422,7 +2423,7 @@ try {
      census. Markup/CSS checks only; goSubmit's behavior itself
      is pinned in §34. ---- */
   assert(home.includes('class="cta-band"'), "Round 25: the mid-page CTA band exists");
-  assert(home.includes('EVERY ATHLETE DESERVES THE <span class="lime">HYPE</span>'), "Round 25: the band heading is the mission line with HYPE carried in the .lime (gold) accent span");
+  assert(home.includes('YOUR MOMENT. YOUR <span class="lime">HYPE.</span>'), "Round 25/26: the band heading is the slogan with HYPE. carried in the .lime (gold) accent span (Round 26 replaced the Round 25 mission line at Emil's direction)");
   assert(home.includes("Post your young athlete's best play — it takes a minute."), "Round 25: the band subline is exact");
   const bandAt35 = home.indexOf('class="cta-band"');
   const montageAt35 = home.indexOf('aria-label="Sports videos');
