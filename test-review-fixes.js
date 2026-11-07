@@ -454,7 +454,7 @@ try {
   assert(appJs.includes("function goHome()") && appJs.includes('showPanel("plays")'), "goHome() resets to the plays board (the homepage)");
   assert(home.includes('data-home-link') && home.includes("← Back to homepage"), "store landing carries a Back-to-homepage button (data-home-link -> goHome)");
   assert(!home.includes('id="storeFocusExit"'), "Round 27: the focus-bar exit left with focus mode — the store's back route is the store bar's Back-to-homepage button (asserted above)");
-  assert((home.match(/data-panel-btn="plays"/g) || []).length >= 3, "athlete + studio panels carry a Back-to-the-board button (plus the menu's Plays button)");
+  assert((home.match(/data-panel-btn="plays"/g) || []).length === 2, "athlete + studio panels carry a Back-to-the-board button (Round 29: the menu's Plays button is gone — the count drops from 3 to exactly these two)");
   assert(home.includes('id="qvHome"') && home.includes("← Home"), "the open quick view carries its own Home button (it covers the header)");
   assert(appJs.includes('$("#qvHome")?.addEventListener("click", () => { closeQuickView(); goHome(); })'), "quick-view Home closes the dialog, then runs goHome()");
   assert(css.includes(".qv-home{"), "the quick-view Home button is styled (pill, top-left, mirrors the close button)");
@@ -2499,12 +2499,12 @@ try {
   const ord36 = ['id="hsHero"', 'id="hsBySport"', 'id="hsGridSection"', 'id="hsHfFeature"', 'id="hsTeaser"'].map((m) => home.indexOf(m));
   assert(ord36.every((v, i) => v > -1 && (i === 0 || v > ord36[i - 1])), "Round 27: store order is hero < tiles < grid < Hype Frame feature < NEXT DROP teaser");
   const menu36 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
-  assert(menu36.includes('id="menuHsBtn"') && menu36.includes("Shop Hype Sports"), "Round 27: the menu carries the Shop Hype Sports group");
-  assert((menu36.match(/data-hs-menu="/g) || []).length === 6, "Round 27: the menu group lists all six sports");
-  assert(appJs.includes("showStore(); openHsView(b.dataset.hsMenu)"), "Round 27: a menu sport opens the Store and then its product view");
-  assert(menu36.includes('id="menuSizeGuide"') && menu36.includes("data-size-guide-open"), "Round 27: the menu carries a Size Guide item");
+  assert(!menu36.includes('id="menuHsBtn"'), "Round 29: the menu's Shop Hype Sports group toggle is REMOVED (was Round 27: the menu carries the group; §38 pins the slim menu)");
+  assert((menu36.match(/data-hs-menu="/g) || []).length === 0, "Round 29: the menu group lists NO sports (was Round 27: all six sports; the store's tiles/cards still open the product views)");
+  assert(!appJs.includes("showStore(); openHsView(b.dataset.hsMenu)"), "Round 29: the menu-sport wiring is gone from app.js (was Round 27: a menu sport opens the Store and then its product view)");
+  assert(!menu36.includes('id="menuSizeGuide"'), "Round 29: the menu's Size Guide entry is REMOVED (was Round 27: the menu carries a Size Guide item; the shared overlay stays — §38)");
   assert((home.match(/id="sizeGuide"/g) || []).length === 1, "Round 27: exactly ONE shared size guide overlay exists (single source markup)");
-  assert((home.match(/data-size-guide-open/g) || []).length >= 3, "Round 27: menu item + product-view links all open the same size guide overlay");
+  assert((home.match(/data-size-guide-open/g) || []).length === 2, "Round 29: exactly the two product-view Size Guide links open the shared overlay (was Round 27: menu item + the two product-view links = 3)");
   assert(appJs.includes("function openSizeGuide") && appJs.includes("function closeSizeGuide"), "Round 27: shared size guide open/close logic in app.js");
   const sg36 = home.slice(home.indexOf('id="sizeGuide"'));
   for (const row of ["YXXS", "YXS", "YS", "YM", "YL", "YXL"]) assert(sg36.includes(`<td>${row}</td>`), `Round 27: size guide lists ${row}`);
@@ -2535,6 +2535,54 @@ try {
   }
   const heroR36 = await fetch(`${base}/swag/hs/hero-model.jpg`);
   assert(heroR36.status === 200, "Round 27: hero model image serves");
+
+  /* ---- 37. Round 28 (2026-11-06): product-view phone fixes ----
+     Emil on the live Round 27 store: the back of the hoodie is
+     cut off on all sports (the square stage cover-cropped the
+     portrait gallery art, clipping the hood and the bottom of
+     the back's HYPE letters), and he "can't swipe between front
+     and back" (the mobile dots were inert spans, no touch
+     handlers). The stage now letterboxes the whole frame
+     (contain on black), the dots are real buttons, and swipe +
+     arrow keys step between frames. ---- */
+  const hsImgRule37 = css.slice(css.indexOf("img#hsMainImg"), css.indexOf("}", css.indexOf("img#hsMainImg")));
+  assert(hsImgRule37.includes("object-fit:contain") && hsImgRule37.includes("object-position:center") && hsImgRule37.includes("background:#0a0a0a"), "Round 28: the product-view stage shows the ENTIRE gallery image (object-fit:contain, centered, on #0a0a0a)");
+  assert(!hsImgRule37.includes("object-fit:cover"), "Round 28: the stage no longer cover-crops the portrait front/back art (hood + HYPE letters were clipped)");
+  assert(hsImgRule37.includes("aspect-ratio:1/1"), "Round 28: the stage keeps its 1/1 box (no layout shift)");
+  assert(appJs.includes('addEventListener("touchstart"') && appJs.includes('addEventListener("touchend"'), "Round 28: touch swipe handlers are wired on the product-view media stage");
+  assert(appJs.includes("HS_SWIPE_MIN = 40") && appJs.includes("Math.abs(dx) >= HS_SWIPE_MIN"), "Round 28: a swipe must clear a 40px horizontal threshold before it turns a frame");
+  assert((appJs.match(/hsSetFrame\(hsState\.frame \+ \(dx < 0 \? 1 : -1\)\)/g) || []).length === 2, "Round 28: touch AND pointer swipes both step one frame through hsSetFrame (clamped at both ends, no wraparound)");
+  assert(appJs.includes('addEventListener("pointerdown"') && appJs.includes('addEventListener("pointerup"'), "Round 28: pointer-event drag is the swipe fallback for mouse/pen");
+  assert(appJs.includes('<button type="button" class="hsv-dot"') && appJs.includes('aria-label="Show image'), "Round 28: the mobile dots are generated as real buttons with per-image labels");
+  assert(appJs.includes('addEventListener("click", () => hsSetFrame(Number(b.dataset.hsDot)))'), "Round 28: tapping a dot jumps straight to that frame");
+  assert(!home.includes('id="hsDots" aria-hidden'), "Round 28: #hsDots is no longer aria-hidden (it holds real controls now)");
+  assert(appJs.includes('"ArrowLeft"') && appJs.includes('"ArrowRight"'), "Round 28: Left/Right arrow keys are handled for gallery navigation");
+  assert(appJs.includes("hsView28.hidden") && appJs.includes('t.tagName === "INPUT"'), "Round 28: arrow-key navigation is guarded to the open product view and non-input focus");
+
+  /* ---- 38. Round 29 (2026-11-06): the hamburger menu slimmed to
+     exactly four items ----
+     Emil approved the mapping ("Yes — slim it to those 4 items"):
+     All Hypes, My Highlights, How It Works, Swag Shop — Rep The
+     Hype. Removed: the "Plays" header row (duplicated All Hypes),
+     the expandable Shop Hype Sports group, and the menu's Size
+     Guide entry. The shared #sizeGuide overlay, openSizeGuide()
+     and every product view's Size Guide link are untouched — only
+     the menu entry went away. All absence checks below are scoped
+     to the nav block: both removed labels legitimately live on
+     elsewhere (the store hero button, the product views). ---- */
+  const menu38 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
+  const kept38 = ['id="menuAllHypes"', 'data-panel-btn="mine"', 'data-panel-btn="how"', "Swag Shop — Rep The Hype"];
+  const keptIdx38 = kept38.map((m) => menu38.indexOf(m));
+  assert(keptIdx38.every((v) => v > -1), "Round 29: the menu keeps All Hypes, My Highlights, How It Works and Swag Shop — Rep The Hype");
+  assert(keptIdx38.every((v, i) => i === 0 || v > keptIdx38[i - 1]), "Round 29: the four kept menu items appear in the approved order");
+  assert((menu38.match(/<button type="button"|<a class="nav-swag"/g) || []).length === 4, "Round 29: the menu contains EXACTLY four entries (three buttons + the swag anchor)");
+  assert(!menu38.includes('data-panel-btn="plays"') && !menu38.includes(">Plays</button>"), "Round 29: the 'Plays' header row is gone from the menu (the panels' Back-to-the-board buttons sit outside the menu and stay)");
+  assert(!menu38.includes('id="menuHsBtn"') && !menu38.includes("menu-group") && (menu38.match(/data-hs-menu="/g) || []).length === 0 && !menu38.includes("Shop Hype Sports"), "Round 29: no Shop Hype Sports group markup remains inside the menu (the label still names the store's hero button, outside the menu)");
+  assert(!appJs.includes("menuHsBtn") && !appJs.includes("menuHsList") && !appJs.includes("dataset.hsMenu"), "Round 29: the menu-group-only wiring is gone from app.js (store tiles/cards still open views via data-hs-open / openHsView)");
+  assert(!menu38.includes('id="menuSizeGuide"') && !menu38.includes("data-size-guide-open"), "Round 29: the menu's Size Guide entry is gone (scoped to the menu — the product views keep their openers)");
+  const hsView38 = home.slice(home.indexOf('id="hsView"'), home.indexOf('id="sizeGuide"'));
+  assert(home.includes('id="sizeGuide"') && appJs.includes("function openSizeGuide") && appJs.includes("$$(\"[data-size-guide-open]\")"), "Round 29: the shared size guide overlay, openSizeGuide() and its opener wiring survive the menu slim-down");
+  assert((home.match(/data-size-guide-open/g) || []).length === 2 && hsView38.includes("data-size-guide-open"), "Round 29: exactly the two product-view Size Guide links still open the shared overlay");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
