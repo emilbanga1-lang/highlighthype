@@ -1891,14 +1891,21 @@ function hfBuildColorButtons() {
 })();
 
 /* ---------------- hero ---------------- */
+// Round 30 (Emil + Dyanna, 2026-11-07): the hero film is now the B15
+// commercial. The old playback chrome (progress bar, seconds timer,
+// "Tap for sound" pill) is GONE. The music should start on its own:
+// browsers only allow sound-on autoplay after a visitor has interacted
+// with the page, so try unmuted first and fall back to muted autoplay —
+// the small speaker icon on the video itself is then one tap to sound.
 (function () {
-  const v = $("#heroVideo"), fill = $("#heroFill"), cur = $("#heroCur"), total = $("#heroTotal"), sound = $("#heroSound");
-  const fmt = (t) => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+  const v = $("#heroVideo"), mute = $("#heroMute");
   if (!v) return;
-  v.addEventListener("loadedmetadata", () => { if (v.duration) total.textContent = "/ " + fmt(v.duration); });
-  v.addEventListener("timeupdate", () => { if (v.duration && fill) fill.style.width = (v.currentTime / v.duration * 100) + "%"; if (cur) cur.textContent = fmt(v.currentTime || 0); });
-  const p = v.play(); if (p && p.catch) p.catch(() => v.setAttribute("controls", ""));
-  sound?.addEventListener("click", () => { v.muted = !v.muted; sound.textContent = v.muted ? "🔊 Tap for sound" : "🔇 Sound on — tap to mute"; if (!v.muted) { const q = v.play(); if (q && q.catch) q.catch(() => {}); } });
+  const setIcon = () => { if (!mute) return; mute.textContent = v.muted ? "🔇" : "🔊"; mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
+  v.muted = false;
+  const p = v.play();
+  if (p && p.catch) p.catch(() => { v.muted = true; const q = v.play(); if (q && q.catch) q.catch(() => {}); setIcon(); });
+  setIcon();
+  mute?.addEventListener("click", () => { v.muted = !v.muted; if (!v.muted) { const q = v.play(); if (q && q.catch) q.catch(() => {}); } setIcon(); });
 })();
 
 /* ---------------- countdown ---------------- */

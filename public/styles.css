@@ -580,6 +580,11 @@
   .hero-media video{object-position:center}
   .vid-note{position:absolute;top:12px;right:12px;z-index:4;background:rgba(0,0,0,.72);color:#fff;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:5px 9px;border-radius:999px}
   .sound-btn{flex:none;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;backdrop-filter:blur(6px);white-space:nowrap}
+  /* Round 30: the hero's only chrome — a small speaker icon ON the film
+     (top-right, just under the header). The progress bar, seconds timer
+     and sound pill are gone (Dyanna, 2026-11-07). */
+  .hero-mute{position:absolute;top:76px;right:14px;z-index:6;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);padding:0}
+  .hero-mute:active{transform:scale(.94)}
   .feat .f-media video,.card .thumb video{position:absolute;inset:0}
   .montage figure video{position:absolute;inset:0}
   .vplay{position:absolute;z-index:5;left:50%;top:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.55);background:rgba(0,0,0,.5);color:#fff;cursor:pointer;display:grid;place-items:center;font-size:17px;backdrop-filter:blur(4px)}
