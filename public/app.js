@@ -1816,6 +1816,12 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   const name = String(form.elements.playerName.value || "").trim();
   if (!name) { msg.textContent = "Add the athlete's first name — every hype needs its athlete."; form.elements.playerName.focus(); return; }
   if (!String(form.elements.sport.value || "").trim()) { msg.textContent = "Tap the sport — one tap is all it takes."; $("#sportSelect")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  // Guardian attestation (Round 21, 2026-11-06): the one required
+  // checkbox — the poster confirms they are the athlete's
+  // parent/guardian or have the guardian's permission. The server
+  // enforces it too (400); this check just answers in place, in the
+  // same inline style as the validations above.
+  if (!form.elements.guardianConsent || !form.elements.guardianConsent.checked) { msg.textContent = "Please confirm you're the parent/guardian, or have their permission, to post this video."; $(".guardian-block")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   if (!String(form.elements.title.value || "").trim()) form.elements.title.value = `${name}'s highlight`;
   const fd = new FormData(form);
   // Duplicate-name check: if this name already belongs to an athlete and
@@ -1876,6 +1882,7 @@ async function loadOwner() {
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
         if (h.guardian_phone) bits.push(`${esc(h.guardian_phone)} <a class="mini-btn" style="text-decoration:none" href="tel:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">📞 Call</a> <a class="mini-btn" style="text-decoration:none" href="sms:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">💬 Text</a> ${h.text_consent ? `<span class="tagchip">Text opt-in: YES</span>` : `<span class="tagchip warn">No text opt-in — do not text</span>`}`);
         return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — can't be featured as a winner.</span>`; })()}
+      ${h.guardian_consent_at ? `<br>Guardian consent ✓ ${esc(new Date(h.guardian_consent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}` : ""}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}</div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");

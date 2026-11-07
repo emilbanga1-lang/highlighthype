@@ -227,6 +227,11 @@
         <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
         <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
         <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+        <!-- Guardian attestation (Round 21, 2026-11-06): REQUIRED —
+             the submit handler blocks an unticked post and the server
+             rejects it too (400). The guardian CONTACT above stays
+             optional for posting; this confirmation does not. -->
+        <label class="checkline"><input type="checkbox" name="guardianConsent"> I'm this athlete's parent/guardian, or I have their permission to post this video.</label>
       </div>
 
       <details class="quick-more">
