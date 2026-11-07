@@ -168,9 +168,12 @@
 
     <form id="uploadForm" class="upload-card">
       <!-- Round 22 (2026-11-06): overlay close — visible only while
-           the form is the mobile full-screen overlay (styles.css,
-           body.upload-open ≤760px); display:none everywhere else,
-           so it never enters the Round 18 desktop grid. -->
+           the form is shown as the overlay (styles.css,
+           body.upload-open); display:none everywhere else.
+           Round 24 (2026-11-06): the overlay is every width now
+           (the form left the page flow entirely), and in the open
+           state the ✕ is position:fixed, so it never enters the
+           Round 18 desktop grid. -->
       <button type="button" class="upload-close" id="uploadClose" aria-label="Close the upload form">✕</button>
       <h3 id="post">Post a play</h3>
       <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>

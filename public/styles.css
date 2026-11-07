@@ -167,12 +167,12 @@
   .float-submit:hover{background:#d9ff4d}
   .float-submit:active{transform:scale(.97)}
   body.store-open .float-submit{display:none}
-  /* Round 11 (2026-11-05): .fab-away is toggled by app.js while the
-     upload form is on screen — the FAB's fixed perch covers the
-     form's Girls toggle at phone widths and eats its taps. Fade
-     out first, then visibility flips (delayed transition) so the
-     button is fully gone, not just transparent. */
-  .float-submit.fab-away{opacity:0;visibility:hidden;pointer-events:none;transition:background .15s ease,transform .15s ease,opacity .15s ease,visibility 0s linear .15s}
+  /* Round 11 (2026-11-05) faded the pill out while the in-page
+     form was on screen (its perch covered the form's Girls
+     toggle at phone widths and ate its taps). Round 24 retires
+     that fade rule together with its observer: the form is an
+     overlay now, never in the flow, and the pill simply hides
+     while the overlay is open (Round 24 block, end of file). */
   @media (max-width:480px){ .float-submit{right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));padding:11px 17px;font-size:14px} }
   /* Extra breathing room at the very bottom is set on .final / footer
      themselves (below) so the pill never sits on the final CTA or the
@@ -1456,4 +1456,53 @@
     body.upload-open .float-submit{display:none}
     body.upload-open #uploadForm{position:fixed;inset:0;z-index:90;margin:0;border:0;border-radius:0;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
     body.upload-open #uploadForm .upload-close{display:grid;place-items:center;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:95;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line2);background:rgba(10,10,10,.72);color:#fff;font:inherit;font-size:16px;line-height:1;cursor:pointer;backdrop-filter:blur(6px)}
+  }
+
+  /* ===== Round 24 (2026-11-06): the upload overlay at EVERY
+     width — feedback item 5 completed =====
+     Round 22 solved item 5's access problem on phones only: the
+     form became a phone overlay, but the homepage itself stayed
+     just as long and the desktop form stayed in the flow. Emil
+     approved finishing item 5 ("reduce homepage length"), so the
+     form now leaves the flow at ALL widths:
+       1. CLOSED = GONE. #uploadForm is display:none until
+          body.upload-open. The form was a direct child of the
+          plays wrap — no section heading, wrapper or spacer
+          exists solely to hold it, so nothing else collapses and
+          no gap remains: the homepage runs hero → board →
+          montage → Hype Frame → store → final CTA → footer.
+          Round 17/18's desktop rules still describe the form;
+          they now only take effect in the open state.
+       2. OPEN — the locks Round 22 fenced to ≤760px apply at
+          every width: the page behind scroll-locks, the floating
+          pill hides, the panelIn guard (upload-used retiring the
+          panel's entry animation) is hoisted so the desktop
+          panel's fill-both transform can't become the fixed
+          form's containing block either, and the ✕ shows
+          whenever the overlay is open at any width (its
+          declarations repeat Round 22's phone rule verbatim).
+          Phones keep Round 22's full-bleed layer untouched (the
+          ≤760px rules above stand). Desktops get a MODAL: a
+          dimmed backdrop (body.upload-open::after, z 89 — under
+          the form's 90, over the nav's 70) and the form as a
+          centered card wearing its Round 18 two-column grid
+          (display:grid restated in the open rule so the
+          closed-state display:none yields to it), capped at
+          92vh and scrolling internally.
+       3. app.js: goSubmit opens the overlay unconditionally (no
+          width branch), and a #post deep link — the form
+          heading's id, what external links point at — opens it
+          on load and on hashchange. The submit handler needed
+          no changes: its success path only writes #uploadMsg,
+          and its validation scrolls target elements INSIDE the
+          form, which scroll this overlay container instead. */
+  #uploadForm{display:none}
+  body.upload-open{overflow:hidden}
+  body.upload-open .float-submit{display:none}
+  body.upload-used .panel.active{animation:none}
+  body.upload-open::after{content:"";position:fixed;inset:0;z-index:89;background:rgba(5,5,8,.68);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  body.upload-open #uploadForm{display:block;margin:0}
+  body.upload-open #uploadForm .upload-close{display:grid;place-items:center;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:95;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line2);background:rgba(10,10,10,.72);color:#fff;font:inherit;font-size:16px;line-height:1;cursor:pointer;backdrop-filter:blur(6px)}
+  @media (min-width:761px){
+    body.upload-open #uploadForm{display:grid;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1120px,calc(100vw - 48px));max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;z-index:90;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.65)}
   }

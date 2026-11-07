@@ -918,6 +918,7 @@ $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.pr
 $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()));
 $$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));
 window.addEventListener("hashchange", () => {
+  if (location.hash === "#post") goSubmit();
   if (location.hash === "#shop") showStore();
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
@@ -927,13 +928,16 @@ window.addEventListener("hashchange", () => {
 });
 function goSubmit() {
   showHome(); closeMenu(false); showPanel("plays"); switchView("month");
-  /* Round 22 (2026-11-06): on phones (≤760px) the form opens as a
-     full-screen overlay (styles.css: body.upload-open turns
-     #uploadForm into a fixed, independently scrolling layer) —
-     the old anchor scroll dragged the visitor down the whole page
-     under the floating pill. Desktop keeps the in-page scroll. */
-  if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) { openUploadOverlay(); return; }
-  document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" });
+  /* Round 22 (2026-11-06) opened the form as a full-screen
+     overlay on phones only (styles.css: body.upload-open turns
+     #uploadForm into a fixed, independently scrolling layer);
+     desktops kept the in-page form and an anchor scroll to it.
+     Round 24 (2026-11-06) removes the width branch entirely:
+     feedback item 5 ("reduce homepage length") takes the form
+     OUT of the page flow at every width (styles.css holds it
+     display:none until body.upload-open), so the overlay is
+     the only way in, on every screen. */
+  openUploadOverlay();
 }
 /* Round 22: the overlay is the SAME form node — never moved, never
    duplicated — so a half-filled form keeps every field (and the
@@ -945,24 +949,24 @@ function goSubmit() {
 function openUploadOverlay() { document.body.classList.add("upload-open", "upload-used"); const f = document.getElementById("uploadForm"); if (f) f.scrollTop = 0; }
 function closeUploadOverlay() { document.body.classList.remove("upload-open"); }
 $("#floatSubmit").addEventListener("click", goSubmit);
-/* Round 11 (2026-11-05): the floating Submit button's fixed
-   bottom-right perch lands exactly on the upload form's Girls
-   toggle at phone widths (the Girls half of the full-width seg
-   sits under it when the form is scrolled, worse with the keyboard
-   up) and swallows the tap. While any of the form is on screen the
-   FAB fades out and stops taking taps (the .fab-away rule); it
-   returns when the form scrolls out of view. */
-const floatSubmitBtn = $("#floatSubmit");
-const uploadFormEl = $("#uploadForm");
-if (floatSubmitBtn && uploadFormEl && typeof IntersectionObserver !== "undefined") {
-  new IntersectionObserver((entries) => {
-    entries.forEach((e) => floatSubmitBtn.classList.toggle("fab-away", e.isIntersecting));
-  }).observe(uploadFormEl);
-}
+/* Round 11 (2026-11-05) hid the pill while the in-page form was
+   on screen — an observer faded it out, because its fixed perch
+   landed on the form's Girls toggle at phone widths and ate the
+   tap. Round 24 (2026-11-06) RETIRES that observer and its fade
+   rule: the form is no longer in the page flow at any width, so
+   there is nothing in-flow left to watch — a display:none target
+   would never intersect, and the observer would be dead weight
+   running against a hidden element. The pill's visibility is
+   purely state-driven now: visible whenever the overlay is
+   closed, hidden while body.upload-open (styles.css) — the same
+   end state phones have had since Round 22. */
 $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); goSubmit(); }));
 /* Round 22: the overlay's ✕ and the Escape key close it. Closing
    only drops body.upload-open — the form (and anything typed or
-   picked in it) stays exactly as it was. */
+   picked in it) stays exactly as it was. Round 24: the handler
+   was never width-scoped, so Escape now closes the overlay at
+   every width — before, the overlay simply never opened on
+   desktop for it to close. */
 $("#uploadClose")?.addEventListener("click", closeUploadOverlay);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("upload-open")) closeUploadOverlay(); });
 $$("[data-tablink]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); showHome(); showPanel(a.dataset.tablink); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
@@ -1958,4 +1962,9 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   if (location.hash === "#shop") { bootHashTarget = true; showStore(); }
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") { bootHashTarget = true; showStore(location.hash.slice(1)); }
   if (location.hash === "#owner") { bootHashTarget = true; $("#ownerPanel").classList.remove("hidden"); loadOwner(); }
+  // Round 24: #post is the upload form heading's id — the target
+  // external links (shares, emails) have always pointed at. The
+  // form has no in-page position anymore, so the deep link opens
+  // the overlay instead of anchor-jumping to a hidden element.
+  if (location.hash === "#post") { bootHashTarget = true; goSubmit(); }
 })();
