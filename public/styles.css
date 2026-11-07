@@ -1610,7 +1610,7 @@
   .hsv-panel{position:relative;background:#0d0d0f;border:1px solid var(--line2);border-radius:18px;max-width:920px;width:calc(100% - 32px);max-height:90vh;overflow:auto;padding:22px;display:grid;grid-template-columns:1.05fr 1fr;gap:24px}
   .hsv-close{position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.55);color:#fff;font-size:16px;cursor:pointer}
   .hsv-close:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
-  .hsv-media img#hsMainImg{width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 20%;border-radius:12px;background:#111;display:block}
+  .hsv-media img#hsMainImg{width:100%;aspect-ratio:1/1;object-fit:contain;object-position:center;border-radius:12px;background:#0a0a0a;display:block}
   .hsv-switch{display:flex;gap:8px;margin-top:10px}
   .hsv-side-btn{flex:1;appearance:none;border:1px solid var(--line2);background:#141414;color:#fff;border-radius:999px;padding:10px;font:inherit;font-weight:800;cursor:pointer;min-height:44px}
   .hsv-side-btn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:var(--volt)}
@@ -1655,12 +1655,8 @@
   .sg-table th{color:var(--gold);font-size:12.5px;letter-spacing:.09em;text-transform:uppercase}
   .sg-table td:first-child{font-weight:800;color:#fff}
   body.sg-open{overflow:hidden}
-  /* Menu: Shop Hype Sports group + Size Guide (Round 27). */
-  .menu-group-btn .chev{display:inline-block;transition:transform .15s ease}
-  .menu-group-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
-  .menu-sub{padding:2px 0 4px 14px}
-  .menu-sub button{font-weight:600;color:var(--muted);padding:10px 14px}
-  .menu-sub button:hover{color:#fff}
+  /* Round 29: the slimmed menu needs no group styles — the rules
+     left with the group markup itself. */
   @media (max-width:760px){
     .shop .store-bar{margin-top:76px}
     .hs-hero{min-height:300px}
@@ -1675,7 +1671,7 @@
     .hsv-panel{grid-template-columns:1fr;width:100%;max-height:none;height:100dvh;border-radius:0;border:0}
     .hsv-thumbs{display:none}
     .hsv-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
-    .hsv-dot{width:8px;height:8px;border-radius:50%;background:#3a3a34}
+    .hsv-dot{appearance:none;-webkit-appearance:none;width:8px;height:8px;border:0;padding:0;border-radius:50%;background:#3a3a34;cursor:pointer}
     .hsv-dot.on{background:var(--gold)}
     .hsv-size{flex:1 1 30%;min-height:56px;font-size:16px}
     .hsv-info h4{font-size:30px}

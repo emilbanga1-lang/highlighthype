@@ -1362,7 +1362,8 @@ function openHsView(sport) {
   $("#hsDesc").textContent = `The ${p.name} Hype Hoodie from Hype Sports Drop 001 — a black premium youth hoodie with the gold crest and ${p.name.toUpperCase()} in plain caps at the left chest, a crown print on the sleeve, and the giant ball graphic with crown and HYPE brush letters across the back. ${p.line} Sample phase — sales open soon.`;
   $("#hsThumbs").innerHTML = p.gallery.map(([src, label], i) => `<button type="button" class="hsv-thumb" data-hs-thumb="${i}" aria-pressed="false" aria-label="Show image: ${esc(label)}"><img src="${src}" alt="" loading="lazy" decoding="async" /></button>`).join("");
   $$("#hsThumbs .hsv-thumb").forEach((b) => b.addEventListener("click", () => hsSetFrame(Number(b.dataset.hsThumb))));
-  $("#hsDots").innerHTML = p.gallery.map(() => `<span class="hsv-dot"></span>`).join("");
+  $("#hsDots").innerHTML = p.gallery.map((_, i) => `<button type="button" class="hsv-dot" data-hs-dot="${i}" aria-label="Show image ${i + 1} of ${p.gallery.length}"></button>`).join("");
+  $$("#hsDots .hsv-dot").forEach((b) => b.addEventListener("click", () => hsSetFrame(Number(b.dataset.hsDot))));
   $$("#hsSizes .hsv-size").forEach((b) => b.setAttribute("aria-pressed", "false"));
   hsSetTab("desc");
   hsSetFrame(0);
@@ -1382,6 +1383,44 @@ $$(".hs-card").forEach((card) => {
 });
 $$("[data-hs-close]").forEach((el) => el.addEventListener("click", closeHsView));
 $$(".hsv-side-btn").forEach((b) => b.addEventListener("click", () => hsSetFrame(b.dataset.hsSide === "back" ? 1 : 0)));
+/* Round 28 (2026-11-06): gallery navigation on the product-view
+   stage — phones get dots, not thumbs, and Emil found he "can't
+   swipe between front and back". A clear horizontal swipe moves
+   one frame (hsSetFrame clamps at both ends, no wraparound);
+   listeners are passive so the panel's own scrolling is never
+   fought. Pointer events cover mouse/pen drags as a fallback
+   (touch pointers are left to the touch handlers). Arrow keys
+   navigate while the view is open. */
+const hsMedia28 = document.querySelector(".hsv-media");
+if (hsMedia28) {
+  const HS_SWIPE_MIN = 40;
+  let hsTouchX = null;
+  hsMedia28.addEventListener("touchstart", (e) => { hsTouchX = e.changedTouches[0].clientX; }, { passive: true });
+  hsMedia28.addEventListener("touchend", (e) => {
+    if (hsTouchX === null) return;
+    const dx = e.changedTouches[0].clientX - hsTouchX;
+    hsTouchX = null;
+    if (Math.abs(dx) >= HS_SWIPE_MIN) hsSetFrame(hsState.frame + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+  let hsPtrX = null;
+  hsMedia28.addEventListener("dragstart", (e) => e.preventDefault());
+  hsMedia28.addEventListener("pointerdown", (e) => { if (e.pointerType !== "touch") hsPtrX = e.clientX; });
+  hsMedia28.addEventListener("pointerup", (e) => {
+    if (e.pointerType === "touch" || hsPtrX === null) return;
+    const dx = e.clientX - hsPtrX;
+    hsPtrX = null;
+    if (Math.abs(dx) >= HS_SWIPE_MIN) hsSetFrame(hsState.frame + (dx < 0 ? 1 : -1));
+  });
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const hsView28 = $("#hsView");
+  if (!hsView28 || hsView28.hidden) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+  e.preventDefault();
+  hsSetFrame(hsState.frame + (e.key === "ArrowRight" ? 1 : -1));
+});
 $$("#hsSizes .hsv-size").forEach((b) => b.addEventListener("click", () => {
   $$("#hsSizes .hsv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
 }));
@@ -1395,7 +1434,8 @@ $("#hsShopBtn")?.addEventListener("click", () => document.getElementById("hsBySp
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHsView(); });
 
 /* The shared youth size guide: ONE overlay (#sizeGuide), opened by
-   the menu item and by every product-view Size Guide link. */
+   every product-view Size Guide link. (Round 29 removed the menu's
+   entry; the overlay and this wiring are unchanged.) */
 function openSizeGuide() {
   const sg = $("#sizeGuide"); if (!sg) return;
   sg.hidden = false;
@@ -1411,15 +1451,10 @@ $$("[data-size-guide-open]").forEach((el) => el.addEventListener("click", () => 
 $$("[data-sg-close]").forEach((el) => el.addEventListener("click", closeSizeGuide));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSizeGuide(); });
 
-/* Menu: the Shop Hype Sports group expands to the six sports; a tap
-   opens the Store and then that sport's product view. */
-const menuHsBtn = $("#menuHsBtn"), menuHsList = $("#menuHsList");
-menuHsBtn?.addEventListener("click", () => {
-  const open = menuHsList.hidden;
-  menuHsList.hidden = !open;
-  menuHsBtn.setAttribute("aria-expanded", String(open));
-});
-$$("[data-hs-menu]").forEach((b) => b.addEventListener("click", () => { closeMenu(false); showStore(); openHsView(b.dataset.hsMenu); }));
+/* Round 29 (2026-11-06): the menu's expandable sports group is
+   gone — Emil slimmed the menu to four items. The store's own
+   tiles and cards still open product views (data-hs-open /
+   openHsView, wired above); nothing else used the group's wiring. */
 
 /* NEXT DROP teaser: the Hot Pink Hype Street hoodie keeps its quick
    view — the teaser card carries the girls-street slug + title the

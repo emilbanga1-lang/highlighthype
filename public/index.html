@@ -26,24 +26,17 @@
          the bar. The store stays reachable via the ☰ menu entry
          below, the Store Entry Card and the store doors. -->
     <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
+    <!-- Round 29 (2026-11-06): the menu is slimmed to exactly four
+         items — Emil: "too many options." Gone: the "Plays" header
+         row (it duplicated All Hypes), the expandable Shop Hype
+         Sports group (the store's own sport tiles do that job), and
+         the menu's Size Guide entry (the shared size-guide overlay
+         stays; every product view's Size Guide link still opens it). -->
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
-      <button type="button" data-panel-btn="plays" aria-current="true">Plays</button>
       <button type="button" id="menuAllHypes">All Hypes</button>
       <button type="button" data-panel-btn="mine" aria-current="false">My Highlights</button>
       <button type="button" data-panel-btn="how" aria-current="false">How it works</button>
       <a class="nav-swag" href="#shop" data-store-link>Swag Shop — Rep The Hype</a>
-      <div class="menu-group">
-        <button type="button" class="menu-group-btn" id="menuHsBtn" aria-expanded="false" aria-controls="menuHsList">Shop Hype Sports <span class="chev" aria-hidden="true">▾</span></button>
-        <div class="menu-sub" id="menuHsList" hidden>
-          <button type="button" data-hs-menu="baseball">Baseball</button>
-          <button type="button" data-hs-menu="football">Football</button>
-          <button type="button" data-hs-menu="basketball">Basketball</button>
-          <button type="button" data-hs-menu="soccer">Soccer</button>
-          <button type="button" data-hs-menu="softball">Softball</button>
-          <button type="button" data-hs-menu="volleyball">Volleyball</button>
-        </div>
-      </div>
-      <button type="button" id="menuSizeGuide" data-size-guide-open>Size Guide</button>
     </nav>
   </div>
 </header>
@@ -815,7 +808,7 @@
     <button type="button" class="hsv-close" data-hs-close aria-label="Close product view">✕</button>
     <div class="hsv-media">
       <img id="hsMainImg" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie — front" />
-      <div class="hsv-dots" id="hsDots" aria-hidden="true"></div>
+      <div class="hsv-dots" id="hsDots"></div>
       <div class="hsv-switch" role="group" aria-label="View side">
         <button type="button" class="hsv-side-btn" data-hs-side="front" aria-pressed="true">Front</button>
         <button type="button" class="hsv-side-btn" data-hs-side="back" aria-pressed="false">Back</button>
@@ -875,8 +868,8 @@
 </div>
 
 <!-- ============ YOUTH SIZE GUIDE (Round 27: ONE shared overlay —
-     the menu's Size Guide item and every product-view Size Guide
-     link open this same component) ============ -->
+     every product-view Size Guide link opens this same component;
+     Round 29 removed the menu's entry, the overlay stays) ============ -->
 <div class="sg" id="sizeGuide" hidden role="dialog" aria-modal="true" aria-labelledby="sgTitle">
   <div class="sg-backdrop" data-sg-close></div>
   <div class="sg-panel">
