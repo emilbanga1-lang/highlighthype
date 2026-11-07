@@ -42,7 +42,7 @@ const api = async (path, opts = {}) => {
   return j;
 };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
+const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "martialarts") return "Martial Arts"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 /* Round 6 (2026-11-05): Dance, Golf, Swimming, Tennis, Track & Field
    and Wrestling join the list (youth rerun v3: kids in those sports
@@ -51,7 +51,7 @@ const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/
    upload form's <option> list and cap()'s special labels are the
    three places a sport lives; the server stores whatever key it is
    sent (lowercased), so no server list needs to match. */
-const SPORTS = ["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"];
+const SPORTS = ["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "martialarts", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 /* ---------------- data ---------------- */
