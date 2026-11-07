@@ -1424,9 +1424,15 @@
           audio or playback-control behavior changed.
        3. FAB + OVERLAY (phones only, ≤760px — desktop keeps the
           pill and the in-page form exactly): the floating Submit
-          pill shrinks to a 56px round FAB, upload icon only, so it
-          no longer drapes over cards, Hype Frame images, text and
-          footer controls while browsing. Tapping it (or any
+          pill shrinks to a compact FAB so it no longer drapes over
+          cards, Hype Frame images, text and footer controls while
+          browsing. Round 23 (2026-11-06): the original 56px
+          icon-only circle carried an upload arrow that read as
+          "back to top" (Emil, on his phone) — the button is now a
+          compact pill (48px tall, auto width) with a PLUS icon and
+          the short label "Post" (the full "Submit a Hype" label
+          stays desktop-only; the .float-submit-short span is
+          display:none outside this media query). Tapping it (or any
           [data-submit-link] CTA) opens the SAME #uploadForm as a
           fixed full-viewport layer that scrolls independently,
           with a fixed ✕; closing returns to browsing with the
@@ -1439,10 +1445,12 @@
           panel fade on every close). z-index 90 sits above the
           nav (70) and its menu (80); the ✕ rides at 95. */
   .upload-close{display:none}
+  .float-submit-short{display:none}
   @media (max-width:760px){
-    .float-submit{width:56px;height:56px;padding:0;border-radius:50%;justify-content:center;gap:0}
-    .float-submit svg{width:24px;height:24px}
+    .float-submit{width:auto;height:48px;padding:0 16px;border-radius:999px;justify-content:center;gap:6px}
+    .float-submit svg{width:20px;height:20px}
     .float-submit .float-submit-label{display:none}
+    .float-submit .float-submit-short{display:inline}
     body.upload-used .panel.active{animation:none}
     body.upload-open{overflow:hidden}
     body.upload-open .float-submit{display:none}
