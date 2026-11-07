@@ -780,6 +780,11 @@
   .tile-meta b{color:#fff;font-weight:700}
   .tile-sample{margin:2px 0 0}
   .tile-votes{margin-top:auto;padding-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  /* Round 32 (2026-11-07): every board tile carries its own Hype Frame
+     create button (the full card always had one; the Round 8 compact
+     tile dropped it, which dead-ended the store + homepage CTAs). */
+  .tile-actions{padding-top:8px}
+  .tile-hf-btn{border-color:var(--gold);color:var(--gold)}
   .tile .votebtn{padding:7px 14px;font-size:13px}
   .tile .votecount{font-size:12.5px}
   .tile .votecount b{font-size:14px}
@@ -1211,6 +1216,10 @@
   .hf-examples{margin:22px 0 4px;padding-top:18px;border-top:1px solid var(--line)}
   .hf-examples-head h4{font-family:"Anton",sans-serif;font-size:26px;letter-spacing:.02em;text-transform:uppercase;color:#fff;margin:0 0 4px}
   .hf-examples-head p{color:var(--muted);font-weight:600;margin:0 0 10px}
+  /* Round 32 (2026-11-07): the homepage Hype Frame section gets its own
+     small create CTA (Emil) — a compact lime button under the intro
+     line, riding the existing data-tablink route to the board. */
+  .hf-home-cta{font-size:15px;padding:10px 18px;margin:2px 0 12px}
   .hf-examples-grid{display:grid;grid-template-columns:minmax(230px,340px) 1fr;gap:16px;align-items:stretch}
   .hf-example{margin:0;background:#101010;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
   .hf-example img{width:100%;display:block}

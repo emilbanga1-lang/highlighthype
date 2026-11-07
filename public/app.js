@@ -282,6 +282,9 @@ function tileHtml(h, opts = {}) {
         <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
       </div>
+      <div class="tile-actions">
+        <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
+      </div>
     </div>
   </article>`;
 }
