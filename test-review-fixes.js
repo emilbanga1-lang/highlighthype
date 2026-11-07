@@ -2145,6 +2145,89 @@ try {
     fs.rmSync(legacyDir31, { recursive: true, force: true });
   }
 
+  /* ---- 32. Round 22 (2026-11-06): FAB + upload overlay, hero
+     slim-down, gold brand pass --------------------------------
+     External design feedback, approved by Emil "as mapped":
+     (1) PHONES ONLY (≤760px): the floating Submit pill becomes a
+     56px round FAB (upload icon, label hidden) that no longer
+     drapes over cards/text/footer controls, and tapping it — or
+     any [data-submit-link] CTA — opens the SAME #uploadForm as a
+     fixed full-viewport overlay (body.upload-open) with a fixed
+     ✕; closing preserves form state. Desktop keeps the pill and
+     the in-page form exactly. (2) HERO: the paragraph is Emil's
+     one line and the tagline element is gone from the hero (it
+     still rides the footer lockup image + alt). (3) PALETTE:
+     --gold is the crest gold #D4AF37 and carries the brand
+     surfaces (sec-tag eyebrows, the .lime word in section h2s,
+     the hero headline's "hype.", the spotlight tag, the podium
+     .lead, the step numerals); lime stays on every interactive
+     element. No uploads in this section (the §31 budget note
+     stands) — markup/CSS/wiring checks plus a vm drive of the
+     real goSubmit/open/close functions. ---- */
+  // (1a) FAB markup: same button, same accessible name, now an
+  // upload icon + a label span the phone CSS can hide.
+  const fab32 = home.slice(home.indexOf('id="floatSubmit"'), home.indexOf("<!-- ============ HERO"));
+  assert(fab32.includes('aria-label="Submit a Hype — go to the upload form"'), "Round 22: the FAB keeps its accessible name ('Submit a Hype — go to the upload form')");
+  assert(fab32.includes("<svg") && fab32.includes('class="float-submit-label">Submit a Hype</span>'), "Round 22: the FAB carries an upload icon and a label span (the pill's text on desktop, hidden on phones)");
+  // (1b) The overlay close: exactly one ✕, inside the form itself.
+  assert((home.split('id="uploadClose"').length - 1) === 1, "Round 22: exactly one #uploadClose button exists");
+  const formOpen32 = home.indexOf('<form id="uploadForm"');
+  assert(home.indexOf('id="uploadClose"') > formOpen32 && home.indexOf('id="uploadClose"') < home.indexOf("</form>"), "Round 22: the ✕ lives inside #uploadForm (it renders only in the overlay state)");
+  // (1c) Phone CSS: compact FAB + the overlay layer + the locks.
+  const css22 = css.slice(css.indexOf("===== Round 22"));
+  assert(css22.includes("@media (max-width:760px)"), "Round 22: the FAB/overlay rules are fenced to ≤760px — desktop CSS is untouched");
+  assert(css22.includes(".float-submit{width:56px;height:56px") && css22.includes("border-radius:50%"), "Round 22: on phones the pill becomes a 56px round FAB");
+  assert(css22.includes(".float-submit-label{display:none}"), "Round 22: the FAB label text is hidden on phones (icon only — it no longer covers content)");
+  assert(css22.includes("body.upload-open #uploadForm{position:fixed;inset:0") && css22.includes("overflow-y:auto") && css22.includes("z-index:90"), "Round 22: body.upload-open turns #uploadForm into a fixed full-viewport layer that scrolls independently");
+  assert(css22.includes("body.upload-open{overflow:hidden}") && css22.includes("body.upload-open .float-submit{display:none}"), "Round 22: the page behind the overlay locks, and the FAB hides while the overlay is open");
+  assert(css22.includes("#uploadForm .upload-close{display:grid") && css22.includes(".upload-close{display:none}"), "Round 22: the ✕ shows only in the overlay state and is display:none everywhere else (it never enters the desktop grid)");
+  assert(css22.includes("body.upload-used .panel.active{animation:none}"), "Round 22: after the first open the panel entry animation retires, so its fill-both transform can't trap the fixed form inside the panel");
+  // (1d) Wiring: goSubmit branches on the phone breakpoint; the
+  // ✕ and Escape close; §26's click/observer wiring still stands.
+  assert(appJs.includes('matchMedia("(max-width: 760px)")') && appJs.includes("function openUploadOverlay()") && appJs.includes("function closeUploadOverlay()"), "Round 22: app.js has the breakpoint branch and the open/close overlay functions");
+  assert(appJs.includes('$("#uploadClose")') && appJs.includes('e.key === "Escape"'), "Round 22: the ✕ click and the Escape key are wired to close the overlay");
+  // (1e) Behavioral: drive the REAL goSubmit/open/close block in a
+  // vm — phone width opens the overlay (no scrollIntoView), the
+  // close drops only upload-open, desktop width still scrolls.
+  const goBlock32 = appJs.slice(appJs.indexOf("function goSubmit()"), appJs.indexOf('$("#floatSubmit")'));
+  const bodyClasses32 = new Set();
+  const formStub32 = { scrollTop: 99, scrolled: 0, scrollIntoView() { this.scrolled++; } };
+  const mkSb32 = (mobile) => ({
+    console,
+    window: { matchMedia: (q) => ({ matches: mobile && q.includes("760px") }) },
+    document: {
+      body: { classList: { add: (...cs) => cs.forEach((c) => bodyClasses32.add(c)), remove: (...cs) => cs.forEach((c) => bodyClasses32.delete(c)), contains: (c) => bodyClasses32.has(c) } },
+      getElementById: (id) => (id === "uploadForm" ? formStub32 : null),
+    },
+    showHome: () => {}, closeMenu: () => {}, showPanel: () => {}, switchView: () => {},
+  });
+  const ctx32 = vm.createContext(mkSb32(true));
+  vm.runInContext(goBlock32, ctx32);
+  vm.runInContext("goSubmit()", ctx32);
+  assert(bodyClasses32.has("upload-open") && bodyClasses32.has("upload-used") && formStub32.scrolled === 0 && formStub32.scrollTop === 0, "behavioral (Round 22): at phone width goSubmit opens the overlay (upload-open + upload-used, form scrolled to top) and never anchor-scrolls");
+  vm.runInContext("closeUploadOverlay()", ctx32);
+  assert(!bodyClasses32.has("upload-open") && bodyClasses32.has("upload-used"), "behavioral (Round 22): closing drops only upload-open — the animation guard (upload-used) persists");
+  const ctx32d = vm.createContext(mkSb32(false));
+  vm.runInContext(goBlock32, ctx32d);
+  vm.runInContext("goSubmit()", ctx32d);
+  assert(!bodyClasses32.has("upload-open") && formStub32.scrolled === 1, "behavioral (Round 22): at desktop width goSubmit keeps the in-page scrollIntoView and opens nothing");
+  // (2) Hero: one-line saying in, tagline + old paragraph out,
+  // CTAs and playback controls untouched.
+  const hero32 = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf("<!-- ============ TRUST STRIP"));
+  assert(hero32.includes('<p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>'), "Round 22: the hero paragraph is exactly Emil's one line");
+  assert(!hero32.includes("hero-tagline") && !hero32.includes("The home of youth sports culture. Big plays."), "Round 22: the hero tagline element and the old multi-sentence paragraph are gone from the hero");
+  assert(hero32.includes("Watch Highlights") && hero32.includes('data-submit-link') && hero32.includes('id="heroSound"') && hero32.includes('id="heroVideo"'), "Round 22: the hero keeps its headline, both CTAs, the film and the playback controls");
+  // (3) Palette: gold on the brand surfaces, lime untouched on
+  // the interactive ones.
+  const rule32 = (sel) => css.slice(css.indexOf(sel), css.indexOf("}", css.indexOf(sel)));
+  assert(css.includes("--gold:#D4AF37"), "Round 22: --gold is the crest gold #D4AF37");
+  assert(rule32(".sec-tag{").includes("color:var(--gold)"), "Round 22: section eyebrows (.sec-tag) are gold");
+  assert(rule32(".sec-head h2 .lime{").includes("color:var(--gold)") && rule32(".shop-head h2 .lime{").includes("color:var(--gold)") && rule32(".store-card-body h2 .lime{").includes("color:var(--gold)"), "Round 22: the accent word in the section h2s (board / store head / store entry card) is gold");
+  assert(rule32(".hero h1 .lime{").includes("color:var(--gold)"), "Round 22: the hero headline's 'hype.' is gold, matching the crest lockup");
+  assert(rule32(".pod .lead{").includes("color:var(--gold)") && rule32(".sp-tag{").includes("color:var(--gold)") && rule32(".step .num{").includes("color:var(--gold)"), "Round 22: the podium lead label, spotlight tag and step numerals are gold");
+  assert(rule32(".btn-lime{").includes("background:var(--volt)") && rule32(".float-submit{").includes("background:var(--volt)"), "Round 22: primary buttons and the FAB stay lime (they are actions)");
+  assert(rule32('.votebtn[aria-pressed="true"]{').includes("background:var(--volt)") && rule32('.viewseg button[aria-pressed="true"]{').includes("background:var(--volt)") && rule32('.pill[aria-pressed="true"]{').includes("background:var(--volt)"), "Round 22: pressed/active interactive states (vote, view toggle, pills) stay lime");
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();
