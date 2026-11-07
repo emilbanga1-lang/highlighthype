@@ -38,21 +38,18 @@ try {
   /* Nov 5 (2026-11-05): the floating hint pill is gone — a docked
      pause/play button (#swagPauseBtn) is the film's pause control. */
   assert(!home.includes('id="swagHint"'), "floating film hint pill is gone (Nov 5)");
-  assert(home.includes('id="swagPauseBtn"') && home.includes("Pause the film"), "film carries the docked pause/play button (no Hype Frame name on the film)");
-  const kicker = (home.match(/<p class="ssc-kicker">([^<]*)<\/p>/) || [])[1] || "";
-  assert(kicker === "In this scene", "film pause-card kicker is exactly 'In this scene'");
-  // Store v8 (2026-11-04): the creative adopts Emil's concept-poster
-  // copy — the tagline "Turn your highlight into wearable hype." as
-  // the headline and the three VIDEO / FRAME / WEAR IT beats in place
-  // of the five-step line (the studio itself keeps the full flow).
-  assert(home.includes('class="hf-creative"') && home.includes("Turn your highlight") && home.includes("into wearable hype."), "Store creative headline is the poster tagline");
+  assert(!home.includes('id="swagPauseBtn"') && !home.includes('id="swagVideo"'), "Round 27: the film and its docked pause/play button left the store view entirely (the Hype Frame name stays off the film — there is no film in the store)");
+  assert(!home.includes("ssc-kicker"), "Round 27: the film pause card is gone from the store markup (no 'In this scene' kicker)");
+  // Store v8 (2026-11-04): the creative adopted Emil's concept-poster
+  // copy. Round 27 (2026-11-06): the creative panel left the store;
+  // Hype Frame's store presence is the compact in-store feature,
+  // and the poster tagline lives on in the studio.
+  assert(home.includes('id="hsHfFeature"') && home.includes("Your Play. Your") && home.includes("Hoodie."), "Round 27: the store's Hype Frame feature carries the 'Your Play. Your Hoodie.' headline");
   for (const step of [
-    "Video",
-    "Wear It",
-    "Upload your highlight",
-    "Choose your frame",
-    "Printed on your gear",
-  ]) assert(home.includes(step), "Store creative VIDEO / FRAME / WEAR IT beat includes: " + step);
+    "Freeze a frame from your own highlight video",
+    "parent or guardian confirms by email",
+    "Create a Hype Frame",
+  ]) assert(home.includes(step), "Round 27 Hype Frame feature includes: " + step);
   assert(appJs.includes("Create a Hype Frame"), "play cards get a 'Create a Hype Frame' button");
   assert(home.includes('id="hypeframe"') && home.includes('id="hfVideo"') && home.includes('id="hfScrub"') && home.includes('id="hfFreeze"') && home.includes('id="hfOrderForm"'), "studio markup present (video, timeline, freeze button, order form)");
   assert(appJs.includes("/api/hype-frame/orders") && appJs.includes("composeHfPrint"), "studio wires freeze -> compose -> order request");
@@ -81,9 +78,9 @@ try {
   assert(appJs.includes("composeHfPrint") && appJs.includes("hfState.printDataUrl = c.toDataURL"), "the composed print is still generated client-side and carried on the order (only the on-screen preview went away)");
 
   // Prices exist in the Store now (Drop 001 cards, 2026-11-04) — but
-  // the Hype Frame creative inside the Store stays price-free.
-  const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
-  assert(!hfCreative.includes("$"), "Hype Frame creative carries no price (prices live on the product cards only)");
+  // the Hype Frame feature inside the Store stays price-free.
+  const hfCreative = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
+  assert(!hfCreative.includes("$"), "Hype Frame feature carries no price (prices live on the product cards only)");
 
   /* ---- setup: a pending play and an approved play ---- */
   const claim = await j("/api/owner/claim", { method: "POST" });

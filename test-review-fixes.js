@@ -115,12 +115,12 @@ try {
   // Nov 5 (2026-11-05): the floating hint pill itself is gone — the
   // docked pause button + the pause card carry the flow now.
   // (The studio-side assertions live in test-hype-frame.js.)
-  assert(!home.includes('id="swagHint"') && home.includes('id="swagPauseBtn"'), "no floating hint on the film; the docked pause button is the pause affordance (no Hype Frame name on the film)");
-  assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"') && home.includes('<p class="ssc-kicker">In this scene</p>') && !home.includes("Hype Frame · In this scene"), "pause card present with plain 'In this scene' kicker");
+  assert(!home.includes('id="swagHint"') && !home.includes('id="swagPauseBtn"') && !home.includes('id="swagVideo"'), "Round 27: the swag film (hint pill, docked pause button, video element) is gone from the store view entirely — Hype Sports leads now (§36); the film file still backs the homepage entry-card teaser");
+  assert(!home.includes('id="swagShopCard"') && !home.includes('id="sscBtn"') && !home.includes("ssc-kicker"), "Round 27: the film's pause-to-shop scene card left with the film (its scene map lives on in app.js, asserted below)");
   // Store v2 (2026-11-04): Emil asked for Overtime's chrome-free hero,
-  // so the native control bar is GONE — tapping the film or the round
-  // outline button toggles playback instead (wiring asserted in §6).
-  assert(home.includes('id="swagVideo"') && !/id="swagVideo"[^>]*\bcontrols\b/.test(home), "swag film has NO native controls (v2 cinematic hero)");
+  // so the native control bar was removed then; Round 27 removes the
+  // film element itself from the store.
+  assert(!home.includes('id="swagVideo"'), "Round 27: no store film element at all (was: the v2 cinematic hero without native controls)");
   const sceneRe = (until, target) => new RegExp(`until:\\s*${until}[\\s\\S]{0,300}target:\\s*"${target}"`);
   // Store v4 (2026-11-04): the film was rebuilt from 10s clips of
   // youth wearing the actual Drop 001 designs, so the scene map is
@@ -138,8 +138,8 @@ try {
   assert(sceneRe("16", "girls-street").test(appJs), "scene 12–16s (Girls Street clip) maps to girls-street");
   assert(sceneRe("Infinity", "girls-essentials").test(appJs), "scene 16s–end (Girls Essentials clip) maps to girls-essentials");
   assert(appJs.includes("The Boys Hype Unleashed hoodie"), "Unleashed scene card carries the collection title");
-  assert(home.includes('<h4 id="sscTitle">The Boys Hype Street hoodie</h4>'), "pause card placeholder title matches the new first scene (Boys Street)");
-  assert(home.includes('data-store-block="boys"') && home.includes('data-store-block="girls"') && home.includes('id="collections"') && home.includes('id="storeFocusBar"'), "division blocks + grid anchor + focus bar exist in the Store");
+  assert(!home.includes('id="sscTitle"'), "Round 27: the pause card's placeholder title is gone with the card");
+  assert(!home.includes('data-store-block="boys"') && !home.includes('data-store-block="girls"') && !home.includes('id="collections"') && !home.includes('id="storeFocusBar"'), "Round 27: division blocks + grid anchor + focus bar are removed from the Store (Emil's resolutions supersede the blocks; §36 pins the new sections)");
   assert(appJs.includes('"pause"') && appJs.includes('"play"'), "card shows on pause and hides on play");
   const storeSection = home.slice(home.indexOf('id="shop"'));
   // Prices landed with the tonight additions (Emil, 2026-11-04, BL101
@@ -175,33 +175,35 @@ try {
      files remain on disk and still serve (the quick view keeps
      them after the lead model frame). */
   const LEAD_MODEL_SLUGS = ["boys-street", "girls-street"];
-  assert((home.match(/class="prod-card"/g) || []).length === 6, "product grid has exactly 6 cards (one per collection)");
+  /* Round 27 (2026-11-06) supersedes the card grid itself: the six
+     Original Drop cards left the store with the division blocks.
+     What survives of this section: the lookbook photo FILES still
+     serve (the quick view's gallery is built from them, and the
+     NEXT DROP teaser's Hot Pink card shows the girls-street model +
+     back photos), and the QV data/wiring is untouched. */
+  assert((home.match(/class="prod-card"/g) || []).length === 0, "Round 27: the Original Drop product cards are gone from the store (the grid is Hype Sports now — §36)");
   for (const slug of SLUGS) {
-    assert(home.includes(`data-slug="${slug}"`), `grid card present: ${slug}`);
     if (LEAD_MODEL_SLUGS.includes(slug)) {
-      assert(home.includes(`/swag/${slug}-model.jpg`), `card ${slug} shows the Round 20 MODEL photo as its primary image`);
-      assert(appJs.includes(`leadPhoto: "/swag/${slug}-model.jpg"`), `quick view for ${slug} leads its gallery with the model photo (Round 20)`);
+      assert(appJs.includes(`leadPhoto: "/swag/${slug}-model.jpg"`), `quick view for ${slug} still leads its gallery with the model photo (Round 20 data kept — the teaser's QV depends on it)`);
       const mr = await fetch(`${base}/swag/${slug}-model.jpg`);
       const mbuf = await mr.arrayBuffer();
       assert(mr.status === 200 && mbuf.byteLength > 5000, `model photo serves and is non-trivial: /swag/${slug}-model.jpg (${mbuf.byteLength} bytes)`);
-    } else {
-      assert(home.includes(`/swag/${slug}-front.jpg`), `card ${slug} shows the real FRONT lookbook photo as its primary image`);
     }
-    assert(home.includes(`/swag/${slug}-back.jpg`), `card ${slug} flip peek shows the real BACK lookbook photo`);
     for (const kind of ["front", "back"]) {
       const r = await fetch(`${base}/swag/${slug}-${kind}.jpg`);
       const buf = await r.arrayBuffer();
       assert(r.status === 200 && buf.byteLength > 5000, `real ${kind} photo serves and is non-trivial: /swag/${slug}-${kind}.jpg (${buf.byteLength} bytes)`);
     }
   }
+  assert(home.includes("/swag/girls-street-back.jpg"), "Round 27: the NEXT DROP teaser shows the girls-street (Hot Pink) back photo");
   assert(!home.includes("/swag-boards/"), "Round 2: cards no longer reference the flat board illustrations");
-  assert(home.includes("prod-photo"), "card photos carry the photo treatment class (posed photos anchor high in the card frame)");
+  assert(!home.includes("prod-photo"), "Round 27: the old card photo treatment class left with the cards");
   assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
   assert(!home.includes("data-store-div=") && !home.includes("data-store-chip=") && !home.includes('class="store-controls"'), "division toggle + collection chips are gone (blocks replace filters)");
-  assert(home.includes('data-store-focus="boys"') && home.includes('data-store-focus="girls"'), "each block banner carries its focus button");
+  assert(!home.includes('data-store-focus="boys"') && !home.includes('data-store-focus="girls"'), "Round 27: the block banners' focus buttons are gone with the blocks (the focus wiring stays dormant in app.js)");
   assert(!(home.match(/<article class="prod-card"[^>]*>/g) || []).some((t) => t.includes("hidden")), "no product card starts hidden on the landing (all six show)");
   assert(home.includes('id="quickView"') && home.includes('id="qvGallery"') && home.includes('id="qvSwatches"') && home.includes('id="qvColorName"'), "quick-view overlay present with the swipeable colorway gallery");
-  assert((home.match(/data-flip/g) || []).length >= 6, "every card has a front/back flip toggle");
+  assert((home.match(/data-flip/g) || []).length === 0, "Round 27: card flip toggles left with the Original Drop cards (Hype Sports cards show the front+back pair instead)");
   assert(appJs.includes("setStoreFocus") && !appJs.includes("applyStoreFilter") && !appJs.includes("setStoreDivision") && appJs.includes("openQuickView"), "focus mode + quick view wired in app.js (old filter functions gone)");
   assert(appJs.includes("goToStoreScene") && appJs.includes("flashStoreCards"), "film scene button focuses the card's division and highlights the card");
   // Hype Frame in the Store: the v3 creative section (layered prints,
@@ -225,22 +227,19 @@ try {
      (§25). Round 11: Nicholas didn't like the crowd — the Round 9
      music bed is restored (§26); the controls stay below. */
   const filmTag = (home.match(/<video id="swagVideo"[^>]*>/) || [""])[0];
-  assert(filmTag.includes("autoplay") && filmTag.includes("muted") && filmTag.includes("loop") && filmTag.includes("playsinline"), "hero film autoplays muted, loops, plays inline");
-  assert(home.includes('class="swag-film swag-film-hero"'), "film block carries the full-bleed hero treatment");
+  assert(filmTag === "" && !home.includes('class="swag-film swag-film-hero"'), "Round 27: the store film hero is gone from the markup (was: muted autoplay loop, full-bleed) — the Hype Sports hero leads instead (§36)");
   const css = await text("/styles.css");
   assert(css.includes(".swag-film-hero") && css.includes("100vw"), "styles.css bleeds the hero edge-to-edge (100vw)");
   assert(!css.includes(".film-toggle") && !css.includes(".store-tile") && !css.includes(".store-controls"), "styles.css: round toggle, nav tile and filter-control rules are gone");
   assert(css.includes(".store-banner") && css.includes('body[data-store-focus="boys"]') && css.includes('body[data-store-focus="girls"]'), "styles.css carries the banner + focus-mode rules");
-  assert(home.includes('data-hero-shop="girls"') && home.includes('data-hero-shop="boys"'), "hero overlay has Shop Girls / Shop Boys link-buttons");
-  assert(home.includes("Shop Girls") && home.includes("Shop Boys"), "hero shop links are labelled Shop Girls / Shop Boys");
+  assert(!home.includes('data-hero-shop="girls"') && !home.includes('data-hero-shop="boys"'), "Round 27: the film overlay's Shop Girls / Shop Boys link-buttons are gone with the film");
   assert(!home.includes('id="swagPlayBtn"') && !appJs.includes("swagPlayBtn"), "round outline pause/play button removed from markup and JS");
   assert(appJs.includes("sv.muted = true") && !appJs.includes("sv.muted = false"), "the film is silent (Nov 5): entering the Store keeps it muted — the unmute-on-gesture logic is gone");
-  assert(home.includes('id="swagShopCard"') && home.includes('id="sscBtn"'), "pause-to-shop scene card still present under the hero");
+  assert(!home.includes('id="swagShopCard"') && !home.includes('id="sscBtn"'), "Round 27: the pause-to-shop scene card is gone with the film");
   for (const side of ["girls", "boys"]) {
-    assert(home.includes(`data-store-block="${side}"`) && home.includes(`/swag/tile-${side}.jpg`), `division block banner present with its photo: ${side}`);
     const r = await fetch(`${base}/swag/tile-${side}.jpg`);
     const buf = await r.arrayBuffer();
-    assert(r.status === 200 && buf.byteLength > 5000, `banner photo serves and is non-trivial: /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
+    assert(r.status === 200 && buf.byteLength > 5000, `division banner photo still serves (asset kept on disk): /swag/tile-${side}.jpg (${buf.byteLength} bytes)`);
   }
   assert(appJs.includes("[data-hero-shop]") && appJs.includes("[data-store-focus]") && appJs.includes("goToStoreScene"), "hero links + banner buttons wired to focus mode in app.js");
 
@@ -258,10 +257,10 @@ try {
      Boys-first recut of the film (~35s). */
   assert(home.includes('class="shop"') && !home.includes("store-light"), "dark v2 store restored (no .store-light scope class)");
   assert(!css.includes(".store-light") && !css.includes("#f4f1ea"), "no light-canvas rules remain in styles.css");
-  const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf("swag-film-hero"), headIdx = home.indexOf("shop-head");
-  assert(heroIdx > shopIdx && heroIdx < headIdx, "film hero is the first element of the Store (before the intro copy)");
+  const shopIdx = home.indexOf('id="shop"'), heroIdx = home.indexOf('id="hsHero"'), headIdx = home.indexOf("shop-head");
+  assert(heroIdx > shopIdx && headIdx === -1 && !home.includes("swag-film-hero"), "Round 27: the Hype Sports hero is the first element of the Store; the film hero and the old shop-head are gone");
   const boysBlockIdx = home.indexOf('data-store-block="boys"'), girlsBlockIdx = home.indexOf('data-store-block="girls"'), creativeIdx = home.indexOf('class="hf-creative"');
-  assert(headIdx < boysBlockIdx && boysBlockIdx < girlsBlockIdx && girlsBlockIdx < creativeIdx, "landing order: film → intro → Boys block → Girls block → Hype Frame creative");
+  assert(boysBlockIdx === -1 && girlsBlockIdx === -1 && creativeIdx === -1, "Round 27: no division blocks and no hf-creative panel remain in the store (landing order for the new sections is pinned in §36)");
   assert(css.includes("aspect-ratio:16/9;max-height:92vh"), "desktop hero runs 16/9 with a generous max-height");
   assert(css.includes(".swag-film-hero{aspect-ratio:auto;height:82vh"), "mobile hero is ~82vh tall (taller than v2's 4/5 crop)");
   const filmRes = await fetch(`${base}/swag-film.mp4`);
@@ -278,7 +277,7 @@ try {
   const filmVol = execFileSync("bash", ["-c", `ffmpeg -i "${filmFile}" -map 0:a -af volumedetect -f null - 2>&1 | grep mean_volume`]).toString();
   const filmMeanDb = Number((/mean_volume:\s*(-?[\d.]+)/.exec(filmVol) || [])[1]);
   assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 11: the film's music bed is QUIET (mean ${filmMeanDb} dB — background, not a soundtrack)`);
-  assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 2, "both film tags (store hero + homepage teaser) use the v6 poster — a Boys Street frame of the v7 widescreen film");
+  assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 1, "Round 27: only ONE film tag keeps the v6 poster — the homepage entry-card teaser (the store's film tag left with the film)");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
      scenes (title card / Hype All Day / division & end cards) remain. */
@@ -287,22 +286,23 @@ try {
   assert(!scenesBlock.includes("Hype All Day") && !scenesBlock.includes("hype-girls") && !scenesBlock.includes("hype-boys") && !scenesBlock.includes("coordinating") && !scenesBlock.includes("collections"), "no old-film scene targets remain in the scene table");
   assert(!appJs.includes("The Hype All Day hoodie") && !appJs.includes("Drop 001 — the full drop"), "old title-card / statement-hoodie scene copy is gone from app.js");
   assert(appJs.includes('data-slug="${target}"') || appJs.includes("data-slug="), "scene button resolves its target card by slug (goToStoreScene)");
-  /* Hype Frame creative, dark skin: layered prints, manifesto
-     headline, one numbered steps line, CTA to the plays. */
-  assert(home.includes('class="hf-creative"') && !home.includes("hypeframe-banner") && !home.includes("hf-steps-strip"), "Hype Frame creative section replaces the slim banner");
-  assert(home.includes('class="hfc-print hfc-print-moment"') && home.includes('class="hfc-print hfc-print-hoodie"'), "creative layers a moment print over a hoodie print");
-  assert(home.includes('class="hfc-printbox"') && home.includes('class="hfc-garment"'), "hoodie print reuses the studio garment mock with a composed print in its print area");
-  assert((home.split("/swag/hfc-action.jpg").length - 1) === 2, "the creative's sports-action still (from the hero film) appears on BOTH figures — moment print and hoodie print");
-  const hfcRes = await fetch(`${base}/swag/hfc-action.jpg`);
+  /* Hype Frame in the store, Round 27: the big creative panel
+     (layered prints, steps, garment mock) left with the hypeframe
+     focus state; the store now carries the compact feature —
+     headline, one line, guardian framing, the finished-hoodie
+     example photo, and the same CTA into the plays. */
+  assert(!home.includes('class="hf-creative"') && home.includes('id="hsHfFeature"') && !home.includes("hypeframe-banner") && !home.includes("hf-steps-strip"), "Round 27: the in-store Hype Frame feature replaces the creative panel");
+  assert(!home.includes('class="hfc-print') && !home.includes('class="hfc-garment"'), "Round 27: the layered-print creative (moment/hoodie prints, garment mock) is out of the store");
+  const hfcRes = await fetch(`${base}/swag/hf-example-hoodie-back.jpg`);
   const hfcBuf = await hfcRes.arrayBuffer();
-  assert(hfcRes.status === 200 && hfcBuf.byteLength > 5000, `action still serves and is non-trivial: /swag/hfc-action.jpg (${hfcBuf.byteLength} bytes)`);
-  assert(home.includes("Your moment.") && home.includes("Your hype.") && home.includes("Turn your highlight") && css.includes(".hfc-title"), "manifesto line stays on the page (hero) and the creative headline is the poster tagline");
+  assert(hfcRes.status === 200 && hfcBuf.byteLength > 5000, `the feature's finished-hoodie example serves and is non-trivial: /swag/hf-example-hoodie-back.jpg (${hfcBuf.byteLength} bytes)`);
+  assert(home.includes("Your moment.") && home.includes("Your hype.") && home.includes("Turn your highlight"), "manifesto line stays on the page (hero) and the studio keeps the poster tagline");
   assert(css.includes(".hf-creative{display:grid") && css.includes("border-top:1px solid var(--line)"), "creative is styled for the dark store (v2 palette, unscoped by .store-light)");
-  assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "creative subline: freeze a frame from your own highlight video — and wear it");
-  for (const step of ["Video", "Wear It", "Upload your highlight", "Choose your frame", "Printed on your gear"]) assert(home.includes(step), `creative VIDEO / FRAME / WEAR IT beat includes: ${step}`);
+  assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "feature subline: freeze a frame from your own highlight video — and wear it");
+  for (const step of ["Your Play. Your", "Hoodie.", "Create a Hype Frame"]) assert(home.includes(step), `Round 27 Hype Frame feature includes: ${step}`);
   assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
-  const hfCreative = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
-  assert(!hfCreative.includes("$"), "Hype Frame creative stays price-free (prices live on the product cards only)");
+  const hfCreative = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
+  assert(!hfCreative.includes("$"), "Hype Frame feature stays price-free (prices live on the product cards only)");
   assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
   assert(hfCreative.includes("parent or guardian confirms by email before anything is printed"), "creative keeps the guardian-approval framing (no payment/checkout language)");
 
@@ -312,18 +312,18 @@ try {
   assert(!css.includes("body.store-open .nav{position:relative"), "the old solid in-flow store nav bar is gone");
   assert(css.includes("body.store-open .shop{padding-top:0;border-top:0}"), "Store view starts at the very top — no padding or border above the film");
   const barIdx = home.indexOf("store-bar");
-  assert(barIdx > heroIdx && barIdx < headIdx, "store bar (Back + breadcrumb) sits below the film, above the intro copy");
+  assert(barIdx > shopIdx && barIdx < heroIdx, "Round 27: store bar (Back + breadcrumb) sits at the top of the store, above the Hype Sports hero");
   assert(css.includes(".swag-film-hero .swag-film-badge{top:82px") && !home.includes('id="swagHint"') && !css.includes(".swag-film-hint"), "film badge drops below the floating nav line; the floating hint pill is fully removed (Nov 5)");
-  assert(home.includes('id="swagPauseBtn"') && css.includes(".swag-pause-btn{position:absolute;right:16px;bottom:16px"), "a real pause/play button is docked in the film's bottom-right corner (Nov 5)");
+  assert(css.includes(".swag-pause-btn{position:absolute;right:16px;bottom:16px"), "the docked pause-button rule stays in styles.css (Nov 5) — the film it served left the store in Round 27");
   assert(css.includes("body:not([data-store-focus]) .store-block .prod-grid{display:none"), "doors landing (Nov 5): division products stay collapsed until a door opens the division");
-  assert((home.match(/class="prod-colors"/g) || []).length === 6 && (home.match(/class="prod-dot"/g) || []).length === 24, "every card shows its colorway dots under the size run (6 cards x 4 colorways)");
+  assert((home.match(/class="prod-colors"/g) || []).length === 0 && (home.match(/class="prod-dot"/g) || []).length === 0, "Round 27: colorway dots left with the Original Drop cards (was: 6 cards x 4 colorways)");
   assert(home.includes('id="qvSides"') && home.includes('data-qv-side="0"') && home.includes('data-qv-side="1"') && appJs.includes("qv-side-btn"), "quick view has explicit FRONT / BACK buttons (colors + sides reachable without swiping)");
   assert(appJs.includes("const storeState = { focus: null }"), "store starts unfocused (full landing: film, Boys, Girls, Hype Frame)");
-  assert(home.indexOf('data-hero-shop="boys"') < home.indexOf('data-hero-shop="girls"'), "hero overlay links: Shop Boys before Shop Girls");
-  assert(home.indexOf('data-store-focus="boys"') < home.indexOf('data-store-focus="girls"'), "banner focus buttons: Boys before Girls");
+  assert(!home.includes("data-hero-shop"), "Round 27: film overlay Shop Boys/Girls links are gone with the film");
+  assert(!home.includes("data-store-focus"), "Round 27: banner focus buttons are gone with the blocks");
   assert(home.indexOf('data-store-target="hype-boys"') < home.indexOf('data-store-target="hype-girls"'), "homepage store card links: Hype Boys before Hype Girls");
   const cardTag = (slug) => (home.match(new RegExp(`<article class="prod-card"[^>]*data-slug="${slug}"[^>]*>`)) || [""])[0];
-  for (const slug of SLUGS) assert(cardTag(slug) !== "" && !cardTag(slug).includes("hidden"), `initial HTML shows the card: ${slug}`);
+  for (const slug of SLUGS) assert(cardTag(slug) === "", `Round 27: no Original Drop card remains in the markup: ${slug}`);
 
   /* ---- 9. Tonight batch: logo, hero, proof removal, share, autoplay --
      Emil (2026-11-04 night): (1) the logo's black JPEG box showed on
@@ -430,7 +430,7 @@ try {
   assert(appJs.includes("qvGalleryState.photos + Number(b.dataset.qvColor) * 2"), "swatch jumps account for the leading photo frames (2, or 3 with a Round 20 lead model frame)");
   assert(appJs.includes("(qvGalleryState.photos || 2) - 1"), "FRONT/BACK buttons target the photo frames (BACK = last photo frame, incl. the Round 20 lead)");
   // Homepage Hype Frame finished-product examples (poster crops).
-  assert(home.includes('id="hfExamples"'), "homepage Hype Frame examples strip present");
+  assert(home.includes('id="hfExamplesHome"') && !home.includes('id="hfExamples"'), "homepage Hype Frame examples strip present (hfExamplesHome); Round 27: the store's gated #hfExamples copy left with the hypeframe focus panel");
   assert(home.includes("/swag/hf-example-hoodie-back.jpg") && home.includes("/swag/hf-example-lineup.jpg"), "examples strip uses the two poster crops");
   assert(home.includes("Example finishes — yours is made from your own play"), "examples are captioned as examples, made-from-your-own-play");
   const sizeOf = (f) => execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", f], { encoding: "utf8" }).trim();
@@ -453,7 +453,7 @@ try {
   assert(appJs.includes('$$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));'), "every .brand logo (header + footer) is bound to goHome()");
   assert(appJs.includes("function goHome()") && appJs.includes('showPanel("plays")'), "goHome() resets to the plays board (the homepage)");
   assert(home.includes('data-home-link') && home.includes("← Back to homepage"), "store landing carries a Back-to-homepage button (data-home-link -> goHome)");
-  assert(home.includes('id="storeFocusExit"'), "store focus mode has its exit back to the store landing");
+  assert(!home.includes('id="storeFocusExit"'), "Round 27: the focus-bar exit left with focus mode — the store's back route is the store bar's Back-to-homepage button (asserted above)");
   assert((home.match(/data-panel-btn="plays"/g) || []).length >= 3, "athlete + studio panels carry a Back-to-the-board button (plus the menu's Plays button)");
   assert(home.includes('id="qvHome"') && home.includes("← Home"), "the open quick view carries its own Home button (it covers the header)");
   assert(appJs.includes('$("#qvHome")?.addEventListener("click", () => { closeQuickView(); goHome(); })'), "quick-view Home closes the dialog, then runs goHome()");
@@ -599,10 +599,8 @@ try {
      which is what left a slab of dead black space under the studio
      card (hidden panels hold no height; the examples block did). */
   const hfDoorIdx = home.indexOf('data-store-block="hypeframe"');
-  assert(hfDoorIdx > girlsBlockIdx && hfDoorIdx < creativeIdx, "landing order: Boys door -> Girls door -> Hype Frame door -> Hype Frame creative");
-  const doorSlice = home.slice(hfDoorIdx, creativeIdx);
-  assert(doorSlice.includes('data-store-focus="hypeframe"') && doorSlice.includes("Turn your highlight into wearable hype") && doorSlice.includes("/swag/hf-door.jpg"), "the third door is labeled Hype Frame with its tagline and banner art");
-  assert(!doorSlice.includes('data-store-focus="boys"') && !doorSlice.includes('data-store-focus="girls"') && !doorSlice.includes("data-hf-door"), "Round 4: the Hype Frame door carries its OWN focus control (hypeframe), not a division's, and the old scroll-door attribute is gone");
+  assert(hfDoorIdx === -1 && !home.includes("data-store-block="), "Round 27: all three store doors (Boys / Girls / Hype Frame) are gone from the store view — Hype Frame's store presence is the in-store feature (§36)");
+  assert(!home.includes("data-store-focus="), "Round 27: no focus controls remain in the store markup (the app.js focus wiring below is dormant)");
   assert(appJs.includes("function openStoreHf") && appJs.includes('setStoreFocus("hypeframe")'), "Round 4: the door opens the Hype Frame panel via the focus mechanics (openStoreHf)");
   assert(css.includes('[data-store-focus="boys"] .store-block[data-store-block="hypeframe"]') && css.includes('[data-store-focus="girls"] .store-block[data-store-block="hypeframe"]'), "the door's block hides in either division's focus mode");
   assert(css.includes(".hf-creative{scroll-margin-top"), "the creative keeps its nav-clearing scroll margin");
@@ -660,8 +658,8 @@ try {
   assert(!appJs.includes('$$("[data-hf-door]")') && !appJs.includes('$$(".store-banner-hf")'), "Round 4: the old scroll-to-creative door handlers are gone");
   // (1d) The panel's CTA keeps its exact Round 3 wiring into the
   // studio path (data-tablink to the plays panel).
-  const hfCreativeSlice = home.slice(home.indexOf('class="hf-creative"'), home.indexOf('id="quickView"'));
-  assert(hfCreativeSlice.includes('class="hfc-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 4: the panel's 'Create a Hype Frame' CTA is unchanged (opens the studio exactly as before)");
+  const hfCreativeSlice = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
+  assert(hfCreativeSlice.includes('class="hfc-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 27: the in-store feature's 'Create a Hype Frame' CTA keeps the Round 4 wiring (opens the studio exactly as before)");
   // (2) The new film: same slot facts as Round 3 (serves, ~13-15s,
   // 1280x720) — asserted in section 16 above against the live file;
   // its composition is the sweatshirt-player build (see DEPLOY-NOTES).
@@ -1292,7 +1290,7 @@ try {
     }
   }
   // (7) Film sound toggle wiring (the file's audio is probed in §8).
-  assert(home.includes('class="swag-film-controls"') && home.includes('id="swagSoundBtn"') && home.includes('id="swagPauseBtn"'), "Round 9: the film docks a sound toggle beside the pause button");
+  assert(!home.includes('class="swag-film-controls"') && !home.includes('id="swagSoundBtn"') && !home.includes('id="swagPauseBtn"'), "Round 27: the film's Sound/Pause controls left the store with the film (Round 9's docked toggle is history; its wiring stays dormant in app.js, asserted next)");
   assert(appJs.includes('$("#swagSoundBtn")') && appJs.includes("v.muted = !v.muted") && appJs.includes('"volumechange"'), "Round 9: the toggle flips the film's own muted flag (pausing pauses the sound — same element) and the label re-syncs on volumechange");
   assert(css.includes(".swag-film-controls{") && css.includes("min-height:44px"), "Round 9: film controls are >=44px targets in one docked cluster");
   // (6) Winner strip, end to end: seed LAST month with an entered,
@@ -1436,12 +1434,10 @@ try {
     vm.runInContext("renderAll2()", r10Ctx);
     assert(r10Els["#allBoard"].innerHTML === tile, `behavioral (Round 10): after the ${sport} tap, the rendered All board holds exactly that sport's seeded sample play (${tile})`);
   }
-  // (4) Film controls: out of the overlay, buttons byte-identical.
-  const filmInner10 = home.slice(home.indexOf('class="swag-film swag-film-hero"'), home.indexOf('id="sscBtn"'));
-  assert(!filmInner10.includes("swagSoundBtn") && !filmInner10.includes("swagPauseBtn"), "Round 10: no Sound/Pause buttons inside the film block — nothing overlays the picture or its Shop Boys / Shop Girls links");
-  assert(home.indexOf('class="swag-film-controls"') > home.indexOf('id="sscBtn"') && home.indexOf('class="swag-film-controls"') < home.indexOf('class="store-bar"'), "Round 10: the controls row sits immediately after the film wrapper, inside the store section, before the store bar");
-  assert(home.includes('<button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film\'s sound on" aria-pressed="false">🔇 <span>Sound off</span></button>'), "Round 10: the Sound button itself is byte-identical (id, classes, label, aria)");
-  assert(home.includes('<button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>'), "Round 10: the Pause button itself is byte-identical (id, classes, label, aria)");
+  // (4) Film controls: Round 27 removes the film from the store, so
+  // Round 10's placement/byte-identity asserts are superseded by
+  // absence; the controls CSS rule itself stays in styles.css.
+  assert(!home.includes('class="swag-film swag-film-hero"') && !home.includes('id="sscBtn"') && !home.includes('class="swag-film-controls"') && !home.includes('id="swagSoundBtn"') && !home.includes('id="swagPauseBtn"'), "Round 27: the film block, scene card, controls row and both buttons are out of the store (Round 10's placement rules are moot)");
   const controlsRule10 = css.slice(css.indexOf(".swag-film-controls{"), css.indexOf("}", css.indexOf(".swag-film-controls{")));
   assert(controlsRule10.includes("justify-content:flex-end") && !controlsRule10.includes("position:absolute"), "Round 10: the controls cluster is a static right-aligned row below the film, not an absolute overlay");
   // (5) The film file: video untouched; Round 11 restored the
@@ -2436,6 +2432,109 @@ try {
   assert(css35.includes(".cta-band{"), "Round 25: the .cta-band rule exists in the Round 25 CSS block");
   assert(css35.includes("text-align:center") && css35.includes("padding:34px 0 30px"), "Round 25: the band is a slim centered strip (34px top padding — a breath between sections, not another card section)");
   assert(css35.includes(".cta-band .btn{width:100%}"), "Round 25: on phones the band button goes full-width");
+
+  /* ---- 36. Round 27 (2026-11-06): the Hype Sports store rebuild ----
+     Emil's direction + resolutions: the store is rebuilt around
+     HYPE SPORTS. Order: hero -> Shop by Sport -> filter chips/grid
+     -> Hype Frame feature -> NEXT DROP teaser. Holds: $69.99 (the
+     comp's $59.99 NOT adopted), six youth sizes, Coming Soon (no
+     cart, no shipping promises), Hot Pink not lost (teaser + its
+     quick view). The film + Boys/Girls blocks are OUT — §§4–8, 16,
+     25–26 now pin their absence. Comp alignments adopted: pair
+     cards (the card Front/Back toggle is dropped as redundant),
+     filter chips, gold VIEW PRODUCT buttons, product-view tabs +
+     feature bullets, mobile single-column grid + scrollable gold
+     chips (photo-54), 3-across tiles with HTML labels (photo-53),
+     mobile product view with dots + big gold-selected size chips +
+     Size Guide link under the CTA (photo-55), menu Shop Hype
+     Sports group + shared Size Guide overlay (photo-56). ---- */
+  const shopSlice36 = home.slice(home.indexOf('id="shop"'), home.indexOf('id="sizeGuide"'));
+  assert(shopSlice36.includes("DROP 001 / HYPE SPORTS"), "Round 27: store hero eyebrow badge reads 'DROP 001 / HYPE SPORTS'");
+  assert(shopSlice36.includes('REP YOUR <span class="gold">SPORT.</span>'), "Round 27: hero headline 'REP YOUR SPORT.' with SPORT. in crest gold");
+  assert(shopSlice36.includes("Six sports. One attitude. Your moment. Your hype."), "Round 27: hero subline is exact");
+  assert(shopSlice36.includes('id="hsShopBtn"') && shopSlice36.includes("SHOP HYPE SPORTS"), "Round 27: gold SHOP HYPE SPORTS button present");
+  assert(appJs.includes('$("#hsShopBtn")') && appJs.includes('getElementById("hsBySport")'), "Round 27: the hero button smooth-scrolls to Shop by Sport");
+  assert(shopSlice36.includes("/swag/hs/hero-model.jpg"), "Round 27: hero art is the photo-50 model crop");
+  const HS_SPORTS36 = ["baseball", "football", "basketball", "soccer", "softball", "volleyball"];
+  assert((shopSlice36.match(/class="hs-tile"/g) || []).length === 6, "Round 27: six Shop by Sport tiles");
+  for (const s of HS_SPORTS36) {
+    assert(shopSlice36.includes(`data-hs-open="${s}"`), `Round 27: a tile opens the ${s} product view`);
+    assert(shopSlice36.includes(`/swag/hs/tile-${s}.jpg`), `Round 27: tile art present: ${s}`);
+  }
+  for (const label of ["Baseball", "Football", "Basketball", "Soccer", "Softball", "Volleyball"]) assert(shopSlice36.includes(`<span class="hs-tile-label">${label}</span>`), `Round 27: tile label is real HTML: ${label}`);
+  assert((shopSlice36.match(/class="hs-card"/g) || []).length === 6, "Round 27: six Hype Sports grid cards");
+  for (const s of HS_SPORTS36) {
+    assert(shopSlice36.includes(`data-hs-card="${s}"`) && shopSlice36.includes(`/swag/hs/${s}-pair.jpg`), `Round 27: grid card shows the front+back pair: ${s}`);
+  }
+  assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 6, "Round 27: every grid card carries the Sample phase badge");
+  assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 6, "Round 27: every grid card has the gold VIEW PRODUCT button");
+  assert(!shopSlice36.includes("data-flip"), "Round 27: grid cards have NO front/back toggle (the pair layout makes it redundant — dropped per the comp steer; the product view keeps its switch)");
+  assert(shopSlice36.includes("Premium youth fit") && shopSlice36.includes("HYPE SPORTS / 001") && shopSlice36.includes("HYPE SPORTS / 006"), "Round 27: cards carry the fit line and the 001-006 eyebrows");
+  assert((shopSlice36.match(/class="hs-chip"/g) || []).length === 7, "Round 27: seven filter chips (All Sports + six sports)");
+  assert(shopSlice36.includes('data-hs-filter="all" aria-pressed="true"') && shopSlice36.includes('data-hs-filter="volleyball"'), "Round 27: chips are aria-pressed buttons, All Sports active by default");
+  assert(appJs.includes("chip.dataset.hsFilter") && appJs.includes('card.hidden = f !== "all"'), "Round 27: chip filtering hides non-matching cards in app.js");
+  const HS_LINES36 = { baseball: "Built for the diamond. Made for the hype.", football: "Friday lights. Full send.", basketball: "Built for the blacktop. Ready for the lights.", soccer: "Top corner is a lifestyle.", softball: "Yellow ball. Loud bat. Louder hype.", volleyball: "All hustle above the net." };
+  for (const [s, line] of Object.entries(HS_LINES36)) assert(appJs.includes(`${s}: {`) && appJs.includes(`line: "${line}"`), `Round 27: HS_PRODUCTS ${s} carries its exact personality line`);
+  assert((appJs.match(/price: "\$69\.99"/g) || []).length === 6, "Round 27: all six HS_PRODUCTS are priced $69.99 (the comp's $59.99 was NOT adopted)");
+  assert(home.includes('id="hsView"') && home.includes('id="hsMainImg"') && home.includes('id="hsThumbs"') && home.includes('id="hsDots"'), "Round 27: product view overlay markup exists (gallery, thumbs, mobile dots)");
+  assert(home.includes('data-hs-side="front"') && home.includes('data-hs-side="back"'), "Round 27: product view keeps its Front/Back switch");
+  assert(appJs.includes("function openHsView") && appJs.includes("function closeHsView") && appJs.includes("function hsSetFrame"), "Round 27: product view open/close/frame logic in app.js");
+  assert((home.match(/data-hs-size="/g) || []).length === 6 && home.includes('id="hsSizes"'), "Round 27: product view has the six youth size chips");
+  assert(home.includes("Sample phase — sales open soon"), "Round 27: product view status line is exact");
+  assert(home.includes('class="hsv-cta" disabled aria-disabled="true">COMING SOON</button>'), "Round 27: the CTA is a disabled COMING SOON button");
+  const hsViewSlice36 = home.slice(home.indexOf('id="hsView"'), home.indexOf('id="sizeGuide"'));
+  assert(!/add[\s-]*to[\s-]*cart/i.test(hsViewSlice36) && !hsViewSlice36.includes("$59.99"), "Round 27: no add-to-cart control and no comp price anywhere in the product view");
+  for (const tab of ["DESCRIPTION", "DETAILS", "SIZE GUIDE", "SHIPPING"]) assert(hsViewSlice36.includes(`>${tab}</button>`), `Round 27: product view tab present: ${tab}`);
+  for (const feat of ["Premium, soft fabric", "Athletic, relaxed fit", "Durable, everyday wear"]) assert(hsViewSlice36.includes(feat), `Round 27: feature bullet present: ${feat}`);
+  assert(hsViewSlice36.includes("Ships when Drop 001 sales open — no orders are being taken yet."), "Round 27: shipping note is the no-orders hold copy (no shipping promise)");
+  assert(hsViewSlice36.includes("Wash inside-out, cold. Hang dry to protect the print."), "Round 27: care note is exact");
+  assert(appJs.includes("Chest detail: crest with sport name"), "Round 27: generated chest-detail graphics carry the honest 'Chest detail: crest with sport name' alt text");
+  assert(shopSlice36.includes('id="hsHfFeature"') && shopSlice36.includes("/swag/hf-example-hoodie-back.jpg"), "Round 27: Hype Frame feature sits inside the store with the example hoodie photo");
+  assert(shopSlice36.includes("NEXT DROP") && shopSlice36.includes("DROP 002 · COMING SOON"), "Round 27: NEXT DROP teaser carries the Drop 002 copy");
+  assert(shopSlice36.includes("Hot Pink returns in Drop 002"), "Round 27: Hot Pink is named as Drop 002's returning star");
+  assert(shopSlice36.includes('class="hs-teaser-card" data-slug="girls-street"') && shopSlice36.includes('id="hsHotPinkBtn"') && shopSlice36.includes("Preview Hot Pink"), "Round 27: the teaser card is wired as the girls-street product with a Preview Hot Pink button");
+  assert(appJs.includes("openQuickView(hsTeaserCard)") && appJs.includes('"girls-street": {'), "Round 27: the teaser card opens the existing quick view (girls-street QV data intact)");
+  assert(!shopSlice36.includes("data-store-block") && !shopSlice36.includes('id="swagVideo"') && !shopSlice36.includes("swag-film"), "Round 27: Boys/Girls blocks and the store film are ABSENT from the store view");
+  assert(!shopSlice36.includes("THE ORIGINAL DROP"), "Round 27: the Original Drop section plan was superseded by the NEXT DROP teaser");
+  const ord36 = ['id="hsHero"', 'id="hsBySport"', 'id="hsGridSection"', 'id="hsHfFeature"', 'id="hsTeaser"'].map((m) => home.indexOf(m));
+  assert(ord36.every((v, i) => v > -1 && (i === 0 || v > ord36[i - 1])), "Round 27: store order is hero < tiles < grid < Hype Frame feature < NEXT DROP teaser");
+  const menu36 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
+  assert(menu36.includes('id="menuHsBtn"') && menu36.includes("Shop Hype Sports"), "Round 27: the menu carries the Shop Hype Sports group");
+  assert((menu36.match(/data-hs-menu="/g) || []).length === 6, "Round 27: the menu group lists all six sports");
+  assert(appJs.includes("showStore(); openHsView(b.dataset.hsMenu)"), "Round 27: a menu sport opens the Store and then its product view");
+  assert(menu36.includes('id="menuSizeGuide"') && menu36.includes("data-size-guide-open"), "Round 27: the menu carries a Size Guide item");
+  assert((home.match(/id="sizeGuide"/g) || []).length === 1, "Round 27: exactly ONE shared size guide overlay exists (single source markup)");
+  assert((home.match(/data-size-guide-open/g) || []).length >= 3, "Round 27: menu item + product-view links all open the same size guide overlay");
+  assert(appJs.includes("function openSizeGuide") && appJs.includes("function closeSizeGuide"), "Round 27: shared size guide open/close logic in app.js");
+  const sg36 = home.slice(home.indexOf('id="sizeGuide"'));
+  for (const row of ["YXXS", "YXS", "YS", "YM", "YL", "YXL"]) assert(sg36.includes(`<td>${row}</td>`), `Round 27: size guide lists ${row}`);
+  assert(sg36.includes("general youth sizing guidance"), "Round 27: size guide ages are labeled general guidance");
+  assert(!menu36.includes("Shipping & Returns") && !menu36.includes(">About<"), "Round 27: no About or Shipping & Returns menu items (nothing real behind them yet)");
+  const css36 = css.slice(css.indexOf("Round 27"));
+  assert(css36.includes(".hs-hero{") && css36.includes(".hs-tiles{") && css36.includes(".hsv-panel{"), "Round 27: hero/tiles/product-view rules exist in the Round 27 CSS block");
+  assert(css36.includes(".hs-grid{grid-template-columns:1fr}"), "Round 27 (photo-54): on phones the product grid is a single column of large cards");
+  assert(css36.includes(".hsv-dots{display:flex"), "Round 27 (photo-55): on phones the product view shows gallery dot indicators");
+  assert(css36.includes('.hs-chip[aria-pressed="true"]{background:var(--gold)'), "Round 27 (photo-54): the active filter chip is gold");
+  assert(home.includes('data-div-pick="girls"') && appJs.includes("setDivPick"), "Round 27: the Round 11 upload Boys/Girls toggle wiring is intact (the store rebuild did not touch the upload form)");
+  for (const s of HS_SPORTS36) {
+    for (const kind of ["pair", "front", "back"]) {
+      const r = await fetch(`${base}/swag/hs/${s}-${kind}.jpg`);
+      const buf = await r.arrayBuffer();
+      assert(r.status === 200 && buf.byteLength > 5000, `Round 27: Hype Sports image serves: /swag/hs/${s}-${kind}.jpg (${buf.byteLength} bytes)`);
+    }
+    const rt = await fetch(`${base}/swag/hs/tile-${s}.jpg`);
+    assert(rt.status === 200, `Round 27: tile image serves: /swag/hs/tile-${s}.jpg`);
+  }
+  for (const s of ["football", "basketball", "soccer", "softball", "volleyball"]) {
+    const r = await fetch(`${base}/swag/hs/${s}-detail-chest.png`);
+    assert(r.status === 200, `Round 27: chest-detail graphic serves: /swag/hs/${s}-detail-chest.png`);
+  }
+  for (const d of ["chest", "sleeve", "fabric", "tag"]) {
+    const r = await fetch(`${base}/swag/hs/baseball-detail-${d}.jpg`);
+    assert(r.status === 200, `Round 27: baseball detail serves: /swag/hs/baseball-detail-${d}.jpg`);
+  }
+  const heroR36 = await fetch(`${base}/swag/hs/hero-model.jpg`);
+  assert(heroR36.status === 200, "Round 27: hero model image serves");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
