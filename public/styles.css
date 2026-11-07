@@ -1506,3 +1506,26 @@
   @media (min-width:761px){
     body.upload-open #uploadForm{display:grid;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1120px,calc(100vw - 48px));max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;z-index:90;border-radius:20px;box-shadow:0 30px 90px rgba(0,0,0,.65)}
   }
+
+  /* ===== Round 25 (2026-11-06): the mid-page CTA band =====
+     Emil, from his phone after Round 24 went live: "between the
+     video thumbnails and the sections below, add another CTA
+     button for Submit a Hype like the top section has." A parent
+     who just watched the board is at peak intent, and the only
+     asks were the hero (a page up), the final CTA (below the
+     store) and the floating pill. The band sits inside the plays
+     panel, between the board wrap and the montage wrap — a slim
+     centered strip, NOT another card section: no background, no
+     border, no media, just the mission line as a .sec-head h2
+     (the .lime accent word renders gold per Round 22), one
+     subline and the lime button at hero size. On phones the
+     button goes full-width inside the wrap's padding. The
+     button is a <button data-submit-link>: goSubmit opens the
+     Round 24 upload overlay, same as every other submit CTA. */
+  .cta-band{text-align:center;padding:34px 0 30px}
+  .cta-band .sec-head{margin-bottom:18px}
+  .cta-band .sec-head p{margin:10px auto 0}
+  @media (max-width:760px){
+    .cta-band{padding:26px 0 24px}
+    .cta-band .btn{width:100%}
+  }
