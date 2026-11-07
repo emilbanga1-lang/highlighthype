@@ -157,6 +157,7 @@ function cardHtml(h, opts = {}) {
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
         ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
+        ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
         ${ownerToken() && opts.inContest ? `<button type="button" class="mini-btn" onclick="markWinner(${h.id})">Mark winner (owner)</button>` : ""}
       </div>
@@ -449,8 +450,55 @@ window.sendReport = async (id, btn) => {
   }
 };
 window.markWinner = async (id) => { try { const r = await api("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) }); if (r.warning) alert(r.warning); await loadData(); } catch (e) { alert(e.message); } };
+/* Round 34 (2026-11-07, Emil): grab-the-video sharing. Save clip
+   downloads the play's video file outright. Share now prefers handing
+   the phone's share sheet the VIDEO FILE itself — that's what posts
+   natively to TikTok / Reels / Instagram — and falls back to the
+   link flow when file sharing isn't offered. Link-embed plays have
+   no file: Save hides for them and Share stays link-only. */
+function findPlay(id) { return ALL_PLAYS.find((p) => p.id === id) || (CONTEST.entries || []).find((p) => p.id === id); }
+function clipFileName(h) {
+  const slug = String(h.title || "play").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "play";
+  return `highlighthype-${slug}.mp4`;
+}
+async function fetchClipFile(h) {
+  const r = await fetch(h.media_url);
+  if (!r.ok) throw new Error("clip fetch failed");
+  const blob = await r.blob();
+  return new File([blob], clipFileName(h), { type: blob.type || h.mime || "video/mp4" });
+}
+window.saveClip = async (id, btn) => {
+  const h = findPlay(id);
+  if (!h || !playHasVideo(h)) return;
+  const original = btn ? btn.innerHTML : "";
+  if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+  try {
+    const file = await fetchClipFile(h);
+    const objUrl = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = objUrl; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(objUrl), 4000);
+    if (btn) btn.textContent = "Saved ✓";
+  } catch {
+    window.open(h.media_url, "_blank");
+    if (btn) btn.textContent = "Opened — save from there";
+  }
+  if (btn) setTimeout(() => { btn.disabled = false; btn.innerHTML = original; }, 2000);
+};
 window.sharePlay = async (id, btn) => {
   const url = `${location.origin}${location.pathname}#play-${id}`;
+  // Round 34: the video file first, where the device accepts files.
+  const h = findPlay(id);
+  if (h && playHasVideo(h) && navigator.canShare) {
+    try {
+      const file = await fetchClipFile(h);
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "HighlightHype" });
+        return;
+      }
+    } catch (e) { if (e && e.name === "AbortError") return; }
+  }
   // Native share sheet where the device offers one (2026-11-04); the
   // clipboard/prompt flow stays as the fallback.
   if (navigator.share) {
