@@ -902,6 +902,20 @@ function switchView(v) {
   $("#boardTitle").innerHTML = v === "month" ? `This month's <span class="lime">plays</span>` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+/* Round 35 (2026-11-07): two-stage store-entry scroll. The store
+   flips from display:none and its images keep loading in, which can
+   cancel or strand a lone smooth scroll — the usability audit caught
+   the Hype Girls entry landing at the store top instead of the NEXT
+   DROP teaser, while the near-top Boys grid target survived. Scroll
+   smooth first; shortly after, if the target still isn't on screen,
+   jump straight to it. */
+function scrollToStoreEl(el) {
+  setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    if (r.top > window.innerHeight || r.bottom < 0) el.scrollIntoView({ behavior: "auto", block: "start" });
+  }, 800);
+}
 function showStore(target) {
   document.body.classList.add("store-open");
   window.scrollTo(0, 0);
@@ -923,11 +937,10 @@ function showStore(target) {
   // links land on the new sections instead — Girls scrolls to the
   // NEXT DROP teaser (where the Hot Pink Hype Street hoodie lives),
   // Boys to the Hype Sports grid. Other targets scroll as before.
-  if (target === "hype-girls") {
-    setTimeout(() => document.getElementById("hsTeaser")?.scrollIntoView({ behavior: "smooth" }), 60);
-  } else if (target === "hype-boys") {
-    setTimeout(() => document.getElementById("hsGridSection")?.scrollIntoView({ behavior: "smooth" }), 60);
-  } else if (target) { const el = document.getElementById(target); if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 60); }
+  const storeTargetEl = target === "hype-girls" ? document.getElementById("hsTeaser")
+    : target === "hype-boys" ? document.getElementById("hsGridSection")
+    : target ? document.getElementById(target) : null;
+  if (storeTargetEl) scrollToStoreEl(storeTargetEl);
 }
 function showHome() {
   setStoreFocus(null);
@@ -1585,11 +1598,11 @@ function initHfStudio(play) {
   $("#hfJersey").value = play.jersey || "";
   hfSetPreset("hypeframe");
   $("#hfMsg").textContent = "";
-  // Fixed garment defaults ride on every order (hoodie / front —
-  // still no garment or side picker). Color + size are the family's
-  // choice again (Round 3): reset both pickers for the new play.
+  // The garment stays fixed (hoodie); color, size AND print side are
+  // the family's choice — the side picker returned in Round 35
+  // (2026-11-07, Emil). Reset all three pickers for the new play.
   hfState.apparel = "hoodie";
-  hfState.side = "front";
+  hfPickSide("front");
   hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
   hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
@@ -1875,6 +1888,15 @@ function hfPickSize(size) {
   hfState.size = size;
   $$("#hfSizes [data-hf-size]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSize === size)));
 }
+/* Print side (RESTORED in Round 35, 2026-11-07 — Emil's call after
+   the usability audit): the picker was removed in the Round 3 studio
+   revision, but the order payload, the server column, the owner
+   email and the Owner view carried the side all along — orders just
+   always said Front. Now the family picks; default stays Front. */
+function hfPickSide(side) {
+  hfState.side = side === "back" ? "back" : "front";
+  $$("#hfSides [data-hf-side]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSide === hfState.side)));
+}
 function hfBuildColorButtons() {
   const wrap = $("#hfColors");
   if (!wrap || wrap.childElementCount) return;
@@ -1899,7 +1921,7 @@ function hfBuildColorButtons() {
   $("#hfFreeze").addEventListener("click", freezeHfFrame);
   // Step buttons nudge the playhead ±1s (paused) so the exact moment is
   // easy to land on before freezing.
-  const hfSeek = (d) => { if (v.duration) { v.pause(); v.currentTime = Math.min(Math.max(0, (v.currentTime || 0) + d), v.duration); hfUpdateTime(); } };
+  const hfSeek = (d) => { if (v.duration) { v.pause(); v.currentTime = Math.min(Math.max(0, (v.currentTime || 0) + d), Math.max(0, v.duration - 0.05)); hfUpdateTime(); } };
   $("#hfStepBack").addEventListener("click", () => hfSeek(-1));
   $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
   ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
@@ -1909,10 +1931,11 @@ function hfBuildColorButtons() {
   // are static markup wired here.
   hfBuildColorButtons();
   $$("#hfSizes [data-hf-size]").forEach((b) => b.addEventListener("click", () => hfPickSize(b.dataset.hfSize)));
+  $$("#hfSides [data-hf-side]").forEach((b) => b.addEventListener("click", () => hfPickSide(b.dataset.hfSide)));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
-  // placement controls — and there is still no garment preview or
-  // apparel/side picker; the order carries the default placement,
-  // the fixed garment values, and the chosen colorway + size.
+  // placement controls and no garment preview; the order carries the
+  // default placement, the fixed garment (hoodie), the chosen print
+  // side (picker restored Round 35), colorway and size.
   $("#hfOrderForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msg = $("#hfMsg");

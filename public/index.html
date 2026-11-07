@@ -212,6 +212,7 @@
           <option value="gymnastics">Gymnastics</option>
           <option value="hockey">Hockey</option>
           <option value="lacrosse">Lacrosse</option>
+          <option value="martialarts">Martial Arts</option>
           <option value="other">Other</option>
           <option value="soccer">Soccer</option>
           <option value="softball">Softball</option>
@@ -463,13 +464,23 @@
             <button type="button" data-hf-preset="signature" aria-pressed="false">Signature</button>
             <button type="button" data-hf-preset="hypeframe" aria-pressed="true">Hype Frame</button>
           </div>
-          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on the front of the garment.</p>
+          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
+
+          <h4 class="form-sec-title" style="margin-top:22px">Print side</h4>
+          <div class="seg hf-sides" id="hfSides" role="group" aria-label="Print side">
+            <button type="button" data-hf-side="front" aria-pressed="true">Front</button>
+            <button type="button" data-hf-side="back" aria-pressed="false">Back</button>
+          </div>
+          <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above.</p>
 
           <!-- Color + size pickers (Round 3, 2026-11-05): Emil reversed
                the Round 2 simplification for these two fields. The
-               garment (hoodie) and print side (front) stay fixed — no
-               apparel mock, no side toggle. Color drives the composed
-               print's frame tone, exactly as the default did. -->
+               garment (hoodie) stays fixed — no apparel mock. The
+               print-side picker above was RESTORED in Round 35
+               (2026-11-07, Emil, after the usability audit): the
+               server, owner email and Owner view carried the side
+               all along. Color drives the composed print's frame
+               tone, exactly as the default did. -->
           <h4 class="form-sec-title" style="margin-top:22px">Hoodie color</h4>
           <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
           <h4 class="form-sec-title" style="margin-top:22px">Youth size</h4>
@@ -789,7 +800,7 @@
         </div>
         <p class="qv-colors-label">Colorways</p>
         <p class="qv-colors" id="qvColors"></p>
-        <p class="qv-note">Drop 001 — ordering opens soon.</p>
+        <p class="qv-note">Ordering opens soon — no orders are being taken yet.</p>
       </div>
     </div>
   </div>
