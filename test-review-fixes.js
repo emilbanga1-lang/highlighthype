@@ -2405,6 +2405,37 @@ try {
   keyHandler34({ key: "Escape" });
   assert(!bodyClasses34.has("upload-open"), "behavioral (Round 24): Escape with the overlay already closed is a harmless no-op");
 
+  /* ---- 35. Round 25 (2026-11-06): the mid-page CTA band --------
+     Emil, from his phone after Round 24: "between the video
+     thumbnails and the sections below, add another CTA button
+     for Submit a Hype like the top section has." A parent who
+     has just watched the board is at peak "my kid has a clip
+     like that," but the only submit asks were the hero (a page
+     up), the final CTA (below the store) and the floating pill.
+     The band sits INSIDE the plays panel, between the board
+     wrap and the montage wrap: the mission line as the heading
+     (the .sec-head h2 accent pattern — .lime renders gold since
+     Round 22), one subline, and the lime button at hero size.
+     The button is a <button data-submit-link> — NOT an
+     href="#post" anchor — so it routes through goSubmit and
+     opens the Round 24 overlay without joining §34's #post-href
+     census. Markup/CSS checks only; goSubmit's behavior itself
+     is pinned in §34. ---- */
+  assert(home.includes('class="cta-band"'), "Round 25: the mid-page CTA band exists");
+  assert(home.includes('EVERY ATHLETE DESERVES THE <span class="lime">HYPE</span>'), "Round 25: the band heading is the mission line with HYPE carried in the .lime (gold) accent span");
+  assert(home.includes("Post your young athlete's best play — it takes a minute."), "Round 25: the band subline is exact");
+  const bandAt35 = home.indexOf('class="cta-band"');
+  const montageAt35 = home.indexOf('aria-label="Sports videos');
+  const bandHtml35 = home.slice(bandAt35, montageAt35);
+  assert(bandHtml35.includes('<button type="button" class="btn btn-lime btn-hero" data-submit-link>Submit a Hype</button>'), "Round 25: the band button is a lime <button data-submit-link> labelled 'Submit a Hype' at hero size (routes through goSubmit → the Round 24 overlay)");
+  assert(!bandHtml35.includes('href="#post"'), "Round 25: the band button is NOT an href=\"#post\" anchor (the §34 census of #post hrefs still counts only the pre-existing anchor CTAs)");
+  const boardAt35 = home.indexOf('id="viewMonth"');
+  assert(boardAt35 > -1 && bandAt35 > boardAt35 && montageAt35 > bandAt35, "Round 25: document order is board panel → CTA band → sports montage");
+  const css35 = css.slice(css.indexOf("===== Round 25"));
+  assert(css35.includes(".cta-band{"), "Round 25: the .cta-band rule exists in the Round 25 CSS block");
+  assert(css35.includes("text-align:center") && css35.includes("padding:34px 0 30px"), "Round 25: the band is a slim centered strip (34px top padding — a breath between sections, not another card section)");
+  assert(css35.includes(".cta-band .btn{width:100%}"), "Round 25: on phones the band button goes full-width");
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();
