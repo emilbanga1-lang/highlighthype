@@ -13,6 +13,7 @@
 //     redaction, upload guards, API allowlist, focus-exit + share fixes.
 import { spawn, execFileSync } from "node:child_process";
 import { DatabaseSync } from "node:sqlite";
+import { inflateSync } from "node:zlib";
 import vm from "node:vm";
 import fs from "node:fs";
 import os from "node:os";
@@ -2149,7 +2150,9 @@ try {
      slim-down, gold brand pass --------------------------------
      External design feedback, approved by Emil "as mapped":
      (1) PHONES ONLY (≤760px): the floating Submit pill becomes a
-     56px round FAB (upload icon, label hidden) that no longer
+     compact FAB (Round 23 supersedes the original 56px
+     upload-arrow circle with a 48px "＋ Post" pill — the arrow
+     read as "back to top"; full detail in §33) that no longer
      drapes over cards/text/footer controls, and tapping it — or
      any [data-submit-link] CTA — opens the SAME #uploadForm as a
      fixed full-viewport overlay (body.upload-open) with a fixed
@@ -2168,7 +2171,7 @@ try {
   // upload icon + a label span the phone CSS can hide.
   const fab32 = home.slice(home.indexOf('id="floatSubmit"'), home.indexOf("<!-- ============ HERO"));
   assert(fab32.includes('aria-label="Submit a Hype — go to the upload form"'), "Round 22: the FAB keeps its accessible name ('Submit a Hype — go to the upload form')");
-  assert(fab32.includes("<svg") && fab32.includes('class="float-submit-label">Submit a Hype</span>'), "Round 22: the FAB carries an upload icon and a label span (the pill's text on desktop, hidden on phones)");
+  assert(fab32.includes("<svg") && fab32.includes('d="M12 5v14"') && fab32.includes('d="M5 12h14"') && fab32.includes('class="float-submit-label">Submit a Hype</span>'), "Round 22/23: the FAB carries a plus icon and the full label span (the pill's text on desktop, hidden on phones; plus supersedes the upload arrow — §33)");
   // (1b) The overlay close: exactly one ✕, inside the form itself.
   assert((home.split('id="uploadClose"').length - 1) === 1, "Round 22: exactly one #uploadClose button exists");
   const formOpen32 = home.indexOf('<form id="uploadForm"');
@@ -2176,8 +2179,8 @@ try {
   // (1c) Phone CSS: compact FAB + the overlay layer + the locks.
   const css22 = css.slice(css.indexOf("===== Round 22"));
   assert(css22.includes("@media (max-width:760px)"), "Round 22: the FAB/overlay rules are fenced to ≤760px — desktop CSS is untouched");
-  assert(css22.includes(".float-submit{width:56px;height:56px") && css22.includes("border-radius:50%"), "Round 22: on phones the pill becomes a 56px round FAB");
-  assert(css22.includes(".float-submit-label{display:none}"), "Round 22: the FAB label text is hidden on phones (icon only — it no longer covers content)");
+  assert(css22.includes(".float-submit{width:auto;height:48px") && css22.includes("border-radius:999px"), "Round 23: on phones the pill becomes a compact 48px-tall pill (Round 22's 56px round icon-only FAB superseded — its upload arrow read as 'back to top')");
+  assert(css22.includes(".float-submit-label{display:none}"), "Round 22/23: the FAB's full label text is hidden on phones (the short 'Post' label shows instead — §33)");
   assert(css22.includes("body.upload-open #uploadForm{position:fixed;inset:0") && css22.includes("overflow-y:auto") && css22.includes("z-index:90"), "Round 22: body.upload-open turns #uploadForm into a fixed full-viewport layer that scrolls independently");
   assert(css22.includes("body.upload-open{overflow:hidden}") && css22.includes("body.upload-open .float-submit{display:none}"), "Round 22: the page behind the overlay locks, and the FAB hides while the overlay is open");
   assert(css22.includes("#uploadForm .upload-close{display:grid") && css22.includes(".upload-close{display:none}"), "Round 22: the ✕ shows only in the overlay state and is display:none everywhere else (it never enters the desktop grid)");
@@ -2227,6 +2230,87 @@ try {
   assert(rule32(".pod .lead{").includes("color:var(--gold)") && rule32(".sp-tag{").includes("color:var(--gold)") && rule32(".step .num{").includes("color:var(--gold)"), "Round 22: the podium lead label, spotlight tag and step numerals are gold");
   assert(rule32(".btn-lime{").includes("background:var(--volt)") && rule32(".float-submit{").includes("background:var(--volt)"), "Round 22: primary buttons and the FAB stay lime (they are actions)");
   assert(rule32('.votebtn[aria-pressed="true"]{').includes("background:var(--volt)") && rule32('.viewseg button[aria-pressed="true"]{').includes("background:var(--volt)") && rule32('.pill[aria-pressed="true"]{').includes("background:var(--volt)"), "Round 22: pressed/active interactive states (vote, view toggle, pills) stay lime");
+
+  /* ---- 33. Round 23 (2026-11-06): "＋ Post" phone pill + footer
+     lockup badge colorway -------------------------------------
+     Two phone reports from Emil: (A) Round 22's floating button
+     confused him — an upload ARROW on a floating button reads as
+     "back to top". The icon is now a PLUS and the button carries
+     a second, short label span ("Post"): the desktop pill keeps
+     the full "Submit a Hype" label with the short span
+     display:none; on phones (≤760px) the button becomes a
+     compact pill (48px tall, auto width, 999px radius, 16px
+     horizontal padding, 20px icon) with the short label visible
+     and the full label hidden. All Round 22 behavior stands:
+     goSubmit/overlay wiring untouched (app.js unchanged), the
+     fab-away observer stands, the button still hides while
+     body.upload-open. (B) The footer lockup's badge didn't match
+     the header's: the header uses the crest-COLOR badge (gold
+     crown over SILVER-WHITE HH) but the footer file carried the
+     all-GOLD badge. /logo-crest-lockup.png (SAME filename) was
+     rebuilt from the crest-color source at the same badge
+     size/position on the same 4395×3701 canvas — stacked layout,
+     wordmark and tagline untouched, so the footer can't shift.
+     The pixel proof below decodes the served PNG with node:zlib
+     (rows 0–2700 cover the whole badge) and samples the crown
+     band (rows ≤1056) for gold and the HH band (rows 1085–2687)
+     for silver — in the old all-gold file the HH band held ZERO
+     silver pixels. No uploads in this section. ---- */
+  // (A1) Markup: plus icon in, upload arrow out, short span in.
+  const fab33 = home.slice(home.indexOf('id="floatSubmit"'), home.indexOf("<!-- ============ HERO"));
+  assert(fab33.includes('d="M12 5v14"') && fab33.includes('d="M5 12h14"') && !fab33.includes('d="M12 19V5"'), "Round 23: the FAB icon is a plus — the upload arrow is gone");
+  assert(fab33.includes('<span class="float-submit-short">Post</span>'), "Round 23: the FAB carries the short 'Post' label span next to the full label");
+  assert(fab33.includes('aria-label="Submit a Hype — go to the upload form"'), "Round 23: the FAB's accessible name is unchanged");
+  // (A2) CSS: short span hidden by default; on phones the compact
+  // pill shows it and hides the full label; overlay hide stands.
+  const css23 = css.slice(css.indexOf("===== Round 22"));
+  const media23 = css23.slice(css23.indexOf("@media (max-width:760px)"));
+  assert(css23.includes(".float-submit-short{display:none}"), "Round 23: the short 'Post' label is display:none outside the phone media query (desktop keeps the full label)");
+  assert(media23.includes(".float-submit{width:auto;height:48px") && media23.includes("padding:0 16px") && media23.includes("border-radius:999px") && media23.includes(".float-submit svg{width:20px;height:20px}"), "Round 23: on phones the FAB is a compact pill — auto width, 48px tall, 999px radius, 16px horizontal padding, 20px icon");
+  assert(media23.includes(".float-submit .float-submit-short{display:inline}") && media23.includes(".float-submit .float-submit-label{display:none}"), "Round 23: on phones the short 'Post' label shows and the full label hides");
+  assert(media23.includes("body.upload-open .float-submit{display:none}"), "Round 23: the pill still hides while the upload overlay is open (Round 22 behavior kept)");
+  // (B1) Same footer file, same canvas — the layout cannot shift.
+  assert(home.includes('src="/logo-crest-lockup.png"'), "Round 23: the footer still uses /logo-crest-lockup.png (same filename, reference untouched)");
+  const lockBuf33 = Buffer.from(await (await fetch(base + "/logo-crest-lockup.png")).arrayBuffer());
+  assert(lockBuf33.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) && lockBuf33.toString("ascii", 12, 16) === "IHDR", "Round 23: the served footer lockup is a PNG with an IHDR header");
+  assert(lockBuf33.readUInt32BE(16) === 4395 && lockBuf33.readUInt32BE(20) === 3701, "Round 23: the lockup canvas is unchanged at 4395×3701 — rendered footer size cannot shift");
+  assert(lockBuf33[24] === 8 && lockBuf33[25] === 6, "Round 23: the lockup PNG is 8-bit RGBA (the decoder below's precondition)");
+  // (B2) Pixel proof: unfilter rows 0–2700 (the whole badge) and
+  // sample the crown band for gold, the HH band for silver.
+  const bands33 = (() => {
+    let pos = 8; const idat = [];
+    while (pos < lockBuf33.length) {
+      const len = lockBuf33.readUInt32BE(pos), type = lockBuf33.toString("ascii", pos + 4, pos + 8);
+      if (type === "IDAT") idat.push(lockBuf33.subarray(pos + 8, pos + 8 + len));
+      pos += 12 + len; if (type === "IEND") break;
+    }
+    const W = 4395, bpp = 4, stride = W * bpp, maxRow = 2700;
+    const raw = inflateSync(Buffer.concat(idat));
+    const out = Buffer.alloc((maxRow + 1) * stride);
+    let rp = 0, gold = 0, silver = 0;
+    for (let y = 0; y <= maxRow; y++) {
+      const f = raw[rp++]; const row = raw.subarray(rp, rp + stride); rp += stride;
+      const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null;
+      const cur = out.subarray(y * stride, (y + 1) * stride);
+      for (let x = 0; x < stride; x++) {
+        const a = x >= bpp ? cur[x - bpp] : 0, b = prev ? prev[x] : 0, c = prev && x >= bpp ? prev[x - bpp] : 0;
+        let v = row[x];
+        if (f === 1) v = (v + a) & 255; else if (f === 2) v = (v + b) & 255;
+        else if (f === 3) v = (v + ((a + b) >> 1)) & 255;
+        else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v = (v + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255; }
+        cur[x] = v;
+      }
+      if (y <= 1056 || (y >= 1085 && y <= 2687)) for (let x = 0; x < stride; x += 7 * bpp) {
+        const r = cur[x], g = cur[x + 1], bl = cur[x + 2], al = cur[x + 3];
+        if (al < 128) continue;
+        if (y <= 1056 && r > 150 && g > 110 && g < 210 && bl < 110 && r > bl + 60) gold++;
+        if (y >= 1085 && r > 195 && g > 195 && bl > 195 && Math.abs(r - bl) < 30) silver++;
+      }
+    }
+    return { gold, silver };
+  })();
+  assert(bands33.gold > 10000, `Round 23: the footer badge's crown band is gold (${bands33.gold} sampled px)`);
+  assert(bands33.silver > 10000, `Round 23: the footer badge's HH band is SILVER-WHITE (${bands33.silver} sampled px) — it now matches the header's crest-color badge (the old all-gold file had zero)`);
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
