@@ -1471,7 +1471,11 @@ try {
      sits on the upload form's Girls toggle at phone widths and
      eats the tap — while the form is on screen the FAB fades out
      (.fab-away) via an IntersectionObserver on #uploadForm; its
-     perch, look and click behavior are otherwise unchanged. (3)
+     perch, look and click behavior are otherwise unchanged.
+     (Round 24 retires the observer and the fade rule — the form
+     leaves the page flow entirely, so there is nothing in-flow
+     left to observe; the pill is state-driven now and the checks
+     below pin the retirement. §34.) (3)
      The header store control is a plain text link reading "Swag"
      — Nicholas rejected both pill looks and the word "Store"; the
      ☰ entry and the Store Entry Card keep "Store" (out of scope).
@@ -1518,25 +1522,24 @@ try {
     const buf = await r.arrayBuffer();
     assert(r.status === 200 && buf.byteLength > 15000 && buf.byteLength < 200000, `Round 11: montage poster ${p} is a real frame from its clip (${buf.byteLength} bytes — the old comic-illustration posters were 476–766 KB)`);
   }
-  // (2) FAB vs the upload form: rule, wiring, and a vm drive of the
-  // real observer block.
-  const fabRule26 = css.slice(css.indexOf(".float-submit.fab-away{"), css.indexOf("}", css.indexOf(".float-submit.fab-away{")));
-  assert(fabRule26.includes("visibility:hidden") && fabRule26.includes("pointer-events:none") && fabRule26.includes("opacity:0"), "Round 11: the .fab-away rule fully removes the FAB — invisible AND untappable, not just transparent");
+  // (2) FAB vs the upload form. Round 11's observer + fade rule
+  // stood here until Round 24: the form left the page flow at
+  // every width (display:none until body.upload-open), so an
+  // observer watching it could never fire — Round 24 retires
+  // both, and the pill's visibility is state-driven (hidden only
+  // while the overlay is open — §34). These checks pin the
+  // retirement; what survives of Round 11 is the click wiring.
+  assert(!css.includes(".float-submit.fab-away{"), "Round 24: the Round 11 fade rule is gone with its observer (the form is an overlay now — the pill hides while it is open, §34, and can never cover the in-flow form again)");
   const fabBlock26 = appJs.slice(appJs.indexOf('$("#floatSubmit")'), appJs.indexOf('$$("[data-submit-link]")'));
-  assert(fabBlock26.includes('$("#uploadForm")') && fabBlock26.includes('"fab-away"') && fabBlock26.includes("isIntersecting"), "Round 11: an IntersectionObserver on #uploadForm toggles .fab-away on the FAB");
-  assert(fabBlock26.includes('addEventListener("click", goSubmit)'), "Round 11: the FAB's click wiring is untouched (still goSubmit — it just can't be tapped while hidden)");
-  const fabClasses26 = new Set();
-  const fabStub26 = { listeners: {}, addEventListener(ev, fn) { this.listeners[ev] = fn; }, classList: { toggle(cls, force) { if (force) fabClasses26.add(cls); else fabClasses26.delete(cls); } } };
-  const formStub26 = { id: "uploadForm" };
-  let fabCb26 = null, fabSeen26 = null;
-  class FakeIOFab26 { constructor(cb) { fabCb26 = cb; } observe(el) { fabSeen26 = el; } }
-  const fabSb26 = { console, goSubmit: () => {}, IntersectionObserver: FakeIOFab26, $: (sel) => (sel === "#floatSubmit" ? fabStub26 : sel === "#uploadForm" ? formStub26 : null) };
+  assert(!fabBlock26.includes("observe(") && !fabBlock26.includes("isIntersecting") && !fabBlock26.includes('classList.toggle("fab-away"'), "Round 24: no observer watches #uploadForm and nothing toggles the retired fade class — no dead observer runs against the hidden form");
+  assert(fabBlock26.includes('addEventListener("click", goSubmit)'), "Round 11: the FAB's click wiring is untouched (still goSubmit)");
+  const fabStub26 = { listeners: {}, addEventListener(ev, fn) { this.listeners[ev] = fn; } };
+  let fabGoCalls26 = 0;
+  const fabSb26 = { console, goSubmit: () => { fabGoCalls26++; }, $: (sel) => (sel === "#floatSubmit" ? fabStub26 : null) };
   vm.runInContext(fabBlock26, vm.createContext(fabSb26));
-  assert(fabSeen26 === formStub26 && typeof fabStub26.listeners.click === "function", "behavioral (Round 11): the FAB observer watches the upload form itself, and the click listener still registers");
-  fabCb26([{ isIntersecting: true }]);
-  assert(fabClasses26.has("fab-away"), "behavioral (Round 11): form on screen -> the FAB gets .fab-away (the Girls toggle is reachable again)");
-  fabCb26([{ isIntersecting: false }]);
-  assert(!fabClasses26.has("fab-away"), "behavioral (Round 11): form scrolled away -> .fab-away removed, the FAB returns");
+  assert(typeof fabStub26.listeners.click === "function", "behavioral (Round 24): the FAB's click listener still registers from the same block (the block no longer constructs any observer)");
+  fabStub26.listeners.click();
+  assert(fabGoCalls26 === 1, "behavioral (Round 24): a FAB tap still routes to goSubmit (which now opens the overlay at any width — §34)");
   // (2b) The toggle itself: the quick-upload-picks section header
   // in app.js was an UNTERMINATED block comment — everything from
   // it to the next */ (setDivPick, setSportPick, the click wiring,
@@ -2157,7 +2160,9 @@ try {
      any [data-submit-link] CTA — opens the SAME #uploadForm as a
      fixed full-viewport overlay (body.upload-open) with a fixed
      ✕; closing preserves form state. Desktop keeps the pill and
-     the in-page form exactly. (2) HERO: the paragraph is Emil's
+     the in-page form exactly (Round 24 supersedes the desktop
+     half — the overlay opens at every width and the form leaves
+     the flow; §34). (2) HERO: the paragraph is Emil's
      one line and the tagline element is gone from the hero (it
      still rides the footer lockup image + alt). (3) PALETTE:
      --gold is the crest gold #D4AF37 and carries the brand
@@ -2177,21 +2182,25 @@ try {
   const formOpen32 = home.indexOf('<form id="uploadForm"');
   assert(home.indexOf('id="uploadClose"') > formOpen32 && home.indexOf('id="uploadClose"') < home.indexOf("</form>"), "Round 22: the ✕ lives inside #uploadForm (it renders only in the overlay state)");
   // (1c) Phone CSS: compact FAB + the overlay layer + the locks.
-  const css22 = css.slice(css.indexOf("===== Round 22"));
-  assert(css22.includes("@media (max-width:760px)"), "Round 22: the FAB/overlay rules are fenced to ≤760px — desktop CSS is untouched");
+  const css22 = css.slice(css.indexOf("===== Round 22"), css.indexOf("===== Round 24"));
+  assert(css22.includes("@media (max-width:760px)"), "Round 22: the Round 22 block's FAB/overlay rules are fenced to ≤760px (Round 24 layers its all-widths rules in the NEXT block — §34)");
   assert(css22.includes(".float-submit{width:auto;height:48px") && css22.includes("border-radius:999px"), "Round 23: on phones the pill becomes a compact 48px-tall pill (Round 22's 56px round icon-only FAB superseded — its upload arrow read as 'back to top')");
   assert(css22.includes(".float-submit-label{display:none}"), "Round 22/23: the FAB's full label text is hidden on phones (the short 'Post' label shows instead — §33)");
   assert(css22.includes("body.upload-open #uploadForm{position:fixed;inset:0") && css22.includes("overflow-y:auto") && css22.includes("z-index:90"), "Round 22: body.upload-open turns #uploadForm into a fixed full-viewport layer that scrolls independently");
   assert(css22.includes("body.upload-open{overflow:hidden}") && css22.includes("body.upload-open .float-submit{display:none}"), "Round 22: the page behind the overlay locks, and the FAB hides while the overlay is open");
-  assert(css22.includes("#uploadForm .upload-close{display:grid") && css22.includes(".upload-close{display:none}"), "Round 22: the ✕ shows only in the overlay state and is display:none everywhere else (it never enters the desktop grid)");
+  assert(css22.includes("#uploadForm .upload-close{display:grid") && css22.includes(".upload-close{display:none}"), "Round 22: the ✕ shows only in the overlay state and is display:none everywhere else (Round 24: the same show-rule now applies at every width — §34)");
   assert(css22.includes("body.upload-used .panel.active{animation:none}"), "Round 22: after the first open the panel entry animation retires, so its fill-both transform can't trap the fixed form inside the panel");
-  // (1d) Wiring: goSubmit branches on the phone breakpoint; the
-  // ✕ and Escape close; §26's click/observer wiring still stands.
-  assert(appJs.includes('matchMedia("(max-width: 760px)")') && appJs.includes("function openUploadOverlay()") && appJs.includes("function closeUploadOverlay()"), "Round 22: app.js has the breakpoint branch and the open/close overlay functions");
+  // (1d) Wiring: Round 22's goSubmit branched on the phone
+  // breakpoint (Round 24 removed the branch — the overlay opens
+  // at every width; the branch's absence is pinned in §34); the
+  // ✕ and Escape close; §26's click wiring still stands.
+  assert(appJs.includes("function openUploadOverlay()") && appJs.includes("function closeUploadOverlay()"), "Round 22: app.js has the open/close overlay functions (Round 24 removed the width branch that gated them — §34)");
   assert(appJs.includes('$("#uploadClose")') && appJs.includes('e.key === "Escape"'), "Round 22: the ✕ click and the Escape key are wired to close the overlay");
   // (1e) Behavioral: drive the REAL goSubmit/open/close block in a
-  // vm — phone width opens the overlay (no scrollIntoView), the
-  // close drops only upload-open, desktop width still scrolls.
+  // vm — the overlay opens (no anchor scroll), the close drops
+  // only upload-open. The desktop drive below already expects
+  // Round 24 behavior (it opens too; the width stub in mkSb32 is
+  // vestigial — §34 drives goSubmit with NO width API at all).
   const goBlock32 = appJs.slice(appJs.indexOf("function goSubmit()"), appJs.indexOf('$("#floatSubmit")'));
   const bodyClasses32 = new Set();
   const formStub32 = { scrollTop: 99, scrolled: 0, scrollIntoView() { this.scrolled++; } };
@@ -2213,7 +2222,7 @@ try {
   const ctx32d = vm.createContext(mkSb32(false));
   vm.runInContext(goBlock32, ctx32d);
   vm.runInContext("goSubmit()", ctx32d);
-  assert(!bodyClasses32.has("upload-open") && formStub32.scrolled === 1, "behavioral (Round 22): at desktop width goSubmit keeps the in-page scrollIntoView and opens nothing");
+  assert(bodyClasses32.has("upload-open") && formStub32.scrolled === 0, "behavioral (Round 24, via the Round 22 drive): at desktop width goSubmit opens the overlay too and never anchor-scrolls (scrolled is still 0 from the phone drive — the in-page form it used to scroll to is out of the flow)");
   // (2) Hero: one-line saying in, tagline + old paragraph out,
   // CTAs and playback controls untouched.
   const hero32 = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf("<!-- ============ TRUST STRIP"));
@@ -2241,10 +2250,13 @@ try {
      display:none; on phones (≤760px) the button becomes a
      compact pill (48px tall, auto width, 999px radius, 16px
      horizontal padding, 20px icon) with the short label visible
-     and the full label hidden. All Round 22 behavior stands:
-     goSubmit/overlay wiring untouched (app.js unchanged), the
-     fab-away observer stands, the button still hides while
-     body.upload-open. (B) The footer lockup's badge didn't match
+     and the full label hidden. All Round 22 behavior stood
+     through this round: goSubmit/overlay wiring untouched
+     (app.js unchanged in Round 23), the button still hides while
+     body.upload-open. (Round 24 has since removed goSubmit's
+     width branch and retired the fab-away observer — §34; the
+     hide-while-open rule now applies at every width.) (B) The
+     footer lockup's badge didn't match
      the header's: the header uses the crest-COLOR badge (gold
      crown over SILVER-WHITE HH) but the footer file carried the
      all-GOLD badge. /logo-crest-lockup.png (SAME filename) was
@@ -2263,7 +2275,7 @@ try {
   assert(fab33.includes('aria-label="Submit a Hype — go to the upload form"'), "Round 23: the FAB's accessible name is unchanged");
   // (A2) CSS: short span hidden by default; on phones the compact
   // pill shows it and hides the full label; overlay hide stands.
-  const css23 = css.slice(css.indexOf("===== Round 22"));
+  const css23 = css.slice(css.indexOf("===== Round 22"), css.indexOf("===== Round 24"));
   const media23 = css23.slice(css23.indexOf("@media (max-width:760px)"));
   assert(css23.includes(".float-submit-short{display:none}"), "Round 23: the short 'Post' label is display:none outside the phone media query (desktop keeps the full label)");
   assert(media23.includes(".float-submit{width:auto;height:48px") && media23.includes("padding:0 16px") && media23.includes("border-radius:999px") && media23.includes(".float-submit svg{width:20px;height:20px}"), "Round 23: on phones the FAB is a compact pill — auto width, 48px tall, 999px radius, 16px horizontal padding, 20px icon");
@@ -2311,6 +2323,87 @@ try {
   })();
   assert(bands33.gold > 10000, `Round 23: the footer badge's crown band is gold (${bands33.gold} sampled px)`);
   assert(bands33.silver > 10000, `Round 23: the footer badge's HH band is SILVER-WHITE (${bands33.silver} sampled px) — it now matches the header's crest-color badge (the old all-gold file had zero)`);
+
+  /* ---- 34. Round 24 (2026-11-06): the upload overlay at EVERY
+     width — feedback item 5 completed --------------------------
+     Round 22 solved item 5's access problem on phones only; the
+     homepage itself stayed just as long and the desktop form
+     stayed in the flow. Round 24 finishes it: #uploadForm is
+     display:none until body.upload-open at EVERY width (it was a
+     direct child of the plays wrap — no wrapper, heading or
+     spacer exists solely to hold it, so nothing else collapses),
+     goSubmit opens the overlay unconditionally (the width branch
+     is gone), the desktop open state is a centered modal (dimmed
+     backdrop, Round 18 two-column grid, 92vh cap, internal
+     scroll), the ✕ shows whenever the overlay is open at any
+     width, the Round 11 fab-away observer is RETIRED (§26 pins
+     the retirement — nothing in-flow remains to observe; the
+     pill is visible whenever the overlay is closed and hidden
+     while it is open), and a #post deep link (the form heading's
+     id — what external links point at) opens the overlay on load
+     and on hashchange. The in-page href="#post" CTAs all carry
+     data-submit-link and were already routed through goSubmit.
+     The submit handler needed no changes: its success path only
+     writes #uploadMsg, and its validation scrolls target
+     elements INSIDE the form, which scroll the overlay container
+     at any width. No uploads in this section (the §31 budget
+     note stands) — CSS/markup/wiring checks plus vm drives. ---- */
+  // (a) Closed = out of flow; open restores the form; the desktop
+  // open state is the centered modal.
+  const css34 = css.slice(css.indexOf("===== Round 24"));
+  assert(css34.includes("#uploadForm{display:none}"), "Round 24: with the overlay closed the form occupies NO page space (display:none) — the homepage runs hero → board → montage → Hype Frame → store → final CTA → footer");
+  assert(css34.includes("body.upload-open #uploadForm{display:block"), "Round 24: opening the overlay restores the form's display at every width");
+  const desk34 = css34.slice(css34.indexOf("@media (min-width:761px)"));
+  assert(desk34.includes("body.upload-open #uploadForm{display:grid") && desk34.includes("position:fixed") && desk34.includes("translate(-50%,-50%)") && desk34.includes("max-height:92vh") && desk34.includes("overflow-y:auto"), "Round 24: on desktop the open form is a centered modal wearing its Round 18 two-column grid, capped at 92vh and scrolling internally");
+  assert(css34.includes("body.upload-open::after") && css34.includes("z-index:89"), "Round 24: a dimmed backdrop layer (z 89) sits under the modal form (z 90) and over the page");
+  // (b) The all-widths locks and the ✕ rule live OUTSIDE any
+  // media query in the Round 24 block.
+  const css34Base = css34.slice(0, css34.indexOf("@media (min-width:761px)"));
+  assert(css34Base.includes("body.upload-open{overflow:hidden}") && css34Base.includes("body.upload-open .float-submit{display:none}"), "Round 24: the scroll lock and the hidden pill apply at EVERY width while the overlay is open (Round 22 fenced them to phones)");
+  assert(css34Base.includes("body.upload-open #uploadForm .upload-close{display:grid"), "Round 24: the ✕ shows whenever the overlay is open, at any width (display:none only while closed)");
+  assert(css34Base.includes("body.upload-used .panel.active{animation:none}"), "Round 24: the panelIn containing-block guard is hoisted to all widths — the desktop panel's fill-both transform can't trap the fixed modal inside the panel either");
+  // (c) Wiring: no width branch left in goSubmit; the #post deep
+  // link is handled at boot and on hashchange; every in-page
+  // #post href rides data-submit-link.
+  const goBlock34 = appJs.slice(appJs.indexOf("function goSubmit()"), appJs.indexOf('$("#floatSubmit")'));
+  assert(!goBlock34.includes("matchMedia") && !goBlock34.includes("scrollIntoView"), "Round 24: goSubmit has no width branch and no in-page anchor scroll left — it opens the overlay unconditionally");
+  assert(appJs.includes('if (location.hash === "#post") { bootHashTarget = true; goSubmit(); }'), "Round 24: a #post deep link opens the overlay on load");
+  assert(appJs.includes('if (location.hash === "#post") goSubmit();'), "Round 24: a #post hashchange opens the overlay too");
+  const postLinks34 = home.split('href="#post"').length - 1;
+  assert(postLinks34 >= 3 && postLinks34 === (home.split('href="#post" data-submit-link').length - 1), "Round 24: every in-page #post link carries data-submit-link, so they all route through goSubmit instead of a native anchor jump to a hidden form");
+  // (d) Behavioral: drive the REAL goSubmit at desktop width with
+  // NO width API in the sandbox at all — the Round 22 code would
+  // have thrown reaching for it; Round 24 must open anyway.
+  const bodyClasses34 = new Set();
+  const formStub34 = { scrollTop: 42 };
+  const sb34 = {
+    console, window: {},
+    document: {
+      body: { classList: { add: (...cs) => cs.forEach((c) => bodyClasses34.add(c)), remove: (...cs) => cs.forEach((c) => bodyClasses34.delete(c)), contains: (c) => bodyClasses34.has(c) } },
+      getElementById: (id) => (id === "uploadForm" ? formStub34 : null),
+      addEventListener: () => {},
+    },
+    showHome: () => {}, closeMenu: () => {}, showPanel: () => {}, switchView: () => {},
+    $: () => ({ addEventListener: () => {} }),
+  };
+  const ctx34 = vm.createContext(sb34);
+  vm.runInContext(goBlock34, ctx34);
+  vm.runInContext("goSubmit()", ctx34);
+  assert(bodyClasses34.has("upload-open") && bodyClasses34.has("upload-used") && formStub34.scrollTop === 0, "behavioral (Round 24): at desktop width (no width API in the sandbox) goSubmit opens the overlay — upload-open + upload-used set, form scrolled to top");
+  // (e) Behavioral: Escape closes at desktop width, other keys
+  // don't, Escape while closed is a no-op. Drive the REAL wiring
+  // block (✕ listener + keydown handler) in the same context.
+  const wireBlock34 = appJs.slice(appJs.indexOf('$("#uploadClose")'), appJs.indexOf('$$("[data-tablink]")'));
+  let keyHandler34 = null;
+  sb34.document.addEventListener = (ev, fn) => { if (ev === "keydown") keyHandler34 = fn; };
+  vm.runInContext(wireBlock34, ctx34);
+  assert(typeof keyHandler34 === "function", "Round 24: the keydown wiring registers from the same block as the ✕ listener");
+  keyHandler34({ key: "Enter" });
+  assert(bodyClasses34.has("upload-open"), "behavioral (Round 24): a non-Escape key leaves the desktop overlay open");
+  keyHandler34({ key: "Escape" });
+  assert(!bodyClasses34.has("upload-open") && bodyClasses34.has("upload-used"), "behavioral (Round 24): Escape closes the overlay at desktop width (the Round 22 handler was never width-scoped — the overlay just never opened on desktop before)");
+  keyHandler34({ key: "Escape" });
+  assert(!bodyClasses34.has("upload-open"), "behavioral (Round 24): Escape with the overlay already closed is a harmless no-op");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
