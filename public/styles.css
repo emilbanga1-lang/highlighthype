@@ -2,7 +2,7 @@
     --bg:#0a0a0a; --bg2:#101010; --card:#141414; --card2:#1a1a1a;
     --white:#ffffff; --muted:#a8a8a0; --muted2:#7c7c74;
     --volt:#c8ff00; --volt-ink:#131a00;
-    --gold:#e3b93e;
+    --gold:#D4AF37;
     --hf-purple:#8b3dff; --hf-purple-soft:#b78cff;
     --line:#262622; --line2:#33332c;
   }
@@ -99,16 +99,16 @@
   .hero-film-note{margin-left:auto;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.75)}
   .hero .p-toggle{top:38%;left:50%;transform:translate(-50%,-50%)}
   .hero .p-toggle:hover{transform:translate(-50%,-50%) scale(1.05)}
-  .hero-content{position:relative;z-index:4;width:100%;padding-bottom:8px}
+  .hero-content{position:relative;z-index:4;width:100%;padding-bottom:6px}
   .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--volt);margin:0 0 16px}
   .hero h1{font-family:"Anton",sans-serif;font-size:clamp(46px,8.2vw,104px);line-height:.97;margin:0;text-transform:uppercase;letter-spacing:.005em;max-width:13em}
-  .hero h1 .lime{color:var(--volt)}
-  .hero-sub{max-width:600px;font-size:clamp(17px,2.2vw,20.5px);color:rgba(255,255,255,.88);margin:12px 0 0;font-weight:500}
+  .hero h1 .lime{color:var(--gold)}
+  .hero-sub{max-width:600px;font-size:clamp(17px,2.2vw,20.5px);color:rgba(255,255,255,.88);margin:10px 0 0;font-weight:500}
   .hero-sub b{color:#fff}
   .hero-tagline{font-family:"Anton",sans-serif;font-size:clamp(23px,3.4vw,36px);line-height:1;text-transform:uppercase;letter-spacing:.02em;color:var(--volt);margin:12px 0 0}
-  .hero-ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;align-items:center}
+  .hero-ctas{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;align-items:center}
   .hero-note{font-size:13.5px;color:rgba(255,255,255,.65);font-weight:600}
-  .hero-controls{position:relative;z-index:4;width:100%;padding:14px 0 16px}
+  .hero-controls{position:relative;z-index:4;width:100%;padding:10px 0 12px}
   .hero-meta{display:flex;flex-wrap:wrap;gap:8px 26px;margin-top:16px;font-size:13.5px;color:rgba(255,255,255,.62);font-weight:600}
   .hero-meta b{color:rgba(255,255,255,.92);font-weight:700}
   @media (max-width:640px){ .hero-film-note{display:none} }
@@ -163,7 +163,7 @@
      follows the trust strip directly. */
   /* V19: floating Submit a Hype pill — always visible on the homepage,
      hidden in the Store view, safe-area aware, no bounce. */
-  .float-submit{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:55;display:inline-flex;align-items:center;gap:2px;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:800;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);transition:background .15s ease,transform .15s ease,opacity .15s ease,visibility 0s}
+  .float-submit{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:55;display:inline-flex;align-items:center;gap:7px;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:800;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);transition:background .15s ease,transform .15s ease,opacity .15s ease,visibility 0s}
   .float-submit:hover{background:#d9ff4d}
   .float-submit:active{transform:scale(.97)}
   body.store-open .float-submit{display:none}
@@ -192,9 +192,9 @@
   section{padding:54px 0}
   .panel{padding-top:18px}
   .sec-head{margin-bottom:14px}
-  .sec-tag{display:block;font-size:12.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--volt);margin-bottom:8px}
+  .sec-tag{display:block;font-size:12.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
   .sec-head h2{font-family:"Anton",sans-serif;font-size:clamp(38px,6vw,62px);line-height:1;margin:0;text-transform:uppercase}
-  .sec-head h2 .lime{color:var(--volt)}
+  .sec-head h2 .lime{color:var(--gold)}
   .sec-head p{margin:8px 0 0;color:var(--muted);max-width:580px;font-weight:500;font-size:17px}
   .sec-head-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 26px}
   .count-chip{margin-left:auto;font-size:14.5px;color:var(--muted);font-weight:600;padding-bottom:6px}
@@ -211,7 +211,7 @@
   .spotlight .p-toggle{top:44%;left:50%;transform:translate(-50%,-50%)}
   .spotlight .p-toggle:hover{transform:translate(-50%,-50%) scale(1.05)}
   .sp-body{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:26px 28px 20px}
-  .sp-tag{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--volt)}
+  .sp-tag{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
   .sp-body h3{font-family:"Anton",sans-serif;font-size:clamp(28px,4.5vw,44px);margin:6px 0 4px;text-transform:uppercase;line-height:1}
   .sp-body p{margin:0 0 18px;color:rgba(255,255,255,.78);font-weight:500;font-size:15.5px}
   @media (max-width:560px){ .sp-body{padding:20px 18px 16px} }
@@ -224,7 +224,7 @@
   .pod.first .rank{color:#fff}
   .pod .who{font-weight:800;font-size:16.5px;margin:0 0 3px;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
   .pod .what{color:var(--muted);font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;line-height:1.35}
-  .pod .lead{font-size:11.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--volt);display:block;margin-bottom:8px}
+  .pod .lead{font-size:11.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:8px}
   /* V24: the Month podium wears its medals. Real medal colors, by request;
      this is the one place those colors appear outside the crown and logo.
      V25: the medals are redrawn as proper metallic medallions — shaded
@@ -371,7 +371,7 @@
   @media (max-width:860px){ .how-grid{grid-template-columns:1fr} }
   .steps{display:grid;gap:10px}
   .step{display:flex;gap:22px;padding:14px 18px;background:var(--card);border:1px solid var(--line);border-radius:14px}
-  .step .num{font-family:"Anton",sans-serif;font-size:40px;line-height:1;color:var(--volt);flex:none;min-width:58px}
+  .step .num{font-family:"Anton",sans-serif;font-size:40px;line-height:1;color:var(--gold);flex:none;min-width:58px}
   .step h3{font-family:"Anton",sans-serif;font-size:25px;margin:2px 0 7px;text-transform:uppercase;letter-spacing:.02em}
   .step p{margin:0;color:var(--muted);font-weight:500}
   .step p b{color:#fff}
@@ -429,7 +429,7 @@
   .shop-head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 32px;margin-bottom:34px}
   .shop-head .sec-tag{margin-bottom:12px}
   .shop-head h2{font-family:"Anton",sans-serif;font-size:clamp(44px,7vw,74px);line-height:.98;margin:0;text-transform:uppercase}
-  .shop-head h2 .lime{color:var(--volt)}
+  .shop-head h2 .lime{color:var(--gold)}
   .shop-head p{margin:0 0 6px;color:var(--muted);max-width:480px;font-weight:500;font-size:16.5px}
   /* ---------- V14: swag film (Overtime-style, leads the storefront) ---------- */
   .swag-film{position:relative;margin:0 0 28px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#000;aspect-ratio:16/9}
@@ -629,7 +629,7 @@
      card body already carries the words, so the film runs clean. */
   .store-card-body{padding:38px 36px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
   .store-card-body h2{font-family:"Anton",sans-serif;font-size:clamp(38px,5vw,56px);line-height:.98;margin:10px 0 12px;text-transform:uppercase}
-  .store-card-body h2 .lime{color:var(--volt)}
+  .store-card-body h2 .lime{color:var(--gold)}
   .store-card-body p{margin:0 0 24px;color:var(--muted);font-weight:500;font-size:16px;line-height:1.55;max-width:440px}
   .store-cta-actions{display:flex;flex-direction:column;align-items:flex-start;gap:13px}
   .store-cta-sub{display:flex;gap:10px;align-items:center;color:var(--muted2);font-weight:700;font-size:14.5px}
@@ -1397,3 +1397,55 @@
   .footer-lockup{height:190px;width:auto;display:block}
   @media (max-width:760px){ .footer-lockup{height:150px} }
   @media (max-width:480px){ .footer-lockup{height:132px} }
+
+  /* ===== Round 22 (2026-11-06): FAB + upload overlay, hero slim-down,
+     gold brand pass =====
+     External design feedback, approved by Emil "as mapped":
+       1. PALETTE — gold for brand, lime for action. --gold is now
+          the crest gold #D4AF37 (it was #e3b93e, referenced by no
+          rule) and the brand surfaces moved to it: the .sec-tag
+          eyebrows, the .lime accent word in the section h2s
+          (.sec-head / .shop-head / .store-card-body), the hero
+          headline's "hype." (matching the crest lockup, where HYPE
+          is already gold), the spotlight tag, the podium's .lead
+          label and the How-it-works step numerals. The Hype Frame
+          .sec-tag overrides keep their purple (higher specificity,
+          unchanged). Lime (--volt) is UNTOUCHED on everything
+          interactive: .btn-lime and friends, vote buttons, the
+          segmented toggles and their pressed states, focus rings,
+          hover highlights — and the FAB below.
+       2. HERO — the paragraph is now Emil's one line ("HighlightHype
+          is where young athletes become the highlight.") and the
+          tagline element is out of the hero (it still rides the
+          footer lockup image). Spacing tightened in the base rules
+          (.hero-sub margin, .hero-ctas margin, .hero-content /
+          .hero-controls padding) so the film reads bigger. Round
+          16's desktop header/hero sizing is unchanged; no video,
+          audio or playback-control behavior changed.
+       3. FAB + OVERLAY (phones only, ≤760px — desktop keeps the
+          pill and the in-page form exactly): the floating Submit
+          pill shrinks to a 56px round FAB, upload icon only, so it
+          no longer drapes over cards, Hype Frame images, text and
+          footer controls while browsing. Tapping it (or any
+          [data-submit-link] CTA) opens the SAME #uploadForm as a
+          fixed full-viewport layer that scrolls independently,
+          with a fixed ✕; closing returns to browsing with the
+          form's state untouched. The FAB hides while the overlay
+          is open, and the page behind locks (overflow:hidden).
+          body.upload-used retires the plays panel's entry
+          animation after the first open — its fill-both transform
+          would otherwise become the fixed form's containing block
+          and trap the "overlay" inside the panel (and replay the
+          panel fade on every close). z-index 90 sits above the
+          nav (70) and its menu (80); the ✕ rides at 95. */
+  .upload-close{display:none}
+  @media (max-width:760px){
+    .float-submit{width:56px;height:56px;padding:0;border-radius:50%;justify-content:center;gap:0}
+    .float-submit svg{width:24px;height:24px}
+    .float-submit .float-submit-label{display:none}
+    body.upload-used .panel.active{animation:none}
+    body.upload-open{overflow:hidden}
+    body.upload-open .float-submit{display:none}
+    body.upload-open #uploadForm{position:fixed;inset:0;z-index:90;margin:0;border:0;border-radius:0;height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    body.upload-open #uploadForm .upload-close{display:grid;place-items:center;position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:14px;z-index:95;width:44px;height:44px;padding:0;border-radius:50%;border:1px solid var(--line2);background:rgba(10,10,10,.72);color:#fff;font:inherit;font-size:16px;line-height:1;cursor:pointer;backdrop-filter:blur(6px)}
+  }

@@ -36,7 +36,11 @@
   </div>
 </header>
 
-<button type="button" class="float-submit" id="floatSubmit" aria-label="Submit a Hype — go to the upload form">＋ Submit a Hype</button>
+<!-- Round 22 (2026-11-06): on phones this becomes a compact round
+     FAB (icon only — the label span is hidden ≤760px in styles.css)
+     and tapping it opens the upload form as a full-screen overlay
+     instead of scrolling the long page. Desktop keeps the pill. -->
+<button type="button" class="float-submit" id="floatSubmit" aria-label="Submit a Hype — go to the upload form"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="M6 11l6-6 6 6"/></svg><span class="float-submit-label">Submit a Hype</span></button>
 
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
@@ -46,8 +50,7 @@
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
     <h1>Every athlete deserves the <span class="lime">hype.</span></h1>
-    <p class="hero-sub">The home of youth sports culture. Big plays. First wins. Team moments — a place to celebrate the athletes and memories that make youth sports so special.</p>
-    <p class="hero-tagline">Your moment. Your hype.</p>
+    <p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>
     <div class="hero-ctas">
       <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
       <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Submit a Hype</a>
@@ -164,6 +167,11 @@
     </div>
 
     <form id="uploadForm" class="upload-card">
+      <!-- Round 22 (2026-11-06): overlay close — visible only while
+           the form is the mobile full-screen overlay (styles.css,
+           body.upload-open ≤760px); display:none everywhere else,
+           so it never enters the Round 18 desktop grid. -->
+      <button type="button" class="upload-close" id="uploadClose" aria-label="Close the upload form">✕</button>
       <h3 id="post">Post a play</h3>
       <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>
 

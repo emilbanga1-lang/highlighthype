@@ -925,7 +925,25 @@ window.addEventListener("hashchange", () => {
   const pm = location.hash.match(/^#play-(\d+)$/);
   if (pm) { showHome(); showPanel("plays"); handledPlayHash = ""; highlightSharedPlay(); }
 });
-function goSubmit() { showHome(); closeMenu(false); showPanel("plays"); switchView("month"); document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" }); }
+function goSubmit() {
+  showHome(); closeMenu(false); showPanel("plays"); switchView("month");
+  /* Round 22 (2026-11-06): on phones (≤760px) the form opens as a
+     full-screen overlay (styles.css: body.upload-open turns
+     #uploadForm into a fixed, independently scrolling layer) —
+     the old anchor scroll dragged the visitor down the whole page
+     under the floating pill. Desktop keeps the in-page scroll. */
+  if (window.matchMedia && window.matchMedia("(max-width: 760px)").matches) { openUploadOverlay(); return; }
+  document.getElementById("uploadForm")?.scrollIntoView({ behavior: "smooth" });
+}
+/* Round 22: the overlay is the SAME form node — never moved, never
+   duplicated — so a half-filled form keeps every field (and the
+   picked clip) across open/close. upload-used persists after the
+   first open: it retires the plays panel's entry animation, whose
+   fill-both transform would otherwise become the fixed form's
+   containing block and trap it inside the panel instead of the
+   viewport (and would replay the panel fade on every close). */
+function openUploadOverlay() { document.body.classList.add("upload-open", "upload-used"); const f = document.getElementById("uploadForm"); if (f) f.scrollTop = 0; }
+function closeUploadOverlay() { document.body.classList.remove("upload-open"); }
 $("#floatSubmit").addEventListener("click", goSubmit);
 /* Round 11 (2026-11-05): the floating Submit button's fixed
    bottom-right perch lands exactly on the upload form's Girls
@@ -942,6 +960,11 @@ if (floatSubmitBtn && uploadFormEl && typeof IntersectionObserver !== "undefined
   }).observe(uploadFormEl);
 }
 $$("[data-submit-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); goSubmit(); }));
+/* Round 22: the overlay's ✕ and the Escape key close it. Closing
+   only drops body.upload-open — the form (and anything typed or
+   picked in it) stays exactly as it was. */
+$("#uploadClose")?.addEventListener("click", closeUploadOverlay);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.body.classList.contains("upload-open")) closeUploadOverlay(); });
 $$("[data-tablink]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); showHome(); showPanel(a.dataset.tablink); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 
 /* ---------------- filters ---------------- */
