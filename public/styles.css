@@ -1529,3 +1529,154 @@
     .cta-band{padding:26px 0 24px}
     .cta-band .btn{width:100%}
   }
+
+  /* ---------- Round 27 (2026-11-06): the Hype Sports store ----------
+     The store view is rebuilt: hero -> Shop by Sport tiles -> filter
+     chips + hoodie grid -> Hype Frame feature -> NEXT DROP teaser.
+     The film / division blocks / focus mode are gone from the store
+     (their rules above stay for the homepage entry card and dormant
+     states). Crest gold #D4AF37 carries brand accents; lime stays on
+     interactive controls only (Round 22 rule) — the gold buttons are
+     the comp's explicit exception (SHOP HYPE SPORTS / VIEW PRODUCT /
+     COMING SOON / selected chips + size chips). */
+  .shop .store-bar{margin-top:84px}
+  .btn-gold{background:var(--gold);color:#171200}
+  .btn-gold:hover{background:#e5c65c}
+  .hs-hero{position:relative;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#000;min-height:340px;display:flex;align-items:center;margin:0 0 36px}
+  .hs-hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right center}
+  .hs-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.9) 26%,rgba(0,0,0,.45) 58%,rgba(0,0,0,0) 82%);pointer-events:none}
+  .hs-hero-copy{position:relative;z-index:2;padding:36px;max-width:580px}
+  .hs-hero-badge{display:inline-block;border:1px solid var(--gold);color:var(--gold);font-size:12px;font-weight:800;letter-spacing:.13em;padding:7px 13px;border-radius:999px;text-transform:uppercase}
+  .hs-hero-title{font-family:"Anton",sans-serif;font-size:clamp(46px,6.5vw,76px);line-height:.98;margin:16px 0 10px;text-transform:uppercase;color:#fff}
+  .hs-hero-title .gold{color:var(--gold)}
+  .hs-hero-sub{margin:0 0 22px;color:rgba(255,255,255,.85);font-weight:600;font-size:16.5px}
+  .hs-hero-btn{padding:14px 26px;font-size:15.5px;letter-spacing:.04em}
+  .hs-sec-title{font-family:"Anton",sans-serif;font-size:clamp(26px,3.4vw,34px);text-transform:uppercase;letter-spacing:.02em;margin:0 0 16px;color:#fff}
+  .hs-sec-title .gold{color:var(--gold)}
+  .hs-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 40px}
+  .hs-tile{appearance:none;display:block;border:1px solid var(--line2);border-radius:14px;overflow:hidden;background:#000;padding:0;cursor:pointer;text-align:left;font:inherit}
+  .hs-tile img{width:100%;aspect-ratio:370/194;object-fit:cover;display:block}
+  .hs-tile-label{display:block;padding:10px 14px;font-weight:800;font-size:15.5px;color:#fff;background:#0d0d0f}
+  .hs-tile:hover{border-color:var(--gold)}
+  .hs-tile:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hs-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .hs-chips::-webkit-scrollbar{display:none}
+  .hs-chip{flex:none;appearance:none;border:1px solid var(--line2);background:#141414;color:#fff;border-radius:999px;padding:10px 18px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;min-height:44px}
+  .hs-chip[aria-pressed="true"]{background:var(--gold);color:#171200;border-color:var(--gold)}
+  .hs-chip:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:0 0 44px}
+  @media (max-width:1000px){ .hs-grid{grid-template-columns:repeat(2,1fr)} }
+  .hs-card{background:#0d0d0f;border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;text-align:left}
+  .hs-card[hidden]{display:none}
+  .hs-card:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hs-card-media{position:relative;background:#111}
+  .hs-card-media img{width:100%;aspect-ratio:4/3;object-fit:cover;object-position:center;display:block}
+  .hs-badge{position:absolute;top:10px;left:10px;z-index:2;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+  .hs-card-body{padding:14px 16px 16px}
+  .hs-eyebrow{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:0 0 6px}
+  .hs-card-body h4{font-family:"Anton",sans-serif;font-size:23px;letter-spacing:.02em;text-transform:uppercase;margin:0;color:#fff}
+  .hs-fit{color:var(--muted);margin:4px 0 2px;font-size:14px}
+  .hs-price{font-weight:800;font-size:17px;margin:2px 0 12px;color:#fff}
+  .hs-view-btn{appearance:none;width:100%;background:var(--gold);color:#171200;border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:800;font-size:14.5px;letter-spacing:.04em;cursor:pointer}
+  .hs-view-btn:hover{background:#e5c65c}
+  .hs-view-btn:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hs-hf{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center;border:1px solid var(--line);border-radius:18px;padding:28px;background:#0d0d0f;margin:0 0 44px}
+  .hs-hf h3{font-family:"Anton",sans-serif;font-size:clamp(30px,4vw,44px);line-height:1.02;text-transform:uppercase;margin:0 0 12px;color:#fff}
+  .hs-hf h3 .purple{color:var(--hf-purple-soft)}
+  .hs-hf p{color:var(--muted);margin:0 0 12px;font-size:15.5px}
+  .hs-hf .hs-hf-guardian{color:rgba(255,255,255,.75);font-size:13.5px;font-weight:600}
+  .hs-hf-media{margin:0}
+  .hs-hf-media img{width:100%;border-radius:12px;display:block}
+  .hs-teaser{border:1px solid var(--line);border-radius:18px;padding:28px;background:#0d0d0f;margin:0 0 10px;display:grid;grid-template-columns:1.05fr .95fr;gap:26px;align-items:center}
+  .hs-teaser-badge{display:inline-block;background:var(--gold);color:#171200;font-size:12px;font-weight:800;letter-spacing:.13em;padding:7px 13px;border-radius:999px;text-transform:uppercase}
+  .hs-teaser h3{font-family:"Anton",sans-serif;font-style:italic;font-size:clamp(32px,4.6vw,50px);line-height:1;text-transform:uppercase;margin:14px 0 10px;color:#fff}
+  .hs-teaser h3 .gold{color:var(--gold)}
+  .hs-teaser-sub{color:var(--muted);font-weight:600;margin:0;max-width:440px}
+  .hs-teaser-crown{width:120px;height:auto;margin-top:16px}
+  .hs-teaser-card{display:flex;gap:16px;align-items:center;background:#141414;border:1px solid var(--line2);border-radius:16px;padding:14px;cursor:pointer;text-align:left}
+  .hs-teaser-card:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hs-teaser-media{flex:none;width:118px}
+  .hs-teaser-media img{width:118px;height:148px;object-fit:cover;object-position:center 16%;border-radius:10px;display:block}
+  .hs-teaser-body h4{font-family:"Anton",sans-serif;font-size:24px;text-transform:uppercase;margin:0 0 4px;color:#fff}
+  .hs-teaser-body p{color:var(--muted);font-size:14px;margin:0 0 12px}
+  .hs-teaser-body .hs-eyebrow{margin-bottom:4px}
+  .hs-teaser-body .hs-view-btn{width:auto;padding:11px 18px}
+  /* Hype Sports product view — modeled on the quick view; on phones
+     it follows the comp: full-width gallery, dot indicators, big
+     size chips, full-width gold CTA, Size Guide link under it. */
+  .hsv{position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center}
+  .hsv[hidden]{display:none}
+  .hsv-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+  .hsv-panel{position:relative;background:#0d0d0f;border:1px solid var(--line2);border-radius:18px;max-width:920px;width:calc(100% - 32px);max-height:90vh;overflow:auto;padding:22px;display:grid;grid-template-columns:1.05fr 1fr;gap:24px}
+  .hsv-close{position:absolute;top:12px;right:12px;z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.55);color:#fff;font-size:16px;cursor:pointer}
+  .hsv-close:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hsv-media img#hsMainImg{width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 20%;border-radius:12px;background:#111;display:block}
+  .hsv-switch{display:flex;gap:8px;margin-top:10px}
+  .hsv-side-btn{flex:1;appearance:none;border:1px solid var(--line2);background:#141414;color:#fff;border-radius:999px;padding:10px;font:inherit;font-weight:800;cursor:pointer;min-height:44px}
+  .hsv-side-btn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:var(--volt)}
+  .hsv-thumbs{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .hsv-thumb{appearance:none;width:56px;height:56px;border-radius:8px;overflow:hidden;border:2px solid transparent;padding:0;background:#111;cursor:pointer}
+  .hsv-thumb[aria-pressed="true"]{border-color:var(--gold)}
+  .hsv-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .hsv-dots{display:none}
+  .hsv-info h4{font-family:"Anton",sans-serif;font-size:32px;text-transform:uppercase;margin:2px 0 0;color:#fff}
+  .hsv-line{color:var(--muted);font-weight:600;margin:6px 0 0}
+  .hsv-price{font-size:22px;font-weight:800;margin:10px 0 0;color:#fff}
+  .hsv-status{color:var(--gold);font-weight:700;font-size:13.5px;margin:4px 0 0}
+  .hsv-sizes{display:flex;flex-wrap:wrap;gap:8px}
+  .hsv-size{appearance:none;min-width:64px;min-height:52px;border:1px solid var(--line2);background:#141414;color:#fff;border-radius:10px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;padding:10px 12px}
+  .hsv-size[aria-pressed="true"]{background:var(--gold);color:#171200;border-color:var(--gold)}
+  .hsv-size:focus-visible,.hsv-tab-btn:focus-visible,.hsv-guide-link:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .hsv-cta{width:100%;background:var(--gold);color:#171200;border:0;border-radius:999px;padding:15px;font:inherit;font-weight:800;font-size:16px;letter-spacing:.05em;opacity:.55;cursor:not-allowed;margin-top:16px}
+  .hsv-guide-link{display:block;margin:12px auto 0;background:none;border:0;color:#fff;font:inherit;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:4px;padding:6px}
+  .hsv-guide-link-inline{margin:6px 0 0}
+  .hsv-feats{list-style:none;padding:0;margin:16px 0 0}
+  .hsv-feats li{font-weight:600;color:rgba(255,255,255,.88);padding:3px 0}
+  .hsv-feats li::before{content:"✓ ";color:var(--gold);font-weight:800}
+  .hsv-tabs{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}
+  .hsv-tab-row{display:flex;gap:4px;flex-wrap:wrap}
+  .hsv-tab-btn{appearance:none;background:none;border:0;border-bottom:2px solid transparent;color:var(--muted);font:inherit;font-weight:800;font-size:13px;letter-spacing:.08em;padding:8px 10px;cursor:pointer}
+  .hsv-tab-btn[aria-selected="true"]{color:var(--gold);border-bottom-color:var(--gold)}
+  .hsv-tab-panel{padding:12px 2px 2px;color:var(--muted);font-size:15px}
+  .hsv-tab-panel p{margin:0 0 8px}
+  .hsv-tab-panel .hsv-feats{margin-top:0}
+  body.hsv-open{overflow:hidden}
+  /* Shared youth size guide overlay (menu + product views). */
+  .sg{position:fixed;inset:0;z-index:96;display:flex;align-items:center;justify-content:center}
+  .sg[hidden]{display:none}
+  .sg-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+  .sg-panel{position:relative;background:#0d0d0f;border:1px solid var(--line2);border-radius:18px;max-width:520px;width:calc(100% - 32px);max-height:88vh;overflow:auto;padding:22px}
+  .sg-close{position:absolute;top:12px;right:12px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.55);color:#fff;font-size:16px;cursor:pointer}
+  .sg-close:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+  .sg-panel h4{font-family:"Anton",sans-serif;font-size:28px;text-transform:uppercase;margin:2px 0 10px;color:#fff}
+  .sg-note{color:var(--muted);font-size:14px;margin:0 0 14px}
+  .sg-table{width:100%;border-collapse:collapse;margin:0 0 14px}
+  .sg-table th,.sg-table td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:15px}
+  .sg-table th{color:var(--gold);font-size:12.5px;letter-spacing:.09em;text-transform:uppercase}
+  .sg-table td:first-child{font-weight:800;color:#fff}
+  body.sg-open{overflow:hidden}
+  /* Menu: Shop Hype Sports group + Size Guide (Round 27). */
+  .menu-group-btn .chev{display:inline-block;transition:transform .15s ease}
+  .menu-group-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  .menu-sub{padding:2px 0 4px 14px}
+  .menu-sub button{font-weight:600;color:var(--muted);padding:10px 14px}
+  .menu-sub button:hover{color:#fff}
+  @media (max-width:760px){
+    .shop .store-bar{margin-top:76px}
+    .hs-hero{min-height:300px}
+    .hs-hero::after{background:linear-gradient(90deg,rgba(0,0,0,.92) 40%,rgba(0,0,0,.62) 72%,rgba(0,0,0,.28) 100%)}
+    .hs-hero-img{object-position:72% center}
+    .hs-hero-copy{padding:24px}
+    .hs-tiles{gap:8px}
+    .hs-tile-label{font-size:13px;padding:8px 10px}
+    .hs-grid{grid-template-columns:1fr}
+    .hs-hf,.hs-teaser{grid-template-columns:1fr}
+    .hsv{align-items:stretch}
+    .hsv-panel{grid-template-columns:1fr;width:100%;max-height:none;height:100dvh;border-radius:0;border:0}
+    .hsv-thumbs{display:none}
+    .hsv-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+    .hsv-dot{width:8px;height:8px;border-radius:50%;background:#3a3a34}
+    .hsv-dot.on{background:var(--gold)}
+    .hsv-size{flex:1 1 30%;min-height:56px;font-size:16px}
+    .hsv-info h4{font-size:30px}
+  }

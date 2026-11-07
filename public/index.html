@@ -32,6 +32,18 @@
       <button type="button" data-panel-btn="mine" aria-current="false">My Highlights</button>
       <button type="button" data-panel-btn="how" aria-current="false">How it works</button>
       <a class="nav-swag" href="#shop" data-store-link>Swag Shop — Rep The Hype</a>
+      <div class="menu-group">
+        <button type="button" class="menu-group-btn" id="menuHsBtn" aria-expanded="false" aria-controls="menuHsList">Shop Hype Sports <span class="chev" aria-hidden="true">▾</span></button>
+        <div class="menu-sub" id="menuHsList" hidden>
+          <button type="button" data-hs-menu="baseball">Baseball</button>
+          <button type="button" data-hs-menu="football">Football</button>
+          <button type="button" data-hs-menu="basketball">Basketball</button>
+          <button type="button" data-hs-menu="soccer">Soccer</button>
+          <button type="button" data-hs-menu="softball">Softball</button>
+          <button type="button" data-hs-menu="volleyball">Volleyball</button>
+        </div>
+      </div>
+      <button type="button" id="menuSizeGuide" data-size-guide-open>Size Guide</button>
     </nav>
   </div>
 </header>
@@ -581,239 +593,183 @@
 <!-- ============ THE STORE ============ -->
 <section class="shop" id="shop">
   <div class="wrap">
-    <div class="store-focusbar" id="storeFocusBar" hidden>
-      <span class="store-focus-title" id="storeFocusTitle">Hype Boys — Drop 001</span>
-      <button type="button" class="back-link" id="storeFocusExit">← All collections</button>
-    </div>
-<!-- Nov 5 batch (2026-11-05): two scenes are back views (Boys Athletics + Girls Street). The floating hint pill is gone — real controls mirror the homepage hero's control-bar pill buttons; tapping the film still pauses for pause-to-shop. Round 9 (2026-11-05): the film carries quiet sound again (Nicholas asked for sound, owner approved, reversing the silent cut); it still autoplays MUTED and the speaker toggle beside Pause is the unmute path. Round 10 (2026-11-05): the sound is now a stadium CROWD bed, not music (Nicholas's suggestion), and the Sound/Pause controls moved OUT of the film overlay into a row below the film — docked over the picture they covered the film's Shop Girls link. -->
-    <div class="swag-film swag-film-hero" aria-label="Drop 001 swag film — Wear The Hype">
-      <video id="swagVideo" src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
-      <span class="swag-film-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      <div class="swag-film-overlay swag-hero-overlay">
-        <p class="kicker">Drop 001 · Limited Drop</p>
-        <h3>Wear the <span class="lime">hype</span></h3>
-        <div class="swag-hero-links">
-          <button type="button" class="hero-shop-link hero-shop-boys" data-hero-shop="boys">Shop Boys <span class="chev" aria-hidden="true">›</span></button>
-          <button type="button" class="hero-shop-link hero-shop-girls" data-hero-shop="girls">Shop Girls <span class="chev" aria-hidden="true">›</span></button>
-        </div>
-      </div>
-      <div class="swag-shop-card" id="swagShopCard" hidden>
-        <p class="ssc-kicker">In this scene</p>
-        <h4 id="sscTitle">The Boys Hype Street hoodie</h4>
-        <p class="ssc-sub" id="sscSub"></p>
-        <button type="button" class="btn btn-lime" id="sscBtn">View this look</button>
-      </div>
-    </div>
-    <!-- Round 10 (2026-11-05): the film's Sound + Pause controls live
-         BELOW the film now, in their own right-aligned row — as an
-         overlay they sat on top of the Shop Boys / Shop Girls links. -->
-    <div class="swag-film-controls">
-      <button type="button" class="swag-pause-btn swag-sound-btn" id="swagSoundBtn" aria-label="Turn the film's sound on" aria-pressed="false">🔇 <span>Sound off</span></button>
-      <button type="button" class="swag-pause-btn" id="swagPauseBtn" aria-label="Pause the film">❚❚ <span>Pause</span></button>
-    </div>
-
     <div class="store-bar">
       <button type="button" class="back-link" data-home-link>← Back to homepage</button>
       <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
     </div>
 
-    <div class="shop-head shop-head-slim">
-      <div>
-        <span class="sec-tag">Rep The Hype · Drop 001</span>
-        <h2>Rep the <span class="lime">hype</span></h2>
-      </div>
-      <p>Bold, youth-first apparel — six hoodies, two collections, one <b style="color:#fff">limited drop</b>. Drop 001 — ordering opens soon.</p>
-    </div>
-
-    <div class="store-blocks" id="collections">
-      <div class="store-block" data-store-block="boys">
-        <div class="store-banner store-banner-boys">
-          <img src="/swag/tile-boys.jpg" alt="Hype Boys — Nicholas wearing the charcoal Hype hoodie in a baseball stadium" loading="lazy" decoding="async" />
-          <div class="store-banner-copy">
-            <h3>Hype <span class="lime">Boys</span></h3>
-            <p>Street · Athletics · Unleashed — Drop 001</p>
-            <button type="button" class="store-banner-btn" data-store-focus="boys">Shop the collection <span class="chev" aria-hidden="true">›</span></button>
-          </div>
-        </div>
-        <div class="prod-grid" aria-label="Hype Boys products">
-          <article class="prod-card" data-division="boys" data-collection="street" data-slug="boys-street" tabindex="0" role="button" aria-label="Quick view — Boys Hype Street hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/boys-street-model.jpg" alt="Boys Hype Street black hoodie — model photo with the gold crest" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/boys-street-back.jpg" alt="Boys Hype Street washed black hoodie — back photo with a large white crown and diagonal HYPE script" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Street card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Street</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Black, Denim Blue, Gray and Olive"><span class="prod-dot" style="--sw:#2e2e31"></span><span class="prod-dot" style="--sw:#3f5f82"></span><span class="prod-dot" style="--sw:#8b8e93"></span><span class="prod-dot" style="--sw:#5f6a45"></span></p>
-                  </div>
-                </article>
-          <article class="prod-card" data-division="boys" data-collection="athletics" data-slug="boys-athletics" tabindex="0" role="button" aria-label="Quick view — Boys Hype Athletics hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/boys-athletics-front.jpg" alt="Boys Hype Athletics cream hoodie — front photo" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/boys-athletics-back.jpg" alt="Boys Hype Athletics cream hoodie — back photo with the HYPE Athletic Club design" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Athletics card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Athletics</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Cream, Heather Gray, Forest Green and Navy"><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#a8abb0"></span><span class="prod-dot" style="--sw:#1e5138"></span><span class="prod-dot" style="--sw:#1c3054"></span></p>
-                  </div>
-                </article>
-          <article class="prod-card" data-division="boys" data-collection="unleashed" data-slug="boys-unleashed" tabindex="0" role="button" aria-label="Quick view — Boys Hype Unleashed hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/boys-unleashed-front.jpg" alt="Boys Hype Unleashed blue and yellow lightning-print hoodie — front photo" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/boys-unleashed-back.jpg" alt="Boys Hype Unleashed purple lightning-print hoodie — back photo with a neon crown outline" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Boys Hype Unleashed card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Unleashed</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Blue Lightning, Fire Orange, Purple Lightning and Teal Lightning"><span class="prod-dot" style="--sw:#37b6ff"></span><span class="prod-dot" style="--sw:#ff7a1a"></span><span class="prod-dot" style="--sw:#7e22ce"></span><span class="prod-dot" style="--sw:#14b8a6"></span></p>
-                  </div>
-                </article>
-        </div>
-      </div>
-      <div class="store-block" data-store-block="girls">
-        <div class="store-banner store-banner-girls">
-          <img src="/swag/tile-girls.jpg" alt="Hype Girls — a model wearing the cream Hype hoodie against a sunset sky" loading="lazy" decoding="async" />
-          <div class="store-banner-copy">
-            <h3>Hype <span class="pink">Girls</span></h3>
-            <p>Street · Athletics · Essentials — Drop 001</p>
-            <button type="button" class="store-banner-btn" data-store-focus="girls">Shop the collection <span class="chev" aria-hidden="true">›</span></button>
-          </div>
-        </div>
-        <div class="prod-grid" aria-label="Hype Girls products">
-          <article class="prod-card" data-division="girls" data-collection="street" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/girls-street-model.jpg" alt="Girls Hype Street cream hoodie — model photo with the gold crest" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back photo with pink hibiscus flowers and white HYPE script" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Street card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Street</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Black, Pink, Cream and Light Blue"><span class="prod-dot" style="--sw:#2d2d31"></span><span class="prod-dot" style="--sw:#efa7c6"></span><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#a9d7f0"></span></p>
-                  </div>
-                </article>
-          <article class="prod-card" data-division="girls" data-collection="athletics" data-slug="girls-athletics" tabindex="0" role="button" aria-label="Quick view — Girls Hype Athletics hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/girls-athletics-front.jpg" alt="Girls Hype Athletics cream hoodie — front photo" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/girls-athletics-back.jpg" alt="Girls Hype Athletics cream hoodie — back photo with the HYPE Athletic Club design" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Athletics card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Athletics</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Cream, Forest Green, Navy and Heather Gray"><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#1e5138"></span><span class="prod-dot" style="--sw:#1c3054"></span><span class="prod-dot" style="--sw:#a8abb0"></span></p>
-                  </div>
-                </article>
-          <article class="prod-card" data-division="girls" data-collection="essentials" data-slug="girls-essentials" tabindex="0" role="button" aria-label="Quick view — Girls Hype Essentials hoodie">
-                  <div class="prod-media">
-                    <img class="prod-img prod-photo prod-front" src="/swag/girls-essentials-front.jpg" alt="Girls Hype Essentials pink hoodie — front photo" loading="lazy" decoding="async" />
-                    <img class="prod-img prod-photo prod-back" src="/swag/girls-essentials-back.jpg" alt="Girls Hype Essentials pink hoodie — back photo with a large hibiscus" loading="lazy" decoding="async" />
-                    <span class="preview-note">Drop 001</span>
-                    <button type="button" class="prod-flip" data-flip aria-label="Flip Girls Hype Essentials card to the back view">⇄ Back</button>
-                  </div>
-                  <div class="prod-body">
-                    <h4>Hype Essentials</h4>
-                    <p class="prod-price">$69.99</p>
-                    <p class="prod-sizes"><span class="prod-sizes-label">Youth sizes</span> YXXS · YXS · YS · YM · YL · YXL</p>
-                    <p class="prod-colors" aria-label="Comes in Sky Blue, Cream, Pink and Lavender"><span class="prod-dot" style="--sw:#8ec9ee"></span><span class="prod-dot" style="--sw:#f3e7cf"></span><span class="prod-dot" style="--sw:#f6a8c5"></span><span class="prod-dot" style="--sw:#c2ade0"></span></p>
-                  </div>
-                </article>
-        </div>
-      </div>
-      <!-- Third door (Round 3, 2026-11-05): Hype Frame gets a door
-           like the two divisions. Round 4 (2026-11-05): the door is
-           now a real focus door — tapping it opens the Hype Frame
-           creative as its own panel (data-store-focus="hypeframe"
-           wiring in app.js + styles.css), so the creative and the
-           finished-product examples are no longer part of the
-           landing's always-visible flow. The focus bar's exit is the
-           back path to the doors. -->
-      <div class="store-block" data-store-block="hypeframe">
-        <div class="store-banner store-banner-hf">
-          <img src="/swag/hf-door.jpg" alt="Hype Frame — a frozen baseball moment printed on the back of a cream hoodie" loading="lazy" decoding="async" />
-          <div class="store-banner-copy">
-            <h3>Hype <span class="purple">Frame</span></h3>
-            <p>Turn your highlight into wearable hype</p>
-            <button type="button" class="store-banner-btn" data-store-focus="hypeframe">Create yours <span class="chev" aria-hidden="true">›</span></button>
-          </div>
-        </div>
+    <!-- Round 27 (2026-11-06): the Store is rebuilt around HYPE
+         SPORTS. The Drop 001 film, the Boys/Girls collection blocks
+         and the focus-mode doors are GONE from the store view (Emil's
+         resolutions supersede option B's "Original Drop" plan): the
+         store now runs hero -> Shop by Sport -> filterable hoodie
+         grid -> Hype Frame feature -> NEXT DROP teaser, where the
+         Hot Pink Hype Street hoodie returns as Drop 002's star and
+         its quick view (kept below) stays reachable. -->
+    <div class="hs-hero" id="hsHero">
+      <img class="hs-hero-img" src="/swag/hs/hero-model.jpg" alt="Young baseball player wearing the Baseball Hype Hoodie, looking back over his shoulder — the back carries a giant baseball, a gold crown and HYPE brush letters" />
+      <div class="hs-hero-copy">
+        <span class="hs-hero-badge">DROP 001 / HYPE SPORTS</span>
+        <h2 class="hs-hero-title">REP YOUR <span class="gold">SPORT.</span></h2>
+        <p class="hs-hero-sub">Six sports. One attitude. Your moment. Your hype.</p>
+        <button type="button" class="btn btn-gold hs-hero-btn" id="hsShopBtn">SHOP HYPE SPORTS</button>
       </div>
     </div>
 
-    <div class="hf-creative" id="hype-frame">
-      <div class="hfc-copy">
+    <div class="hs-tiles-wrap" id="hsBySport">
+      <h3 class="hs-sec-title">Shop by <span class="gold">Sport</span></h3>
+      <div class="hs-tiles">
+        <button type="button" class="hs-tile" data-hs-open="baseball" aria-label="Shop the Baseball Hype Hoodie">
+          <img src="/swag/hs/tile-baseball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Baseball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-open="football" aria-label="Shop the Football Hype Hoodie">
+          <img src="/swag/hs/tile-football.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Football</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-open="basketball" aria-label="Shop the Basketball Hype Hoodie">
+          <img src="/swag/hs/tile-basketball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Basketball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-open="soccer" aria-label="Shop the Soccer Hype Hoodie">
+          <img src="/swag/hs/tile-soccer.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Soccer</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-open="softball" aria-label="Shop the Softball Hype Hoodie">
+          <img src="/swag/hs/tile-softball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Softball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-open="volleyball" aria-label="Shop the Volleyball Hype Hoodie">
+          <img src="/swag/hs/tile-volleyball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Volleyball</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="hs-grid-wrap" id="hsGridSection">
+      <h3 class="hs-sec-title">The <span class="gold">Hoodies</span></h3>
+      <div class="hs-chips" id="hsChips" role="group" aria-label="Filter hoodies by sport">
+        <button type="button" class="hs-chip" data-hs-filter="all" aria-pressed="true">All Sports</button>
+        <button type="button" class="hs-chip" data-hs-filter="baseball" aria-pressed="false">Baseball</button>
+        <button type="button" class="hs-chip" data-hs-filter="football" aria-pressed="false">Football</button>
+        <button type="button" class="hs-chip" data-hs-filter="basketball" aria-pressed="false">Basketball</button>
+        <button type="button" class="hs-chip" data-hs-filter="soccer" aria-pressed="false">Soccer</button>
+        <button type="button" class="hs-chip" data-hs-filter="softball" aria-pressed="false">Softball</button>
+        <button type="button" class="hs-chip" data-hs-filter="volleyball" aria-pressed="false">Volleyball</button>
+      </div>
+      <div class="hs-grid" id="hsGrid">
+        <article class="hs-card" data-hs-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/baseball-pair.jpg" alt="Baseball Hype Hoodie, front and back — black hoodie with the gold crest and BASEBALL in plain caps at the left chest; the back carries a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 001</p>
+            <h4>Baseball Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="baseball">VIEW PRODUCT</button>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="football" tabindex="0" role="button" aria-label="View the Football Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/football-pair.jpg" alt="Football Hype Hoodie, front and back — black hoodie with the gold crest and FOOTBALL in plain caps at the left chest; the back carries a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 002</p>
+            <h4>Football Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="football">VIEW PRODUCT</button>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/basketball-pair.jpg" alt="Basketball Hype Hoodie, front and back — black hoodie with the gold crest and BASKETBALL in plain caps at the left chest; the back carries a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 003</p>
+            <h4>Basketball Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="basketball">VIEW PRODUCT</button>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/soccer-pair.jpg" alt="Soccer Hype Hoodie, front and back — black hoodie with the gold crest and SOCCER in plain caps at the left chest; the back carries a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 004</p>
+            <h4>Soccer Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="soccer">VIEW PRODUCT</button>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/softball-pair.jpg" alt="Softball Hype Hoodie, front and back — black hoodie with the gold crest and SOFTBALL in plain caps at the left chest; the back carries a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 005</p>
+            <h4>Softball Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="softball">VIEW PRODUCT</button>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Hoodie">
+          <div class="hs-card-media">
+            <img src="/swag/hs/volleyball-pair.jpg" alt="Volleyball Hype Hoodie, front and back — black hoodie with the gold crest and VOLLEYBALL in plain caps at the left chest; the back carries a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-badge">Sample phase</span>
+          </div>
+          <div class="hs-card-body">
+            <p class="hs-eyebrow">HYPE SPORTS / 006</p>
+            <h4>Volleyball Hype Hoodie</h4>
+            <p class="hs-fit">Premium youth fit</p>
+            <p class="hs-price">$69.99</p>
+            <button type="button" class="hs-view-btn" data-hs-open="volleyball">VIEW PRODUCT</button>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="hs-hf" id="hsHfFeature">
+      <div class="hs-hf-copy">
         <span class="sec-tag">Hype Frame · New</span>
-        <h3 class="hfc-title">Turn your highlight<br />into wearable hype.</h3>
-        <p class="hfc-sub">Freeze a frame from your own highlight video — and wear it. Your still, your name, your number, printed on a premium youth hoodie or tee.</p>
-        <p class="hfc-guardian">No payment today — a parent or guardian confirms by email before anything is printed.</p>
-        <ol class="hfc-steps">
-          <li><span class="n">Video</span>Upload your highlight</li>
-          <li><span class="n">Frame</span>Choose your frame</li>
-          <li><span class="n">Wear It</span>Printed on your gear</li>
-        </ol>
+        <h3>Your Play. Your <span class="purple">Hoodie.</span></h3>
+        <p>Freeze a frame from your own highlight video — and wear it. Your still, your name, your number, printed on a premium youth hoodie or tee.</p>
+        <p class="hs-hf-guardian">No payment today — a parent or guardian confirms by email before anything is printed.</p>
         <a class="hfc-cta" href="#deck" data-tablink="plays">Create a Hype Frame <span class="chev" aria-hidden="true">›</span></a>
       </div>
-      <div class="hfc-stage" aria-hidden="true">
-        <figure class="hfc-print hfc-print-moment">
-          <img src="/swag/hfc-action.jpg" alt="" loading="lazy" decoding="async" />
-          <figcaption>Frozen from the highlight</figcaption>
-        </figure>
-        <figure class="hfc-print hfc-print-hoodie">
-          <div class="hfc-mock">
-            <svg class="hfc-garment" viewBox="0 0 640 720" role="img" aria-label="">
-              <g stroke="rgba(0,0,0,.34)" stroke-width="3">
-                <path fill="#17171a" d="M207 220 C160 240 137 288 124 363 L107 566 C104 596 118 611 145 609 L187 605 L199 353 C203 292 204 252 207 220 Z"/>
-                <path fill="#17171a" d="M433 220 C480 240 503 288 516 363 L533 566 C536 596 522 611 495 609 L453 605 L441 353 C437 292 436 252 433 220 Z"/>
-                <path fill="#17171a" d="M205 204 C241 239 277 254 320 254 C363 254 399 239 435 204 C461 231 471 278 469 343 L463 648 C463 665 451 674 432 674 L208 674 C189 674 177 665 177 648 L171 343 C169 278 179 231 205 204 Z"/>
-              </g>
-              <ellipse cx="260" cy="300" rx="180" ry="220" fill="#fff" opacity=".05"/>
-              <ellipse cx="405" cy="580" rx="180" ry="200" fill="#000" opacity=".07"/>
-              <path fill="#17171a" d="M224 218 C235 141 277 105 320 105 C363 105 405 141 416 218 C396 245 362 260 320 260 C278 260 244 245 224 218 Z" stroke="rgba(0,0,0,.28)" stroke-width="3"/>
-              <path d="M258 190 C276 224 296 240 320 240 C344 240 364 224 382 190 C374 252 350 278 320 278 C290 278 266 252 258 190 Z" fill="rgba(0,0,0,.30)"/>
-              <path d="M291 252 L282 395 M349 252 L358 395" stroke="rgba(20,20,20,.45)" stroke-width="7" stroke-linecap="round"/>
-              <circle cx="282" cy="402" r="6" fill="rgba(255,255,255,.75)"/><circle cx="358" cy="402" r="6" fill="rgba(255,255,255,.75)"/>
-              <path d="M184 604 L196 350 M456 604 L444 350" stroke="rgba(255,255,255,.13)" stroke-width="3"/>
-              <path d="M177 640 L463 640 M177 660 L463 660" stroke="rgba(0,0,0,.22)" stroke-width="3"/>
-              <path d="M232 518 L408 518 L431 636 L209 636 Z" fill="rgba(0,0,0,.10)" stroke="rgba(0,0,0,.25)" stroke-width="3"/>
-            </svg>
-            <div class="hfc-printbox">
-              <img src="/swag/hfc-action.jpg" alt="" loading="lazy" decoding="async" />
-              <span class="hfc-printcap"><span class="cap-top"><img src="/crown.png" alt="" />Hype Frame</span><span class="cap-name">Nick · #13</span></span>
-            </div>
-          </div>
-        </figure>
-      </div>
+      <figure class="hs-hf-media">
+        <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+      </figure>
     </div>
 
-    <div class="hf-examples" id="hfExamples">
-      <div class="hf-examples-head">
-        <h4>Finished-product examples</h4>
-        <p>Example finishes — yours is made from your own play.</p>
+    <div class="hs-teaser" id="hsTeaser">
+      <div class="hs-teaser-head">
+        <span class="hs-teaser-badge">NEXT DROP</span>
+        <h3>Hype Street <span class="gold">&amp;</span> Lifestyle</h3>
+        <p class="hs-teaser-sub">DROP 002 · COMING SOON — the lifestyle line returns as its own drop: new styles, new colors, more hype.</p>
+        <img class="hs-teaser-crown" src="/crown-graffiti.png" alt="" aria-hidden="true" loading="lazy" decoding="async" />
       </div>
-      <div class="hf-examples-grid">
-        <figure class="hf-example hf-example-hoodie">
-          <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-          <figcaption>Cream hoodie · Back — example finish</figcaption>
-        </figure>
-        <figure class="hf-example hf-example-lineup">
-          <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
-          <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
-        </figure>
-      </div>
+      <article class="hs-teaser-card" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie, the Hot Pink returning star of Drop 002">
+        <div class="hs-teaser-media">
+          <img src="/swag/girls-street-back.jpg" alt="Girls Hype Street charcoal hoodie — back photo with pink hibiscus flowers and white HYPE script" loading="lazy" decoding="async" />
+        </div>
+        <div class="hs-teaser-body">
+          <p class="hs-eyebrow">DROP 002 · RETURNING STAR</p>
+          <h4>Hype Street</h4>
+          <p>Hot Pink returns in Drop 002 — the girls' street favorite leads the lifestyle drop.</p>
+          <button type="button" class="hs-view-btn" id="hsHotPinkBtn">Preview Hot Pink</button>
+        </div>
+      </article>
     </div>
 
     <div class="qv" id="quickView" hidden role="dialog" aria-modal="true" aria-labelledby="qvTitle">
@@ -850,6 +806,97 @@
     </div>
   </div>
 </section>
+
+
+<!-- ============ HYPE SPORTS PRODUCT VIEW (Round 27) ============ -->
+<div class="hsv" id="hsView" hidden role="dialog" aria-modal="true" aria-labelledby="hsTitle">
+  <div class="hsv-backdrop" data-hs-close></div>
+  <div class="hsv-panel">
+    <button type="button" class="hsv-close" data-hs-close aria-label="Close product view">✕</button>
+    <div class="hsv-media">
+      <img id="hsMainImg" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie — front" />
+      <div class="hsv-dots" id="hsDots" aria-hidden="true"></div>
+      <div class="hsv-switch" role="group" aria-label="View side">
+        <button type="button" class="hsv-side-btn" data-hs-side="front" aria-pressed="true">Front</button>
+        <button type="button" class="hsv-side-btn" data-hs-side="back" aria-pressed="false">Back</button>
+      </div>
+      <div class="hsv-thumbs" id="hsThumbs" role="group" aria-label="Product images"></div>
+    </div>
+    <div class="hsv-info">
+      <p class="hs-eyebrow" id="hsEyebrow">HYPE SPORTS / 001</p>
+      <h4 id="hsTitle">Baseball Hype Hoodie</h4>
+      <p class="hsv-line" id="hsLine">Built for the diamond. Made for the hype.</p>
+      <p class="hsv-price" id="hsPrice">$69.99</p>
+      <p class="hsv-status">Sample phase — sales open soon</p>
+      <p class="qv-colors-label">Youth size</p>
+      <div class="hsv-sizes" id="hsSizes" role="group" aria-label="Youth sizes">
+        <button type="button" class="hsv-size" data-hs-size="YXXS" aria-pressed="false">YXXS</button>
+        <button type="button" class="hsv-size" data-hs-size="YXS" aria-pressed="false">YXS</button>
+        <button type="button" class="hsv-size" data-hs-size="YS" aria-pressed="false">YS</button>
+        <button type="button" class="hsv-size" data-hs-size="YM" aria-pressed="false">YM</button>
+        <button type="button" class="hsv-size" data-hs-size="YL" aria-pressed="false">YL</button>
+        <button type="button" class="hsv-size" data-hs-size="YXL" aria-pressed="false">YXL</button>
+      </div>
+      <button type="button" class="hsv-cta" disabled aria-disabled="true">COMING SOON</button>
+      <button type="button" class="hsv-guide-link" data-size-guide-open>📏 Size Guide</button>
+      <ul class="hsv-feats">
+        <li>Premium, soft fabric</li>
+        <li>Athletic, relaxed fit</li>
+        <li>Durable, everyday wear</li>
+      </ul>
+      <div class="hsv-tabs">
+        <div class="hsv-tab-row" role="tablist" aria-label="Product information">
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="desc" aria-selected="true">DESCRIPTION</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="details" aria-selected="false">DETAILS</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="sizeguide" aria-selected="false">SIZE GUIDE</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="shipping" aria-selected="false">SHIPPING</button>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="desc">
+          <p id="hsDesc"></p>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="details" hidden>
+          <ul class="hsv-feats">
+            <li>Premium, soft fabric</li>
+            <li>Athletic, relaxed fit</li>
+            <li>Durable, everyday wear</li>
+          </ul>
+          <p>Care: Wash inside-out, cold. Hang dry to protect the print.</p>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="sizeguide" hidden>
+          <p>Youth sizes YXXS–YXL. Ages are general youth sizing guidance — when between sizes, size up for the relaxed athletic fit.</p>
+          <button type="button" class="hsv-guide-link hsv-guide-link-inline" data-size-guide-open>📏 Open the full size guide</button>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="shipping" hidden>
+          <p>Ships when Drop 001 sales open — no orders are being taken yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ YOUTH SIZE GUIDE (Round 27: ONE shared overlay —
+     the menu's Size Guide item and every product-view Size Guide
+     link open this same component) ============ -->
+<div class="sg" id="sizeGuide" hidden role="dialog" aria-modal="true" aria-labelledby="sgTitle">
+  <div class="sg-backdrop" data-sg-close></div>
+  <div class="sg-panel">
+    <button type="button" class="sg-close" data-sg-close aria-label="Close size guide">✕</button>
+    <h4 id="sgTitle">Youth Size Guide</h4>
+    <p class="sg-note">Youth sizes: YXXS · YXS · YS · YM · YL · YXL</p>
+    <table class="sg-table">
+      <thead><tr><th scope="col">Size</th><th scope="col">Age — general youth sizing guidance</th></tr></thead>
+      <tbody>
+        <tr><td>YXXS</td><td>4–5</td></tr>
+        <tr><td>YXS</td><td>6–7</td></tr>
+        <tr><td>YS</td><td>8</td></tr>
+        <tr><td>YM</td><td>10–12</td></tr>
+        <tr><td>YL</td><td>14–16</td></tr>
+        <tr><td>YXL</td><td>18–20</td></tr>
+      </tbody>
+    </table>
+    <p class="sg-note">Ages are general youth sizing guidance, not exact measurements — when between sizes, size up for the relaxed athletic fit.</p>
+  </div>
+</div>
 
 <!-- ============ FINAL CTA ============ -->
 <div class="final view-home">

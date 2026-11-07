@@ -867,11 +867,15 @@ function showStore(target) {
     sv.muted = true;
     const p = sv.play(); if (p && p.catch) p.catch(() => {});
   }
-  // #hype-girls / #hype-boys links focus that division's block
-  // (2026-11-04 store restructure). Other targets scroll as before.
-  if (target === "hype-girls" || target === "hype-boys") {
-    setStoreFocus(target === "hype-girls" ? "girls" : "boys");
-    setTimeout(() => document.getElementById("storeFocusBar")?.scrollIntoView({ behavior: "smooth" }), 60);
+  // Round 27 (2026-11-06): the division blocks are gone from the
+  // store, so the homepage entry card's #hype-girls / #hype-boys
+  // links land on the new sections instead — Girls scrolls to the
+  // NEXT DROP teaser (where the Hot Pink Hype Street hoodie lives),
+  // Boys to the Hype Sports grid. Other targets scroll as before.
+  if (target === "hype-girls") {
+    setTimeout(() => document.getElementById("hsTeaser")?.scrollIntoView({ behavior: "smooth" }), 60);
+  } else if (target === "hype-boys") {
+    setTimeout(() => document.getElementById("hsGridSection")?.scrollIntoView({ behavior: "smooth" }), 60);
   } else if (target) { const el = document.getElementById(target); if (el) setTimeout(() => el.scrollIntoView({ behavior: "smooth" }), 60); }
 }
 function showHome() {
@@ -1306,6 +1310,125 @@ $$("[data-qv-close]").forEach((el) => el.addEventListener("click", closeQuickVie
    the dialog, then the standard goHome() reset. */
 $("#qvHome")?.addEventListener("click", () => { closeQuickView(); goHome(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuickView(); });
+
+/* ---------------- Round 27 (2026-11-06): Hype Sports store --------
+   The store is rebuilt around Hype Sports: hero, Shop by Sport
+   tiles, filter chips + a six-hoodie grid, a per-sport product
+   view, a Hype Frame feature, and the NEXT DROP teaser (Drop 002),
+   where the Hot Pink Hype Street hoodie keeps its quick view (the
+   teaser card below feeds openQuickView like the old cards did).
+   Sample phase throughout: prices show ($69.99), the CTA is a
+   disabled COMING SOON, size selection is display state only —
+   no cart, no checkout, no orders. */
+const HS_PRODUCTS = {
+  baseball: { n: "001", name: "Baseball", line: "Built for the diamond. Made for the hype.", price: "$69.99", gallery: [["/swag/hs/baseball-front.jpg", "Front"], ["/swag/hs/baseball-back.jpg", "Back"], ["/swag/hs/baseball-detail-chest.jpg", "Chest detail"], ["/swag/hs/baseball-detail-sleeve.jpg", "Sleeve detail"], ["/swag/hs/baseball-detail-fabric.jpg", "Fabric"], ["/swag/hs/baseball-detail-tag.jpg", "Hem tag"]] },
+  football: { n: "002", name: "Football", line: "Friday lights. Full send.", price: "$69.99", gallery: [["/swag/hs/football-front.jpg", "Front"], ["/swag/hs/football-back.jpg", "Back"], ["/swag/hs/football-detail-chest.png", "Chest detail"]] },
+  basketball: { n: "003", name: "Basketball", line: "Built for the blacktop. Ready for the lights.", price: "$69.99", gallery: [["/swag/hs/basketball-front.jpg", "Front"], ["/swag/hs/basketball-back.jpg", "Back"], ["/swag/hs/basketball-detail-chest.png", "Chest detail"]] },
+  soccer: { n: "004", name: "Soccer", line: "Top corner is a lifestyle.", price: "$69.99", gallery: [["/swag/hs/soccer-front.jpg", "Front"], ["/swag/hs/soccer-back.jpg", "Back"], ["/swag/hs/soccer-detail-chest.png", "Chest detail"]] },
+  softball: { n: "005", name: "Softball", line: "Yellow ball. Loud bat. Louder hype.", price: "$69.99", gallery: [["/swag/hs/softball-front.jpg", "Front"], ["/swag/hs/softball-back.jpg", "Back"], ["/swag/hs/softball-detail-chest.png", "Chest detail"]] },
+  volleyball: { n: "006", name: "Volleyball", line: "All hustle above the net.", price: "$69.99", gallery: [["/swag/hs/volleyball-front.jpg", "Front"], ["/swag/hs/volleyball-back.jpg", "Back"], ["/swag/hs/volleyball-detail-chest.png", "Chest detail"]] },
+};
+const hsState = { sport: null, frame: 0 };
+function hsFrameAlt(sport, label) {
+  const p = HS_PRODUCTS[sport];
+  if (label === "Front") return `${p.name} Hype Hoodie — front: black hoodie with the gold crest and ${p.name.toUpperCase()} in plain caps at the left chest`;
+  if (label === "Back") return `${p.name} Hype Hoodie — back: giant ball print with a gold crown and HYPE brush letters`;
+  if (label === "Chest detail") return "Chest detail: crest with sport name";
+  return `${p.name} Hype Hoodie — ${label.toLowerCase()}`;
+}
+function hsSetFrame(i) {
+  const p = HS_PRODUCTS[hsState.sport]; if (!p) return;
+  hsState.frame = Math.max(0, Math.min(p.gallery.length - 1, i));
+  const [src, label] = p.gallery[hsState.frame];
+  const img = $("#hsMainImg");
+  img.src = src;
+  img.alt = hsFrameAlt(hsState.sport, label);
+  $$("#hsThumbs .hsv-thumb").forEach((b, bi) => b.setAttribute("aria-pressed", String(bi === hsState.frame)));
+  $$("#hsDots .hsv-dot").forEach((d, di) => d.classList.toggle("on", di === hsState.frame));
+  $$(".hsv-side-btn").forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.hsSide === "front" && hsState.frame === 0) || (b.dataset.hsSide === "back" && hsState.frame === 1))));
+}
+function hsSetTab(name) {
+  $$(".hsv-tab-btn").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.hsTab === name)));
+  $$(".hsv-tab-panel").forEach((p) => { p.hidden = p.dataset.hsPanel !== name; });
+}
+function openHsView(sport) {
+  const p = HS_PRODUCTS[sport]; if (!p) return;
+  const view = $("#hsView"); if (!view) return;
+  hsState.sport = sport;
+  $("#hsEyebrow").textContent = `HYPE SPORTS / ${p.n}`;
+  $("#hsTitle").textContent = `${p.name} Hype Hoodie`;
+  $("#hsLine").textContent = p.line;
+  $("#hsPrice").textContent = p.price;
+  $("#hsDesc").textContent = `The ${p.name} Hype Hoodie from Hype Sports Drop 001 — a black premium youth hoodie with the gold crest and ${p.name.toUpperCase()} in plain caps at the left chest, a crown print on the sleeve, and the giant ball graphic with crown and HYPE brush letters across the back. ${p.line} Sample phase — sales open soon.`;
+  $("#hsThumbs").innerHTML = p.gallery.map(([src, label], i) => `<button type="button" class="hsv-thumb" data-hs-thumb="${i}" aria-pressed="false" aria-label="Show image: ${esc(label)}"><img src="${src}" alt="" loading="lazy" decoding="async" /></button>`).join("");
+  $$("#hsThumbs .hsv-thumb").forEach((b) => b.addEventListener("click", () => hsSetFrame(Number(b.dataset.hsThumb))));
+  $("#hsDots").innerHTML = p.gallery.map(() => `<span class="hsv-dot"></span>`).join("");
+  $$("#hsSizes .hsv-size").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  hsSetTab("desc");
+  hsSetFrame(0);
+  view.hidden = false;
+  document.body.classList.add("hsv-open");
+  view.querySelector(".hsv-close")?.focus();
+}
+function closeHsView() {
+  const view = $("#hsView"); if (!view) return;
+  view.hidden = true;
+  document.body.classList.remove("hsv-open");
+}
+$$("[data-hs-open]").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); openHsView(el.dataset.hsOpen); }));
+$$(".hs-card").forEach((card) => {
+  card.addEventListener("click", () => openHsView(card.dataset.hsCard));
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHsView(card.dataset.hsCard); } });
+});
+$$("[data-hs-close]").forEach((el) => el.addEventListener("click", closeHsView));
+$$(".hsv-side-btn").forEach((b) => b.addEventListener("click", () => hsSetFrame(b.dataset.hsSide === "back" ? 1 : 0)));
+$$("#hsSizes .hsv-size").forEach((b) => b.addEventListener("click", () => {
+  $$("#hsSizes .hsv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+$$(".hsv-tab-btn").forEach((b) => b.addEventListener("click", () => hsSetTab(b.dataset.hsTab)));
+$$("#hsChips .hs-chip").forEach((chip) => chip.addEventListener("click", () => {
+  $$("#hsChips .hs-chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
+  const f = chip.dataset.hsFilter;
+  $$(".hs-card").forEach((card) => { card.hidden = f !== "all" && card.dataset.hsCard !== f; });
+}));
+$("#hsShopBtn")?.addEventListener("click", () => document.getElementById("hsBySport")?.scrollIntoView({ behavior: "smooth" }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHsView(); });
+
+/* The shared youth size guide: ONE overlay (#sizeGuide), opened by
+   the menu item and by every product-view Size Guide link. */
+function openSizeGuide() {
+  const sg = $("#sizeGuide"); if (!sg) return;
+  sg.hidden = false;
+  document.body.classList.add("sg-open");
+  sg.querySelector(".sg-close")?.focus();
+}
+function closeSizeGuide() {
+  const sg = $("#sizeGuide"); if (!sg) return;
+  sg.hidden = true;
+  document.body.classList.remove("sg-open");
+}
+$$("[data-size-guide-open]").forEach((el) => el.addEventListener("click", () => { closeMenu(false); openSizeGuide(); }));
+$$("[data-sg-close]").forEach((el) => el.addEventListener("click", closeSizeGuide));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSizeGuide(); });
+
+/* Menu: the Shop Hype Sports group expands to the six sports; a tap
+   opens the Store and then that sport's product view. */
+const menuHsBtn = $("#menuHsBtn"), menuHsList = $("#menuHsList");
+menuHsBtn?.addEventListener("click", () => {
+  const open = menuHsList.hidden;
+  menuHsList.hidden = !open;
+  menuHsBtn.setAttribute("aria-expanded", String(open));
+});
+$$("[data-hs-menu]").forEach((b) => b.addEventListener("click", () => { closeMenu(false); showStore(); openHsView(b.dataset.hsMenu); }));
+
+/* NEXT DROP teaser: the Hot Pink Hype Street hoodie keeps its quick
+   view — the teaser card carries the girls-street slug + title the
+   QV reader expects (openQuickView reads data-slug and the h4). */
+const hsTeaserCard = document.querySelector(".hs-teaser-card");
+if (hsTeaserCard) {
+  hsTeaserCard.addEventListener("click", () => openQuickView(hsTeaserCard));
+  hsTeaserCard.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openQuickView(hsTeaserCard); } });
+}
 
 /* ---------------- Hype Frame studio ---------------- */
 // Emil's product concept (2026-11-04): a real freeze-frame from the
