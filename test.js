@@ -118,6 +118,83 @@ try {
       assert(r.status === 403, `BACKUP_TOKEN unset -> 403 even with a token header: ${bp.split("?")[0]}`);
     }
   } finally { child2.kill(); fs.rmSync(tmp2, { recursive: true, force: true }); }
+  // 8c. My Highlights (light): athlete lookup by HH tag / guardian email.
+  // Self-contained on its own scratch server (the 8b pattern), so it
+  // neither consumes the main server's upload budget nor inherits its
+  // data. Covers: approved-only results, two athletes behind one
+  // guardian email listed unmerged, and no private field in any
+  // lookup response.
+  const tmp3 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-lookup-"));
+  const PORT3 = 3463, base3 = `http://localhost:${PORT3}`;
+  const child3 = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT3), DATA_DIR: tmp3 }, stdio: "pipe" });
+  const j3 = async (p, opts = {}) => { const r = await fetch(base3 + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch(base3 + "/api/health"); break; } catch { await wait(200); } }
+    const claim3 = await j3("/api/owner/claim", { method: "POST" });
+    const tok3 = claim3.body.token; assert(tok3, "lookup suite: owner claim returns token");
+    const mkPlay3 = async (fields) => {
+      const r = await j3("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true", ...fields }) });
+      assert(r.status === 201, `lookup suite: play created (${fields.title})`);
+      return r.body.id;
+    };
+    const approve3 = async (id) => { const r = await j3(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok3 }, body: JSON.stringify({ status: "approved" }) }); assert(r.body.status === "approved", "lookup suite: play approved"); };
+    const G = "guardian@example.com", PHONE = "516-555-0142";
+    // Athlete A: one APPROVED play + one PENDING play, same guardian.
+    const a1 = await mkPlay3({ title: "A Approved", playerName: "Sam Reyes", team: "Hawks", notifyEmail: G, guardianPhone: PHONE });
+    await approve3(a1);
+    await mkPlay3({ title: "A Pending", playerName: "Sam Reyes", team: "Hawks", notifyEmail: G });
+    // Athlete B: a DIFFERENT athlete behind the SAME guardian email.
+    const b1 = await mkPlay3({ title: "B Approved", playerName: "Jamie Reyes", team: "Tigers", notifyEmail: G });
+    await approve3(b1);
+    // Athlete E: plays exist but NONE approved (pending only).
+    await mkPlay3({ title: "E Pending", playerName: "Rio Park", team: "Hawks", notifyEmail: "pendingonly@example.com" });
+    const chkA = await j3("/api/athletes/check?name=" + encodeURIComponent("Sam Reyes"));
+    const aRow = chkA.body.matches[0]; assert(aRow && aRow.tag && aRow.athleteKey, "lookup suite: athlete A resolvable via duplicate check");
+    const chkE = await j3("/api/athletes/check?name=" + encodeURIComponent("Rio Park"));
+    const eTag = chkE.body.matches[0]?.tag; assert(eTag, "lookup suite: athlete E has a tag");
+    // Tag lookup: A only, and the PENDING play does not count.
+    let lk = await j3(`/api/athletes/lookup?tag=${encodeURIComponent(aRow.tag)}`);
+    assert(lk.status === 200 && lk.body.athletes.length === 1 && lk.body.athletes[0].athlete_id === aRow.athleteKey, "tag lookup finds the athlete");
+    assert(lk.body.athletes[0].playCount === 1, "tag lookup counts APPROVED plays only (pending play invisible)");
+    assert(lk.body.athletes[0].tag === aRow.tag && lk.body.athletes[0].team === "Hawks" && /Sam/.test(lk.body.athletes[0].name), "tag lookup returns public name + team + tag");
+    lk = await j3(`/api/athletes/lookup?tag=${encodeURIComponent(aRow.tag.toLowerCase())}`);
+    assert(lk.body.athletes.length === 1, "tag lookup is case-insensitive");
+    lk = await j3(`/api/athletes/lookup?tag=${encodeURIComponent(aRow.athleteKey)}`);
+    assert(lk.body.athletes.length === 1 && lk.body.athletes[0].athlete_id === aRow.athleteKey, "lookup also accepts the athlete_id");
+    // Email lookup: A and B, listed side by side, never merged.
+    lk = await j3(`/api/athletes/lookup?email=${encodeURIComponent(G)}`);
+    assert(lk.status === 200 && lk.body.athletes.length === 2, "email lookup lists BOTH athletes behind one guardian email");
+    assert(new Set(lk.body.athletes.map((a) => a.athlete_id)).size === 2, "email lookup never merges athletes");
+    assert(lk.body.athletes.every((a) => a.playCount === 1), "email lookup counts approved plays only");
+    // No-match is one generic empty list in every flavor.
+    for (const [q, label] of [[`email=${encodeURIComponent("nobody@example.com")}`, "unknown email"], ["tag=HH-0000", "unknown tag"], [`email=${encodeURIComponent("pendingonly@example.com")}`, "email whose athlete has no approved play"], [`tag=${encodeURIComponent(eTag)}`, "tag of a pending-only athlete"], ["", "empty query"]]) {
+      const r = await j3(`/api/athletes/lookup${q ? "?" + q : ""}`);
+      assert(r.status === 200 && r.body.ok && Array.isArray(r.body.athletes) && r.body.athletes.length === 0, `lookup no-match is the same generic empty list: ${label}`);
+    }
+    // Privacy: NO lookup response may carry a guardian email, phone or
+    // any private column name — check the raw bodies.
+    const rawEmail = await (await fetch(`${base3}/api/athletes/lookup?email=${encodeURIComponent(G)}`)).text();
+    const rawTag = await (await fetch(`${base3}/api/athletes/lookup?tag=${encodeURIComponent(aRow.tag)}`)).text();
+    for (const raw of [rawEmail, rawTag]) {
+      assert(!raw.includes(G) && !raw.includes("pendingonly@example.com"), "lookup response never contains a guardian email");
+      assert(!raw.includes(PHONE) && !raw.includes("5165550142"), "lookup response never contains a guardian phone");
+      assert(!/"(notify_email|guardian_phone|guardian_email|email_hash|text_consent)"/.test(raw), "lookup response carries no private field names");
+    }
+    // The id the lookup hands out feeds the EXISTING collection, which
+    // serves approved plays only.
+    const coll = await j3(`/api/highlights?athlete_id=${encodeURIComponent(aRow.athleteKey)}`);
+    assert(coll.body.highlights.length === 1 && coll.body.highlights[0].id === a1, "lookup athlete_id opens the existing collection with approved plays only");
+    // Client wiring: the panel form + results live in the page, and
+    // app.js drives them into the lookup endpoint.
+    const home3 = fs.readFileSync(new URL("public/index.html", import.meta.url), "utf8");
+    const app3 = fs.readFileSync(new URL("public/app.js", import.meta.url), "utf8");
+    assert(home3.includes('id="mineFind"') && home3.includes('id="mineEmail"') && home3.includes('id="mineTag"') && home3.includes('id="mineFindResults"'), "My Highlights panel carries the lookup form + results");
+    assert(app3.includes("/api/athletes/lookup") && app3.includes("mineFind"), "app.js wires the lookup form to the endpoint");
+    // Rate limit (LAST in this suite): repeated lookups eventually 429.
+    let limited = null;
+    for (let i = 0; i < 60 && !limited; i++) { const r = await j3(`/api/athletes/lookup?email=${encodeURIComponent("probe" + i + "@example.com")}`); if (r.status === 429) limited = r; }
+    assert(limited && /Too many lookups/.test(limited.body.message || ""), "lookup endpoint rate-limits repeated probing (429)");
+  } finally { child3.kill(); fs.rmSync(tmp3, { recursive: true, force: true }); }
   // 9. Upload rate limit: 20 POSTs/hour/IP (2 already made above) — the
   // 21st attempt is refused with 429. Runs last; the scratch server is
   // discarded right after.

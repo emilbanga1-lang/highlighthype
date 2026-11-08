@@ -37,6 +37,13 @@ const MIN_FREE_BYTES = 200 * 1024 * 1024; // free-space floor: 200 MB
 const UPLOAD_RATE_LIMIT = 20;             // uploads per IP per window
 const UPLOAD_RATE_WINDOW_MS = 60 * 60 * 1000;
 const uploadHitsByIp = new Map();
+// My Highlights lookup guard (see /api/athletes/lookup): the endpoint
+// answers "which athletes sit behind this guardian email", so it gets
+// its own per-IP cap, far above a family's real use (a handful of
+// lookups) and far below anything that could enumerate guardian emails.
+const LOOKUP_RATE_LIMIT = 30;             // lookups per IP per window
+const LOOKUP_RATE_WINDOW_MS = 10 * 60 * 1000;
+const lookupHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these two
 // data subdirectories (the DB is served by its own snapshot endpoint).
 const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
@@ -640,6 +647,16 @@ function uploadRateLimited(req) {
   uploadHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for the My Highlights lookup (see constants).
+function lookupRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (lookupHitsByIp.get(ip) || []).filter((t) => now - t < LOOKUP_RATE_WINDOW_MS);
+  if (hits.length >= LOOKUP_RATE_LIMIT) { lookupHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  lookupHitsByIp.set(ip, hits);
+  return false;
+}
 // True when the data volume is below the free-space floor. Fails OPEN
 // (returns false) if the platform cannot report free space — a backup
 // guard must never take the beta down by itself.
@@ -732,6 +749,53 @@ const server = http.createServer(async (req, res) => {
         playCount: db.prepare("SELECT COUNT(*) c FROM highlights WHERE athlete_id=?").get(a.athlete_key).c,
       }));
       return sendJson(res, 200, { matches });
+    }
+
+    // ---- My Highlights lookup (light, no accounts) ----
+    // "Find my athlete's highlights": a parent/guardian finds their
+    // athlete's public collection without any sign-in — by the
+    // athlete's HH-#### tag (or athlete_id), or by the guardian email
+    // given at upload. The plays themselves are NOT served here: the
+    // client takes the athlete_id into the existing public collection
+    // (GET /api/highlights?athlete_id=…, approved plays only), so this
+    // endpoint only ever names athletes.
+    // Privacy, by construction:
+    //  - The email is matched by its SHA-256 hash (the same hash the
+    //    athletes table stores); the address itself is never stored,
+    //    logged, or returned. Responses carry only public facts:
+    //    display name, team, tag, approved-play count.
+    //  - Only athletes with at least one APPROVED play are returned.
+    //    An athlete whose plays are all still pending (or hidden) is
+    //    indistinguishable from no match at all.
+    //  - Every no-match — unknown tag, unknown email, pending-only
+    //    athlete, empty query — returns the SAME empty list, so the
+    //    endpoint cannot be used to probe whether a guardian email is
+    //    on file. The per-IP rate limit above caps probing volume.
+    //  - Athletes are returned as a LIST and are never merged: two
+    //    athletes behind one guardian email (or sharing a name) stay
+    //    two entries, and the visitor picks theirs.
+    if (p === "/api/athletes/lookup" && req.method === "GET") {
+      if (lookupRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many lookups from this connection right now — please try again in a little while." });
+      const tagQ = String(u.searchParams.get("tag") || "").trim();
+      const emailQ = String(u.searchParams.get("email") || "").trim();
+      let found = [];
+      if (tagQ) {
+        // Tags are stored uppercase ("HH-####"); accept any case the
+        // family types. An athlete_id (the collection key) works too.
+        const a = db.prepare("SELECT * FROM athletes WHERE tag=? OR athlete_key=?").get(tagQ.toUpperCase(), tagQ);
+        if (a) found = [a];
+      } else if (emailQ) {
+        const emailHash = sha(normIdentity(emailQ));
+        found = db.prepare("SELECT * FROM athletes WHERE email_hash=? AND email_hash<>'' ORDER BY created_at LIMIT 25").all(emailHash);
+      }
+      const athletes = [];
+      for (const a of found) {
+        const playCount = db.prepare("SELECT COUNT(*) c FROM highlights WHERE athlete_id=? AND status='approved'").get(a.athlete_key).c;
+        if (!playCount) continue;
+        const team = db.prepare("SELECT team FROM highlights WHERE athlete_id=? AND status='approved' AND team<>'' LIMIT 1").get(a.athlete_key)?.team || "";
+        athletes.push({ athlete_id: a.athlete_key, tag: a.tag, name: a.display_name, team, playCount });
+      }
+      return sendJson(res, 200, { ok: true, athletes });
     }
 
     // ---- Public highlights ----
