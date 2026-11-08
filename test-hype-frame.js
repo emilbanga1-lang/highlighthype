@@ -164,6 +164,12 @@ try {
   assert(home.includes('id="hfImageStyles"') && home.includes('data-hf-image-style="photo"') && home.includes('data-hf-image-style="avatar"') && appJs.includes("function hfPickImageStyle"), "Round 38: the Photo or Avatar picker is in the studio (Real photo / Avatar, Real photo default) — Twinkie's feature");
   assert(appJs.includes("imageStyle: hfState.imageStyle") && appJs.includes('hfPickImageStyle("photo")'), "the chosen image style rides on the order payload, reset to Real photo for each new play");
   assert(appJs.includes('Image: ${o.image_style'), "Owner view's Hype Frame list surfaces the image style (Avatar orders must be illustrated before printing)");
+  assert(home.includes("/swag/hf-poster-photo.webp") && home.includes("/swag/hf-poster-avatar.webp") && home.includes("Photo or Avatar — your pick"), "Round 39: the homepage Hype Frame section shows the concept poster both ways (photo + avatar) under the Photo-or-Avatar heading");
+  assert(css.includes(".hf-poster-pair"), "Round 39: the poster pair has its two-up grid styling");
+  for (const pth of ["/swag/hf-poster-photo.webp", "/swag/hf-poster-avatar.webp"]) {
+    const ir = await fetch(base + pth);
+    assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
+  }
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
