@@ -44,6 +44,38 @@ const api = async (path, opts = {}) => {
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "martialarts") return "Martial Arts"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+/* ---------------- site stats (first-party, aggregate only) ------
+   The server keeps DAILY COUNTERS only (POST /api/track): how many
+   times each main view was shown, each play's detail opened, and
+   which referrer buckets visitors arrived from. Nothing here
+   identifies anyone — no cookie is set, no id is sent, and a call
+   carries only the event kind plus a fixed key (a view name, a
+   play id, or a referrer HOST — never a full URL). Firing is
+   fire-and-forget (sendBeacon when available, keepalive fetch
+   otherwise) and every failure is swallowed: stats must never
+   break or slow the page. */
+function trackEvent(kind, key) {
+  try {
+    const payload = JSON.stringify({ kind, key: String(key ?? "") });
+    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+      navigator.sendBeacon("/api/track", new Blob([payload], { type: "application/json" }));
+    } else if (typeof fetch === "function") {
+      fetch("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: payload, keepalive: true }).catch(() => {});
+    }
+  } catch { /* stats are best-effort only */ }
+}
+/* Where this page load came from, reduced to a host. An empty
+   referrer — or one of our own pages (a return from /terms, say) —
+   counts as "direct"; the server buckets the host again, and
+   anything unrecognizable collapses to "other" there. */
+function trackReferrer() {
+  let key = "direct";
+  try {
+    const ref = document.referrer || "";
+    if (ref) { const host = new URL(ref).hostname; if (host && host !== location.hostname) key = host; }
+  } catch { /* keep "direct" */ }
+  trackEvent("referrer", key);
+}
 /* Round 6 (2026-11-05): Dance, Golf, Swimming, Tennis, Track & Field
    and Wrestling join the list (youth rerun v3: kids in those sports
    had to pick "Other"). Alphabetical, with "other" keeping its
@@ -805,6 +837,10 @@ window.openPlayDetail = (id, opts = {}) => {
   if (detailPlayId == null || opts.fresh) detailPlayedIds.clear();
   detailPlayedIds.add(id);
   detailPlayId = id;
+  // Site stats: every open counts — a fresh open, an Up-next tap,
+  // and an autoplay advance all land here, and each one IS a view
+  // of the play.
+  if (typeof trackEvent === "function") trackEvent("play_open", id);
   renderPlayDetail();
   const wrap = $("#playDetail");
   if (!wrap) return;
@@ -920,6 +956,11 @@ function showPanel(name) {
   hidePlayDetail();
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
+  // Site stats: count the MAIN views only. Athlete pages and the
+  // Hype Frame studio are steps inside a visit, not front doors, so
+  // they are deliberately not counted as views.
+  const viewKey = { plays: "home", mine: "mine", how: "how" }[name];
+  if (viewKey && typeof trackEvent === "function") trackEvent("view", viewKey);
 }
 $$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 $("#menuAllHypes").addEventListener("click", () => { showHome(); closeMenu(false); showPanel("plays"); switchView("all"); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); });
@@ -948,6 +989,7 @@ function scrollToStoreEl(el) {
   }, 800);
 }
 function showStore(target) {
+  if (typeof trackEvent === "function") trackEvent("view", "store");
   document.body.classList.add("store-open");
   window.scrollTo(0, 0);
   $$(".view-home video").forEach((v) => v.pause());
@@ -2168,8 +2210,32 @@ $("#uploadForm").addEventListener("submit", async (e) => {
 });
 
 /* ---------------- owner ---------------- */
+/* Site stats panel (owner view): renders GET /api/owner/stats —
+   the aggregate counters (views, play opens, referrers) plus the
+   existing-system totals the endpoint reads from the live tables.
+   Counting started the day this shipped, so early on the honest
+   answer for most rows is zero. */
+function statsHtml(st) {
+  const v = st.views || {}, po = st.playOpens || {}, t = st.totals || {}, pl = t.plays || {};
+  const num = (n) => esc(Number(n || 0).toLocaleString("en-US"));
+  const card = (label, n) => `<div class="queue-item stats-card"><b class="stats-num">${num(n)}</b><br><span style="color:var(--muted)">${esc(label)}</span></div>`;
+  const cards = card("Views today", v.today) + card("Views · last 7 days", v.last7Days) + card("Views · last 30 days", v.last30Days) + card("Views · all time", v.allTime) + card("Play opens · all time", po.total);
+  const byView = Object.entries(v.byView || {}).map(([k, n]) => `${esc(k)}: <b>${num(n)}</b>`).join(" · ");
+  const dailyRows = (v.daily || []).filter((d) => d.count > 0);
+  const daily = dailyRows.length ? dailyRows.map((d) => `<p>${esc(d.day)} — ${num(d.count)} view${d.count === 1 ? "" : "s"}</p>`).join("") : "<p>No views recorded yet.</p>";
+  const top = (po.top || []).length ? po.top.map((p) => `<p><b>${esc(p.title)}</b> — ${num(p.opens)} open${p.opens === 1 ? "" : "s"}</p>`).join("") : "<p>No play opens recorded yet.</p>";
+  const refs = (st.referrers || []).length ? st.referrers.map((r) => `<p>${esc(r.key)} — ${num(r.count)}</p>`).join("") : "<p>No arrivals recorded yet.</p>";
+  const sys = `<p>Total votes: <b>${num(t.votes)}</b> · Plays: <b>${num(pl.total)}</b> (${num(pl.approved)} approved, ${num(pl.pending)} pending, ${num(pl.hidden)} hidden) · Hype Frame orders: <b>${num(t.hypeFrameOrders)}</b> · Athletes: <b>${num(t.athletes)}</b></p>`;
+  return `<div class="stats-cards">${cards}</div>
+    <p>Views by page (all time): ${byView}</p>
+    ${sys}
+    <h4 class="stats-sub">Views by day (last 30 days)</h4>${daily}
+    <h4 class="stats-sub">Most opened plays</h4>${top}
+    <h4 class="stats-sub">Where visitors came from</h4>${refs}
+    <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
+}
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     $("#ownerStatus").textContent = "Owner access active on this device.";
@@ -2184,6 +2250,13 @@ async function loadOwner() {
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}</div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${esc(r.created_at)})</p>`).join("") || "<p>No reports.</p>";
+    // Site stats (owner only): a failure here must not take the
+    // queue down with it, so it rides in its own try, same pattern
+    // as the Hype Frame requests below.
+    try {
+      const st = await api("/api/owner/stats");
+      $("#ownerStats").innerHTML = statsHtml(st);
+    } catch { $("#ownerStats").innerHTML = "<p>Could not load site stats.</p>"; }
     // Hype Frame requests (owner only): print image thumbnails are fetched
     // as blobs through the owner-authorized image endpoint — the images
     // are never publicly served. Guardian email is owner-visible here only.
@@ -2237,4 +2310,12 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   // form has no in-page position anymore, so the deep link opens
   // the overlay instead of anchor-jumping to a hidden element.
   if (location.hash === "#post") { bootHashTarget = true; goSubmit(); }
+  // Site stats: one referrer event per page load, plus the landing
+  // view. Store deep links already counted themselves through the
+  // showStore hook above, and #post counted "home" through
+  // goSubmit → showPanel — every other landing (plain home, a
+  // shared #play-, an athlete, the owner panel) starts on the home
+  // boards, so it counts "home" here.
+  trackReferrer();
+  if (!["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
 })();

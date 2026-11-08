@@ -843,6 +843,11 @@
   .owner-card input{background:#0d0d0d;border:1px solid var(--line2);border-radius:10px;color:#fff;font:inherit;padding:9px 12px}
   .queue-item{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:0 0 12px}
   .queue-item .qa{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  /* Owner site-stats panel: totals cards + plain lists, tool styling */
+  .stats-cards{display:flex;flex-wrap:wrap;gap:8px}
+  .stats-card{margin:0;min-width:118px}
+  .stats-num{font-size:22px}
+  .stats-sub{font-family:"Anton",sans-serif;text-transform:uppercase;font-size:16px;margin:18px 0 6px}
   /* Athlete collection view */
   .athlete-head{display:flex;gap:16px;align-items:center;margin-bottom:22px;flex-wrap:wrap}
   .athlete-avatar{width:56px;height:56px;border-radius:50%;background:var(--volt);color:var(--volt-ink);display:grid;place-items:center;font-family:"Anton",sans-serif;font-size:26px;flex:none}
