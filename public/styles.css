@@ -1242,7 +1242,11 @@
   .hf-example-lineup{justify-content:center}
   .hf-example-lineup img{object-fit:contain}
   .hf-example figcaption{padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);text-align:center}
-  @media (max-width:900px){ .hf-examples-grid{grid-template-columns:1fr} .hf-example-hoodie{max-width:340px} }
+  /* Round 41 (2026-11-08): the old 340px cap on the hoodie example is
+     GONE — on phones it made the hoodie card narrower than the film
+     and lineup cards stacked with it (Emil's screenshot). The whole
+     examples stack now shares one full width. */
+  @media (max-width:900px){ .hf-examples-grid{grid-template-columns:1fr} }
   /* Round 39 (2026-11-08): the Photo-or-Avatar poster pair — two
      equal landscape posters side by side, stacking on phones. */
   .hf-poster-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
