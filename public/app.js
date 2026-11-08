@@ -1644,7 +1644,7 @@ const HF_COLORWAYS = {
    print's placement values and the order payload both read it
    (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -1676,6 +1676,7 @@ function initHfStudio(play) {
   // (2026-11-07, Emil). Reset all three pickers for the new play.
   hfState.apparel = "hoodie";
   hfPickSide("front");
+  hfPickImageStyle("photo");
   hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
   hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
@@ -1970,6 +1971,15 @@ function hfPickSide(side) {
   hfState.side = side === "back" ? "back" : "front";
   $$("#hfSides [data-hf-side]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSide === hfState.side)));
 }
+/* Photo or Avatar (Round 38, 2026-11-08 — Twinkie's idea, approved by
+   Twinkie + Nicholas): 'photo' prints the frozen frame as-is; 'avatar'
+   has the frame illustrated at fulfillment. The choice rides on the
+   order exactly like the print side; default is the real photo, reset
+   for each new play. */
+function hfPickImageStyle(style) {
+  hfState.imageStyle = style === "avatar" ? "avatar" : "photo";
+  $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfImageStyle === hfState.imageStyle)));
+}
 function hfBuildColorButtons() {
   const wrap = $("#hfColors");
   if (!wrap || wrap.childElementCount) return;
@@ -2005,6 +2015,7 @@ function hfBuildColorButtons() {
   hfBuildColorButtons();
   $$("#hfSizes [data-hf-size]").forEach((b) => b.addEventListener("click", () => hfPickSize(b.dataset.hfSize)));
   $$("#hfSides [data-hf-side]").forEach((b) => b.addEventListener("click", () => hfPickSide(b.dataset.hfSide)));
+  $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.addEventListener("click", () => hfPickImageStyle(b.dataset.hfImageStyle)));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
   // placement controls and no garment preview; the order carries the
   // default placement, the fixed garment (hoodie), the chosen print
@@ -2025,6 +2036,7 @@ function hfBuildColorButtons() {
         branding: hfState.preset === "hypeframe",
         apparel: hfState.apparel,
         side: hfState.side,
+        imageStyle: hfState.imageStyle,
         colorway: hfState.colorway,
         size: hfState.size,
         placement: hfState.placement,
@@ -2271,7 +2283,7 @@ async function loadOwner() {
           <div class="hf-req-body">
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
-            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"}<br>
+            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"} · Image: ${o.image_style === "avatar" ? "Avatar (illustrate first)" : "Real photo"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
             <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>
