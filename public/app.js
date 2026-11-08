@@ -2049,6 +2049,23 @@ function hfBuildColorButtons() {
   });
 })();
 
+/* Photo/Avatar example swipe (Round 40, 2026-11-08): every cream-
+   hoodie example (homepage, studio, Store feature) is a two-slide
+   native swipe — Photo first, Avatar second. The labeled chips stay
+   in sync whether the visitor swipes the track or taps a chip. */
+$$("[data-hf-swipe]").forEach((root) => {
+  const track = root.querySelector(".hf-swipe-track");
+  const chips = [...root.querySelectorAll("[data-hf-chip]")];
+  if (!track || chips.length !== 2) return;
+  const setActive = (i) => chips.forEach((c, j) => c.setAttribute("aria-pressed", String(i === j)));
+  let ticking = false;
+  track.addEventListener("scroll", () => {
+    if (ticking) return; ticking = true;
+    requestAnimationFrame(() => { ticking = false; setActive(track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0); });
+  }, { passive: true });
+  chips.forEach((c, i) => c.addEventListener("click", () => { track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }); setActive(i); }));
+});
+
 /* ---------------- hero ---------------- */
 // Round 30 (Emil + Dyanna, 2026-11-07): the hero film is now the B15
 // commercial. The old playback chrome (progress bar, seconds timer,
