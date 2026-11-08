@@ -1229,7 +1229,8 @@
      strip — clearly captioned as examples; a customer's own finish
      is made from their own play in the studio. */
   .hf-examples{margin:22px 0 4px;padding-top:18px;border-top:1px solid var(--line)}
-  .hf-examples-head h4{font-family:"Anton",sans-serif;font-size:26px;letter-spacing:.02em;text-transform:uppercase;color:#fff;margin:0 0 4px}
+  .hf-examples-head h4{font-family:"Anton",sans-serif;font-size:clamp(30px,5vw,44px);letter-spacing:.02em;text-transform:uppercase;color:#fff;margin:0 0 4px}
+  .hf-examples-head.hf-sub-head h4{font-size:22px}
   .hf-examples-head p{color:var(--muted);font-weight:600;margin:0 0 10px}
   /* Round 32 (2026-11-07): the homepage Hype Frame section gets its own
      small create CTA (Emil) — a compact lime button under the intro
@@ -1247,6 +1248,19 @@
      and lineup cards stacked with it (Emil's screenshot). The whole
      examples stack now shares one full width. */
   @media (max-width:900px){ .hf-examples-grid{grid-template-columns:1fr} }
+  /* Round 42 (2026-11-08): ANCHORING PASS (Twinkie: the page felt
+     busy, sections hard to anchor to). The homepage Hype Frame block
+     becomes a distinct PLACE — its own panel surface, border and
+     generous padding inside the wrap — and its main header moved up
+     to section scale (.hf-examples-head h4, above; the poster
+     sub-head stays smaller via .hf-sub-head). Scoped by id: the
+     studio's examples block is not panelled. */
+  #hfExamplesHome{background:#0e0e0e;border:1px solid var(--line);border-radius:20px;padding:24px 18px 18px;margin:34px 0 10px}
+  /* Slim (same round): the homepage grid is the hoodie swipe alone,
+     centered at feature width — the garment-lineup card left the
+     homepage (its range story lives in the poster pair directly
+     below, and the card itself still sits in the studio). */
+  .hf-examples-grid.hf-grid-solo{grid-template-columns:minmax(280px,420px);justify-content:center}
   /* Round 39 (2026-11-08): the Photo-or-Avatar poster pair — two
      equal landscape posters side by side, stacking on phones. */
   .hf-poster-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
