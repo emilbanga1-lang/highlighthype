@@ -432,7 +432,7 @@ try {
   // Homepage Hype Frame finished-product examples (poster crops).
   assert(home.includes('id="hfExamplesHome"') && !home.includes('id="hfExamples"'), "homepage Hype Frame examples strip present (hfExamplesHome); Round 27: the store's gated #hfExamples copy left with the hypeframe focus panel");
   assert(home.includes("/swag/hf-example-hoodie-back.jpg") && home.includes("/swag/hf-example-lineup.jpg"), "examples strip uses the two poster crops");
-  assert(home.includes("Example finishes — yours is made from your own play"), "examples are captioned as examples, made-from-your-own-play");
+  assert(home.includes("Pick a moment. Put it on a hoodie."), "Round 44: the homepage Hype Frame head carries the concept line (the old made-from-your-own-play caption retired with the concept rebuild)");
   const sizeOf = (f) => execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", f], { encoding: "utf8" }).trim();
   assert(sizeOf("public/swag/hf-example-hoodie-back.jpg") === "386,448", "hoodie-back example crop is 386x448");
   assert(sizeOf("public/swag/hf-example-lineup.jpg") === "1284,284", "garment-lineup example crop is 1284x284");
@@ -624,7 +624,7 @@ try {
   const playsIdx = home.indexOf('data-panel="plays"'), mineIdx = home.indexOf('data-panel="mine"'), exIdx = home.indexOf('id="hfExamplesHome"');
   assert(playsIdx > -1 && exIdx > playsIdx && exIdx < mineIdx, "homepage examples block sits inside the plays panel (before My Highlights)");
   const exSlice = home.slice(exIdx, mineIdx);
-  assert(exSlice.includes('src="/hype-frame-film.mp4"') && exSlice.indexOf('src="/hype-frame-film.mp4"') < exSlice.indexOf("hf-examples-grid"), "on the homepage the film sits ABOVE the examples grid");
+  assert(!exSlice.includes("hype-frame-film.mp4") && exSlice.includes("hf-hero-fig"), "Round 44: the homepage Hype Frame section is ONE hero figure (the hoodie swipe) — the film lives in the studio payoff now");
   // Server: size column + sanitizer + owner-email surfacing.
   assert(serverJs.includes('ADD COLUMN size TEXT') && serverJs.includes('"YXXS", "YXS", "YS", "YM", "YL", "YXL"'), "server stores the HF order size (additive column + whitelist)");
   assert(serverJs.includes("Size: ${order.size"), "the owner notification email enumerates the size alongside the colorway");
@@ -1404,13 +1404,13 @@ try {
   r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "hawks"; vm.runInContext("renderAll2()", r10Ctx);
   assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10): team names still find plays — through the search box, the surviving path");
   r10Sandbox.allSearch = "";
-  // (3) Montage strips: markup + the real goToSportBoard chain.
+  // (3) Sport jumps: the montage strips retired in Round 44 — the
+  // Browse by Sport row under the clips carries the same wiring.
   for (const s of ["baseball", "basketball", "soccer"]) {
-    assert(home.includes(`onclick="goToSportBoard('${s}')"`) && home.includes(`data-sport="${s}"`), `Round 10: the ${s} montage strip is a real button wired to goToSportBoard`);
+    assert(home.includes(`onclick="goToSportBoard('${s}')"`), `Round 10/44: the ${s} browse-row button is wired to goToSportBoard`);
   }
-  assert(home.includes("Baseball — watch the plays →") && home.includes("Basketball — watch the plays →") && home.includes("Soccer — watch the plays →") && !home.includes("· Video</figcaption>"), "Round 10: montage captions say what the tap does — no more fake '· Video' labels");
-  assert(home.includes("tap a sport to watch its plays"), "Round 10: the montage aria-label describes tappable sport buttons, not a passive montage");
-  assert(css.includes(".montage video{pointer-events:none}") && css.includes(".montage figure:active"), "Round 10: the montage video surface can't swallow taps (pointer-events off) and the figure shows a pressed state");
+  assert(home.includes("Browse plays by sport") && home.includes("See all plays →") && home.includes("All sports →"), "Round 44: under the clips sit See all plays, then Browse by Sport with All sports beside the heading (Emil's order)");
+  assert(css.includes(".sport-row") && css.includes(".browse-head"), "Round 44: the browse block has its row + heading styles");
   const g10Calls = [];
   const g10Sandbox = {
     window: {}, console,
@@ -1491,7 +1491,7 @@ try {
   const showHome26 = appJs.slice(appJs.indexOf("function showHome()"), appJs.indexOf("/* One home reset"));
   assert(showHome26.includes('$$(".montage video")') && showHome26.includes("watchMontageVideos"), "Round 11: showHome's block carries the montage resume + the visibility watcher (the Round 4 resume covered hero + HF film only)");
   assert(appJs.includes("e.intersectionRatio >= 0.25") && appJs.includes("e.target.pause()") && appJs.includes("threshold: [0, 0.25]"), "Round 11: the montage observer plays at >=25% visibility and pauses below it");
-  assert(home.includes('onclick="goToSportBoard(\'baseball\')"') && home.includes("Baseball — watch the plays →") && css.includes(".montage video{pointer-events:none}"), "Round 11: the montage strips keep their Round 10 button wiring, captions and pointer-events rule untouched");
+  assert(home.includes('onclick="goToSportBoard(\'baseball\')"') && css.includes(".montage video{pointer-events:none}"), "Round 11/44: the sport-jump wiring lives on the Browse by Sport row now (the montage retired in Round 44; its CSS stays harmless in the sheet and its resume code no-ops)");
   const mkVid26 = () => ({ plays: 0, pauses: 0, play() { this.plays++; return Promise.resolve(); }, pause() { this.pauses++; } });
   const montageVids26 = [mkVid26(), mkVid26(), mkVid26()];
   const heroVid26 = mkVid26(), hfVid26 = mkVid26();
@@ -2423,21 +2423,12 @@ try {
      opens the Round 24 overlay without joining §34's #post-href
      census. Markup/CSS checks only; goSubmit's behavior itself
      is pinned in §34. ---- */
-  assert(home.includes('class="cta-band"'), "Round 25: the mid-page CTA band exists");
-  assert(home.includes('YOUR MOMENT. YOUR <span class="lime">HYPE.</span>'), "Round 25/26: the band heading is the slogan with HYPE. carried in the .lime (gold) accent span (Round 26 replaced the Round 25 mission line at Emil's direction)");
-  assert(home.includes("Post your young athlete's best play — it takes a minute."), "Round 25: the band subline is exact");
-  const bandAt35 = home.indexOf('class="cta-band"');
-  const montageAt35 = home.indexOf('aria-label="Sports videos');
-  const bandHtml35 = home.slice(bandAt35, montageAt35);
-  assert(bandHtml35.includes('<button type="button" class="btn btn-lime btn-hero" data-submit-link>Submit a Hype</button>'), "Round 25: the band button is a lime <button data-submit-link> labelled 'Submit a Hype' at hero size (routes through goSubmit → the Round 24 overlay)");
-  assert(!bandHtml35.includes('href="#post"'), "Round 25: the band button is NOT an href=\"#post\" anchor (the §34 census of #post hrefs still counts only the pre-existing anchor CTAs)");
+  assert(!home.includes('class="cta-band"') && !home.includes('class="montage"'), "Round 44: the mid-page CTA band (Rounds 25/26/31) and the sports montage (Round 10) are RETIRED — the adopted concept flow runs board -> Hype Frame; submit asks live in the hero, the FAB and the final CTA");
   const boardAt35 = home.indexOf('id="viewMonth"');
-  assert(boardAt35 > -1 && bandAt35 > boardAt35 && montageAt35 > bandAt35, "Round 25: document order is board panel → CTA band → sports montage");
-  const css35 = css.slice(css.indexOf("===== Round 25"));
-  assert(css35.includes(".cta-band{"), "Round 25: the .cta-band rule exists in the Round 25 CSS block");
-  assert(css35.includes("text-align:center") && css35.includes("padding:34px 0 30px"), "Round 25: the band is a slim centered strip (34px top padding — a breath between sections, not another card section)");
-  assert(css35.includes(".cta-band .btn{width:100%}"), "Round 25: on phones the band button goes full-width");
-  assert(css35.includes(".cta-band .sec-head h2{white-space:nowrap;font-size:clamp(19px,7.6vw,62px)}"), "Round 31: the band slogan is one line at every width (scoped nowrap + vw-sized shrink)");
+  const underAt35 = home.indexOf('id="boardUnder"');
+  const hfAt35 = home.indexOf('id="hfExamplesHome"');
+  assert(boardAt35 > -1 && underAt35 > boardAt35 && hfAt35 > underAt35, "Round 44: document order is board -> See all/Browse block -> Hype Frame section");
+  assert(home.includes("See all plays →") && home.includes("Browse by sport") && home.includes("All sports →"), "Round 44: under the clips — See all plays first, then Browse by Sport with All sports beside the heading (Emil's refinement)");
 
   /* ---- 36. Round 27 (2026-11-06): the Hype Sports store rebuild ----
      Emil's direction + resolutions: the store is rebuilt around
@@ -2600,8 +2591,8 @@ try {
      section gets the small CTA Emil asked for. The store CTA is
      unchanged — with tiles fixed, its route completes. ---- */
   assert(appJs.includes('class="mini-btn tile-hf-btn"') && appJs.includes('event.stopPropagation();openHypeFrame(${h.id})'), "Round 32: every board tile has a 📸 Create a Hype Frame button that opens the studio for that play without opening the detail");
-  const hfHome39 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('id="hfExamplesHome"') + 1600);
-  assert(hfHome39.includes('class="btn btn-lime hf-home-cta"') && hfHome39.includes('data-tablink="plays"') && hfHome39.includes(">Create a Hype Frame<"), "Round 32: the homepage Hype Frame section carries its own small Create CTA to the board");
+  const hfHome39 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('data-panel="mine"'));
+  assert(hfHome39.includes('class="hf-create-link"') && hfHome39.includes('data-tablink="plays"') && hfHome39.includes(">Create a Hype Frame →<"), "Round 32/44: the homepage Hype Frame section carries its own Create CTA to the board (the concept's text link under the hero image)");
   assert(css.includes(".tile-actions{padding-top:8px}") && css.includes(".hf-home-cta{"), "Round 32: tile action row + homepage CTA styles exist");
 
   /* ---- 40. Round 34 (2026-11-07): grab-the-video sharing ------------

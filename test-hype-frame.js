@@ -177,7 +177,7 @@ try {
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
   assert(avImg.status === 200 && (avImg.headers.get("content-type") || "").includes("webp"), "Round 40: the avatar hoodie example image serves");
   assert(!css.includes(".hf-example-hoodie{max-width:340px}"), "Round 41: the hoodie example card is no longer width-capped on phones — the examples stack shares one width (Emil's screenshot)");
-  assert(home.includes('class="hf-examples-grid hf-grid-solo"'), "Round 42: the homepage examples grid is slimmed to the solo hoodie swipe");
+  assert(home.includes('class="hf-example hf-hero-fig"'), "Round 44: the homepage examples are ONE hero figure (the hoodie swipe) — the Round 42 solo grid grew into the concept hero");
   const hfHomeSlice42 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('id="mine"'));
   assert(!hfHomeSlice42.includes("hf-example-lineup.jpg"), "Round 42: the garment-lineup card left the HOMEPAGE examples (its range story lives in the poster pair; the card remains in the studio)");
   assert((home.match(/hf-example-lineup\.jpg/g) || []).length === 1, "Round 42: the lineup image appears exactly once on the page now (studio only)");
@@ -186,6 +186,10 @@ try {
   assert((home.match(/class="hf-swipe hs-swipe"/g) || []).length === 6, "Round 43: all six store cards carry the Front/Back swipe");
   assert(appJs.includes("e.stopPropagation()") && appJs.includes('e.target.closest("[data-hf-swipe]")'), "Round 43: swipe chips never trigger the store card's open-product click/keydown");
   assert(css.includes(".hs-swipe .hf-swipe-track{aspect-ratio:4/3}") && css.includes("hs-img-front") && css.includes("hs-img-back"), "Round 43: store swipes keep the 4/3 card box with crest/HYPE cover positions");
+  assert(css.includes(".hero h1{font-family:\"Anton\",sans-serif;font-style:italic") && css.includes(".tile-grid > .tile:first-child{grid-column:1/-1}"), "Round 44: the concept's italic display system is in, and the board's first play renders featured (full-width)");
+  assert((home.match(/goToSportBoard\('/g) || []).length === 20, "Round 44: the Browse by Sport row wires all 19 sports + All sports to goToSportBoard");
+  assert(appJs.includes("window.seeAllPlays") && appJs.includes('Hype of the <span class="lime">Month</span>'), "Round 44: See all plays has its handler, and the month view titles itself Hype of the Month");
+  assert(home.includes("not just the MVP.") && home.includes("preserve big plays and memories.") && css.includes("padding-top:30px"), "Round 44: trust descriptions are one short sentence each, and the board gets more air above it");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
@@ -268,7 +272,7 @@ try {
   // BEFORE the studio card; the freeze flow follows unchanged.
   assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
   assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 2, "the Hype Frame film plays in the studio payoff AND the homepage examples section");
+  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 1, "the Hype Frame film plays in the studio payoff (Round 44: the homepage section is a still hero now)");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
   assert(r.status === 201, "order with a chosen size is created");
