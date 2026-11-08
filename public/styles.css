@@ -1243,6 +1243,10 @@
   .hf-example-lineup img{object-fit:contain}
   .hf-example figcaption{padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);text-align:center}
   @media (max-width:900px){ .hf-examples-grid{grid-template-columns:1fr} .hf-example-hoodie{max-width:340px} }
+  /* Round 39 (2026-11-08): the Photo-or-Avatar poster pair — two
+     equal landscape posters side by side, stacking on phones. */
+  .hf-poster-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:900px){ .hf-poster-pair{grid-template-columns:1fr} }
 
   /* ===== Round 9 (2026-11-05): Nicholas's phone fixes =====
      (1) an unmissable Store button in the header bar (removed in Round 12);
