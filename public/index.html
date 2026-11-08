@@ -353,16 +353,22 @@
       <h4>Photo or Avatar — your pick</h4>
       <p>Every Hype Frame starts from your real moment. Print it as the photo it is, or have it illustrated as an avatar — same play, same uniform, no real face on the garment. You choose in the studio.</p>
     </div>
-    <div class="hf-poster-pair">
-      <figure class="hf-example">
-        <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
-        <figcaption>Real photo — your frame, as the photo it is</figcaption>
-      </figure>
-      <figure class="hf-example">
-        <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
-        <figcaption>Avatar — your frame, illustrated</figcaption>
-      </figure>
-    </div>
+    <!-- Round 43 (2026-11-08, Twinkie: "more swipes"): the pair is
+         ONE swipe card now — Photo first, Avatar a flick away; the
+         block takes half the space and the comparison is instant. -->
+    <figure class="hf-example">
+      <div class="hf-swipe hf-swipe-wide" data-hf-swipe>
+        <div class="hf-swipe-track">
+          <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
+          <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
+        </div>
+        <div class="hf-swipe-chips" role="group" aria-label="Concept poster: Photo or Avatar">
+          <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
+          <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
+        </div>
+      </div>
+      <figcaption>The concept poster, two ways — swipe: Real photo / Avatar</figcaption>
+    </figure>
   </div>
 </div>
 </section>
@@ -711,7 +717,16 @@
       <div class="hs-grid" id="hsGrid">
         <article class="hs-card" data-hs-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/baseball-pair.jpg" alt="Baseball Hype Hoodie, front and back — black hoodie with the gold crest and BASEBALL in plain caps at the left chest; the back carries a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie, front — black hoodie with the gold crest and BASEBALL in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/baseball-back.jpg" alt="Baseball Hype Hoodie, back — black hoodie with a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Baseball hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">
@@ -724,7 +739,16 @@
         </article>
         <article class="hs-card" data-hs-card="football" tabindex="0" role="button" aria-label="View the Football Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/football-pair.jpg" alt="Football Hype Hoodie, front and back — black hoodie with the gold crest and FOOTBALL in plain caps at the left chest; the back carries a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/football-front.jpg" alt="Football Hype Hoodie, front — black hoodie with the gold crest and FOOTBALL in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/football-back.jpg" alt="Football Hype Hoodie, back — black hoodie with a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Football hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">
@@ -737,7 +761,16 @@
         </article>
         <article class="hs-card" data-hs-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/basketball-pair.jpg" alt="Basketball Hype Hoodie, front and back — black hoodie with the gold crest and BASKETBALL in plain caps at the left chest; the back carries a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/basketball-front.jpg" alt="Basketball Hype Hoodie, front — black hoodie with the gold crest and BASKETBALL in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/basketball-back.jpg" alt="Basketball Hype Hoodie, back — black hoodie with a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Basketball hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">
@@ -750,7 +783,16 @@
         </article>
         <article class="hs-card" data-hs-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/soccer-pair.jpg" alt="Soccer Hype Hoodie, front and back — black hoodie with the gold crest and SOCCER in plain caps at the left chest; the back carries a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/soccer-front.jpg" alt="Soccer Hype Hoodie, front — black hoodie with the gold crest and SOCCER in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/soccer-back.jpg" alt="Soccer Hype Hoodie, back — black hoodie with a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Soccer hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">
@@ -763,7 +805,16 @@
         </article>
         <article class="hs-card" data-hs-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/softball-pair.jpg" alt="Softball Hype Hoodie, front and back — black hoodie with the gold crest and SOFTBALL in plain caps at the left chest; the back carries a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/softball-front.jpg" alt="Softball Hype Hoodie, front — black hoodie with the gold crest and SOFTBALL in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/softball-back.jpg" alt="Softball Hype Hoodie, back — black hoodie with a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Softball hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">
@@ -776,7 +827,16 @@
         </article>
         <article class="hs-card" data-hs-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Hoodie">
           <div class="hs-card-media">
-            <img src="/swag/hs/volleyball-pair.jpg" alt="Volleyball Hype Hoodie, front and back — black hoodie with the gold crest and VOLLEYBALL in plain caps at the left chest; the back carries a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <div class="hf-swipe hs-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img class="hs-img-front" src="/swag/hs/volleyball-front.jpg" alt="Volleyball Hype Hoodie, front — black hoodie with the gold crest and VOLLEYBALL in plain caps at the left chest" loading="lazy" decoding="async" />
+                <img class="hs-img-back" src="/swag/hs/volleyball-back.jpg" alt="Volleyball Hype Hoodie, back — black hoodie with a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Volleyball hoodie: Front or Back">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
+              </div>
+            </div>
             <span class="hs-badge">Sample phase</span>
           </div>
           <div class="hs-card-body">

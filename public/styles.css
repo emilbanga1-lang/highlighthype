@@ -1263,8 +1263,19 @@
   .hf-examples-grid.hf-grid-solo{grid-template-columns:minmax(280px,420px);justify-content:center}
   /* Round 39 (2026-11-08): the Photo-or-Avatar poster pair — two
      equal landscape posters side by side, stacking on phones. */
-  .hf-poster-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media (max-width:900px){ .hf-poster-pair{grid-template-columns:1fr} }
+  /* Round 43 (2026-11-08): the poster pair is ONE swipe card now
+     (Twinkie: more swipes — and it halves the block). Posters are
+     3:2, so the wide track overrides the hoodie's portrait ratio.
+     (The old .hf-poster-pair two-up grid went with the pair.) */
+  .hf-swipe-wide .hf-swipe-track{aspect-ratio:3/2}
+  /* Store cards (same round): each Hype Sports card media is a
+     Front/Back swipe in the same 4/3 box the pair image used, so
+     the grid's rhythm is unchanged. The front/back singles are
+     portrait shots; the cover positions keep the crest (front) and
+     the ball + HYPE (back) in frame. */
+  .hs-swipe .hf-swipe-track{aspect-ratio:4/3}
+  .hs-swipe .hf-swipe-track img.hs-img-front{object-position:50% 32%}
+  .hs-swipe .hf-swipe-track img.hs-img-back{object-position:50% 62%}
   /* Round 40 (2026-11-08): Photo/Avatar swipe on the cream-hoodie
      example — homepage, studio and Store feature (Emil: all three).
      Native scroll-snap swipe; labeled Photo/Avatar chips overlay the

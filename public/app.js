@@ -1516,7 +1516,7 @@ function closeHsView() {
 $$("[data-hs-open]").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); openHsView(el.dataset.hsOpen); }));
 $$(".hs-card").forEach((card) => {
   card.addEventListener("click", () => openHsView(card.dataset.hsCard));
-  card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHsView(card.dataset.hsCard); } });
+  card.addEventListener("keydown", (e) => { if (e.target.closest && e.target.closest("[data-hf-swipe]")) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHsView(card.dataset.hsCard); } });
 });
 $$("[data-hs-close]").forEach((el) => el.addEventListener("click", closeHsView));
 $$(".hsv-side-btn").forEach((b) => b.addEventListener("click", () => hsSetFrame(b.dataset.hsSide === "back" ? 1 : 0)));
@@ -2063,7 +2063,7 @@ $$("[data-hf-swipe]").forEach((root) => {
     if (ticking) return; ticking = true;
     requestAnimationFrame(() => { ticking = false; setActive(track.clientWidth ? Math.round(track.scrollLeft / track.clientWidth) : 0); });
   }, { passive: true });
-  chips.forEach((c, i) => c.addEventListener("click", () => { track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }); setActive(i); }));
+  chips.forEach((c, i) => c.addEventListener("click", (e) => { e.stopPropagation(); track.scrollTo({ left: i * track.clientWidth, behavior: "smooth" }); setActive(i); })); // stopPropagation (Round 43): store cards open the product view on card click — a chip tap must not
 });
 
 /* ---------------- hero ---------------- */
