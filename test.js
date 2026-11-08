@@ -5,6 +5,7 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-"));
 const PORT = 3456;
@@ -195,6 +196,100 @@ try {
     for (let i = 0; i < 60 && !limited; i++) { const r = await j3(`/api/athletes/lookup?email=${encodeURIComponent("probe" + i + "@example.com")}`); if (r.status === 429) limited = r; }
     assert(limited && /Too many lookups/.test(limited.body.message || ""), "lookup endpoint rate-limits repeated probing (429)");
   } finally { child3.kill(); fs.rmSync(tmp3, { recursive: true, force: true }); }
+  // 8d. Site stats (first-party, aggregate only): POST /api/track
+  // increments daily counters behind a strict allowlist, and
+  // GET /api/owner/stats serves the combined owner view. Own scratch
+  // server again (the 8b/8c pattern): the track rate limiter and the
+  // counters stay isolated from every other suite.
+  const tmp4 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-stats-"));
+  const PORT4 = 3465, base4 = `http://localhost:${PORT4}`;
+  const child4 = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT4), DATA_DIR: tmp4 }, stdio: "pipe" });
+  const j4 = async (p, opts = {}) => { const r = await fetch(base4 + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+  const track4 = (evt) => j4("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(evt) });
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch(base4 + "/api/health"); break; } catch { await wait(200); } }
+    const claim4 = await j4("/api/owner/claim", { method: "POST" });
+    const tok4 = claim4.body.token; assert(tok4, "stats suite: owner claim returns token");
+    const mkPlay4 = async (title) => {
+      const r = await j4("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title, sport: "soccer", playerName: "Sam Stats", team: "Hawks", notifyEmail: "stats-guardian@example.com", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
+      assert(r.status === 201, `stats suite: play created (${title})`);
+      const ap = await j4(`/api/highlights/${r.body.id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok4 }, body: JSON.stringify({ status: "approved" }) });
+      assert(ap.body.status === "approved", "stats suite: play approved");
+      return r.body.id;
+    };
+    const sp1 = await mkPlay4("Stats Play One");
+    const sp2 = await mkPlay4("Stats Play Two");
+    const vt = await j4(`/api/highlights/${sp1}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "stats-voter" }) });
+    assert(vt.body.voteCount === 1, "stats suite: vote cast (feeds the existing-system totals)");
+    // Valid events: views across the four main views, opens of both
+    // plays, and one arrival per referrer flavor.
+    for (const [evt, n] of [[{ kind: "view", key: "home" }, 2], [{ kind: "view", key: "store" }, 1], [{ kind: "view", key: "mine" }, 1], [{ kind: "view", key: "how" }, 1], [{ kind: "play_open", key: String(sp1) }, 3], [{ kind: "play_open", key: String(sp2) }, 1]]) {
+      for (let i = 0; i < n; i++) { const r = await track4(evt); assert(r.status === 200 && r.body.ok, `track accepts ${evt.kind}:${evt.key}`); }
+    }
+    for (const refKey of ["https://l.instagram.com/some/path?x=1", "www.google.com", "totally-unknown-site.example", "direct"]) {
+      const r = await track4({ kind: "referrer", key: refKey });
+      assert(r.status === 200 && r.body.ok, `track accepts referrer (normalized server-side): ${refKey.slice(0, 28)}`);
+    }
+    // Owner stats: auth first, then the combined shape.
+    let st = await j4("/api/owner/stats");
+    assert(st.status === 403, "owner stats refuses requests with NO token");
+    st = await j4("/api/owner/stats", { headers: { "x-owner-token": "wrong-token" } });
+    assert(st.status === 403, "owner stats refuses a WRONG token");
+    st = await j4("/api/owner/stats", { headers: { "x-owner-token": tok4 } });
+    assert(st.status === 200 && st.body.ok, "owner stats answers the owner");
+    const V = st.body.views, PO = st.body.playOpens, T = st.body.totals;
+    assert(V.today === 5 && V.last7Days === 5 && V.last30Days === 5 && V.allTime === 5, "stats: view totals (today / 7d / 30d / all time) count the tracked views");
+    assert(V.byView.home === 2 && V.byView.store === 1 && V.byView.mine === 1 && V.byView.how === 1, "stats: views broken down by main view");
+    assert(Array.isArray(V.daily) && V.daily.length === 30 && V.daily[29].count === 5 && V.daily.reduce((s, d) => s + d.count, 0) === 5, "stats: 30-day daily series, zero-filled, sums to the tracked views");
+    assert(V.daily[29].day === new Date().toISOString().slice(0, 10), "stats: daily series ends today (UTC)");
+    assert(PO.total === 4, "stats: play opens total counts every open");
+    assert(PO.top.length === 2 && PO.top[0].id === sp1 && PO.top[0].title === "Stats Play One" && PO.top[0].opens === 3 && PO.top[1].id === sp2 && PO.top[1].opens === 1, "stats: top plays by opens, with titles, most-opened first");
+    const refMap = Object.fromEntries((st.body.referrers || []).map((r) => [r.key, r.count]));
+    assert(refMap["instagram.com"] === 1 && refMap["google.com"] === 1 && refMap.other === 1 && refMap.direct === 1 && Object.keys(refMap).length === 4, "stats: referrers bucketed (subdomain + full URL -> base host; unknown host -> other; direct stays direct)");
+    assert(T.votes === 1 && T.plays.total === 2 && T.plays.approved === 2 && T.plays.pending === 0 && T.plays.hidden === 0, "stats: existing-system totals read from the live tables (votes, plays by status)");
+    assert(T.athletes === 1 && T.hypeFrameOrders === 0, "stats: athletes + Hype Frame order counts present (one shared guardian = one athlete)");
+    // Invalid events: refused with 400 (never a 500), and NOT counted.
+    for (const [evt, label] of [[{ kind: "bogus", key: "x" }, "unknown kind"], [{ kind: "view", key: "nope" }, "unknown view key"], [{ kind: "view" }, "missing view key"], [{ kind: "play_open", key: "999999" }, "play that does not exist"], [{ kind: "play_open", key: "abc" }, "non-numeric play key"], [{}, "empty event"]]) {
+      const r = await track4(evt);
+      assert(r.status === 400, `track refuses with 400: ${label}`);
+    }
+    const badBody = await fetch(base4 + "/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: "not-json{{" });
+    assert(badBody.status === 400, "track refuses a malformed JSON body with 400 (never a 500)");
+    st = await j4("/api/owner/stats", { headers: { "x-owner-token": tok4 } });
+    assert(st.body.views.allTime === 5 && st.body.playOpens.total === 4, "stats: refused events were not counted");
+    // Privacy, at the storage layer: the events table has ONLY
+    // day/kind/key/count columns, and no stored row contains an IP
+    // or any user-agent text — there is nowhere for either to live.
+    let statsDb = null;
+    for (let i = 0; i < 10 && !statsDb; i++) { try { statsDb = new DatabaseSync(path.join(tmp4, "highlighthype.db"), { readOnly: true }); } catch { await wait(200); } }
+    assert(statsDb, "stats suite: scratch DB opens for the storage audit");
+    const cols = statsDb.prepare("PRAGMA table_info(stat_events)").all().map((c) => c.name);
+    assert(JSON.stringify(cols) === JSON.stringify(["day", "kind", "key", "count"]), "stat_events columns are exactly day/kind/key/count (no IP, no user agent, no per-visitor field)");
+    const rows = statsDb.prepare("SELECT * FROM stat_events").all();
+    assert(rows.length === 10, "stat_events key space stays bounded: 4 view keys + 2 plays + 4 referrer buckets = 10 rows for 13 events");
+    const rowsRaw = JSON.stringify(rows);
+    assert(!rowsRaw.includes("127.0.0.1") && !/mozilla|user-?agent/i.test(rowsRaw), "no stored stat row contains an IP address or user-agent text");
+    statsDb.close();
+    // Client wiring: the panel lives in the owner view and app.js
+    // drives both the tracker and the stats endpoint.
+    const home4 = fs.readFileSync(new URL("public/index.html", import.meta.url), "utf8");
+    const app4 = fs.readFileSync(new URL("public/app.js", import.meta.url), "utf8");
+    assert(home4.includes('id="ownerStats"'), "owner panel carries the Site stats section");
+    assert(app4.includes("/api/track") && app4.includes("trackEvent") && app4.includes("/api/owner/stats"), "app.js wires the tracker + owner stats endpoint");
+    // Rate limit (LAST in this suite): the generous per-IP budget
+    // eventually trips, and once tripped it stays tripped.
+    let floodOk = 0, firstLimitedAt = -1, postLimitOk = 0;
+    for (let i = 0; i < 400; i++) {
+      const r = await track4({ kind: "view", key: "home" });
+      if (r.status === 429) { if (firstLimitedAt < 0) firstLimitedAt = i; }
+      else if (r.status === 200) { if (firstLimitedAt >= 0) postLimitOk++; else floodOk++; }
+    }
+    assert(firstLimitedAt >= 0, "track rate limiter trips under probing (429)");
+    assert(floodOk >= 200, "track rate limit is generous (hundreds of events pass before it trips)");
+    assert(postLimitOk === 0, "track rate limiter stays tripped once hit");
+    st = await j4("/api/owner/stats", { headers: { "x-owner-token": tok4 } });
+    assert(st.body.views.allTime <= 5 + 300, "rate-limited events never reach the counters");
+  } finally { child4.kill(); fs.rmSync(tmp4, { recursive: true, force: true }); }
   // 9. Upload rate limit: 20 POSTs/hour/IP (2 already made above) — the
   // 21st attempt is refused with 429. Runs last; the scratch server is
   // discarded right after.

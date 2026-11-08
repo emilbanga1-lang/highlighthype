@@ -44,6 +44,15 @@ const uploadHitsByIp = new Map();
 const LOOKUP_RATE_LIMIT = 30;             // lookups per IP per window
 const LOOKUP_RATE_WINDOW_MS = 10 * 60 * 1000;
 const lookupHitsByIp = new Map();
+// Site stats guard (see /api/track): the counter endpoint is public
+// by necessity (it counts anonymous visitors), so it gets its own
+// per-IP cap — generous for real browsing (a whole visit is a
+// handful of events), far below anything that could inflate the
+// aggregates. The IP is used transiently in memory only, exactly
+// like the limiters above; it is never written to the stats table.
+const TRACK_RATE_LIMIT = 300;             // track events per IP per window
+const TRACK_RATE_WINDOW_MS = 10 * 60 * 1000;
+const trackHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these two
 // data subdirectories (the DB is served by its own snapshot endpoint).
 const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
@@ -183,6 +192,47 @@ CREATE TABLE IF NOT EXISTS reports(
 );
 CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY, value TEXT);
 `);
+// ---- Site stats (first-party, aggregate only) ----
+// Daily counters, never per-visitor rows: (day, kind, key) -> count,
+// where day is the UTC date (the same clock the rest of the server
+// uses), kind is "view" / "play_open" / "referrer", and key is a
+// value from the small fixed allowlists below (a main view, a real
+// highlight id, or a referrer bucket). There is deliberately NO
+// column for an IP address, a user agent, or anything else about a
+// visitor: the table cannot identify anyone, because it never
+// stores anything about anyone — it only adds up how many times
+// things happened each day. The owner reads it via /api/owner/stats.
+db.exec(`CREATE TABLE IF NOT EXISTS stat_events(
+  day TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY(day, kind, key)
+);`);
+// The only view keys POST /api/track accepts — the SPA's main views
+// (public/app.js): the home boards, the store, My Highlights, and
+// How It Works. Refusing everything else keeps the stats key space
+// bounded by construction (no unauthenticated disk-fill vector).
+const TRACK_VIEW_KEYS = ["home", "store", "mine", "how"];
+// Referrer buckets: a visitor's previous page is only ever counted
+// as one of these recognizable hosts (suffix match, so
+// l.instagram.com and www.google.com land in their base bucket),
+// the literal "direct" (no referrer, or a page on this site), or
+// "other" (everything else). Full URLs and paths are NEVER stored.
+const TRACK_REFERRER_HOSTS = ["instagram.com", "tiktok.com", "youtube.com", "google.com", "facebook.com", "x.com", "twitter.com", "bing.com", "duckduckgo.com", "yahoo.com", "snapchat.com", "reddit.com", "pinterest.com", "linkedin.com"];
+function normalizeReferrerKey(raw) {
+  let host = String(raw || "").trim().toLowerCase();
+  if (host === "direct") return "direct";
+  if (host === "other") return "other";
+  // Tolerate a full URL sneaking in: keep only its host. The path
+  // and query are dropped here and never reach the table.
+  if (host.includes("://")) { try { host = new URL(host).hostname; } catch { /* keep the raw string; it buckets to "other" below */ } }
+  host = host.split("/")[0].split("?")[0].split(":")[0].replace(/^www\./, "");
+  for (const known of TRACK_REFERRER_HOSTS) if (host === known || host.endsWith("." + known)) return known;
+  return "other";
+}
+function bumpStat(kind, key) {
+  const day = new Date().toISOString().slice(0, 10);
+  db.prepare("INSERT INTO stat_events(day,kind,key,count) VALUES(?,?,?,1) ON CONFLICT(day,kind,key) DO UPDATE SET count=count+1").run(day, kind, key);
+}
 
 try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
 try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
@@ -657,6 +707,16 @@ function lookupRateLimited(req) {
   lookupHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for the site stats counter (see constants).
+function trackRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (trackHitsByIp.get(ip) || []).filter((t) => now - t < TRACK_RATE_WINDOW_MS);
+  if (hits.length >= TRACK_RATE_LIMIT) { trackHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  trackHitsByIp.set(ip, hits);
+  return false;
+}
 // True when the data volume is below the free-space floor. Fails OPEN
 // (returns false) if the platform cannot report free space — a backup
 // guard must never take the beta down by itself.
@@ -796,6 +856,45 @@ const server = http.createServer(async (req, res) => {
         athletes.push({ athlete_id: a.athlete_key, tag: a.tag, name: a.display_name, team, playCount });
       }
       return sendJson(res, 200, { ok: true, athletes });
+    }
+
+    // ---- Site stats: count an event (aggregate only) ----
+    // POST /api/track { kind, key } — the ONLY writer of stat_events.
+    // Strict allowlist, so the key space is bounded by construction:
+    //  - kind "view": key must be one of TRACK_VIEW_KEYS (the SPA's
+    //    main views), else 400.
+    //  - kind "play_open": key must be the id of a highlight that
+    //    exists (any status — the detail only ever opens for
+    //    approved plays in the UI; existence is the stated rule),
+    //    else 400.
+    //  - kind "referrer": key is normalized to a host bucket /
+    //    "direct" / "other" (see normalizeReferrerKey) — never
+    //    refused, never stored raw.
+    // Unknown kinds are 400. The body parse is fully guarded: a
+    // malformed or oversized body is a 400, never a 500. Nothing
+    // about the requester (IP, user agent) is stored — the IP only
+    // feeds the in-memory rate limiter above.
+    if (p === "/api/track" && req.method === "POST") {
+      if (trackRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many events from this connection right now." });
+      let evt = null;
+      try { evt = JSON.parse((await readBody(req, 4096)).toString("utf8") || "{}"); } catch { evt = null; }
+      if (!evt || typeof evt !== "object") return sendJson(res, 400, { ok: false, message: "Invalid tracking event." });
+      const kind = String(evt.kind || "");
+      const key = String(evt.key ?? "");
+      if (kind === "view") {
+        if (!TRACK_VIEW_KEYS.includes(key)) return sendJson(res, 400, { ok: false, message: "Unknown view." });
+        bumpStat("view", key);
+      } else if (kind === "play_open") {
+        const id = Number(key);
+        if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM highlights WHERE id=?").get(id))
+          return sendJson(res, 400, { ok: false, message: "Unknown play." });
+        bumpStat("play_open", String(id));
+      } else if (kind === "referrer") {
+        bumpStat("referrer", normalizeReferrerKey(key));
+      } else {
+        return sendJson(res, 400, { ok: false, message: "Unknown tracking event." });
+      }
+      return sendJson(res, 200, { ok: true });
     }
 
     // ---- Public highlights ----
@@ -1114,6 +1213,57 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/owner/reports" && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       return sendJson(res, 200, { reports: db.prepare("SELECT * FROM reports ORDER BY id DESC").all() });
+    }
+    // ---- Owner: site stats (aggregate counters, owner-only) ----
+    // Combines the stat_events counters (views, play opens,
+    // referrers — see POST /api/track) with counts read straight
+    // from the existing tables (votes, plays by status, Hype Frame
+    // orders, athletes). The existing-system numbers are NEVER
+    // double-counted through /api/track: a vote is a row in votes,
+    // not a tracked event.
+    if (p === "/api/owner/stats" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const dayStr = (d) => d.toISOString().slice(0, 10);
+      const today = dayStr(new Date());
+      const sumKind = (kind, sinceDay) => sinceDay
+        ? db.prepare("SELECT COALESCE(SUM(count),0) c FROM stat_events WHERE kind=? AND day>=?").get(kind, sinceDay).c
+        : db.prepare("SELECT COALESCE(SUM(count),0) c FROM stat_events WHERE kind=?").get(kind).c;
+      const viewsByKey = {};
+      for (const k of TRACK_VIEW_KEYS) viewsByKey[k] = 0;
+      for (const r of db.prepare("SELECT key, SUM(count) c FROM stat_events WHERE kind='view' GROUP BY key").all()) viewsByKey[r.key] = r.c;
+      const dailyRows = db.prepare("SELECT day, SUM(count) c FROM stat_events WHERE kind='view' AND day>=? GROUP BY day").all(dayStr(new Date(Date.now() - 29 * 864e5)));
+      const dailyByDay = new Map(dailyRows.map((r) => [r.day, r.c]));
+      const daily = [];
+      for (let i = 29; i >= 0; i--) { const day = dayStr(new Date(Date.now() - i * 864e5)); daily.push({ day, count: dailyByDay.get(day) || 0 }); }
+      const topPlays = db.prepare(`SELECT CAST(s.key AS INTEGER) AS id, h.title AS title, SUM(s.count) AS opens
+        FROM stat_events s JOIN highlights h ON h.id = CAST(s.key AS INTEGER)
+        WHERE s.kind='play_open' GROUP BY s.key ORDER BY opens DESC, id ASC LIMIT 10`).all();
+      const referrers = db.prepare("SELECT key, SUM(count) AS count FROM stat_events WHERE kind='referrer' GROUP BY key ORDER BY count DESC, key ASC").all();
+      const playStatus = { total: 0, approved: 0, pending: 0, hidden: 0 };
+      for (const r of db.prepare("SELECT status, COUNT(*) c FROM highlights GROUP BY status").all()) {
+        playStatus.total += r.c;
+        if (Object.prototype.hasOwnProperty.call(playStatus, r.status)) playStatus[r.status] = r.c;
+      }
+      return sendJson(res, 200, {
+        ok: true,
+        generatedAt: new Date().toISOString(),
+        views: {
+          today: sumKind("view", today),
+          last7Days: sumKind("view", dayStr(new Date(Date.now() - 6 * 864e5))),
+          last30Days: sumKind("view", dayStr(new Date(Date.now() - 29 * 864e5))),
+          allTime: sumKind("view"),
+          byView: viewsByKey,
+          daily,
+        },
+        playOpens: { total: sumKind("play_open"), top: topPlays.map((r) => ({ id: r.id, title: r.title, opens: r.opens })) },
+        referrers,
+        totals: {
+          votes: db.prepare("SELECT COUNT(*) c FROM votes").get().c,
+          plays: playStatus,
+          hypeFrameOrders: db.prepare("SELECT COUNT(*) c FROM hype_frame_orders").get().c,
+          athletes: db.prepare("SELECT COUNT(*) c FROM athletes").get().c,
+        },
+      });
     }
     const statusMatch = p.match(/^\/api\/highlights\/(\d+)\/status$/);
     if (statusMatch && req.method === "POST") {
