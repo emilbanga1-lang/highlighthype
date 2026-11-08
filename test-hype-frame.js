@@ -158,8 +158,12 @@ try {
   assert(!home.includes('id="hfFinRow"') && !appJs.includes("HF_FINISHED"), "Round 2: the 'See it finished' row is removed with the rest of the studio preview (finished-product examples live on the homepage instead)");
   assert(appJs.includes("size: 78") && appJs.includes("HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 }"), "the one shared placement default carries the raised 78% print size");
   assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
-  assert(!home.includes('id="hfSideFront"') && !home.includes('id="hfSideBack"'), "Round 2: no Front / Back print-side toggle in the studio (the side is a fixed order default)");
-  assert(appJs.includes("side: hfState.side") && appJs.includes('hfState.side = "front"'), "the fixed front print side still rides on the order payload");
+  assert(!home.includes('id="hfSideFront"') && !home.includes('id="hfSideBack"'), "Round 2: the old V1 side-toggle ids stay gone (the Round 35 restore uses data-hf-side buttons instead)");
+  assert(home.includes('id="hfSides"') && home.includes('data-hf-side="front"') && home.includes('data-hf-side="back"') && appJs.includes("function hfPickSide"), "Round 35: the print-side picker is restored (Front / Back, Front default) — Emil's call after the usability audit");
+  assert(appJs.includes("side: hfState.side") && appJs.includes('hfPickSide("front")'), "the chosen print side rides on the order payload, reset to Front for each new play");
+  assert(home.includes('id="hfImageStyles"') && home.includes('data-hf-image-style="photo"') && home.includes('data-hf-image-style="avatar"') && appJs.includes("function hfPickImageStyle"), "Round 38: the Photo or Avatar picker is in the studio (Real photo / Avatar, Real photo default) — Twinkie's feature");
+  assert(appJs.includes("imageStyle: hfState.imageStyle") && appJs.includes('hfPickImageStyle("photo")'), "the chosen image style rides on the order payload, reset to Real photo for each new play");
+  assert(appJs.includes('Image: ${o.image_style'), "Owner view's Hype Frame list surfaces the image style (Avatar orders must be illustrated before printing)");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
@@ -256,6 +260,23 @@ try {
   assert(byId(bogusSizeId).size === "YM", "bogus size is sanitized to YM");
   const pubS = await text("/api/highlights?division=all");
   assert(!pubS.includes('"size"'), "size stays off the public highlights API (owner-side field only)");
+
+  /* ---- 8. Image style (Round 38, 2026-11-08) ----
+     Twinkie's Photo-or-Avatar choice: "avatar" rides on the order and
+     round-trips to the owner API; anything else sanitizes to "photo",
+     and an order without the field defaults to "photo". */
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { imageStyle: "avatar" })) });
+  assert(r.status === 201, "order with image style Avatar is created");
+  const avatarId = r.body.id;
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { imageStyle: "cartoon" })) });
+  assert(r.status === 201, "order with a bogus image style is created (sanitized server-side)");
+  const bogusStyleId = r.body.id;
+  r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
+  assert(byId(avatarId).image_style === "avatar", "chosen image style (avatar) round-trips to the owner API");
+  assert(byId(defId).image_style === "photo", "order without an image style defaults to photo");
+  assert(byId(bogusStyleId).image_style === "photo", "bogus image style is sanitized to photo");
+  const pubI = await text("/api/highlights?division=all");
+  assert(!pubI.includes('"image_style"'), "image style stays off the public highlights API (owner-side field only)");
 
   const pubH2 = await text("/api/highlights?division=all");
   assert(!pubH2.includes('"placement"'), "placement absent from the public highlights API");
