@@ -165,12 +165,13 @@ try {
   assert(appJs.includes("imageStyle: hfState.imageStyle") && appJs.includes('hfPickImageStyle("photo")'), "the chosen image style rides on the order payload, reset to Real photo for each new play");
   assert(appJs.includes('Image: ${o.image_style'), "Owner view's Hype Frame list surfaces the image style (Avatar orders must be illustrated before printing)");
   assert(home.includes("/swag/hf-poster-photo.webp") && home.includes("/swag/hf-poster-avatar.webp") && home.includes("Photo or Avatar — your pick"), "Round 39: the homepage Hype Frame section shows the concept poster both ways (photo + avatar) under the Photo-or-Avatar heading");
-  assert(css.includes(".hf-poster-pair"), "Round 39: the poster pair has its two-up grid styling");
+  assert(css.includes(".hf-swipe-wide"), "Round 39/43: the posters present as one wide swipe card (the two-up pair grid retired in Round 43)");
   for (const pth of ["/swag/hf-poster-photo.webp", "/swag/hf-poster-avatar.webp"]) {
     const ir = await fetch(base + pth);
     assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
   }
-  assert((home.match(/data-hf-swipe/g) || []).length === 3 && (home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 3, "Round 40: all three cream-hoodie examples (homepage, studio, Store feature) carry the Photo/Avatar swipe with the avatar slide");
+  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 3, "Round 40: all three cream-hoodie examples (homepage, studio, Store feature) carry the avatar slide");
+  assert((home.match(/data-hf-swipe/g) || []).length === 10, "Round 43: ten swipes page-wide — 3 hoodie Photo/Avatar + 1 poster Photo/Avatar + 6 store-card Front/Back");
   assert(appJs.includes("[data-hf-swipe]") && appJs.includes("data-hf-chip"), "Round 40: the swipe initializer wires the chips and scroll sync");
   assert(css.includes(".hf-swipe-track") && css.includes("scroll-snap-type"), "Round 40: the swipe track uses native scroll-snap");
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
@@ -181,6 +182,10 @@ try {
   assert(!hfHomeSlice42.includes("hf-example-lineup.jpg"), "Round 42: the garment-lineup card left the HOMEPAGE examples (its range story lives in the poster pair; the card remains in the studio)");
   assert((home.match(/hf-example-lineup\.jpg/g) || []).length === 1, "Round 42: the lineup image appears exactly once on the page now (studio only)");
   assert(css.includes("#hfExamplesHome{") && css.includes("clamp(30px,5vw,44px)"), "Round 42: anchoring pass — the homepage Hype Frame block is a panelled place and its header sits at section scale");
+  assert(home.includes('class="hf-swipe hf-swipe-wide"') && !home.includes("hf-poster-pair"), "Round 43: the concept posters are one Photo/Avatar swipe card, not a stacked pair");
+  assert((home.match(/class="hf-swipe hs-swipe"/g) || []).length === 6, "Round 43: all six store cards carry the Front/Back swipe");
+  assert(appJs.includes("e.stopPropagation()") && appJs.includes('e.target.closest("[data-hf-swipe]")'), "Round 43: swipe chips never trigger the store card's open-product click/keydown");
+  assert(css.includes(".hs-swipe .hf-swipe-track{aspect-ratio:4/3}") && css.includes("hs-img-front") && css.includes("hs-img-back"), "Round 43: store swipes keep the 4/3 card box with crest/HYPE cover positions");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");

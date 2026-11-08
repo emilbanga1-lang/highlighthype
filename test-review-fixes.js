@@ -149,7 +149,7 @@ try {
   assert(home.includes('id="qvSizes"') && (home.match(/data-qv-size=/g) || []).length === 6, "quick view has the six-size tappable selector");
   assert(appJs.includes("qv-size"), "quick-view size selection wired (state only — no cart/checkout)");
   assert(!home.slice(0, home.indexOf('id="shop"')).includes("$69.99"), "no prices outside the Store (homepage + boards stay price-free)");
-  assert(storeSection.includes("Drop 001 — ordering opens soon"), "store status line: 'Drop 001 — ordering opens soon' (no preview-only phrasing)");
+  assert(storeSection.includes("Ordering opens soon — no orders are being taken yet."), "store status line: 'Ordering opens soon' (drop-neutral since Round 35 — the quick view also serves the Drop 002 Hot Pink preview)");
 
   /* ---- 5. Store: product blocks with real lookbook photos ----
      Emil (2026-11-04): the six stacked illustrated boards became a
@@ -800,8 +800,8 @@ try {
   const selBlock = home.slice(selStart, home.indexOf("</select>", selStart));
   const optVals = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[1]);
   const optLabels = [...selBlock.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)].map((m) => m[2]);
-  assert(JSON.stringify(optVals) === JSON.stringify(["", "baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the form sport select = placeholder (value \"\") + the FULL 18-sport list (Round 5b's 12 + Dance/Golf/Swimming/Tennis/Track/Wrestling), alphabetical with Other in its Lacrosse–Soccer slot");
-  assert(optLabels[0] === "Choose a sport" && optLabels[3] === "Cheer" && optLabels[4] === "Dance" && optLabels[5] === "Field Hockey" && optLabels[16] === "Track &amp; Field" && optLabels[18] === "Wrestling", "Round 6: placeholder reads 'Choose a sport'; option labels carry display names (Track & Field for the track key, Wrestling last)");
+  assert(JSON.stringify(optVals) === JSON.stringify(["", "baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "martialarts", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the form sport select = placeholder (value \"\") + the FULL sport list (19 since Round 35 added Martial Arts — the audit found the form had drifted from SPORTS), alphabetical with Other in its Lacrosse–Soccer slot");
+  assert(optLabels[0] === "Choose a sport" && optLabels[3] === "Cheer" && optLabels[4] === "Dance" && optLabels[5] === "Field Hockey" && optLabels[11] === "Martial Arts" && optLabels[17] === "Track &amp; Field" && optLabels[19] === "Wrestling", "Round 6: placeholder reads 'Choose a sport'; option labels carry display names (Martial Arts for the martialarts key, Track & Field for the track key, Wrestling last)");
   assert(selBlock.includes('class="sport-select"'), "Round 5b: the form select wears the same .sport-select chrome as the round-5 board selects");
   assert(!home.includes('type="hidden" name="sport"') && !home.includes("quick-sports") && !css.includes(".quick-sports"), "Round 5b: the hidden sport field and the pill container/CSS are gone — name=\"sport\" survives exactly once (the §3b count), on the select");
   // (2) Behavioral — setSportPick/syncQuickPicks from the REAL app.js,
@@ -925,8 +925,8 @@ try {
   const sportsBlock = appJs.slice(appJs.indexOf("const cap"), appJs.indexOf("const MONTHS"));
   const sportsCtx = vm.createContext({ console });
   vm.runInContext(sportsBlock, sportsCtx);
-  assert(JSON.stringify(vm.runInContext("SPORTS", sportsCtx)) === JSON.stringify(["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the client SPORTS constant is the full 18, alphabetical with Other between Lacrosse and Soccer");
-  for (const [k, label] of [["dance", "Dance"], ["golf", "Golf"], ["swimming", "Swimming"], ["tennis", "Tennis"], ["track", "Track & Field"], ["wrestling", "Wrestling"]])
+  assert(JSON.stringify(vm.runInContext("SPORTS", sportsCtx)) === JSON.stringify(["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "martialarts", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"]), "Round 6: the client SPORTS constant is the full 19, alphabetical with Martial Arts between Lacrosse and Other");
+  for (const [k, label] of [["dance", "Dance"], ["golf", "Golf"], ["martialarts", "Martial Arts"], ["swimming", "Swimming"], ["tennis", "Tennis"], ["track", "Track & Field"], ["wrestling", "Wrestling"]])
     assert(vm.runInContext(`cap("${k}")`, sportsCtx) === label, `Round 6: cap("${k}") renders the label "${label}"`);
 
   /* ---- 22. Round 7 (2026-11-05, late): sample plays ----
@@ -2224,7 +2224,12 @@ try {
   const hero32 = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf("<!-- ============ TRUST STRIP"));
   assert(hero32.includes('<p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>'), "Round 22: the hero paragraph is exactly Emil's one line");
   assert(!hero32.includes("hero-tagline") && !hero32.includes("The home of youth sports culture. Big plays."), "Round 22: the hero tagline element and the old multi-sentence paragraph are gone from the hero");
-  assert(hero32.includes("Watch Highlights") && hero32.includes('data-submit-link') && hero32.includes('id="heroSound"') && hero32.includes('id="heroVideo"'), "Round 22: the hero keeps its headline, both CTAs, the film and the playback controls");
+  assert(hero32.includes("Watch Highlights") && hero32.includes('data-submit-link') && hero32.includes('id="heroVideo"'), "Round 22: the hero keeps its headline, both CTAs and the film (Round 30 replaced the playback controls — see the next assertion)");
+  // Round 30 supersedes the Round 22 controls expectation: the hero film
+  // is now the B15 commercial; the progress bar, seconds timer and the
+  // "Tap for sound" pill are REMOVED, replaced by one small mute icon on
+  // the video itself, and the film autoplays (sound attempted first).
+  assert(hero32.includes('src="/hero-film.mp4"') && hero32.includes('id="heroMute"') && !hero32.includes('id="heroSound"') && !hero32.includes('id="heroFill"') && !hero32.includes('id="heroCur"') && !hero32.includes("hero-controls"), "Round 30: the hero runs the B15 commercial (hero-film.mp4 = the card-free looping cut) with only the on-video mute icon — no progress bar, timer or sound pill");
   // (3) Palette: gold on the brand surfaces, lime untouched on
   // the interactive ones.
   const rule32 = (sel) => css.slice(css.indexOf(sel), css.indexOf("}", css.indexOf(sel)));
@@ -2432,6 +2437,7 @@ try {
   assert(css35.includes(".cta-band{"), "Round 25: the .cta-band rule exists in the Round 25 CSS block");
   assert(css35.includes("text-align:center") && css35.includes("padding:34px 0 30px"), "Round 25: the band is a slim centered strip (34px top padding — a breath between sections, not another card section)");
   assert(css35.includes(".cta-band .btn{width:100%}"), "Round 25: on phones the band button goes full-width");
+  assert(css35.includes(".cta-band .sec-head h2{white-space:nowrap;font-size:clamp(19px,7.6vw,62px)}"), "Round 31: the band slogan is one line at every width (scoped nowrap + vw-sized shrink)");
 
   /* ---- 36. Round 27 (2026-11-06): the Hype Sports store rebuild ----
      Emil's direction + resolutions: the store is rebuilt around
@@ -2464,7 +2470,7 @@ try {
   for (const label of ["Baseball", "Football", "Basketball", "Soccer", "Softball", "Volleyball"]) assert(shopSlice36.includes(`<span class="hs-tile-label">${label}</span>`), `Round 27: tile label is real HTML: ${label}`);
   assert((shopSlice36.match(/class="hs-card"/g) || []).length === 6, "Round 27: six Hype Sports grid cards");
   for (const s of HS_SPORTS36) {
-    assert(shopSlice36.includes(`data-hs-card="${s}"`) && shopSlice36.includes(`/swag/hs/${s}-pair.jpg`), `Round 27: grid card shows the front+back pair: ${s}`);
+    assert(shopSlice36.includes(`data-hs-card="${s}"`) && shopSlice36.includes(`/swag/hs/${s}-front.jpg`) && shopSlice36.includes(`/swag/hs/${s}-back.jpg`), `Round 27/43: grid card carries the front/back swipe slides: ${s}`);
   }
   assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 6, "Round 27: every grid card carries the Sample phase badge");
   assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 6, "Round 27: every grid card has the gold VIEW PRODUCT button");
@@ -2583,6 +2589,53 @@ try {
   const hsView38 = home.slice(home.indexOf('id="hsView"'), home.indexOf('id="sizeGuide"'));
   assert(home.includes('id="sizeGuide"') && appJs.includes("function openSizeGuide") && appJs.includes("$$(\"[data-size-guide-open]\")"), "Round 29: the shared size guide overlay, openSizeGuide() and its opener wiring survive the menu slim-down");
   assert((home.match(/data-size-guide-open/g) || []).length === 2 && hsView38.includes("data-size-guide-open"), "Round 29: exactly the two product-view Size Guide links still open the shared overlay");
+
+  /* ---- 39. Round 32 (2026-11-07): the Hype Frame create path --------
+     Emil reported the store's "Create a Hype Frame" link broken. Live
+     reproduction showed the link itself navigates (store -> board),
+     but the board's compact tiles (Round 8) dropped the create button
+     the full card always had — the path dead-ended at Vote-only tiles.
+     Fix: (1) every tile carries its own create button (stopPropagation,
+     so it never also opens the detail); (2) the homepage Hype Frame
+     section gets the small CTA Emil asked for. The store CTA is
+     unchanged — with tiles fixed, its route completes. ---- */
+  assert(appJs.includes('class="mini-btn tile-hf-btn"') && appJs.includes('event.stopPropagation();openHypeFrame(${h.id})'), "Round 32: every board tile has a 📸 Create a Hype Frame button that opens the studio for that play without opening the detail");
+  const hfHome39 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('id="hfExamplesHome"') + 1600);
+  assert(hfHome39.includes('class="btn btn-lime hf-home-cta"') && hfHome39.includes('data-tablink="plays"') && hfHome39.includes(">Create a Hype Frame<"), "Round 32: the homepage Hype Frame section carries its own small Create CTA to the board");
+  assert(css.includes(".tile-actions{padding-top:8px}") && css.includes(".hf-home-cta{"), "Round 32: tile action row + homepage CTA styles exist");
+
+  /* ---- 40. Round 34 (2026-11-07): grab-the-video sharing ------------
+     Emil picked "Save clip + share-sheet video posting": every full
+     card for a file/link-video play gains a ⬇ Save clip button
+     (downloads the mp4), and Share prefers handing the share sheet
+     the video FILE (native posting) with the link flow as fallback.
+     Link-embed plays have no file: no Save button, link-only Share. ---- */
+  assert(appJs.includes('onclick="saveClip(${h.id}, this)">⬇ Save clip</button>') && appJs.includes("playHasVideo(h) ? `<button type=\"button\" class=\"mini-btn\" onclick=\"saveClip("), "Round 34: full cards for video plays carry a ⬇ Save clip button (hidden for link embeds)");
+  assert(appJs.includes("window.saveClip = async") && appJs.includes("a.download = file.name") && appJs.includes("highlighthype-"), "Round 34: Save clip downloads the video under a highlighthype-<title> filename, with an open-in-tab fallback");
+  assert(appJs.includes("navigator.canShare({ files: [file] })") && appJs.includes("navigator.share({ files: [file], title: \"HighlightHype\" })"), "Round 34: Share tries the video file via the share sheet before falling back to the link flow");
+
+  /* ---- 41. Round 35 (2026-11-07): the usability-audit fix round ----
+     Emil approved all four audit defects plus the design decision to
+     restore the Hype Frame print-side choice. (1) The upload form's
+     hardcoded sport list had drifted from SPORTS (Martial Arts
+     missing) — option added, and a drift guard compares the two
+     lists so it can't silently happen again. (2) Store-entry scroll
+     is two-stage so low targets (the NEXT DROP teaser) can't be
+     stranded at the top. (3) The studio's 1s step clamps 0.05s short
+     of the exact end — a seek TO duration never settles. (4) The
+     quick-view note no longer names a drop (the same quick view
+     serves Drop 001 products and the Drop 002 Hot Pink preview).
+     (5) Print side picker restored — server, owner email and Owner
+     view carried the side all along; only the picker was missing. ---- */
+  const html35 = fs.readFileSync(path.join(root, "public", "index.html"), "utf8");
+  const sportsConst = (appJs.match(/const SPORTS = \[([^\]]+)\]/) || [])[1].split(",").map((s) => s.trim().replace(/"/g, ""));
+  const selectBlock = (html35.match(/<select name="sport"[^>]*>([\s\S]*?)<\/select>/) || [])[1];
+  const formSports = [...selectBlock.matchAll(/<option value="([a-z]+)"/g)].map((m) => m[1]);
+  assert(JSON.stringify([...formSports].sort()) === JSON.stringify([...sportsConst].sort()), "Round 35: the upload form's sport list matches SPORTS exactly (drift guard — Martial Arts included)");
+  assert(appJs.includes("function scrollToStoreEl") && appJs.includes('document.getElementById("hsTeaser")') && appJs.includes('behavior: "auto", block: "start"'), "Round 35: store-entry scroll is two-stage (smooth, then a settle jump if the target is still off-screen)");
+  assert(appJs.includes("v.duration - 0.05"), "Round 35: the studio 1s step clamps 0.05s short of the exact end so the seek settles");
+  assert(!html35.includes("Drop 001 — ordering opens soon") && html35.includes("Ordering opens soon — no orders are being taken yet."), "Round 35: the quick-view note no longer names a drop");
+  assert(html35.includes('id="hfSides"') && html35.includes('data-hf-side="back"') && appJs.includes("function hfPickSide") && appJs.includes('$$("#hfSides [data-hf-side]")') && appJs.includes('side: hfState.side'), "Round 35: the studio Print side picker is restored and wired, and the order still carries the side");
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
