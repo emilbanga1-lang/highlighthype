@@ -614,6 +614,37 @@ function renderMine() {
       <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.id)}')">See all plays →</button>
     </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
 }
+/* My Highlights lookup (light, no accounts): the panel's form asks
+   the server which athletes sit behind a guardian email or an HH tag
+   (GET /api/athletes/lookup). One match opens that athlete's existing
+   public collection (openAthlete — approved plays only, same as
+   everywhere else). More than one match — one guardian email behind
+   several athletes — renders a pick list; athletes are never merged.
+   Every server no-match looks identical, and the message below is
+   deliberately the same for an unknown email, an unknown tag and an
+   athlete whose plays are all still in review. If both fields are
+   filled, the tag wins — it's the more specific of the two. */
+$("#mineFind").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const box = $("#mineFindResults");
+  const email = $("#mineEmail").value.trim();
+  const tag = $("#mineTag").value.trim();
+  if (!email && !tag) { box.innerHTML = `<p class="mine-find-msg">Enter the guardian email from the upload, or the athlete's HH tag.</p>`; return; }
+  box.innerHTML = `<p class="mine-find-msg">Looking…</p>`;
+  try {
+    const q = tag ? `tag=${encodeURIComponent(tag)}` : `email=${encodeURIComponent(email)}`;
+    const d = await api(`/api/athletes/lookup?${q}`);
+    const list = d.athletes || [];
+    if (!list.length) { box.innerHTML = `<p class="mine-find-msg">No approved highlights found for that yet. Plays appear here once the owner approves them — if you just posted, check back soon. Double-check the email is the one from the upload, or try the athlete's HH tag.</p>`; return; }
+    if (list.length === 1) { box.innerHTML = ""; openAthlete(list[0].athlete_id); return; }
+    box.innerHTML = `<p class="mine-find-msg" style="margin-top:0">More than one athlete is attached to that guardian email — pick yours:</p>` + list.map((a) => `
+      <div class="queue-item" style="display:flex;gap:14px;align-items:center">
+        <div class="athlete-avatar" aria-hidden="true">${esc((a.name || "?")[0].toUpperCase())}</div>
+        <div style="flex:1"><b>${esc(a.name)}</b>${a.team ? ` · ${esc(a.team)}` : ""}${a.tag ? ` · <span class="tagchip">${esc(a.tag)}</span>` : ""}<br><span style="color:var(--muted)">${a.playCount} public play${a.playCount === 1 ? "" : "s"}</span></div>
+        <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.athlete_id)}')">See all plays →</button>
+      </div>`).join("");
+  } catch (err) { box.innerHTML = `<p class="mine-find-msg">${esc(err.message)}</p>`; }
+});
 function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the

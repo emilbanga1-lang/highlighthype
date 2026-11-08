@@ -352,7 +352,14 @@
       <p>A private, lasting home for your athlete's videos — managed by a parent or guardian, and separate from the public board. The monthly contest moves on; these stay.</p>
     </div>
 
-    <p class="mine-note"><b>Where it stands today:</b> you can already see <b>all of an athlete's public plays in one place</b> — tap the player's name on any play card. A truly private archive (pending clips, originals, invited-only viewing) needs parent/guardian sign-in, which is the next build — it is not faked here.</p>
+    <p class="mine-note"><b>Find your athlete's highlights:</b> enter the guardian email from the upload — or the athlete's HH tag — and we'll pull up their collection: <b>all of their approved plays in one place</b>. Plays still in review don't show until they're approved. No account, no password. (You can also tap the player's name on any play card.) A truly private archive — pending clips, originals, invited-only viewing — still needs parent/guardian sign-in; that's a future build, and it is not faked here.</p>
+
+    <form id="mineFind" class="mine-find">
+      <label>Guardian email <input type="email" id="mineEmail" placeholder="The email from the upload" autocomplete="email"></label>
+      <label>Athlete tag <input type="text" id="mineTag" placeholder="HH-1234" autocomplete="off"></label>
+      <button type="submit" class="btn btn-lime">Find my athlete's highlights</button>
+    </form>
+    <div id="mineFindResults" aria-live="polite"></div>
 
     <div class="sec-head" style="margin-bottom:14px">
       <span class="sec-tag">Athletes on the board</span>
