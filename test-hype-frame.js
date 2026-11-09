@@ -192,6 +192,7 @@ try {
   assert(home.includes("not just the MVP.") && home.includes("preserve big plays and memories.") && css.includes("padding-top:30px"), "Round 44: trust descriptions are one short sentence each, and the board gets more air above it");
   assert(appJs.includes('class="tile-disc"') && appJs.includes('class="tile-toprow"') && appJs.includes("📸 Frame</button>"), "Round 45: tiles take the concept's video style — centered play disc, italic title + Vote pill row, compact 📸 Frame button");
   assert(css.includes(".tile-disc{") && css.includes(".tile-title{font-style:italic"), "Round 45: the disc and the italic tile titles are styled");
+  assert(css.includes("@media (max-width:699px)") && css.includes("scroll-snap-type:x mandatory") && css.includes(".tile-grid > .tile{flex:0 0 86%"), "Round 46: on phones the board grids are swipe decks (snap track, near-full-width cards); the desktop grid is untouched");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
