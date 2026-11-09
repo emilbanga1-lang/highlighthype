@@ -1997,7 +1997,7 @@
      stadium night navy, Stories = warm gold, Hype Frame = amber,
      the final CTA = a lime glow off the footer. Backgrounds only;
      no layout or content changes. */
-  #plays{background:linear-gradient(180deg,#0a1122 0%,#070b16 340px,var(--bg) 820px)}
+  #plays{background:linear-gradient(180deg,#000 0,#0a1122 170px,#070b16 430px,var(--bg) 900px)}
   .board-bg{opacity:.8;height:900px}
   .stories{background:radial-gradient(640px 360px at 50% 0%,rgba(243,205,107,.14),rgba(243,205,107,0) 70%),linear-gradient(180deg,#0e0c07 0%,var(--bg) 92%)}
   #hypeframe{background:radial-gradient(760px 420px at 50% 0%,rgba(255,176,66,.10),rgba(255,176,66,0) 70%),linear-gradient(180deg,#130d07 0%,var(--bg) 88%)}

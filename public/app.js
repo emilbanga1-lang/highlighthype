@@ -2517,9 +2517,14 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
   if (!cover || !video || !close) return;
   const media = cover.closest(".story-media");
   cover.addEventListener("click", () => { if (media) media.classList.add("playing"); close.hidden = false; });
-  close.addEventListener("click", () => {
+  const toPoster = () => {
     try { video.pause(); video.currentTime = 0; } catch (e) {}
     video.hidden = true; cover.hidden = false; close.hidden = true;
     if (media) media.classList.remove("playing");
-  });
+  };
+  close.addEventListener("click", toPoster);
+  /* Round 71 (2026-11-09): when the episode ends, return to the
+     wide poster instead of sitting on the player's black end
+     frame — the poster + play disc is the replay button. */
+  video.addEventListener("ended", toPoster);
 })();
