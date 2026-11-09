@@ -1322,14 +1322,28 @@
   @media (max-width:699px){
     .tile-grid{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;scrollbar-width:none}
     .tile-grid::-webkit-scrollbar{display:none}
-    .tile-grid > .tile{flex:0 0 86%;scroll-snap-align:start}
-    .tile-grid > .tile:first-child{flex-basis:94%}
+    .tile-grid > .tile{flex:0 0 90%;scroll-snap-align:start}
+    .tile-grid > .tile:first-child{flex-basis:97%}
     .tile-grid > .tile:only-child{flex-basis:100%}
   }
   /* Round 47 (2026-11-08): the Browse by Sport row now sits above
      the videos — a little air under the board intro, and breathing
      room before the view switch below it. */
   .browse-sports{margin:6px 0 14px}
+  /* Round 50 (2026-11-08, Emil: spacing pass + wider, matching the
+     mock): the homepage's vertical rhythm tightens by about a
+     third — sections sit closer like the mock's stacked bands —
+     and the phone swipe deck runs wider still. */
+  section{padding:40px 0}
+  .deck{padding-top:20px}
+  .store-cta{padding:26px 0 28px}
+  .final{padding:38px 0 48px}
+  #hfExamplesHome{margin-top:22px;margin-bottom:6px}
+  @media (max-width:700px){
+    section{padding:28px 0}
+    .deck{padding-top:14px}
+    .final{padding:30px 0 36px}
+  }
   /* Round 48 (2026-11-08): the homepage Hype Frame film under a
      cream-hoodie cover. The box is the film's own 16:9, so the tap
      swaps cover for film with no layout shift; the cover image is
