@@ -311,7 +311,7 @@ try {
   // BEFORE the studio card; the freeze flow follows unchanged.
   assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
   assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4\?v=3"/g) || []).length === 2, "Round 48/53: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play) — srcs versioned ?v=3 for the guided-tour cut so phones drop the old cached film");
+  assert((home.match(/src="\/hype-frame-film\.mp4\?v=4"/g) || []).length === 2, "Round 48/53: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play) — srcs versioned (v=4: the tour recut so the film follows ONE athlete — her swing, her frame, her hoodie photo and avatar)");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
   assert(r.status === 201, "order with a chosen size is created");
