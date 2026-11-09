@@ -2448,4 +2448,5 @@ $$("[data-filter-btn]").forEach((btn) => {
   };
 });
 window.openGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = false; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeGuidelines(); });
 window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = true; };
