@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=85" />
+<link rel="stylesheet" href="styles.css?v=86" />
 </head>
 <body>
 
@@ -230,14 +230,14 @@
     <!-- Round 44 (2026-11-08): See all plays switches to the All
          Hypes view. Round 53: it sits below Browse by Sport. -->
     <div class="board-under" id="boardUnder">
-
       <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
+      <!-- Round 83 (2026-11-09, Emil): the guidelines link moves
+           up onto this row — one compact row under the board
+           instead of its own row in the black gap. (The link
+           itself dates to Round 62: the rules that used to sit
+           in a strip above the board live behind it.) -->
+      <p class="guidelines-row"><button type="button" class="guidelines-link" onclick="openGuidelines()">Posting guidelines</button></p>
     </div>
-
-    <!-- Round 62 (2026-11-08, Emil's board mock): the guidelines
-         that used to sit in a strip above the board (removed in
-         Rounds 59-61) now live behind this one link. -->
-    <p class="guidelines-row"><button type="button" class="guidelines-link" onclick="openGuidelines()">Posting guidelines</button></p>
     <div class="guidelines-modal" id="guidelinesModal" hidden role="dialog" aria-modal="true" aria-label="Posting guidelines">
       <div class="play-detail-backdrop" onclick="closeGuidelines()"></div>
       <div class="guidelines-panel">
@@ -857,11 +857,25 @@
         <p class="hs-hf-guardian">No payment today — a parent or guardian confirms by email before anything is printed.</p>
         <a class="hfc-cta hs-hf-cta" href="#deck" data-tablink="plays">Create a Hype Frame →</a>
       </div>
-      <!-- Round 59 (2026-11-08, Emil's store mock): one big photo
-           here — the Photo/Avatar swipe lives in the studio now,
-           where the choice is made. -->
+      <!-- Round 83 (2026-11-09, Emil): the still photo is replaced
+           by the homepage's Hype Frame film (same cover, same
+           video) with the homepage's four steps under it — mobile
+           and desktop alike. (Rounds 59-82 had one big photo here;
+           the Photo/Avatar swipe lives in the studio.) -->
       <figure class="hs-hf-media">
-        <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+        <div class="hf-film-box">
+          <div class="hf-film-cover" id="hfFilmCoverStore">
+            <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+            <button type="button" class="hf-film-btn" onclick="playHfStoreFilm()">▶ See how it works</button>
+          </div>
+          <video id="hfStoreFilm" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
+        </div>
+        <ol class="hf-steps hs-hf-steps">
+          <li><b>1</b><span>Start with your hype video</span></li>
+          <li><b>2</b><span>Pick your frame</span></li>
+          <li><b>3</b><span>Your actual image — or your avatar</span></li>
+          <li><b>4</b><span>We take care of the rest</span></li>
+        </ol>
       </figure>
     </div>
 
@@ -1045,6 +1059,6 @@
   </div>
 </div>
 
-<script src="app.js?v=85"></script>
+<script src="app.js?v=86"></script>
 </body>
 </html>

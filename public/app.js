@@ -2542,3 +2542,14 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
      fix is the height cap in styles.css, which keeps the
      control bar on screen. */
 })();
+
+/* Round 83 (2026-11-09, Emil): the store's Hype Frame feature
+   runs the same film as the homepage — its own cover + video
+   pair, same behavior as playHfHomeFilm. */
+function playHfStoreFilm() {
+  const cover = $("#hfFilmCoverStore"), vid = $("#hfStoreFilm");
+  if (!vid) return;
+  if (cover) cover.hidden = true;
+  vid.hidden = false;
+  const p = vid.play(); if (p && p.catch) p.catch(() => {});
+}

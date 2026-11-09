@@ -2162,3 +2162,14 @@
     body.page-sub .deck{padding-top:0}
     body.page-sub .panel{padding-top:24px}
   }
+
+  /* ===== Round 83 (2026-11-09, Emil): tighten the board ->
+     Stories gap (guidelines link rides the See-all row; less
+     padding), a small break between Stories and Hype Frame,
+     and steps under the store's new Hype Frame film. ===== */
+  #boardUnder{display:flex;align-items:center;gap:16px;margin-top:8px}
+  #boardUnder .see-all-row{margin:0}
+  #boardUnder .guidelines-row{margin:0 0 0 auto}
+  .stories{padding-top:12px}
+  #hfExamplesHome{margin-top:26px;border-top:1px solid var(--line2);padding-top:26px}
+  .hs-hf-steps{grid-template-columns:repeat(2,1fr);margin:14px 0 0}
