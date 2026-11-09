@@ -1930,3 +1930,11 @@
   .hf-steps li{display:flex;gap:10px;align-items:baseline;color:#fff;font-weight:600;font-size:15.5px}
   .hf-steps b{font-family:"Anton",sans-serif;font-style:italic;color:var(--gold);font-size:19px;line-height:1}
   @media (min-width:900px){ .hf-steps{grid-template-columns:repeat(4,1fr)} }
+
+  /* ---- Round 59 (2026-11-08, Emil's store mock): the Store's
+     Hype Frame feature gets the mock's purple-underlined create
+     link and a single-photo figure; the Drop 002 teaser gets its
+     gold pill button. ---- */
+  .hs-hf-cta{color:#c9a7ff;text-decoration:underline;text-underline-offset:5px;text-decoration-thickness:2px;text-decoration-color:#7b3dff;font-weight:700}
+  .hs-hf-media > img{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block}
+  .hs-teaser .hs-view-btn{background:linear-gradient(180deg,#f3cd6b,#dfa92e);color:#191203;border:0;border-radius:999px;font-weight:800;padding:12px 26px}
