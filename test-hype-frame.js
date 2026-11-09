@@ -188,15 +188,19 @@ try {
   assert(css.includes("hs-img-back"), "Round 52: the back-led card image class is styled (the Round 43 card-swipe box retired with the swipes)");
   assert(css.includes(".hero h1{font-family:\"Anton\",sans-serif;font-style:italic") && css.includes(".tile-grid > .tile:first-child{grid-column:1/-1}"), "Round 44: the concept's italic display system is in, and the board's first play renders featured (full-width)");
   assert((home.match(/goToSportBoard\('/g) || []).length === 19, "Round 44/47: the Browse by Sport row wires all 19 sports to goToSportBoard (the All sports link was removed in Round 47)");
-  assert(appJs.includes("window.seeAllPlays") && appJs.includes('Hype of the <span class="lime">Month</span>'), "Round 44: See all plays has its handler, and the month view titles itself Hype of the Month");
+  assert(appJs.includes("window.seeAllPlays") && appJs.includes('`Hype of the Month`'), "Round 44/53: See all plays has its handler, and the month view titles itself Hype of the Month — all-white since Round 53 (the mock's title has no gold word)");
   assert(home.includes("not just the MVP.") && home.includes("preserve big plays and memories.") && css.includes("padding-top:30px"), "Round 44: trust descriptions are one short sentence each, and the board gets more air above it");
   assert(appJs.includes('class="tile-disc"') && appJs.includes('class="tile-toprow"') && appJs.includes("📸 Frame</button>"), "Round 45: tiles take the concept's video style — centered play disc, italic title + Vote pill row, compact 📸 Frame button");
   assert(css.includes(".tile-disc{") && css.includes(".tile-title{font-style:italic"), "Round 45: the disc and the italic tile titles are styled");
   assert(css.includes("@media (max-width:699px)") && css.includes("scroll-snap-type:x mandatory") && css.includes(".tile-grid > .tile{flex:0 0 90%"), "Round 46/50: on phones the board grids are swipe decks (snap track, near-full-width cards — widened in Round 50); the desktop grid is untouched");
-  assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="browse-sports"') > -1 && home.indexOf('class="browse-sports"') < home.indexOf('id="viewMonth"'), "Round 47: the search box is retired, the All sports link is gone, and Browse by Sport sits ABOVE the videos");
+  assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="browse-sports"') > home.indexOf('id="viewAll"') && home.indexOf('class="browse-sports"') < home.indexOf('id="seeAllRow"'), "Round 47/53: the search box stays retired and the All sports link stays gone; Browse by Sport now sits BELOW the videos with See all plays under it (the mock's board order)");
+  /* ---- Round 53: board atmosphere + mock copy. ---- */
+  assert(home.includes('<div class="board-bg" aria-hidden="true"></div>') && css.includes("background:url(/board-bg.jpg)"), "Round 53: the board carries the stadium backdrop (a graded frame from Emil's B15 lineup shot)");
+  assert(home.includes('<p id="boardIntro">Athletes post their plays. Your votes crown the winner.</p>'), "Round 53: the board intro is the mock's short line — the one-vote-per-person tail is off");
+  assert(home.includes('<h2 id="boardTitle">Hype of the Month</h2>'), "Round 53: the static board title matches the all-white month title");
   assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
   assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: sections wider and even per the mock — the Hype Frame figure spans its panel, and on phones one 16px gutter aligns every section (the HF panel drops its extra side inset)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=53"') && home.includes('src="app.js?v=53"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=54"') && home.includes('src="app.js?v=54"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
      serves the app at those paths. ---- */
@@ -303,7 +307,7 @@ try {
   // BEFORE the studio card; the freeze flow follows unchanged.
   assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
   assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 2, "Round 48: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play)");
+  assert((home.match(/src="\/hype-frame-film\.mp4\?v=3"/g) || []).length === 2, "Round 48/53: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play) — srcs versioned ?v=3 for the guided-tour cut so phones drop the old cached film");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
   assert(r.status === 201, "order with a chosen size is created");
