@@ -1326,6 +1326,10 @@
     .tile-grid > .tile:first-child{flex-basis:94%}
     .tile-grid > .tile:only-child{flex-basis:100%}
   }
+  /* Round 47 (2026-11-08): the Browse by Sport row now sits above
+     the videos — a little air under the board intro, and breathing
+     room before the view switch below it. */
+  .browse-sports{margin:6px 0 14px}
   /* Round 40 (2026-11-08): Photo/Avatar swipe on the cream-hoodie
      example — homepage, studio and Store feature (Emil: all three).
      Native scroll-snap swipe; labeled Photo/Avatar chips overlay the

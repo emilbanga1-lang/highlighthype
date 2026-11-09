@@ -1158,7 +1158,10 @@ function syncFilterUI() {
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
 }
-$("#allSearch").addEventListener("input", (e) => { allSearch = e.target.value; renderAll2(); });
+/* Round 47 (2026-11-08): the search box is retired from the board
+   (Emil: "we can always add that again later") — allSearch stays ""
+   and the filter in renderAll2 is dormant; re-adding the input plus
+   its input-listener restores it. */
 
 /* ---------------- Swag film: pause to shop the look ---------------- */
 // Emil's vision (2026-11-04): a kid pauses the Drop 001 film and can jump

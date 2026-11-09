@@ -116,6 +116,39 @@
       <p id="boardIntro">Athletes post their plays. Your votes crown the winner — one vote per person, per play, per month.</p>
     </div>
 
+    <!-- Round 47 (2026-11-08, Emil): the sport "elevators" moved
+         ABOVE the videos — pick a sport first, then watch. The
+         Round 44 All-sports link is gone (the All Hypes view
+         and the sport dropdown still cover the reset). Tapping a
+         sport jumps to the All Hypes board filtered to it
+         (goToSportBoard). -->
+    <div class="browse-sports">
+      <div class="browse-head">
+        <h3>Browse by sport</h3>
+      </div>
+      <div class="sport-row" role="group" aria-label="Browse plays by sport">
+        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
+        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
+        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
+        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
+        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
+        <button type="button" onclick="goToSportBoard('football')">Football</button>
+        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
+        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
+        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
+        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
+        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
+        <button type="button" onclick="goToSportBoard('other')">Other</button>
+        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
+        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
+        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
+        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
+        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
+        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
+        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
+      </div>
+    </div>
+
     <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
       <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
@@ -158,47 +191,20 @@
           <button type="button" data-div="girls" aria-pressed="false">Girls</button>
         </div>
         <select class="sport-select" id="allSportSelect" aria-label="Sport — all plays"></select>
-        <input class="search-input" id="allSearch" type="search" placeholder="Search plays, sports, teams…" aria-label="Search all plays" />
+        <!-- Round 47 (2026-11-08, Emil): the search box is retired
+             for now — the filter logic stays dormant in app.js, so
+             re-adding the box later is just this input + its listener. -->
       </div>
       <p class="all-count" id="allCount"></p>
       <div class="tile-grid" id="allBoard"></div>
-      <div class="empty" id="allEmpty">No plays match — try a different board, sport, or search.</div>
+      <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
     </div>
 
-    <!-- Round 44 (2026-11-08, concept rebuild): directly below the
-         clips, two separate jobs (Emil): see EVERYTHING, then find a
-         specific sport. See all plays switches to the All Hypes view;
-         the sport row reuses the montage's old goToSportBoard wiring
-         (All Hypes filtered to the sport); All sports clears it. -->
+    <!-- Round 44 (2026-11-08): See all plays sits directly below the
+         clips (switches to the All Hypes view). Round 47 moved the
+         Browse by Sport row above the videos. -->
     <div class="board-under" id="boardUnder">
       <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
-      <div class="browse-sports">
-        <div class="browse-head">
-          <h3>Browse by sport</h3>
-          <a href="#deck" class="all-sports-link" onclick="event.preventDefault();goToSportBoard('all')">All sports →</a>
-        </div>
-        <div class="sport-row" role="group" aria-label="Browse plays by sport">
-          <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
-          <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
-          <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
-          <button type="button" onclick="goToSportBoard('dance')">Dance</button>
-          <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
-          <button type="button" onclick="goToSportBoard('football')">Football</button>
-          <button type="button" onclick="goToSportBoard('golf')">Golf</button>
-          <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
-          <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
-          <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
-          <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
-          <button type="button" onclick="goToSportBoard('other')">Other</button>
-          <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
-          <button type="button" onclick="goToSportBoard('softball')">Softball</button>
-          <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
-          <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
-          <button type="button" onclick="goToSportBoard('track')">Track & Field</button>
-          <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
-          <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
-        </div>
-      </div>
     </div>
 
     <form id="uploadForm" class="upload-card">
