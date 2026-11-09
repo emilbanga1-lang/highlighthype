@@ -1178,7 +1178,7 @@ try {
     assert(t1.includes("toggleVote(101, this)") && t1.includes('aria-pressed="false"') && t1.includes("<b>5</b>"), "Round 8: the tile Vote button is wired to toggleVote with the un-voted state and count");
     assert(!t1.includes("enterContest("), "Round 8: tiles carry no Enter affordance (Enter lives on the full card in the detail)");
     const t2 = r8("tileHtml(ALL_PLAYS[1])");
-    assert(t2.includes("<img") && t2.includes('aria-pressed="true"') && t2.includes("You voted — tap to remove"), "Round 8: an image tile shows the photo and the voted state");
+    assert(t2.includes("<img") && t2.includes('aria-pressed="true"') && t2.includes("Voted ✓") && t2.includes('aria-label="You voted — tap to remove"'), "Round 8/45: an image tile shows the photo and the voted state (compact pill label since Round 45; the long label is the accessible name)");
     const t3 = r8("tileHtml(ALL_PLAYS[2])");
     assert(t3.includes("⭐ SAMPLE PLAY") && !t3.includes("enterContest("), "Round 8: a sample tile carries the SAMPLE badge and no Enter affordance");
     const t4 = r8("tileHtml(CONTEST.entries[0], { monthVotes: 7 })");
@@ -1829,11 +1829,11 @@ try {
     assert(tAll14.includes('class="tile-media dur-host"') && tAll14.includes('<span class="dur-pill" aria-hidden="true" hidden></span>'), "Round 14: an All Hypes video tile carries the duration pill (empty + hidden until metadata)");
     const tMonth14 = r14("tileHtml(ALL_PLAYS[0], { monthVotes: 7 })");
     assert(tMonth14.includes('<span class="dur-pill" aria-hidden="true" hidden></span>'), "Round 14: a Month-board tile carries the same pill (one tileHtml serves both boards)");
-    assert(tAll14.includes("Sofia · 3 votes · 2d ago"), "Round 14: the info line reads '<first name> · <N> votes · <age>' from API fields only");
-    assert(tMonth14.includes("Sofia · 7 votes · 2d ago"), "Round 14: on the Month board the info line carries the MONTH vote count, matching the tile's vote row");
-    assert(tAll14.includes("<b>Soccer</b> · Girls"), "Round 14: the Sport · Division line is unchanged above the info line");
+    assert(tAll14.includes("Sofia · Soccer · Girls · <b>3</b> all-time votes · 2d ago"), "Round 14/45: the info line is ONE merged line — '<first name> · <sport> · <division> · <N> votes · <age>' from API fields only");
+    assert(tMonth14.includes("Sofia · Soccer · Girls · <b>7</b> this month votes · 2d ago"), "Round 14/45: on the Month board the merged line carries the MONTH vote count");
+    assert(tAll14.includes("Sofia · Soccer · Girls"), "Round 45: sport and division live inside the single info line now (the separate Sport · Division line retired)");
     const tOne14 = r14("tileHtml(ALL_PLAYS[2])");
-    assert(tOne14.includes("Ava · 1 vote · 3w ago"), "Round 14: the info line singularizes '1 vote' and humanizes weeks");
+    assert(tOne14.includes("Ava · ") && tOne14.includes("<b>1</b> all-time vote · 3w ago"), "Round 14/45: the merged info line singularizes '1 vote' and humanizes weeks");
     assert(tOne14.includes("⭐ SAMPLE PLAY") && tOne14.includes("dur-pill"), "Round 14: a sample tile carries BOTH the SAMPLE badge and the duration pill");
     const bodyPart14 = tAll14.slice(tAll14.indexOf('class="tile-body"'));
     assert(!/\b\d+:\d{2}\b/.test(bodyPart14), "Round 14: the duration appears ONLY in the pill — no m:ss text anywhere in the tile body (no double display)");
