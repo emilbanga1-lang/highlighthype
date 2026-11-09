@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=62" />
+<link rel="stylesheet" href="styles.css?v=65" />
 </head>
 <body>
 
@@ -323,11 +323,21 @@
         <label class="checkline"><input type="checkbox" name="guardianConsent"> I'm this athlete's parent/guardian, or I have their permission to post this video.</label>
       </div>
 
+      <!-- Hype Stories (Round 63, 2026-11-08): Emil's one extra
+           question. It lives in the MAIN form now, not the collapsed
+           extras — the answer is the raw material for a story
+           episode, and the checkbox under it is the SEPARATE
+           public-sharing permission a story needs (the board
+           consent above does not cover social). Both optional. -->
+      <div class="quick-field story-block">
+        <label>What made this moment matter? (optional) <textarea name="story" placeholder="What was on the line, who was watching, why this one mattered — that's where a Hype Story starts."></textarea></label>
+        <label class="checkline"><input type="checkbox" name="storyConsent"> You can feature this play as a Hype Story — on HighlightHype and our social channels — and contact me about it.</label>
+      </div>
+
       <details class="quick-more">
         <summary>Add more (optional)</summary>
         <div class="quick-more-body">
           <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
-          <label>Story <textarea name="story" placeholder="The short story behind the play — keep it hype."></textarea></label>
           <div class="row2">
             <label>Jersey number <input type="text" name="jersey" placeholder="e.g. 13"></label>
             <label>Team name <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
@@ -343,6 +353,41 @@
       <input type="hidden" name="athleteKey" value="">
     </form>
   </div>
+
+<!-- ============ HYPE STORIES (homepage) ============
+     Round 63 (2026-11-08, Emil's concept): HYPE STORIES is the
+     shelf, THAT'S HYPE is the show — a weekly featured athlete
+     story. One episode at launch; "View all stories" arrives
+     once there are 4-5 episodes. Placement per Emil: below the
+     board, above Hype Frame; on mobile the cover is a still
+     with a play button so it never competes with the hero film. -->
+<section class="stories" id="stories">
+  <div class="wrap">
+    <span class="sec-tag gold">The weekly feature</span>
+    <h2 class="stories-title">Hype Stories</h2>
+    <p class="stories-sub">The stories behind the plays.</p>
+    <article class="story-card">
+      <div class="story-media">
+        <video id="storyVideo" src="/hype-story-ep1.mp4" poster="/hype-story-ep1-poster.jpg" preload="none" playsinline controls hidden></video>
+        <button type="button" class="story-cover" id="storyCover" aria-label="Watch story: Future Yankee">
+          <img src="/hype-story-ep1-poster.jpg" alt="Nicholas holding a baseball on the field at Yankee Stadium" />
+          <span class="story-badge">That's Hype</span>
+          <span class="story-play" aria-hidden="true">&#9654;</span>
+          <span class="story-dur">0:16</span>
+        </button>
+      </div>
+      <div class="story-meta">
+        <p class="story-ep">Ep. 01 / Baseball</p>
+        <h3 class="story-name">Future Yankee</h3>
+        <p class="story-line">A young pitcher gets his reps in at Yankee Stadium.</p>
+        <div class="story-actions">
+          <button type="button" class="btn btn-gold" id="storyWatch">&#9654; Watch story</button>
+          <a class="story-submit" href="#post" data-submit-link>Submit a moment &rarr;</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
 
 <!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
 <div class="wrap">
@@ -993,6 +1038,6 @@
   </div>
 </div>
 
-<script src="app.js?v=62"></script>
+<script src="app.js?v=65"></script>
 </body>
 </html>

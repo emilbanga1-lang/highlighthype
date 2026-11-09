@@ -2343,6 +2343,7 @@ function statsHtml(st) {
     ${sys}
     <h4 class="stats-sub">Views by day (last 30 days)</h4>${daily}
     <h4 class="stats-sub">Most opened plays</h4>${top}
+    <h4 class="stats-sub">Hype Stories</h4>${(st.stories && st.stories.byEpisode && st.stories.byEpisode.length) ? st.stories.byEpisode.map((e) => `<p>${esc(e.episode)} — ${num(e.opens)} watch${e.opens === 1 ? "" : "es"}</p>`).join("") : "<p>No story watches recorded yet.</p>"}
     <h4 class="stats-sub">Where visitors came from</h4>${refs}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
@@ -2358,6 +2359,7 @@ async function loadOwner() {
         if (h.guardian_phone) bits.push(`${esc(h.guardian_phone)} <a class="mini-btn" style="text-decoration:none" href="tel:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">📞 Call</a> <a class="mini-btn" style="text-decoration:none" href="sms:${esc(h.guardian_phone.replace(/[^+\d]/g, ""))}">💬 Text</a> ${h.text_consent ? `<span class="tagchip">Text opt-in: YES</span>` : `<span class="tagchip warn">No text opt-in — do not text</span>`}`);
         return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — can't be featured as a winner.</span>`; })()}
       ${h.guardian_consent_at ? `<br>Guardian consent ✓ ${esc(new Date(h.guardian_consent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}` : ""}
+      ${h.story_consent ? `<br><span class="tagchip">⭐ Story OK — may feature as a Hype Story</span>${h.story_text ? `<br>“What made this moment matter?” ${esc(h.story_text)}` : ""}` : (h.story_text ? `<br><span style="color:var(--muted)">Story note (no story permission given):</span> ${esc(h.story_text)}` : "")}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}</div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");
@@ -2479,3 +2481,24 @@ $$("[data-filter-btn]").forEach((btn) => {
 window.openGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = false; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeGuidelines(); });
 window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = true; };
+
+/* ===== Round 63 (2026-11-08): Hype Stories player =====
+   Cover tap (or the Watch story button) swaps the still for the
+   episode and plays it inline; the first play counts one
+   story_open for the episode in the built-in stats. */
+(function wireStory63() {
+  const cover = document.getElementById("storyCover");
+  const vid = document.getElementById("storyVideo");
+  const watch = document.getElementById("storyWatch");
+  if (!cover || !vid) return;
+  let counted = false;
+  const start = () => {
+    cover.hidden = true;
+    vid.hidden = false;
+    if (!counted) { counted = true; try { trackEvent("story_open", "ep01"); } catch {} }
+    const pr = vid.play();
+    if (pr && pr.catch) pr.catch(() => {});
+  };
+  cover.addEventListener("click", start);
+  if (watch) watch.addEventListener("click", start);
+})();

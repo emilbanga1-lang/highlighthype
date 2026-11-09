@@ -1979,3 +1979,31 @@
      iOS inside the panel's entry animation. (The form node also
      moves to <body> level while open; see openUploadOverlay.) */
   body.upload-open .panel.active{animation:none}
+
+  /* ---- Round 63 (2026-11-08): Hype Stories ---- */
+  .btn-gold{background:#f2c14e;color:#141414}
+  .stories{padding:56px 0 8px}
+  .stories-title{font-family:Anton,sans-serif;font-style:italic;font-weight:400;font-size:clamp(2.6rem,9vw,4.2rem);line-height:1.02;margin:10px 0 6px;text-transform:uppercase}
+  .stories-sub{color:var(--muted);margin:0 0 22px;font-size:1.05rem}
+  .story-card{background:#101114;border:1px solid #232329;border-radius:20px;overflow:hidden}
+  .story-media{position:relative;width:min(100%,340px);margin:0 auto}
+  .story-media video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+  .story-cover{display:block;position:relative;width:100%;padding:0;border:0;background:#000;cursor:pointer}
+  .story-cover img{display:block;width:100%;aspect-ratio:9/16;object-fit:cover}
+  .story-badge{position:absolute;top:12px;left:12px;background:rgba(10,10,12,.82);color:#f2c14e;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:.72rem;padding:7px 10px;border-radius:8px;border-left:3px solid #f2c14e}
+  .story-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:#f2c14e;color:#141414;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 10px 34px rgba(0,0,0,.5)}
+  .story-dur{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.78);color:#fff;font-size:.78rem;font-weight:700;padding:4px 8px;border-radius:7px}
+  .story-meta{padding:22px}
+  .story-ep{margin:0 0 6px;color:#f2c14e;font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:.78rem}
+  .story-name{font-family:Anton,sans-serif;font-style:italic;font-weight:400;font-size:2.1rem;margin:0 0 8px;text-transform:uppercase}
+  .story-line{color:var(--muted);margin:0 0 18px}
+  .story-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .story-submit{color:var(--volt);font-weight:700;text-decoration:none}
+  @media (min-width:820px){
+    .story-card{display:grid;grid-template-columns:320px 1fr;align-items:stretch}
+    .story-media{width:100%;margin:0}
+    .story-meta{display:flex;flex-direction:column;justify-content:center;padding:34px}
+  }
+  #uploadForm .story-block{margin:4px 0 14px}
+  #uploadForm .story-block textarea{min-height:74px}
+  .story-media video[hidden], .story-cover[hidden]{display:none !important}
