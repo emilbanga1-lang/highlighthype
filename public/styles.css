@@ -1966,3 +1966,10 @@
   .guidelines-panel h3{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;letter-spacing:.02em;margin:0 0 12px;font-size:22px}
   .guidelines-panel ul{margin:0 0 16px;padding-left:19px;color:#d7d7dc;line-height:1.55}
   .guidelines-panel li{margin:7px 0}
+
+  /* ---- Round 62b (2026-11-08): stacking fix. Round 57 gave every
+     #viewAll child its own z-index:1 context, so the tile grid (a
+     later sibling) painted over the Filter popover no matter its
+     own z-index. The tools anchor must out-rank its siblings. */
+  #plays .tools-anchor{position:relative;z-index:60}
+  .guidelines-modal{z-index:120}
