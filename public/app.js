@@ -1035,14 +1035,24 @@ function showHome() {
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
   const hv = $("#heroVideo"); if (hv) { const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
-  // Round 4 fix (2026-11-05): showStore() pauses every .view-home video,
-  // and an explicitly paused video does NOT resume on its own when its
-  // view becomes visible again — resume the homepage Hype Frame film too.
-  const hfHome = $("#hfExamplesHome video"); if (hfHome) { const p = hfHome.play(); if (p && p.catch) p.catch(() => {}); }
+  /* Round 48 (2026-11-08): the old homepage-film resume is retired —
+     the homepage Hype Frame film is click-to-play now (Emil: no
+     autoplay competing with the hero), so returning home must NOT
+     start it. The studio film still resumes on studio open. */
   // Round 11 fix (2026-11-05): showStore() pauses the montage clips
   // too, and nothing resumed them — after one Store visit the three
   // sport strips froze on their posters for the rest of the session.
   $$(".montage video").forEach((v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
+}
+/* Round 48 (2026-11-08): the homepage Hype Frame film is
+   click-to-play — the cream-hoodie cover swaps out and the film
+   plays inline in the same frame. Nothing starts it but the tap. */
+function playHfHomeFilm() {
+  const cover = $("#hfFilmCover"), vid = $("#hfHomeFilm");
+  if (!vid) return;
+  if (cover) cover.hidden = true;
+  vid.hidden = false;
+  const p = vid.play(); if (p && p.catch) p.catch(() => {});
 }
 /* Round 11 (2026-11-05): the montage clips keep themselves honest —
    play while at least ~25% of a strip is on screen, pause when it

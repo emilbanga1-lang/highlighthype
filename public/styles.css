@@ -1330,6 +1330,17 @@
      the videos — a little air under the board intro, and breathing
      room before the view switch below it. */
   .browse-sports{margin:6px 0 14px}
+  /* Round 48 (2026-11-08): the homepage Hype Frame film under a
+     cream-hoodie cover. The box is the film's own 16:9, so the tap
+     swaps cover for film with no layout shift; the cover image is
+     the finished hoodie (print band framed by the crop). */
+  .hf-film-box{position:relative;border-radius:16px;overflow:hidden;background:#000;aspect-ratio:16/9}
+  .hf-film-cover{position:absolute;inset:0}
+  .hf-film-cover[hidden]{display:none}
+  .hf-film-cover img{width:100%;height:100%;object-fit:cover;object-position:50% 38%;display:block}
+  .hf-film-btn{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:rgba(5,5,5,.74);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:8px 16px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+  .hf-film-box video{position:absolute;inset:0;width:100%;height:100%;display:block;background:#000}
+  .hf-film-box video[hidden]{display:none}
   /* Round 40 (2026-11-08): Photo/Avatar swipe on the cream-hoodie
      example — homepage, studio and Store feature (Emil: all three).
      Native scroll-snap swipe; labeled Photo/Avatar chips overlay the

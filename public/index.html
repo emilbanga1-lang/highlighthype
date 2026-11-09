@@ -317,17 +317,20 @@
       <p>Pick a moment. Put it on a hoodie.</p>
     </div>
     <figure class="hf-example hf-hero-fig">
-        <div class="hf-swipe" data-hf-swipe>
-          <div class="hf-swipe-track">
-            <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-            <img src="/swag/hf-example-hoodie-back-avatar.webp" alt="Example finish, Avatar version: the same baseball moment illustrated as a bold avatar, printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-          </div>
-          <div class="hf-swipe-chips" role="group" aria-label="Hoodie example: Photo or Avatar">
-            <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
-            <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
-          </div>
+      <!-- Round 48 (2026-11-08, Emil): the Hype Frame film is back
+           on the homepage, under a cream-hoodie cover. Nothing
+           autoplays — the cover is the finished hoodie with a small
+           "See how it works" control; tapping it swaps the film in
+           to play inline in the same frame. The Photo/Avatar swipe
+           still lives in the studio and the Store feature. -->
+      <div class="hf-film-box">
+        <div class="hf-film-cover" id="hfFilmCover">
+          <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+          <button type="button" class="hf-film-btn" onclick="playHfHomeFilm()">▶ See how it works</button>
         </div>
-        <figcaption>Cream hoodie · Back — example finish · Photo / Avatar</figcaption>
+        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4" controls playsinline preload="none" hidden></video>
+      </div>
+      <figcaption>Cream hoodie · Back — example finish</figcaption>
     </figure>
     <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
     <!-- Round 44 (2026-11-08): the concept posters moved INTO the
