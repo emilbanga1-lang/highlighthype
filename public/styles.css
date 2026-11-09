@@ -1611,9 +1611,9 @@
        3. Favicon: the gold crest badge (link tags in index.html).
      The site's lime accent palette is untouched — this round is
      header/footer branding only. */
-  .footer-lockup{height:190px;width:auto;display:block}
-  @media (max-width:760px){ .footer-lockup{height:150px} }
-  @media (max-width:480px){ .footer-lockup{height:132px} }
+  .footer-lockup{width:min(430px,88vw);height:auto;display:block}
+  @media (max-width:760px){ .footer-lockup{width:min(340px,88vw)} }
+  @media (max-width:480px){ .footer-lockup{width:min(300px,88vw)} }
 
   /* ===== Round 22 (2026-11-06): FAB + upload overlay, hero slim-down,
      gold brand pass =====
@@ -2007,3 +2007,14 @@
   #uploadForm .story-block{margin:4px 0 14px}
   #uploadForm .story-block textarea{min-height:74px}
   .story-media video[hidden], .story-cover[hidden]{display:none !important}
+
+  /* ---- Round 65 (2026-11-09): the footer closes centered around
+     Emil's metallic gold master lockup. The brand stack (lockup,
+     handle, links) centers as one; the owner row stays its own
+     row beneath, centered. The master's textured background was
+     crushed to the footer's pure black at build time, so the
+     lockup floats on the page with no rectangle edge. */
+  footer .foot-stack{text-align:center}
+  footer .foot-stack .brand{display:inline-block}
+  footer .foot-stack .footer-lockup{margin:0 auto}
+  footer .owner-row{justify-content:center}
