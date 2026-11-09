@@ -1351,6 +1351,11 @@
      URL. /store needs no class — body.store-open already does the
      same job there. ---- */
   body.page-sub .view-home{display:none}
+  /* The deck is the one .view-home that must stay: it WRAPS all
+     five panels (plays/mine/athlete/studio/how), so hiding it
+     blanked the sub-pages — the panels' own .active toggling
+     decides what shows inside it. (Live-caught 2026-11-08.) */
+  body.page-sub .deck.view-home{display:block}
   body.page-sub .shop{display:none}
   body.page-sub .float-submit{display:none}
   /* ---- Round 52 (2026-11-08): the STORE takes Emil's mobile
