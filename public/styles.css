@@ -2141,3 +2141,14 @@
   @media (min-width:1280px){
     .hs-tiles{grid-template-columns:repeat(6,1fr)}
   }
+
+  /* ===== Round 79 (2026-11-09, Emil): on desktop the board view
+     toggles (Hype of the Month / Hall of Fame / All Hypes) ride on
+     the title row, right side — one less row to scroll past.
+     Phone keeps the stacked layout. ===== */
+  @media (min-width:1024px){
+    #plays .wrap{display:grid;grid-template-columns:1fr auto;align-items:start}
+    #plays .sec-head{grid-column:1;grid-row:1}
+    #plays .viewseg{grid-column:2;grid-row:1;align-self:center;margin:0}
+    #plays .wrap > :not(.sec-head):not(.viewseg){grid-column:1/-1}
+  }
