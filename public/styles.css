@@ -1910,3 +1910,23 @@
   .rep-band-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;color:#fff;font-size:clamp(34px,6.5vw,64px);line-height:1}
   .rep-band-drop{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;color:var(--gold);font-size:clamp(18px,3vw,28px)}
   .rep-band-link{color:#fff;font-weight:700;font-size:17px;text-decoration:underline;text-underline-offset:5px;margin-top:8px}
+
+  /* ---- Round 57 (2026-11-08, Emil): two more mock atmospheres.
+     ALL HYPES gets the Rep The Hype stadium photo (the field and
+     floodlights, the player cropped out) under a soft gradient —
+     the same night-game grade as the band. HYPE FRAME gets the
+     mock's warm backdrop: blurred amber floodlight bokeh. ---- */
+  #viewAll{position:relative}
+  .all-bg{position:absolute;inset:0;background:url(/all-bg.jpg) center 32%/cover no-repeat;opacity:.38;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 100px,#000 84%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 100px,#000 84%,transparent 100%)}
+  #viewAll > :not(.all-bg){position:relative;z-index:1}
+  #hfExamplesHome{overflow:hidden}
+  .hf-bg{position:absolute;inset:0;background:url(/hf-bg.jpg) center/cover no-repeat;opacity:.5;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 98%);mask-image:linear-gradient(180deg,#000 30%,transparent 98%)}
+  #hfExamplesHome > :not(.hf-bg){position:relative;z-index:1}
+
+  /* ---- Round 58 (2026-11-08, Emil's pick): the four steps as
+     page text under the homepage film (the film itself is now a
+     single smooth morph, no captions). ---- */
+  .hf-steps{list-style:none;margin:18px auto 4px;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 22px;max-width:860px;text-align:left}
+  .hf-steps li{display:flex;gap:10px;align-items:baseline;color:#fff;font-weight:600;font-size:15.5px}
+  .hf-steps b{font-family:"Anton",sans-serif;font-style:italic;color:var(--gold);font-size:19px;line-height:1}
+  @media (min-width:900px){ .hf-steps{grid-template-columns:repeat(4,1fr)} }

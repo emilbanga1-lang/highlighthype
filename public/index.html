@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=56" />
+<link rel="stylesheet" href="styles.css?v=58" />
 </head>
 <body>
 
@@ -105,7 +105,9 @@
     <div class="board-bg" aria-hidden="true"></div>
   <div class="wrap">
     <div class="beta-note">
-      <b>🔒 Private beta — invite only.</b> Testing with Nicholas's team and friends — not a public launch.
+      <!-- Round 59 (2026-11-08, Emil): the private-beta headline
+           line is off the home page. The safety rules below it
+           stay — they are not beta copy. -->
       <ul>
         <li>Every play is <b>owner-approved before it appears</b> — new posts start in review.</li>
         <li><b>Only your own clips</b>, and <b>first names only</b> — no full name + school + team together.</li>
@@ -191,6 +193,7 @@
     </div>
 
     <div id="viewAll" hidden>
+      <div class="all-bg" aria-hidden="true"></div>
       <div class="filters" id="allFilters">
         <div class="seg" role="group" aria-label="Board" id="allDivSeg">
           <button type="button" data-div="all" aria-pressed="true">All boards</button>
@@ -318,6 +321,7 @@
 <!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
 <div class="wrap">
   <div class="hf-examples" id="hfExamplesHome">
+    <div class="hf-bg" aria-hidden="true"></div>
     <div class="hf-examples-head">
       <span class="sec-tag">Hype Frame</span>
       <h4>Hype Frame</h4>
@@ -332,13 +336,22 @@
            still lives in the studio and the Store feature. -->
       <div class="hf-film-box">
         <div class="hf-film-cover" id="hfFilmCover">
-          <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+          <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
           <button type="button" class="hf-film-btn" onclick="playHfHomeFilm()">▶ See how it works</button>
         </div>
-        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4?v=4" controls playsinline preload="none" hidden></video>
+        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4?v=5" controls playsinline preload="none" hidden></video>
       </div>
-      <figcaption>Cream hoodie · Back — example finish</figcaption>
+      <figcaption>Cream hoodie · Back — her moment, printed</figcaption>
     </figure>
+    <!-- Round 58 (2026-11-08, Emil's pick): the film is now a
+         single smooth morph with no captions — the four steps
+         live here as page text instead. -->
+    <ol class="hf-steps">
+      <li><b>1</b><span>Start with your hype video</span></li>
+      <li><b>2</b><span>Pick your frame</span></li>
+      <li><b>3</b><span>Your actual image — or your avatar</span></li>
+      <li><b>4</b><span>We take care of the rest</span></li>
+    </ol>
     <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
     <!-- Round 44 (2026-11-08): the concept posters moved INTO the
          studio (below its examples grid) — the homepage section is
@@ -414,7 +427,7 @@
          first, data collection last. -->
     <div class="hf-payoff">
       <div class="hf-film">
-        <video src="/hype-frame-film.mp4?v=4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the guided tour: start with your hype video, pick your frame, choose your actual image or your avatar, and we take care of the rest"></video>
+        <video src="/hype-frame-film.mp4?v=5" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a softball frame printed on a cream hoodie, morphing into the avatar version and back"></video>
       </div>
       <p class="hf-payoff-line">This is what your moment becomes.</p>
       <div class="hf-examples hf-examples-studio">
@@ -938,7 +951,7 @@
       <a class="brand" href="#top" style="margin-bottom:12px">
         <img class="footer-lockup" src="/logo-crest-lockup.png" alt="HighlightHype — Your moment. Your hype." width="4395" height="3701" />
       </a>
-      <div>HighlightHype · @HighlightHype_Official · Private beta — invite only, not public yet.</div>
+      <div>HighlightHype · @HighlightHype_Official</div>
       <div>Only your own clips. Parent permission under 13. Winners are contacted through a parent/guardian.</div>
       <div style="margin-top:9px"><a href="mailto:hello@highlighthype.com">hello@highlighthype.com</a> — questions, play reports, removal requests.</div>
       <div style="margin-top:9px"><a href="#shop" data-store-link style="font-weight:800">Rep The Hype — open the Store →</a></div>
@@ -961,6 +974,6 @@
   </div>
 </div>
 
-<script src="app.js?v=56"></script>
+<script src="app.js?v=58"></script>
 </body>
 </html>
