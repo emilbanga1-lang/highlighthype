@@ -39,7 +39,7 @@
   /* V18: the new logo lockup (JPG on black) replaces the drawn crown + text
      wordmark everywhere. screen blend drops its black ground into the dark
      chrome so it sits clean in the nav and footer. */
-  .brand-logo{height:38px;width:auto;display:block;filter:drop-shadow(0 2px 12px rgba(0,0,0,.6))}
+  .brand-logo{height:38px;width:auto;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.85)) drop-shadow(0 2px 14px rgba(0,0,0,.65))}
   .brand-logo-lg{height:58px}
   @media (max-width:760px){ .brand-logo{height:33px} .brand-logo-lg{height:50px} }
   @media (max-width:480px){ .brand-logo{height:29px} .brand-logo-lg{height:46px} }
@@ -90,7 +90,7 @@
   .hero{position:relative;min-height:min(80vh,680px);display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;background:#000}
   .hero-media{position:absolute;inset:0;overflow:hidden}
   .hero-media img{width:100%;height:100%;object-fit:cover;object-position:center 30%}
-  .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.38) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,.18) 58%,rgba(0,0,0,.82) 88%,var(--bg) 100%)}
+  .hero-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.28) 16%,rgba(0,0,0,0) 38%,rgba(0,0,0,.18) 58%,rgba(0,0,0,.82) 88%,var(--bg) 100%)}
   .hero-top{position:absolute;top:22px;left:0;right:0;z-index:4}
   .hero-top .wrap{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .live-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);backdrop-filter:blur(6px);color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:7px 13px;border-radius:999px}
