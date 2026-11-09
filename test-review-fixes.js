@@ -1369,7 +1369,7 @@ try {
   assert(!css.includes(".nav-store-btn") && !home.includes("nav-store-btn") && !home.includes("🛍️ Store"), "Round 10→12: the header store control is gone entirely — no pill rule, no link, no emoji (§27 pins the current spec)");
   // (2) Team filter removal: markup, wiring, and behavior.
   assert(!home.includes('id="teamFilter"') && !home.includes('id="teamLabel"') && !home.includes("All teams"), "Round 10: no team select (and no 'All teams' option) anywhere in the served page");
-  const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allCount"'));
+  const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allBoard"'));
   const monthFiltersHtml10 = home.slice(home.indexOf('id="boardFilters"'), home.indexOf('id="board"'));
   assert(allFiltersHtml10.includes('id="allSportSelect"') && !allFiltersHtml10.includes('id="allSearch"') && !allFiltersHtml10.includes("teamFilter") && !allFiltersHtml10.includes("team-select"), "Round 10/47: the All filter bar keeps the sport select and nothing team-shaped; the search box was retired in Round 47 (filter logic dormant in app.js)");
   assert(monthFiltersHtml10.includes('id="monthSportSelect"') && !monthFiltersHtml10.includes("teamFilter") && !monthFiltersHtml10.includes("team-select"), "Round 10: the Month filter bar renders with no team select (it never had one — nothing dangles)");
@@ -1396,7 +1396,7 @@ try {
   const r10Ctx = vm.createContext(r10Sandbox);
   vm.runInContext(r10Block, r10Ctx);
   vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div><div class="tile-deck">TILE:14;TILE:15;TILE:99;</div>' && r10Els["#allCount"].textContent === "4 of 4 plays", "behavioral (Round 10): with no team filter, team-tagged AND untagged plays all render — the board behaves as team='all'");
+  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div><div class="tile-deck">TILE:14;TILE:15;TILE:99;</div>' && r10Els["#allCount"].textContent === "4 plays", "behavioral (Round 10/62): with no team filter, team-tagged AND untagged plays all render — the board behaves as team='all' (count format is Round 62's 'N plays')");
   r10Sandbox.allSport = "baseball"; vm.runInContext("renderAll2()", r10Ctx);
   assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div>', "behavioral (Round 10): the sport filter still filters on its own (baseball only)");
   r10Sandbox.allSport = "all"; r10Sandbox.allDiv = "girls"; vm.runInContext("renderAll2()", r10Ctx);
@@ -1407,9 +1407,9 @@ try {
   // (3) Sport jumps: the montage strips retired in Round 44 — the
   // Browse by Sport row under the clips carries the same wiring.
   for (const s of ["baseball", "basketball", "soccer"]) {
-    assert(home.includes(`onclick="goToSportBoard('${s}')"`), `Round 10/44: the ${s} browse-row button is wired to goToSportBoard`);
+    assert(home.includes(`data-sp="${s}"`), `Round 10/62: the ${s} pill sits in the sport pill bar (the goToSportBoard browse row retired in Round 62)`);
   }
-  assert(home.includes("Browse plays by sport") && home.includes("See all plays →") && !home.includes("All sports →"), "Round 44/47: See all plays sits under the clips; Browse by Sport moved above the videos in Round 47 and its All sports link is gone");
+  assert(home.includes("Filter plays by sport") && home.includes("See all plays →") && !home.includes("All sports →"), "Round 44/47/62: See all plays sits under the clips; the sports sit above the videos (the pill bar since Round 62) and the All sports link is gone");
   assert(css.includes(".sport-row") && css.includes(".browse-head"), "Round 44: the browse block has its row + heading styles");
   const g10Calls = [];
   const g10Sandbox = {
@@ -1491,7 +1491,7 @@ try {
   const showHome26 = appJs.slice(appJs.indexOf("function showHome()"), appJs.indexOf("/* One home reset"));
   assert(showHome26.includes('$$(".montage video")') && showHome26.includes("watchMontageVideos"), "Round 11: showHome's block carries the montage resume + the visibility watcher (the Round 4 resume covered hero + HF film only)");
   assert(appJs.includes("e.intersectionRatio >= 0.25") && appJs.includes("e.target.pause()") && appJs.includes("threshold: [0, 0.25]"), "Round 11: the montage observer plays at >=25% visibility and pauses below it");
-  assert(home.includes('onclick="goToSportBoard(\'baseball\')"') && css.includes(".montage video{pointer-events:none}"), "Round 11/44: the sport-jump wiring lives on the Browse by Sport row now (the montage retired in Round 44; its CSS stays harmless in the sheet and its resume code no-ops)");
+  assert(home.includes('data-sp="baseball"') && css.includes(".montage video{pointer-events:none}"), "Round 11/62: the sport filter lives on the pill bar now (was the browse row; the montage retired in Round 44, its CSS stays harmless)");
   const mkVid26 = () => ({ plays: 0, pauses: 0, play() { this.plays++; return Promise.resolve(); }, pause() { this.pauses++; } });
   const montageVids26 = [mkVid26(), mkVid26(), mkVid26()];
   const heroVid26 = mkVid26(), hfVid26 = mkVid26();
@@ -2428,7 +2428,7 @@ try {
   const underAt35 = home.indexOf('id="boardUnder"');
   const hfAt35 = home.indexOf('id="hfExamplesHome"');
   assert(boardAt35 > -1 && underAt35 > boardAt35 && hfAt35 > underAt35, "Round 44: document order is board -> See all/Browse block -> Hype Frame section");
-  assert(home.includes("See all plays →") && home.includes("Browse by sport") && !home.includes("All sports →"), "Round 44/47: under the clips sits See all plays; Browse by Sport moved above the videos in Round 47, All sports link removed");
+  assert(home.includes("See all plays →") && home.includes('id="sportPills"') && !home.includes("All sports →"), "Round 44/47/62: under the clips sits See all plays; the sports live in the pill bar above the videos (the Browse by Sport row retired in Round 62), All sports link removed");
 
   /* ---- 36. Round 27 (2026-11-06): the Hype Sports store rebuild ----
      Emil's direction + resolutions: the store is rebuilt around
