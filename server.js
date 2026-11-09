@@ -246,6 +246,8 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''");
 // text_consent is the uploader's explicit opt-in (unchecked by default);
 // a phone stored WITHOUT consent is never treated as textable.
 try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_phone TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
 // AI-generated seed clips) that show newcomers how the board works.
@@ -896,6 +898,10 @@ const server = http.createServer(async (req, res) => {
         if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM highlights WHERE id=?").get(id))
           return sendJson(res, 400, { ok: false, message: "Unknown play." });
         bumpStat("play_open", String(id));
+      } else if (kind === "story_open") {
+        // Hype Stories (Round 63): key is the episode id ("ep01").
+        if (!/^ep\d{2}$/.test(key)) return sendJson(res, 400, { ok: false, message: "Unknown story." });
+        bumpStat("story_open", key);
       } else if (kind === "referrer") {
         bumpStat("referrer", normalizeReferrerKey(key));
       } else {
@@ -969,8 +975,13 @@ const server = http.createServer(async (req, res) => {
       const athlete = resolveAthlete({ playerName: fields.playerName || "", team: String(fields.team || "").trim(), division, jersey: String(fields.jersey || "").trim(), notifyEmail: String(fields.notifyEmail || "").trim(), athleteChoice: String(fields.athleteChoice || ""), athleteKey: String(fields.athleteKey || "") });
       const guardianPhone = cleanPhone(fields.guardianPhone || "");
       const textConsent = parseConsent(fields.textConsent);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString());
+      // Hype Stories (Round 63, 2026-11-08): a SEPARATE, optional
+      // permission — the guardian agrees the play may be featured
+      // as a story episode on the site and social channels. Board
+      // posting never depends on it.
+      const storyConsent = parseConsent(fields.storyConsent) ? 1 : 0;
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "");
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -1194,7 +1205,7 @@ const server = http.createServer(async (req, res) => {
         // It stays stripped from every public response. Same for the
         // guardian mobile + text opt-in: owner-visible only, and the
         // text_consent flag says whether texting is permitted at all.
-        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "" };
+        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -1264,6 +1275,7 @@ const server = http.createServer(async (req, res) => {
           daily,
         },
         playOpens: { total: sumKind("play_open"), top: topPlays.map((r) => ({ id: r.id, title: r.title, opens: r.opens })) },
+        stories: { total: sumKind("story_open"), byEpisode: db.prepare("SELECT key, SUM(count) AS opens FROM stat_events WHERE kind='story_open' GROUP BY key ORDER BY key ASC").all().map((r) => ({ episode: r.key, opens: r.opens })) },
         referrers,
         totals: {
           votes: db.prepare("SELECT COUNT(*) c FROM votes").get().c,
