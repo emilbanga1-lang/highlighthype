@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=78" />
+<link rel="stylesheet" href="styles.css?v=79" />
 </head>
 <body>
 
@@ -20,6 +20,15 @@
     <a class="brand" href="#top" aria-label="HighlightHype home">
       <img class="brand-logo" src="/logo-crest-header.png" alt="HighlightHype" width="3277" height="608" fetchpriority="high" />
     </a>
+    <!-- Round 76 (2026-11-09, Emil's desktop mockup): on desktop the
+         four main links sit across the header; the hamburger stays
+         for mobile only (styles.css shows/hides each by width). -->
+    <div class="desk-nav" role="navigation" aria-label="Primary">
+      <a href="/?view=all">Watch Highlights</a>
+      <a href="/store">Swag Shop</a>
+      <a href="/my-highlights">My Highlights</a>
+      <a href="/how-it-works">How It Works</a>
+    </div>
     <!-- Round 12 (2026-11-05): the header store control (Round 9's
          button, Round 10's muted pill, Round 11's plain "Swag"
          link) is GONE — the owner found it weirdly floating in
@@ -1032,6 +1041,6 @@
   </div>
 </div>
 
-<script src="app.js?v=78"></script>
+<script src="app.js?v=79"></script>
 </body>
 </html>

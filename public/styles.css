@@ -2083,3 +2083,41 @@
     .final{padding:20px 0 26px}
     footer{padding-bottom:36px}
   }
+
+  /* ===== Round 76 (2026-11-09, Emil's desktop mockup): header links
+     across the top, an even three-column All Hypes grid, Stories and
+     Hype Frame side by side (image left, words + action right), and
+     a smaller finish. Desktop only — mobile untouched. ===== */
+  .desk-nav{display:none}
+  @media (min-width:1024px){
+    .desk-nav{display:flex;align-items:center;gap:36px;margin-left:auto}
+    .desk-nav a{color:#fff;text-decoration:none;font-weight:700;font-size:15.5px;letter-spacing:.01em;white-space:nowrap}
+    .desk-nav a:hover{color:var(--volt)}
+    .menu-btn{display:none}
+    /* All Hypes: the featured tile takes a normal cell — three equal
+       columns. The full-width featured span stays on Hype of the
+       Month's board (#board), where it signals something special. */
+    #allBoard{grid-template-columns:repeat(3,1fr)}
+    #allBoard > .tile-featured-slot > .tile{grid-column:auto}
+    #allBoard > .tile-featured-slot > .tile .tile-title{font-size:17px}
+    #allBoard > .tile-featured-slot > .tile .tile-disc{width:52px;height:52px}
+    /* Hype Stories: poster left; kicker, title, sub and the story
+       meta stack on the right as one feature. */
+    .stories .wrap{display:grid;grid-template-columns:1.12fr .88fr;column-gap:36px;align-items:start}
+    .stories .story-card{display:contents}
+    .stories .story-media{grid-column:1;grid-row:1/6;border-radius:20px;overflow:hidden}
+    .stories .sec-tag{grid-column:2;grid-row:1}
+    .stories .stories-title{grid-column:2;grid-row:2}
+    .stories .stories-sub{grid-column:2;grid-row:3}
+    .stories .story-meta{grid-column:2;grid-row:4}
+    /* Hype Frame: the film figure left; head, steps and the Create
+       link on the right, inside the existing panel. */
+    #hfExamplesHome{display:grid;grid-template-columns:1.05fr .95fr;column-gap:32px;align-items:start}
+    #hfExamplesHome .hf-hero-fig{grid-column:1;grid-row:1/4;margin:0}
+    #hfExamplesHome .hf-examples-head{grid-column:2;grid-row:1}
+    #hfExamplesHome .hf-steps{grid-column:2;grid-row:2}
+    #hfExamplesHome .hf-create-row{grid-column:2;grid-row:3;text-align:left}
+    /* The finish: final heading and footer logo a little smaller. */
+    .final h2{font-size:clamp(40px,4.6vw,60px)}
+    .footer-lockup{width:min(340px,88vw)}
+  }
