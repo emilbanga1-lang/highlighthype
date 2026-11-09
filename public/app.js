@@ -2537,4 +2537,11 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
      wide poster instead of sitting on the player's black end
      frame — the poster + play disc is the replay button. */
   video.addEventListener("ended", toPoster);
+  /* Round 81 note (2026-11-09): do NOT add a click-to-pause
+     handler here — with native controls on, a picture click
+     already toggles play/pause in the browser, and a second
+     handler fires after it and toggles straight back (verified:
+     one click produced pause+play events, net zero). The pause
+     fix is the height cap in styles.css, which keeps the
+     control bar on screen. */
 })();
