@@ -1626,7 +1626,7 @@ try {
   assert(!headerBlock27.includes(">Swag</a>") && headerBlock27.includes('id="menuBtn"') && headerBlock27.includes('class="brand"') && headerBlock27.includes("nav-swag"), "Round 12: the header renders logo + ☰ only — no store anchor floats in the bar; the menu (with its store entry) is intact");
   assert(!css.includes(".nav .menu-btn{margin-left:0}") && css.includes(".menu-btn{margin-left:auto"), "Round 12: the Round 9 margin override is gone — the base .menu-btn rule's margin-left:auto pushes the ☰ back to the right edge");
   const storeAnchors27 = [...home.matchAll(/<a [^>]*data-store-link[^>]*>/g)].map((m) => m[0]);
-  assert(storeAnchors27.length === 5 && storeAnchors27.some((a) => a.includes("nav-swag")) && storeAnchors27.some((a) => a.includes("btn-hero")) && storeAnchors27.some((a) => a.includes('data-store-target="hype-boys"')) && storeAnchors27.some((a) => a.includes('data-store-target="hype-girls"')), "Round 12: exactly five data-store-link anchors remain — the ☰ menu entry, the Store Entry Card, its two door links and the final CTA (the header's was the sixth)");
+  assert(storeAnchors27.length === 4 && storeAnchors27.some((a) => a.includes("btn-hero")) && storeAnchors27.some((a) => a.includes('data-store-target="hype-boys"')) && storeAnchors27.some((a) => a.includes('data-store-target="hype-girls"')), "Round 12/51: exactly four data-store-link anchors remain — the Store Entry Card, its two door links and the final CTA (the ☰ menu entry became the real /store page link in Round 51)");
   // Drive the REAL [data-store-link] handler line from app.js:
   // every remaining store anchor must still land in showStore.
   const linkLine27 = appJs.slice(appJs.indexOf('$$("[data-store-link]")'), appJs.indexOf("\n", appJs.indexOf('$$("[data-store-link]")')));
@@ -2568,11 +2568,11 @@ try {
      to the nav block: both removed labels legitimately live on
      elsewhere (the store hero button, the product views). ---- */
   const menu38 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
-  const kept38 = ['id="menuAllHypes"', 'data-panel-btn="mine"', 'data-panel-btn="how"', "Swag Shop — Rep The Hype"];
+  const kept38 = ['id="menuAllHypes"', 'href="/my-highlights"', 'href="/how-it-works"', "Swag Shop — Rep The Hype"];
   const keptIdx38 = kept38.map((m) => menu38.indexOf(m));
   assert(keptIdx38.every((v) => v > -1), "Round 29: the menu keeps All Hypes, My Highlights, How It Works and Swag Shop — Rep The Hype");
   assert(keptIdx38.every((v, i) => i === 0 || v > keptIdx38[i - 1]), "Round 29: the four kept menu items appear in the approved order");
-  assert((menu38.match(/<button type="button"|<a class="nav-swag"/g) || []).length === 4, "Round 29: the menu contains EXACTLY four entries (three buttons + the swag anchor)");
+  assert((menu38.match(/<a /g) || []).length === 4 && !menu38.includes("<button"), "Round 51: the menu contains EXACTLY four entries — all real page links now, no buttons");
   assert(!menu38.includes('data-panel-btn="plays"') && !menu38.includes(">Plays</button>"), "Round 29: the 'Plays' header row is gone from the menu (the panels' Back-to-the-board buttons sit outside the menu and stay)");
   assert(!menu38.includes('id="menuHsBtn"') && !menu38.includes("menu-group") && (menu38.match(/data-hs-menu="/g) || []).length === 0 && !menu38.includes("Shop Hype Sports"), "Round 29: no Shop Hype Sports group markup remains inside the menu (the label still names the store's hero button, outside the menu)");
   assert(!appJs.includes("menuHsBtn") && !appJs.includes("menuHsList") && !appJs.includes("dataset.hsMenu"), "Round 29: the menu-group-only wiring is gone from app.js (store tiles/cards still open views via data-hs-open / openHsView)");
