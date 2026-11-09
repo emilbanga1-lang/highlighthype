@@ -2448,34 +2448,19 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
 })();
 
-/* ---------------- Round 62 (2026-11-08): board controls ----------------
+/* ---------------- Rounds 62 + 67: board controls ----------------
    The sport pill bar filters the visible board in place (Month
    writes monthSport; Fame jumps to All Hypes like the old browse
-   row did; All writes allSport). More expands the full list. The
-   Filter buttons open each view's filter popover (the division
-   seg; the sport <select> stays in the DOM, CSS-hidden, because
-   renderSportSelect/syncFilterUI still run through it). */
+   row did; All writes allSport). Round 67 (2026-11-09, Emil): the
+   bar is one sideways-scrolling row (no More button), and each
+   view's division seg sits visible in its board-tools row - the
+   Filter popover is retired. The sport <select> stays in the DOM,
+   CSS-hidden, because renderSportSelect/syncFilterUI run on it. */
 $$("#sportPills .sp-pill").forEach((b) => {
   b.onclick = () => {
     const sp = b.dataset.sp;
     if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
     else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
-  };
-});
-const spMoreBtn = $("#spMore");
-if (spMoreBtn) spMoreBtn.onclick = () => {
-  const bar = $("#sportPills");
-  const open = bar.classList.toggle("expanded");
-  spMoreBtn.setAttribute("aria-expanded", String(open));
-  spMoreBtn.innerHTML = open ? 'Less <span aria-hidden="true">⌃</span>' : 'More <span aria-hidden="true">⌄</span>';
-};
-$$("[data-filter-btn]").forEach((btn) => {
-  btn.onclick = () => {
-    const pop = document.getElementById(btn.dataset.filterBtn);
-    if (!pop) return;
-    const willShow = pop.hidden;
-    pop.hidden = !willShow;
-    btn.setAttribute("aria-expanded", String(willShow));
   };
 });
 window.openGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = false; };
