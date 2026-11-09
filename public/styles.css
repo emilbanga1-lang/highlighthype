@@ -1281,8 +1281,14 @@
      (hero h1, .sec-head h2, .sec-tag, store + final + HF heads —
      edited in place above). Below: the board's featured first play,
      the under-the-clips block, and the homepage Hype Frame hero. */
-  .tile-grid > .tile:first-child{grid-column:1/-1}
-  .tile-grid > .tile:first-child .tile-title{font-size:clamp(22px,3.6vw,30px)}
+  /* Round 54 (2026-11-08): the first tile renders inside
+     .tile-featured-slot and the rest inside .tile-deck (app.js
+     boardHtml). display:contents keeps the desktop grid exactly
+     as it was — the wrappers only take layout on phones. */
+  .tile-featured-slot{display:contents}
+  .tile-deck{display:contents}
+  .tile-grid > .tile-featured-slot > .tile{grid-column:1/-1}
+  .tile-grid > .tile-featured-slot > .tile .tile-title{font-size:clamp(22px,3.6vw,30px)}
   .board-under{margin-top:20px}
   .see-all-row{margin:0 0 24px}
   .see-all-link{color:#fff;font-weight:700;font-size:16px;text-decoration:underline;text-underline-offset:4px}
@@ -1305,7 +1311,7 @@
      tile (Emil's pick); the full card keeps the long labels. */
   .tile-disc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;pointer-events:none;width:52px;height:52px;border-radius:50%;background:rgba(5,5,5,.45);border:2px solid rgba(255,255,255,.92);display:grid;place-items:center}
   .tile-disc svg{margin-left:2px}
-  .tile-grid > .tile:first-child .tile-disc{width:74px;height:74px}
+  .tile-grid > .tile-featured-slot > .tile .tile-disc{width:74px;height:74px}
   .tile-toprow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   .tile-toprow .tile-title{flex:1;min-width:0}
   .tile-title{font-style:italic;font-size:17px}
@@ -1313,18 +1319,17 @@
   .tile .votebtn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:transparent}
   .tile-votes{justify-content:flex-end}
   .tile-hf-btn{font-size:12px;padding:5px 10px}
-  /* Round 46 (2026-11-08, Emil's pick): on PHONES the board is a
-     swipe deck, not a scroll grid — each play gets a near-full-width
-     card and the next peeks from the right edge. Desktop keeps the
-     comparative grid untouched (same markup, arrangement only).
-     The featured span rule is grid-only and simply doesn't apply
-     in the flex deck; the first card is sized up instead. */
+  /* Round 54 (2026-11-08, Emil): on PHONES the board takes the
+     mock's shape — the featured play sits LARGE and static on
+     top, and the rest run smaller in a two-up swipe deck under
+     it (Round 46's one-big-deck is superseded). Desktop keeps
+     the comparative grid untouched. */
   @media (max-width:699px){
-    .tile-grid{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;scrollbar-width:none}
-    .tile-grid::-webkit-scrollbar{display:none}
-    .tile-grid > .tile{flex:0 0 90%;scroll-snap-align:start}
-    .tile-grid > .tile:first-child{flex-basis:97%}
-    .tile-grid > .tile:only-child{flex-basis:100%}
+    .tile-grid{display:block}
+    .tile-featured-slot{display:block;margin-bottom:12px}
+    .tile-deck{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;scrollbar-width:none}
+    .tile-deck::-webkit-scrollbar{display:none}
+    .tile-deck > .tile{flex:0 0 47.5%;scroll-snap-align:start}
   }
   /* Round 47 (2026-11-08): the Browse by Sport row now sits above
      the videos — a little air under the board intro, and breathing
@@ -1378,16 +1383,16 @@
     .shop .hs-grid{grid-template-columns:repeat(2,1fr);gap:12px}
     .hs-hero .hs-hero-img{object-position:50% 42%}
   }
-  /* ---- Round 53 (2026-11-08): the BOARD takes the mock's
+  /* ---- Round 53/54 (2026-11-08): the BOARD takes the mock's
      atmosphere — a stadium-crowd backdrop (a frame from Emil's
-     own B15 lineup shot, graded dark and teal) fading down the
-     board; Browse by Sport back under the tiles with See all
-     plays below it. ---- */
+     own B15 lineup shot, blurred and graded dark teal in 54)
+     fading down the board. (Browse by Sport spent one round
+     under the tiles in 53; Emil restored it above the videos
+     in 54 — the base .browse-sports margin rules apply.) ---- */
   #plays{position:relative}
-  .board-bg{position:absolute;top:0;left:0;right:0;height:640px;background:url(/board-bg.jpg) center top/cover no-repeat;opacity:.5;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 20%,transparent 97%);mask-image:linear-gradient(180deg,#000 20%,transparent 97%)}
+  .board-bg{position:absolute;top:0;left:0;right:0;height:780px;background:url(/board-bg.jpg?v=2) center top/cover no-repeat;opacity:.55;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 20%,transparent 97%);mask-image:linear-gradient(180deg,#000 20%,transparent 97%)}
   #plays .wrap{position:relative;z-index:1}
   .sport-row button:last-child{border-right:0}
-  .board-under .browse-sports{margin:30px 0 6px}
   /* Round 48 (2026-11-08): the homepage Hype Frame film under a
      cream-hoodie cover. The box is the film's own 16:9, so the tap
      swaps cover for film with no layout shift; the cover image is
@@ -1892,3 +1897,16 @@
     .hsv-size{flex:1 1 30%;min-height:56px;font-size:16px}
     .hsv-info h4{font-size:30px}
   }
+
+  /* ---- Round 55 (2026-11-08, Emil): REP THE HYPE takes the
+     mock's photo band — full-bleed night-game photo, three lines
+     over a left shade, the whole band is the Store link. The
+     Drop 001 swag film leaves the home page (file kept). ---- */
+  .store-cta{padding:0;background:transparent;border-top:0}
+  .rep-band{position:relative;display:block;overflow:hidden;text-decoration:none}
+  .rep-band img{display:block;width:100%;height:min(54vw,440px);object-fit:cover;object-position:72% 50%}
+  .rep-band-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,6,10,.80) 0%,rgba(3,6,10,.45) 42%,rgba(3,6,10,0) 68%)}
+  .rep-band-text{position:absolute;left:0;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 6vw}
+  .rep-band-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;color:#fff;font-size:clamp(34px,6.5vw,64px);line-height:1}
+  .rep-band-drop{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;color:var(--gold);font-size:clamp(18px,3vw,28px)}
+  .rep-band-link{color:#fff;font-weight:700;font-size:17px;text-decoration:underline;text-underline-offset:5px;margin-top:8px}

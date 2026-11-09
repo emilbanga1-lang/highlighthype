@@ -584,7 +584,12 @@ function renderMonth() {
       <div class="pod-text"><div class="who">${esc(h.title)}</div><div class="what">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"} · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} this month</div></div></div>
     </div>`).join("") : `<div class="pod"><div class="pod-text"><div class="who">No entries yet this month</div><div class="what">Enter an approved play to start the board.</div></div></div>`;
   const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
-  $("#board").innerHTML = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount })).join("");
+  // Round 54: first tile into .tile-featured-slot, the rest into
+  // .tile-deck (display:contents on desktop, stacked + swipe deck
+  // on phones — see styles.css). Inlined at both render sites: the
+  // test suites slice these functions separately.
+  const monthTiles = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount }));
+  $("#board").innerHTML = monthTiles.length ? `<div class="tile-featured-slot">${monthTiles[0]}</div>` + (monthTiles.length > 1 ? `<div class="tile-deck">${monthTiles.slice(1).join("")}</div>` : "") : "";
   hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
   /* Round 9: (a) the never-disappear line — keyed to the CURRENT
@@ -696,7 +701,8 @@ function renderAll2() { /* All Hypes view */
   $("#allCount").textContent = `${filtered.length} of ${ALL_PLAYS.length} plays`;
   const emptyEl = $("#allEmpty");
   emptyEl.textContent = "No plays match — try a different board, sport, or search.";
-  $("#allBoard").innerHTML = filtered.map((h, i) => tileHtml(h, { rank: i + 1 })).join("");
+  const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
+  $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${allTiles.slice(1).join("")}</div>` : "") : "";
   hydrateDurPills();
   emptyEl.style.display = filtered.length ? "none" : "block";
 }

@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=54" />
+<link rel="stylesheet" href="styles.css?v=56" />
 </head>
 <body>
 
@@ -124,6 +124,38 @@
     </div>
 
 
+
+    <!-- Round 54 (2026-11-08, Emil): Browse by Sport back
+         ABOVE the videos (the Round 47 placement he prefers);
+         it spent one round under the tiles (53). Tapping a sport
+         jumps to the All Hypes board filtered to it. -->
+    <div class="browse-sports">
+      <div class="browse-head">
+        <h3>Browse by sport</h3>
+      </div>
+      <div class="sport-row" role="group" aria-label="Browse plays by sport">
+        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
+        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
+        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
+        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
+        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
+        <button type="button" onclick="goToSportBoard('football')">Football</button>
+        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
+        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
+        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
+        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
+        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
+        <button type="button" onclick="goToSportBoard('other')">Other</button>
+        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
+        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
+        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
+        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
+        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
+        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
+        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
+      </div>
+    </div>
+
     <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
       <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
@@ -179,36 +211,6 @@
          Hypes view. Round 53: it sits below Browse by Sport. -->
     <div class="board-under" id="boardUnder">
 
-    <!-- Round 53 (2026-11-08, Emil): Browse by Sport sits under
-         the videos again, with See all plays below it — the
-         concept mock's board order (featured, tiles, browse,
-         see all). It was above the videos for one round (47). -->
-    <div class="browse-sports">
-      <div class="browse-head">
-        <h3>Browse by sport</h3>
-      </div>
-      <div class="sport-row" role="group" aria-label="Browse plays by sport">
-        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
-        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
-        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
-        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
-        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
-        <button type="button" onclick="goToSportBoard('football')">Football</button>
-        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
-        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
-        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
-        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
-        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
-        <button type="button" onclick="goToSportBoard('other')">Other</button>
-        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
-        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
-        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
-        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
-        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
-        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
-        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
-      </div>
-    </div>
       <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
     </div>
 
@@ -615,29 +617,21 @@
   </div>
 </div>
 
-<!-- ============ STORE ENTRY CARD ============ -->
+<!-- ============ REP THE HYPE (Round 55, 2026-11-08) ============
+     The mock's photo band replaces the Drop 001 film card: the
+     swag film is OFF the home page for now (the file stays on
+     the server to use again later, per Emil). One photo, three
+     lines, one link — the whole band opens the Store. -->
 <div class="store-cta view-home">
-  <div class="wrap">
-    <article class="store-card" aria-label="Wear The Hype — the Drop 001 store">
-      <div class="store-card-media">
-        <video src="/swag-film.mp4" poster="/swag-poster-v6.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Drop 001 swag film — youth wearing the Hype Girls and Hype Boys Drop 001 hoodies"></video>
-        <span class="store-card-badge"><span class="dot"></span> Drop 001 · The Film</span>
-      </div>
-      <div class="store-card-body">
-        <span class="sec-tag" style="margin-bottom:0">Rep The Hype · Drop 001</span>
-        <h2>Rep the <span class="lime">hype</span></h2>
-        <p>Bold, youth-first apparel that turns community into identity. The film, the lookbook, and both collections live in the Store.</p>
-        <div class="store-cta-actions">
-          <a class="btn btn-lime btn-hero" href="#shop" data-store-link>Enter the Store</a>
-          <div class="store-cta-sub">
-            <a href="#hype-boys" data-store-link data-store-target="hype-boys">Hype Boys</a>
-            <span aria-hidden="true">·</span>
-            <a class="girls-link" href="#hype-girls" data-store-link data-store-target="hype-girls">Hype Girls</a>
-          </div>
-        </div>
-      </div>
-    </article>
-  </div>
+  <a class="rep-band" href="/store" data-store-link aria-label="Rep The Hype — Drop 001. Shop the Drop">
+    <img src="/swag/rep-hype-band.jpg" alt="A young ballplayer under stadium lights at night, wearing the black Hype Sports Baseball hoodie">
+    <span class="rep-band-shade" aria-hidden="true"></span>
+    <span class="rep-band-text">
+      <span class="rep-band-title">Rep the Hype</span>
+      <span class="rep-band-drop">Drop 001</span>
+      <span class="rep-band-link">Shop the Drop →</span>
+    </span>
+  </a>
 </div>
 
 <!-- ============ THE STORE ============ -->
@@ -967,6 +961,6 @@
   </div>
 </div>
 
-<script src="app.js?v=54"></script>
+<script src="app.js?v=56"></script>
 </body>
 </html>
