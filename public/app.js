@@ -993,6 +993,8 @@ function switchView(v) {
   $("#chipMonth").style.display = v === "month" ? "" : "none";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   $("#boardTitle").innerHTML = v === "month" ? `Hype of the Month` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
+  /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
+  $("#boardIntro").textContent = v === "month" ? "Athletes post their plays. Your votes crown the winner." : v === "fame" ? "The most-voted plays of all time." : "Watch plays from every sport.";
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
@@ -2402,10 +2404,10 @@ window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/stat
 // mark, keeping the play's current status).
 window.setSample = async (id, status, sample) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status, sample }) }); loadOwner(); loadData(); };
 window.deletePlay = async (id) => { if (!confirm("Delete this play permanently?")) return; await api(`/api/highlights/${id}`, { method: "DELETE" }); loadOwner(); loadData(); };
-$("#ownerBtn").addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
+const ownerBtnEl = $("#ownerBtn"); if (ownerBtnEl) ownerBtnEl.addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
 $("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); setOwnerToken(r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
-$("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMsg"); m.textContent = "Sending…"; try { const r = await api("/api/moderate/request"); m.textContent = r.message; } catch (e) { m.textContent = e.message; } });
+const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventListener("click", async () => { const m = $("#modLinkMsg"); m.textContent = "Sending…"; try { const r = await api("/api/moderate/request"); m.textContent = r.message; } catch (e) { m.textContent = e.message; } });
 
 /* ---------------- boot / hashes ---------------- */
 (function boot() {
@@ -2486,4 +2488,21 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
   };
   cover.addEventListener("click", start);
   if (watch) watch.addEventListener("click", start);
+})();
+
+/* ===== Round 69 (2026-11-09, Emil): the floating Post button
+   hides itself whenever a submit control is already on screen
+   (hero, board band, story link, final section) and returns when
+   none is visible. No observer support = it simply stays. ===== */
+(function fabAutoHide69() {
+  const fab = document.getElementById("floatSubmit");
+  if (!fab || !("IntersectionObserver" in window)) return;
+  const targets = document.querySelectorAll("[data-submit-link]");
+  if (!targets.length) return;
+  const seen = new Set();
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
+    fab.classList.toggle("fab-auto-hidden", seen.size > 0);
+  }, { threshold: 0.2 });
+  targets.forEach((t) => io.observe(t));
 })();

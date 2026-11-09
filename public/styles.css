@@ -166,6 +166,7 @@
   .float-submit{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:55;display:inline-flex;align-items:center;gap:7px;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:800;font-size:14.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 10px 28px rgba(0,0,0,.5),0 2px 8px rgba(0,0,0,.4);transition:background .15s ease,transform .15s ease,opacity .15s ease,visibility 0s}
   .float-submit:hover{background:#d9ff4d}
   .float-submit:active{transform:scale(.97)}
+  .float-submit.fab-auto-hidden{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px)}
   body.store-open .float-submit{display:none}
   /* Round 11 (2026-11-05) faded the pill out while the in-page
      form was on screen (its perch covered the form's Girls
@@ -2001,10 +2002,10 @@
   .stories{background:radial-gradient(640px 360px at 50% 0%,rgba(243,205,107,.14),rgba(243,205,107,0) 70%),linear-gradient(180deg,#0e0c07 0%,var(--bg) 92%)}
   #hypeframe{background:radial-gradient(760px 420px at 50% 0%,rgba(255,176,66,.10),rgba(255,176,66,0) 70%),linear-gradient(180deg,#130d07 0%,var(--bg) 88%)}
   .story-card{background:#101114;border:1px solid #232329;border-radius:20px;overflow:hidden}
-  .story-media{position:relative;width:min(100%,340px);margin:0 auto}
-  .story-media video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+  .story-media{position:relative;width:100%;margin:0}
+  .story-media video{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#000}
   .story-cover{display:block;position:relative;width:100%;padding:0;border:0;background:#000;cursor:pointer}
-  .story-cover img{display:block;width:100%;aspect-ratio:9/16;object-fit:cover}
+  .story-cover img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
   .story-badge{position:absolute;top:12px;left:12px;background:rgba(10,10,12,.82);color:#f2c14e;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:.72rem;padding:7px 10px;border-radius:8px;border-left:3px solid #f2c14e}
   .story-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:#f2c14e;color:#141414;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 10px 34px rgba(0,0,0,.5)}
   .story-dur{position:absolute;right:12px;bottom:12px;background:rgba(0,0,0,.78);color:#fff;font-size:.78rem;font-weight:700;padding:4px 8px;border-radius:7px}
@@ -2015,7 +2016,7 @@
   .story-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
   .story-submit{color:var(--volt);font-weight:700;text-decoration:none}
   @media (min-width:820px){
-    .story-card{display:grid;grid-template-columns:320px 1fr;align-items:stretch}
+    .story-card{display:block}
     .story-media{width:100%;margin:0}
     .story-meta{display:flex;flex-direction:column;justify-content:center;padding:34px}
   }
