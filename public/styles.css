@@ -1973,3 +1973,9 @@
      own z-index. The tools anchor must out-rank its siblings. */
   #plays .tools-anchor{position:relative;z-index:60}
   .guidelines-modal{z-index:120}
+
+  /* ---- Round 62c (2026-11-08): while the upload overlay is open,
+     no panel animation may run — the form used to ghost/blur on
+     iOS inside the panel's entry animation. (The form node also
+     moves to <body> level while open; see openUploadOverlay.) */
+  body.upload-open .panel.active{animation:none}

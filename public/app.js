@@ -1115,15 +1115,44 @@ function goSubmit() {
      the only way in, on every screen. */
   openUploadOverlay();
 }
-/* Round 22: the overlay is the SAME form node — never moved, never
+/* Round 22: the overlay is the SAME form node — never cloned or
    duplicated — so a half-filled form keeps every field (and the
    picked clip) across open/close. upload-used persists after the
    first open: it retires the plays panel's entry animation, whose
    fill-both transform would otherwise become the fixed form's
    containing block and trap it inside the panel instead of the
-   viewport (and would replay the panel fade on every close). */
-function openUploadOverlay() { document.body.classList.add("upload-open", "upload-used"); const f = document.getElementById("uploadForm"); if (f) f.scrollTop = 0; }
-function closeUploadOverlay() { document.body.classList.remove("upload-open"); }
+   viewport (and would replay the panel fade on every close).
+   Round 62c (2026-11-08): on iOS the form STILL rendered as a
+   blurred, ghosted layer inside the panel (Emil, Safari +
+   in-app browser) — an animated/filtered ancestor was poisoning
+   the fixed layer despite upload-used. The robust fix: while the
+   overlay is open the form node is reparented to <body> (moved,
+   not cloned — field state survives), and restored to its exact
+   original spot on close. No ancestor can trap it at body level. */
+let uploadHomeSpot = null;
+function openUploadOverlay() {
+  const f = document.getElementById("uploadForm");
+  try {
+    if (f && f.parentNode !== document.body) {
+      uploadHomeSpot = document.createComment("upload-form-home");
+      f.parentNode.insertBefore(uploadHomeSpot, f);
+      document.body.appendChild(f);
+    }
+  } catch (_) { /* sandboxes without a full DOM skip the move */ }
+  document.body.classList.add("upload-open", "upload-used");
+  if (f) f.scrollTop = 0;
+}
+function closeUploadOverlay() {
+  document.body.classList.remove("upload-open");
+  const f = document.getElementById("uploadForm");
+  try {
+    if (f && uploadHomeSpot && uploadHomeSpot.parentNode) {
+      uploadHomeSpot.parentNode.insertBefore(f, uploadHomeSpot);
+      uploadHomeSpot.remove();
+    }
+  } catch (_) { /* same guard as open */ }
+  uploadHomeSpot = null;
+}
 $("#floatSubmit").addEventListener("click", goSubmit);
 /* Round 11 (2026-11-05) hid the pill while the in-page form was
    on screen — an observer faded it out, because its fixed perch
