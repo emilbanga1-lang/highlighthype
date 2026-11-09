@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<title>HighlightHype — Every Athlete Deserves The Hype</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="preload" as="image" href="/logo-crest-header.png" fetchpriority="high">
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=69" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="HighlightHype home">
+      <img class="brand-logo" src="/logo-crest-header.png" alt="HighlightHype" width="3277" height="608" fetchpriority="high" />
+    </a>
+    <!-- Round 12 (2026-11-05): the header store control (Round 9's
+         button, Round 10's muted pill, Round 11's plain "Swag"
+         link) is GONE — the owner found it weirdly floating in
+         the bar. The store stays reachable via the ☰ menu entry
+         below, the Store Entry Card and the store doors. -->
+    <button type="button" class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="navMenu">☰</button>
+    <!-- Round 29 (2026-11-06): the menu is slimmed to exactly four
+         items — Emil: "too many options." Gone: the "Plays" header
+         row (it duplicated All Hypes), the expandable Shop Hype
+         Sports group (the store's own sport tiles do that job), and
+         the menu's Size Guide entry (the shared size-guide overlay
+         stays; every product view's Size Guide link still opens it). -->
+    <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
+      <!-- Round 51 (2026-11-08, Emil): the menu items are REAL
+           pages now — each has its own URL and loads on its own
+           (the boot router in app.js opens the matching view and
+           page-mode hides the home flow). The panels' in-page
+           Back-to-the-board buttons keep their data-panel-btn
+           wiring; only the menu went full-page. -->
+      <a href="/?view=all" id="menuAllHypes">All Hypes</a>
+      <a href="/my-highlights">My Highlights</a>
+      <a href="/how-it-works">How it works</a>
+      <a class="nav-swag" href="/store">Swag Shop — Rep The Hype</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Round 22 (2026-11-06): on phones this becomes a compact round
+     FAB (icon only — the label span is hidden ≤760px in styles.css)
+     and tapping it opens the upload form as a full-screen overlay
+     instead of scrolling the long page. Desktop keeps the pill. -->
+<button type="button" class="float-submit" id="floatSubmit" aria-label="Submit a Hype — go to the upload form"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span class="float-submit-label">Submit a Hype</span><span class="float-submit-short">Post</span></button>
+
+<!-- ============ HERO ============ -->
+<div class="hero view-home" id="top">
+  <div class="hero-media">
+    <video id="heroVideo" src="/hero-film.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
+  </div>
+  <div class="hero-scrim"></div>
+  <div class="wrap hero-content">
+    <h1>Every athlete deserves the <span class="lime">hype.</span></h1>
+    <p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
+      <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Submit a Hype</a>
+    </div>
+  </div>
+  <button type="button" class="hero-mute" id="heroMute" aria-label="Unmute the film">🔇</button>
+</div>
+
+<!-- ============ TRUST STRIP ============ -->
+<div class="trust view-home">
+  <div class="wrap">
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>
+      <div>
+        <h3>Every Athlete Has a Moment</h3>
+        <p>The first goal, the diving catch, the personal best — not just the MVP.</p>
+      </div>
+    </div>
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.4"/><path d="M3.5 19.5c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><circle cx="17" cy="9" r="2.7"/><path d="M15.8 14.9c2.3.2 4 1.6 4.6 4.1"/></svg>
+      <div>
+        <h3>The Hype Generation</h3>
+        <p>A community young athletes are excited to wear, share, and belong to.</p>
+      </div>
+    </div>
+    <div class="t">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 2.6v5.2c0 4.6-3 8-7 9.7-4-1.7-7-5.1-7-9.7V5.6z"/><path d="M9 11.8l2.2 2.2 4-4.2"/></svg>
+      <div>
+        <h3>Moments That Last</h3>
+        <p>A safe, parent-managed place to preserve big plays and memories.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DECK ============ -->
+<div class="deck view-home" id="deck">
+
+<!-- ============ BOARD ============ -->
+<section class="panel active" id="plays" data-panel="plays">
+    <div class="board-bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <!-- Round 61 (2026-11-08, Emil): the whole strip is off the
+         home page — first the private-beta headline (Round 59),
+         then the safety-rules list too, at his direction. The
+         rules themselves still govern uploads and moderation;
+         they just no longer sit above the board. -->
+
+    <div class="sec-head">
+      <span class="sec-tag" id="boardTag">The board</span>
+      <div class="sec-head-row">
+        <h2 id="boardTitle">Hype of the Month</h2>
+        <div class="count-chip" id="chipMonth">Voting ends in <b id="countdown">—</b></div>
+      </div>
+      <p id="boardIntro">Athletes post their plays. Your votes crown the winner.</p>
+    </div>
+
+
+
+    <!-- Round 62 (2026-11-08, Emil's board mock): the view
+         toggles move ABOVE the sports (sports stay above the
+         videos), and Browse by Sport becomes his pill bar — All
+         Sports + the first sports, with More expanding the rest.
+         The pills filter the board in place, through the same
+         monthSport / allSport state the dropdowns wrote. -->
+    <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
+      <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
+      <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
+      <button type="button" data-view="all" aria-pressed="false">All Hypes</button>
+    </div>
+
+    <div class="sport-pills" id="sportPills">
+      <div class="sport-pills-row" role="group" aria-label="Filter plays by sport">
+        <button type="button" class="sp-pill" data-sp="all">All Sports</button>
+        <button type="button" class="sp-pill" data-sp="baseball">Baseball</button>
+        <button type="button" class="sp-pill" data-sp="basketball">Basketball</button>
+        <button type="button" class="sp-pill" data-sp="cheer">Cheer</button>
+        <button type="button" class="sp-pill" data-sp="dance">Dance</button>
+        <button type="button" class="sp-pill" data-sp="fieldhockey">Field Hockey</button>
+        <button type="button" class="sp-pill" data-sp="football">Football</button>
+        <button type="button" class="sp-pill" data-sp="golf">Golf</button>
+        <button type="button" class="sp-pill" data-sp="gymnastics">Gymnastics</button>
+        <button type="button" class="sp-pill" data-sp="hockey">Hockey</button>
+        <button type="button" class="sp-pill" data-sp="lacrosse">Lacrosse</button>
+        <button type="button" class="sp-pill" data-sp="martialarts">Martial Arts</button>
+        <button type="button" class="sp-pill" data-sp="other">Other</button>
+        <button type="button" class="sp-pill" data-sp="soccer">Soccer</button>
+        <button type="button" class="sp-pill" data-sp="softball">Softball</button>
+        <button type="button" class="sp-pill" data-sp="swimming">Swimming</button>
+        <button type="button" class="sp-pill" data-sp="tennis">Tennis</button>
+        <button type="button" class="sp-pill" data-sp="track">Track &amp; Field</button>
+        <button type="button" class="sp-pill" data-sp="volleyball">Volleyball</button>
+        <button type="button" class="sp-pill" data-sp="wrestling">Wrestling</button>
+        <button type="button" class="sp-more" id="spMore" aria-expanded="false">More <span aria-hidden="true">⌄</span></button>
+      </div>
+    </div>
+
+    <div id="viewMonth">
+      <!-- Round 9 (2026-11-05): last month's winner strip — filled by
+           renderMonth from the previous period's contest ONLY when a
+           winner was actually crowned; stays hidden (empty) until
+           then. No placeholder, no fake winner. -->
+      <div class="last-winner" id="lastWinner" hidden></div>
+      <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
+      <div class="tools-anchor">
+        <div class="board-tools">
+          <span></span>
+          <button type="button" class="filter-btn" data-filter-btn="boardFilters" aria-expanded="false" aria-controls="boardFilters"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2.2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2.2"/></svg> Filter</button>
+        </div>
+        <div class="filters" id="boardFilters" hidden>
+        <span class="filter-pop-label">Division</span>
+        <div class="seg" role="group" aria-label="Division" id="monthDivSeg">
+          <button type="button" data-div="boys" aria-pressed="true">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
+        <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
+        </div>
+      </div>
+      <div class="tile-grid" id="board"></div>
+      <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
+      <!-- Round 9 (2026-11-05): Nicholas worried a play "deletes"
+           when the month ends — it never does. This line shows
+           whenever the current month has no entries (renderMonth). -->
+      <p class="board-note never-disappear" id="neverDisappear" hidden>Plays never disappear — when a month ends, its plays stay in All Hypes.</p>
+      <p class="board-note">This is the live board: plays here were uploaded by families and approved by the owner. A few early plays marked ⭐ SAMPLE PLAY are demos posted by HighlightHype to show how it works. Tap a player's name on any card to see all of that athlete's plays.</p>
+    </div>
+
+    <div id="viewFame" hidden>
+      <div class="fame-list" id="fameList" aria-label="Hall of Fame — Top 10, ranked by all-time votes"></div>
+      <p class="board-note">The Hall of Fame is the Top 10 of all time, ranked by all-time votes. The list fills in as more plays are posted.</p>
+    </div>
+
+    <div id="viewAll" hidden>
+      <div class="all-bg" aria-hidden="true"></div>
+      <div class="tools-anchor">
+        <div class="board-tools">
+          <p class="all-count" id="allCount"></p>
+          <button type="button" class="filter-btn" data-filter-btn="allFilters" aria-expanded="false" aria-controls="allFilters"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2.2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2.2"/></svg> Filter</button>
+        </div>
+        <div class="filters" id="allFilters" hidden>
+        <span class="filter-pop-label">Board</span>
+        <div class="seg" role="group" aria-label="Board" id="allDivSeg">
+          <button type="button" data-div="all" aria-pressed="true">All boards</button>
+          <button type="button" data-div="boys" aria-pressed="false">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
+        <select class="sport-select" id="allSportSelect" aria-label="Sport — all plays"></select>
+        <!-- Round 47 (2026-11-08, Emil): the search box is retired
+             for now — the filter logic stays dormant in app.js, so
+             re-adding the box later is just this input + its listener. -->
+        </div>
+      </div>
+      <div class="tile-grid" id="allBoard"></div>
+      <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
+    </div>
+
+    <!-- Round 44 (2026-11-08): See all plays switches to the All
+         Hypes view. Round 53: it sits below Browse by Sport. -->
+    <div class="board-under" id="boardUnder">
+
+      <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
+    </div>
+
+    <!-- Round 62 (2026-11-08, Emil's board mock): the guidelines
+         that used to sit in a strip above the board (removed in
+         Rounds 59-61) now live behind this one link. -->
+    <p class="guidelines-row"><button type="button" class="guidelines-link" onclick="openGuidelines()">Posting guidelines</button></p>
+    <div class="guidelines-modal" id="guidelinesModal" hidden role="dialog" aria-modal="true" aria-label="Posting guidelines">
+      <div class="play-detail-backdrop" onclick="closeGuidelines()"></div>
+      <div class="guidelines-panel">
+        <h3>Posting guidelines</h3>
+        <ul>
+          <li>Every play is <b>owner-approved before it appears</b> — new posts start in review.</li>
+          <li><b>Only your own clips</b>, and <b>first names only</b> — no full name + school + team together.</li>
+          <li><b>Under 13? A parent or guardian gives permission first.</b> Winners are contacted through the parent/guardian — never the child directly.</li>
+          <li>See a play that doesn't belong? Use <b>Report</b> on any play.</li>
+        </ul>
+        <button type="button" class="mini-btn" onclick="closeGuidelines()">Close</button>
+      </div>
+    </div>
+
+    <form id="uploadForm" class="upload-card">
+      <!-- Round 22 (2026-11-06): overlay close — visible only while
+           the form is shown as the overlay (styles.css,
+           body.upload-open); display:none everywhere else.
+           Round 24 (2026-11-06): the overlay is every width now
+           (the form left the page flow entirely), and in the open
+           state the ✕ is position:fixed, so it never enters the
+           Round 18 desktop grid. -->
+      <button type="button" class="upload-close" id="uploadClose" aria-label="Close the upload form">✕</button>
+      <h3 id="post">Post a play</h3>
+      <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>
+
+      <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — tap to pick a clip from your camera roll, or drop a file here">
+        <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+        <p class="dz-big">Tap to pick a clip from your camera roll</p>
+        <p class="dz-sub">…or drag &amp; drop a video or photo here</p>
+        <div class="dz-preview" id="dzPreview" hidden>
+          <video id="dzVideo" muted loop playsinline autoplay></video>
+          <img id="dzImg" alt="Your picked photo" hidden>
+        </div>
+        <p class="dz-file" id="dzFile" hidden></p>
+        <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
+      </div>
+
+      <label>Athlete's first name * <input type="text" name="playerName" placeholder="First name only"></label>
+      <div class="quick-field">
+        <span class="quick-label" id="divPickLabel">Boys or Girls *</span>
+        <div class="seg quick-divseg" role="group" aria-labelledby="divPickLabel">
+          <button type="button" data-div-pick="boys" aria-pressed="true">Boys</button>
+          <button type="button" data-div-pick="girls" aria-pressed="false">Girls</button>
+        </div>
+        <input type="hidden" name="division" value="boys">
+      </div>
+      <div class="quick-field">
+        <span class="quick-label" id="sportPickLabel">Sport *</span>
+        <select name="sport" id="sportSelect" class="sport-select" aria-labelledby="sportPickLabel">
+          <option value="">Choose a sport</option>
+          <option value="baseball">Baseball</option>
+          <option value="basketball">Basketball</option>
+          <option value="cheer">Cheer</option>
+          <option value="dance">Dance</option>
+          <option value="fieldhockey">Field Hockey</option>
+          <option value="football">Football</option>
+          <option value="golf">Golf</option>
+          <option value="gymnastics">Gymnastics</option>
+          <option value="hockey">Hockey</option>
+          <option value="lacrosse">Lacrosse</option>
+          <option value="martialarts">Martial Arts</option>
+          <option value="other">Other</option>
+          <option value="soccer">Soccer</option>
+          <option value="softball">Softball</option>
+          <option value="swimming">Swimming</option>
+          <option value="tennis">Tennis</option>
+          <option value="track">Track &amp; Field</option>
+          <option value="volleyball">Volleyball</option>
+          <option value="wrestling">Wrestling</option>
+        </select>
+      </div>
+      <label>What happened? (optional) <input type="text" name="title" placeholder="e.g. Walk-off home run — blank is fine, we title it from the athlete's name"></label>
+
+      <!-- Guardian contact (Round 6, 2026-11-05): this used to sit
+           inside the collapsed optional section below, so a kid could
+           post, collect votes and only learn at the Enter step that
+           the play can't be featured without it (youth rerun v3's #1
+           finding). It now lives in the main form, in plain words.
+           Still OPTIONAL for posting — only placement/framing changed;
+           field names and the payload are exactly as before. -->
+      <div class="quick-field guardian-block">
+        <span class="quick-label" id="guardianPickLabel">Parent or guardian — needed to win 🏆</span>
+        <p class="small">Email or mobile — either one is enough. We only use it to contact the winner's parent or guardian — ask a parent first. You can still post with neither; your play just can't be featured until we have one. Private — never shown on the site. We also use it to tell you when the play is approved; texts go out only if the box below is checked.</p>
+        <label>Parent/guardian email <input type="email" name="notifyEmail" placeholder="parent/guardian email"></label>
+        <label>Parent/guardian mobile <input type="tel" name="guardianPhone" placeholder="e.g. 516-555-0123" autocomplete="tel"></label>
+        <label class="checkline"><input type="checkbox" name="textConsent"> Text me about this play — approval updates and, if it wins Hype of the Month, the claim message. Message/data rates may apply. We never text the athlete.</label>
+        <!-- Guardian attestation (Round 21, 2026-11-06): REQUIRED —
+             the submit handler blocks an unticked post and the server
+             rejects it too (400). The guardian CONTACT above stays
+             optional for posting; this confirmation does not. -->
+        <label class="checkline"><input type="checkbox" name="guardianConsent"> I'm this athlete's parent/guardian, or I have their permission to post this video.</label>
+      </div>
+
+      <!-- Hype Stories (Round 63, 2026-11-08): Emil's one extra
+           question. It lives in the MAIN form now, not the collapsed
+           extras — the answer is the raw material for a story
+           episode, and the checkbox under it is the SEPARATE
+           public-sharing permission a story needs (the board
+           consent above does not cover social). Both optional. -->
+      <div class="quick-field story-block">
+        <label>What made this moment matter? (optional) <textarea name="story" placeholder="What was on the line, who was watching, why this one mattered — that's where a Hype Story starts."></textarea></label>
+        <label class="checkline"><input type="checkbox" name="storyConsent"> You can feature this play as a Hype Story — on HighlightHype and our social channels — and contact me about it.</label>
+      </div>
+
+      <details class="quick-more">
+        <summary>Add more (optional)</summary>
+        <div class="quick-more-body">
+          <label>Play type <input type="text" name="playType" placeholder="e.g. Home run, Dunk, Goal"></label>
+          <div class="row2">
+            <label>Jersey number <input type="text" name="jersey" placeholder="e.g. 13"></label>
+            <label>Team name <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
+          </div>
+        </div>
+      </details>
+
+      <div id="athletePrompt" class="athlete-prompt" hidden></div>
+      <button type="submit" class="btn btn-lime submit-btn">Post my hype</button>
+      <p id="uploadMsg"></p>
+
+      <input type="hidden" name="athleteChoice" value="">
+      <input type="hidden" name="athleteKey" value="">
+    </form>
+  </div>
+
+<!-- ============ HYPE STORIES (homepage) ============
+     Round 63 (2026-11-08, Emil's concept): HYPE STORIES is the
+     shelf, THAT'S HYPE is the show — a weekly featured athlete
+     story. One episode at launch; "View all stories" arrives
+     once there are 4-5 episodes. Placement per Emil: below the
+     board, above Hype Frame; on mobile the cover is a still
+     with a play button so it never competes with the hero film. -->
+<section class="stories" id="stories">
+  <div class="wrap">
+    <span class="sec-tag gold">The weekly feature</span>
+    <h2 class="stories-title">Hype Stories</h2>
+    <p class="stories-sub">The stories behind the plays.</p>
+    <article class="story-card">
+      <div class="story-media">
+        <video id="storyVideo" src="/hype-story-ep1.mp4" poster="/hype-story-ep1-poster.jpg" preload="none" playsinline controls hidden></video>
+        <button type="button" class="story-cover" id="storyCover" aria-label="Watch story: Future Yankee">
+          <img src="/hype-story-ep1-poster.jpg" alt="Nicholas holding a baseball on the field at Yankee Stadium" />
+          <span class="story-badge">That's Hype</span>
+          <span class="story-play" aria-hidden="true">&#9654;</span>
+          <span class="story-dur">0:16</span>
+        </button>
+      </div>
+      <div class="story-meta">
+        <p class="story-ep">Ep. 01 / Baseball</p>
+        <h3 class="story-name">Future Yankee</h3>
+        <p class="story-line">A young pitcher gets his reps in at Yankee Stadium.</p>
+        <div class="story-actions">
+          <button type="button" class="btn btn-gold" id="storyWatch">&#9654; Watch story</button>
+          <a class="story-submit" href="#post" data-submit-link>Submit a moment &rarr;</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
+<div class="wrap">
+  <div class="hf-examples" id="hfExamplesHome">
+    <div class="hf-bg" aria-hidden="true"></div>
+    <div class="hf-examples-head">
+      <span class="sec-tag">Hype Frame</span>
+      <h4>Hype Frame</h4>
+      <p>Pick a moment. Put it on a hoodie.</p>
+    </div>
+    <figure class="hf-example hf-hero-fig">
+      <!-- Round 48 (2026-11-08, Emil): the Hype Frame film is back
+           on the homepage, under a cream-hoodie cover. Nothing
+           autoplays — the cover is the finished hoodie with a small
+           "See how it works" control; tapping it swaps the film in
+           to play inline in the same frame. The Photo/Avatar swipe
+           still lives in the studio and the Store feature. -->
+      <div class="hf-film-box">
+        <div class="hf-film-cover" id="hfFilmCover">
+          <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+          <button type="button" class="hf-film-btn" onclick="playHfHomeFilm()">▶ See how it works</button>
+        </div>
+        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
+      </div>
+      <figcaption>Cream hoodie · Back — her moment, printed</figcaption>
+    </figure>
+    <!-- Round 58 (2026-11-08, Emil's pick): the film is now a
+         single smooth morph with no captions — the four steps
+         live here as page text instead. -->
+    <ol class="hf-steps">
+      <li><b>1</b><span>Start with your hype video</span></li>
+      <li><b>2</b><span>Pick your frame</span></li>
+      <li><b>3</b><span>Your actual image — or your avatar</span></li>
+      <li><b>4</b><span>We take care of the rest</span></li>
+    </ol>
+    <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
+    <!-- Round 44 (2026-11-08): the concept posters moved INTO the
+         studio (below its examples grid) — the homepage section is
+         now the concept's one image + one action, and the Photo /
+         Avatar comparison lives where the choice is actually made. -->
+  </div>
+</div>
+</section>
+
+<!-- ============ MY HIGHLIGHTS ============ -->
+<section class="panel" id="mine" data-panel="mine">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">My Highlights · Private</span>
+      <h2>Every moment, <span class="lime">kept</span></h2>
+      <p>A private, lasting home for your athlete's videos — managed by a parent or guardian, and separate from the public board. The monthly contest moves on; these stay.</p>
+    </div>
+
+    <p class="mine-note"><b>Find your athlete's highlights:</b> enter the guardian email from the upload — or the athlete's HH tag — and we'll pull up their collection: <b>all of their approved plays in one place</b>. Plays still in review don't show until they're approved. No account, no password. (You can also tap the player's name on any play card.) A truly private archive — pending clips, originals, invited-only viewing — still needs parent/guardian sign-in; that's a future build, and it is not faked here.</p>
+
+    <form id="mineFind" class="mine-find">
+      <label>Guardian email <input type="email" id="mineEmail" placeholder="The email from the upload" autocomplete="email"></label>
+      <label>Athlete tag <input type="text" id="mineTag" placeholder="HH-1234" autocomplete="off"></label>
+      <button type="submit" class="btn btn-lime">Find my athlete's highlights</button>
+    </form>
+    <div id="mineFindResults" aria-live="polite"></div>
+
+    <div class="sec-head" style="margin-bottom:14px">
+      <span class="sec-tag">Athletes on the board</span>
+      <p style="margin-top:0">Every athlete with an approved play, grouped by athlete — never by name alone. Two athletes can share a name; each keeps their own collection.</p>
+    </div>
+    <div id="mineAthletes"></div>
+
+    <div class="mine-points">
+      <div class="mp"><h4>Private by default</h4><p>Nothing here sits on the public board unless a parent chooses to post it. No public profile, no public link.</p></div>
+      <div class="mp"><h4>Parent-managed</h4><p>Verified parents and guardians run the space — what gets saved, and who gets invited to watch it.</p></div>
+      <div class="mp"><h4>Built to last</h4><p>Seasons end and phones get replaced. The first goal and the diving catch stay here, season after season.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ATHLETE COLLECTION ============ -->
+<section class="panel" id="athlete" data-panel="athlete">
+  <div class="wrap">
+    <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
+    <div class="athlete-head">
+      <div class="athlete-avatar" id="athleteAvatar" aria-hidden="true">?</div>
+      <div>
+        <h2 id="athleteName" style="font-family:Anton,sans-serif;text-transform:uppercase;margin:0;font-size:clamp(30px,5vw,46px)">Athlete</h2>
+        <p id="athleteMeta" style="margin:4px 0 0;color:var(--muted);font-weight:600"></p>
+      </div>
+      <div class="mine-count"><b id="athleteCount">0</b><span>Public plays</span></div>
+    </div>
+    <div class="board" id="athleteBoard"></div>
+    <div class="empty" id="athleteEmpty">No approved public plays for this athlete yet.</div>
+    <p class="board-note">This collection shows only this athlete's <b>approved, public</b> plays — across months and teams. Pending or private clips never appear here.</p>
+  </div>
+</section>
+
+<!-- ============ HYPE FRAME STUDIO ============ -->
+<section class="panel" id="hypeframe" data-panel="hypeframe">
+  <div class="wrap">
+    <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
+    <div class="sec-head">
+      <span class="sec-tag">Hype Frame · Studio</span>
+      <h2>Your moment. <span class="lime">Your swag.</span></h2>
+      <p id="hfPlayLine">Turn your highlight into wearable hype — freeze a real frame from the highlight, put it on premium youth apparel, and send the request. A parent or guardian confirms before anything is printed.</p>
+    </div>
+
+    <!-- Payoff first (Round 3, 2026-11-05): the studio opens with what
+         the finished thing looks like — the Hype Frame film plus the
+         finished-product examples — THEN the freeze flow. Excitement
+         first, data collection last. -->
+    <div class="hf-payoff">
+      <div class="hf-film">
+        <video src="/hype-frame-film.mp4?v=7" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a softball frame printed on a cream hoodie, morphing into the avatar version and back"></video>
+      </div>
+      <p class="hf-payoff-line">This is what your moment becomes.</p>
+      <div class="hf-examples hf-examples-studio">
+        <div class="hf-examples-grid">
+          <figure class="hf-example hf-example-hoodie">
+            <div class="hf-swipe" data-hf-swipe>
+              <div class="hf-swipe-track">
+                <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+                <img src="/swag/hf-example-hoodie-back-avatar.webp" alt="Example finish, Avatar version: the same baseball moment illustrated as a bold avatar, printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+              </div>
+              <div class="hf-swipe-chips" role="group" aria-label="Hoodie example: Photo or Avatar">
+                <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
+                <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
+              </div>
+            </div>
+            <figcaption>Cream hoodie · Back — example finish · Photo / Avatar</figcaption>
+          </figure>
+          <figure class="hf-example hf-example-lineup">
+            <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
+            <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
+          </figure>
+        </div>
+    <div class="hf-examples-head hf-sub-head" style="margin-top:24px">
+      <h4>Photo or Avatar — your pick</h4>
+      <p>Every Hype Frame starts from your real moment. Print it as the photo it is, or have it illustrated as an avatar — same play, same uniform, no real face on the garment. You choose in the studio.</p>
+    </div>
+    <!-- Round 43 (2026-11-08, Twinkie: "more swipes"): the pair is
+         ONE swipe card now — Photo first, Avatar a flick away; the
+         block takes half the space and the comparison is instant. -->
+    <figure class="hf-example">
+      <div class="hf-swipe hf-swipe-wide" data-hf-swipe>
+        <div class="hf-swipe-track">
+          <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
+          <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
+        </div>
+        <div class="hf-swipe-chips" role="group" aria-label="Concept poster: Photo or Avatar">
+          <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
+          <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
+        </div>
+      </div>
+      <figcaption>The concept poster, two ways — swipe: Real photo / Avatar</figcaption>
+    </figure>
+      </div>
+    </div>
+
+    <div class="hf-studio upload-card" id="hfStudio">
+      <div class="hf-grid">
+        <div class="hf-col">
+          <h4 class="form-sec-title">Freeze your frame</h4>
+          <video id="hfVideo" controls playsinline preload="metadata"></video>
+          <img id="hfPhoto" alt="The play's photo" hidden>
+          <div class="hf-scrubrow" id="hfScrubRow">
+            <input type="range" id="hfScrub" min="0" max="0" step="0.01" value="0" aria-label="Video timeline — scrub to your favorite moment">
+            <span id="hfTime">0:00 / 0:00</span>
+          </div>
+          <div class="hf-strip-wrap" id="hfStripWrap" hidden>
+            <p class="hf-strip-label">Tap a frame to jump to it</p>
+            <div class="hf-strip" id="hfStrip" role="group" aria-label="Frame thumbnails — tap one to jump the video to that moment"></div>
+          </div>
+          <div class="hf-freezerow">
+            <button type="button" class="btn btn-ghost" id="hfStepBack" aria-label="Back one second">◀ 1s</button>
+            <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
+            <button type="button" class="btn btn-ghost" id="hfStepFwd" aria-label="Forward one second">1s ▶</button>
+          </div>
+          <!-- Freeze confirmation (Fixes batch, 2026-11-05): NOT the
+               removed apparel preview — just the composed print itself,
+               small, so a freeze visibly lands. Hidden until a freeze
+               succeeds; synced from composeHfPrint in app.js. -->
+          <div class="hf-frozen" id="hfFrozenWrap" hidden>
+            <img id="hfFrozenImg" alt="Your frozen frame — the print composed from the moment you froze">
+            <p class="hf-frozen-cap">Your frozen frame — this is the print. Freeze again any time to change it.</p>
+          </div>
+          <p class="small">Play or scrub to the moment — Freeze works while the video plays, and the ◀ ▶ buttons nudge it a second at a time. Not the one? Freeze again — as many times as you like, until it's the shot. Your frozen frame becomes the print.</p>
+          <div id="hfLinkNote" hidden>
+            <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
+          </div>
+        </div>
+
+        <div class="hf-col">
+          <h4 class="form-sec-title">Make it yours</h4>
+          <label>Name on the print <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
+          <div class="row2">
+            <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
+          </div>
+          <h4 class="form-sec-title" style="margin-top:22px">Print style</h4>
+          <div class="seg hf-presets" role="group" aria-label="Print style">
+            <button type="button" data-hf-preset="classic" aria-pressed="false">Classic</button>
+            <button type="button" data-hf-preset="signature" aria-pressed="false">Signature</button>
+            <button type="button" data-hf-preset="hypeframe" aria-pressed="true">Hype Frame</button>
+          </div>
+          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
+
+          <h4 class="form-sec-title" style="margin-top:22px">Print side</h4>
+          <div class="seg hf-sides" id="hfSides" role="group" aria-label="Print side">
+            <button type="button" data-hf-side="front" aria-pressed="true">Front</button>
+            <button type="button" data-hf-side="back" aria-pressed="false">Back</button>
+          </div>
+          <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above.</p>
+
+          <!-- Photo or Avatar (Round 38, 2026-11-08): Twinkie's idea,
+               kid-approved. The choice rides on the order like the print
+               side does; the illustration itself is made at fulfillment,
+               after the owner confirms with the parent/guardian. -->
+          <h4 class="form-sec-title" style="margin-top:22px">Photo or Avatar</h4>
+          <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Photo or Avatar">
+            <button type="button" data-hf-image-style="photo" aria-pressed="true">Real photo</button>
+            <button type="button" data-hf-image-style="avatar" aria-pressed="false">Avatar</button>
+          </div>
+          <p class="small"><b>Real photo</b> — your frozen frame, printed as the photo it is. <b>Avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
+
+          <!-- Color + size pickers (Round 3, 2026-11-05): Emil reversed
+               the Round 2 simplification for these two fields. The
+               garment (hoodie) stays fixed — no apparel mock. The
+               print-side picker above was RESTORED in Round 35
+               (2026-11-07, Emil, after the usability audit): the
+               server, owner email and Owner view carried the side
+               all along. Color drives the composed print's frame
+               tone, exactly as the default did. -->
+          <h4 class="form-sec-title" style="margin-top:22px">Hoodie color</h4>
+          <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
+          <h4 class="form-sec-title" style="margin-top:22px">Youth size</h4>
+          <div class="hf-sizes" id="hfSizes" role="group" aria-label="Youth size">
+            <button type="button" class="hf-size" data-hf-size="YXXS" aria-pressed="false">YXXS</button>
+            <button type="button" class="hf-size" data-hf-size="YXS" aria-pressed="false">YXS</button>
+            <button type="button" class="hf-size" data-hf-size="YS" aria-pressed="false">YS</button>
+            <button type="button" class="hf-size" data-hf-size="YM" aria-pressed="true">YM</button>
+            <button type="button" class="hf-size" data-hf-size="YL" aria-pressed="false">YL</button>
+            <button type="button" class="hf-size" data-hf-size="YXL" aria-pressed="false">YXL</button>
+          </div>
+
+          <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
+          <form id="hfOrderForm">
+            <label>Parent/guardian name (optional) <input type="text" id="hfGuardianName" maxlength="80" autocomplete="name"></label>
+            <label>Parent/guardian email * <input type="email" id="hfGuardianEmail" required placeholder="parent/guardian email" autocomplete="email"></label>
+            <p class="small">Private — never shown on the site. There is no payment and no price: submitting sends a request, and we email the parent/guardian to confirm before anything is printed.</p>
+            <button type="submit" class="btn btn-lime submit-btn">Send order request</button>
+            <p id="hfMsg"></p>
+          </form>
+        </div>
+      </div>
+      <canvas id="hfCanvas" hidden></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="how-sec panel" id="how" data-panel="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="sec-tag">How it works</span>
+      <h2>Post. Share. <span class="lime">Get hyped.</span></h2>
+      <p>Three steps, about a minute. If you can send a clip to the group chat, you already know how this works.</p>
+    </div>
+    <div class="how-grid">
+      <div>
+        <div class="steps">
+          <div class="step"><div class="num">01</div><div><h3>Post your play</h3><p>Film it, or find it in your camera roll. <b>Video first</b> — upload the clip, then add the sport and team. The moment is the content; no editing needed.</p></div></div>
+          <div class="step"><div class="num">02</div><div><h3>Share your link</h3><p>Every approved play gets <b>its own link</b>. Send it to family, drop it in the group chat — that's where the votes come from.</p></div></div>
+          <div class="step"><div class="num">03</div><div><h3>Get hyped</h3><p>One vote per person, per play, per month. <b>Most votes this month takes Hype of the Month.</b> All-time votes climb to the Top 10 Hall of Fame.</p></div></div>
+        </div>
+        <div class="review-note">
+          <p><b>Reviewed before it's live.</b> Every upload is checked by a person before it reaches the board — nothing posts automatically.</p>
+        </div>
+        <div class="review-note">
+          <p><b>What's on the line:</b> the <b>Hype of the Month</b> title — the play with the most votes cast this month wins, and every play starts the month even. The winner gets bragging rights: <b>featured on the homepage</b> plus a <b>shoutout on HighlightHype socials</b>. Winners are contacted through a <b>parent or guardian</b> — never the child.</p>
+        </div>
+      </div>
+      <aside class="upload-mock" aria-label="Upload form preview">
+        <h3>Post a play</h3>
+        <p>Video-first, like the real upload — clip first, details second.</p>
+        <div class="drop">
+          <div class="drop-thumb"><video src="/play-baseball.mp4" poster="/play-baseball.webp" muted playsinline preload="metadata" aria-label="Example clip — baseball play, shown as a video thumbnail"></video><span class="drop-cap">▶ Your clip · Video</span></div>
+          <span class="big">Drop your clip here</span>or tap to pick from your camera roll</div>
+        <div class="field">Sport — <b>your pick</b></div>
+        <div class="field">Board — <b>Boys / Girls</b></div>
+        <div class="field">Team <span>(optional)</span></div>
+        <div class="field">Play title — <b>yours</b></div>
+        <a class="btn btn-lime" href="#post" data-submit-link>Submit a Hype</a>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</div><!-- /deck -->
+
+<!-- ============ OWNER PANEL ============ -->
+<div class="view-home">
+  <div class="wrap">
+    <div id="ownerPanel" class="owner-card hidden">
+      <h3>Owner view</h3>
+      <p id="ownerStatus"></p>
+      <button type="button" class="mini-btn" id="claimBtn">Claim owner access on this device</button>
+      <p style="color:var(--muted2);font-size:13px">Already have an owner token? Paste it here — it is saved on this device only, it is not a password login.</p>
+      <p><input id="tokenInp" type="password" placeholder="Paste owner token" size="36"> <button type="button" class="mini-btn" id="saveTokenBtn">Save owner token</button></p>
+      <h3 style="margin-top:22px">Moderation queue</h3><div id="queue"></div>
+      <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
+      <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
+      <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ REP THE HYPE (Round 55, 2026-11-08) ============
+     The mock's photo band replaces the Drop 001 film card: the
+     swag film is OFF the home page for now (the file stays on
+     the server to use again later, per Emil). One photo, three
+     lines, one link — the whole band opens the Store. -->
+<div class="store-cta view-home">
+  <a class="rep-band" href="/store" data-store-link aria-label="Rep The Hype — Drop 001. Shop the Drop">
+    <img src="/swag/rep-hype-band.jpg" alt="A young ballplayer under stadium lights at night, wearing the black Hype Sports Baseball hoodie">
+    <span class="rep-band-shade" aria-hidden="true"></span>
+    <span class="rep-band-text">
+      <span class="rep-band-title">Rep the Hype</span>
+      <span class="rep-band-drop">Drop 001</span>
+      <span class="rep-band-link">Shop the Drop →</span>
+    </span>
+  </a>
+</div>
+
+<!-- ============ THE STORE ============ -->
+<section class="shop" id="shop">
+  <div class="wrap">
+    <div class="store-bar">
+      <button type="button" class="back-link" data-home-link>← Back to homepage</button>
+      <span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>
+    </div>
+
+    <!-- Round 27 (2026-11-06): the Store is rebuilt around HYPE
+         SPORTS. The Drop 001 film, the Boys/Girls collection blocks
+         and the focus-mode doors are GONE from the store view (Emil's
+         resolutions supersede option B's "Original Drop" plan): the
+         store now runs hero -> Shop by Sport -> filterable hoodie
+         grid -> Hype Frame feature -> NEXT DROP teaser, where the
+         Hot Pink Hype Street hoodie returns as Drop 002's star and
+         its quick view (kept below) stays reachable. -->
+    <div class="hs-hero" id="hsHero">
+      <img class="hs-hero-img" src="/swag/hs/football-back.jpg" alt="The Football Hype Hoodie from the back — a giant football, a gold crown and HYPE brush letters under the stadium lights" />
+      <div class="hs-hero-copy">
+        <span class="hs-hero-badge">DROP 001 / HYPE SPORTS</span>
+        <h2 class="hs-hero-title">REP YOUR <span class="gold">SPORT.</span></h2>
+        <p class="hs-hero-sub">Six sports. One attitude. Your moment. Your hype.</p>
+        <button type="button" class="btn btn-gold hs-hero-btn" id="hsShopBtn">SHOP HYPE SPORTS</button>
+      </div>
+    </div>
+
+    <div class="hs-tiles-wrap" id="hsBySport">
+      <h3 class="hs-sec-title">Shop by <span class="gold">Sport</span></h3>
+      <div class="hs-tiles">
+        <button type="button" class="hs-tile" data-hs-jump="baseball" aria-label="Shop the Baseball Hype Hoodie">
+          <img src="/swag/hs/tile-baseball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Baseball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-jump="football" aria-label="Shop the Football Hype Hoodie">
+          <img src="/swag/hs/tile-football.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Football</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-jump="basketball" aria-label="Shop the Basketball Hype Hoodie">
+          <img src="/swag/hs/tile-basketball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Basketball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-jump="soccer" aria-label="Shop the Soccer Hype Hoodie">
+          <img src="/swag/hs/tile-soccer.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Soccer</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-jump="softball" aria-label="Shop the Softball Hype Hoodie">
+          <img src="/swag/hs/tile-softball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Softball</span>
+        </button>
+        <button type="button" class="hs-tile" data-hs-jump="volleyball" aria-label="Shop the Volleyball Hype Hoodie">
+          <img src="/swag/hs/tile-volleyball.jpg" alt="" loading="lazy" decoding="async" />
+          <span class="hs-tile-label">Volleyball</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="hs-grid-wrap" id="hsGridSection">
+      <div class="hs-grid-head">
+        <h3 class="hs-sec-title">The <span class="gold">Hoodies</span></h3>
+        <p class="hs-grid-meta">Coming Soon<span class="sep">·</span>Planned price: $69.99 each</p>
+      </div>
+      <div class="hs-grid" id="hsGrid">
+        <article class="hs-card" data-hs-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-baseball.jpg" alt="Baseball Hype Hoodie, back — black hoodie with a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Baseball Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="football" tabindex="0" role="button" aria-label="View the Football Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-football.jpg" alt="Football Hype Hoodie, back — black hoodie with a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Football Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-basketball.jpg" alt="Basketball Hype Hoodie, back — black hoodie with a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Basketball Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-soccer.jpg" alt="Soccer Hype Hoodie, back — black hoodie with a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Soccer Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-softball.jpg" alt="Softball Hype Hoodie, back — black hoodie with a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Softball Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+        <article class="hs-card" data-hs-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Hoodie">
+          <div class="hs-card-media">
+            <img class="hs-img-back" src="/swag/hs/night-volleyball.jpg" alt="Volleyball Hype Hoodie, back — black hoodie with a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+          </div>
+          <div class="hs-card-body">
+            <h4>Volleyball Hype Hoodie</h4>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <div class="hs-hf" id="hsHfFeature">
+      <div class="hs-hf-copy">
+        <span class="sec-tag">Hype Frame</span>
+        <h3>Your Play. Your <span class="purple">Hoodie.</span></h3>
+        <p>Freeze a frame from your own highlight video — and wear it. Your still, your name, your number, printed on a premium youth hoodie or tee.</p>
+        <p class="hs-hf-guardian">No payment today — a parent or guardian confirms by email before anything is printed.</p>
+        <a class="hfc-cta hs-hf-cta" href="#deck" data-tablink="plays">Create a Hype Frame →</a>
+      </div>
+      <!-- Round 59 (2026-11-08, Emil's store mock): one big photo
+           here — the Photo/Avatar swipe lives in the studio now,
+           where the choice is made. -->
+      <figure class="hs-hf-media">
+        <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
+      </figure>
+    </div>
+
+    <div class="hs-teaser" id="hsTeaser">
+      <div class="hs-teaser-head">
+        <span class="hs-teaser-badge">DROP 002 · COMING SOON</span>
+        <h3>Hype Street</h3>
+      </div>
+      <article class="hs-teaser-card" data-slug="girls-street" tabindex="0" role="button" aria-label="Quick view — Girls Hype Street hoodie, the Hot Pink returning star of Drop 002">
+        <div class="hs-teaser-media">
+          <img src="/swag/street-sunset.jpg" alt="Girls Hype Street charcoal hoodie at sunset — pink hibiscus flowers and white HYPE script on the back" loading="lazy" decoding="async" />
+        </div>
+        <div class="hs-teaser-body">
+          <p>Hot Pink returns for Drop 002.</p>
+          <button type="button" class="hs-view-btn" id="hsHotPinkBtn">Preview Hot Pink</button>
+        </div>
+      </article>
+    </div>
+
+    <div class="qv" id="quickView" hidden role="dialog" aria-modal="true" aria-labelledby="qvTitle">
+      <div class="qv-backdrop" data-qv-close></div>
+      <div class="qv-panel">
+        <button type="button" class="qv-close" data-qv-close aria-label="Close quick view">✕</button>
+        <button type="button" class="qv-home" id="qvHome">← Home</button>
+        <div class="qv-colorline"><span id="qvColorName"></span><span class="qv-side-label" id="qvSideLabel">Front</span></div>
+        <div class="qv-gallery" id="qvGallery" tabindex="0" aria-label="Product views — swipe or scroll: real front and back photos first, then every colorway, front and back"></div>
+        <div class="qv-sides" id="qvSides" role="group" aria-label="View side">
+          <button type="button" class="qv-side-btn" data-qv-side="0" aria-pressed="true">Front</button>
+          <button type="button" class="qv-side-btn" data-qv-side="1" aria-pressed="false">Back</button>
+        </div>
+        <p class="qv-colors-label">Color</p>
+        <div class="qv-swatches" id="qvSwatches" role="group" aria-label="Colorways"></div>
+        <p class="prod-side" id="qvSide"></p>
+        <h4 id="qvTitle"></h4>
+        <p class="prod-slogan" id="qvSlogan"></p>
+        <p class="prod-desc" id="qvDesc"></p>
+        <p class="qv-price" id="qvPrice">$69.99</p>
+        <p class="qv-colors-label">Youth sizes</p>
+        <div class="qv-sizes" id="qvSizes" role="group" aria-label="Youth sizes">
+          <button type="button" class="qv-size" data-qv-size="YXXS" aria-pressed="false">YXXS</button>
+          <button type="button" class="qv-size" data-qv-size="YXS" aria-pressed="false">YXS</button>
+          <button type="button" class="qv-size" data-qv-size="YS" aria-pressed="false">YS</button>
+          <button type="button" class="qv-size" data-qv-size="YM" aria-pressed="false">YM</button>
+          <button type="button" class="qv-size" data-qv-size="YL" aria-pressed="false">YL</button>
+          <button type="button" class="qv-size" data-qv-size="YXL" aria-pressed="false">YXL</button>
+        </div>
+        <p class="qv-colors-label">Colorways</p>
+        <p class="qv-colors" id="qvColors"></p>
+        <p class="qv-note">Ordering opens soon — no orders are being taken yet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ HYPE SPORTS PRODUCT VIEW (Round 27) ============ -->
+<div class="hsv" id="hsView" hidden role="dialog" aria-modal="true" aria-labelledby="hsTitle">
+  <div class="hsv-backdrop" data-hs-close></div>
+  <div class="hsv-panel">
+    <button type="button" class="hsv-close" data-hs-close aria-label="Close product view">✕</button>
+    <div class="hsv-media">
+      <img id="hsMainImg" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie — front" />
+      <div class="hsv-dots" id="hsDots"></div>
+      <div class="hsv-switch" role="group" aria-label="View side">
+        <button type="button" class="hsv-side-btn" data-hs-side="front" aria-pressed="true">Front</button>
+        <button type="button" class="hsv-side-btn" data-hs-side="back" aria-pressed="false">Back</button>
+      </div>
+      <div class="hsv-thumbs" id="hsThumbs" role="group" aria-label="Product images"></div>
+    </div>
+    <div class="hsv-info">
+      <p class="hs-eyebrow" id="hsEyebrow">HYPE SPORTS / 001</p>
+      <h4 id="hsTitle">Baseball Hype Hoodie</h4>
+      <p class="hsv-line" id="hsLine">Built for the diamond. Made for the hype.</p>
+      <p class="hsv-price" id="hsPrice">$69.99</p>
+      <p class="hsv-status">Sample phase — sales open soon</p>
+      <p class="qv-colors-label">Youth size</p>
+      <div class="hsv-sizes" id="hsSizes" role="group" aria-label="Youth sizes">
+        <button type="button" class="hsv-size" data-hs-size="YXXS" aria-pressed="false">YXXS</button>
+        <button type="button" class="hsv-size" data-hs-size="YXS" aria-pressed="false">YXS</button>
+        <button type="button" class="hsv-size" data-hs-size="YS" aria-pressed="false">YS</button>
+        <button type="button" class="hsv-size" data-hs-size="YM" aria-pressed="false">YM</button>
+        <button type="button" class="hsv-size" data-hs-size="YL" aria-pressed="false">YL</button>
+        <button type="button" class="hsv-size" data-hs-size="YXL" aria-pressed="false">YXL</button>
+      </div>
+      <button type="button" class="hsv-cta" disabled aria-disabled="true">COMING SOON</button>
+      <button type="button" class="hsv-guide-link" data-size-guide-open>📏 Size Guide</button>
+      <ul class="hsv-feats">
+        <li>Premium, soft fabric</li>
+        <li>Athletic, relaxed fit</li>
+        <li>Durable, everyday wear</li>
+      </ul>
+      <div class="hsv-tabs">
+        <div class="hsv-tab-row" role="tablist" aria-label="Product information">
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="desc" aria-selected="true">DESCRIPTION</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="details" aria-selected="false">DETAILS</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="sizeguide" aria-selected="false">SIZE GUIDE</button>
+          <button type="button" class="hsv-tab-btn" role="tab" data-hs-tab="shipping" aria-selected="false">SHIPPING</button>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="desc">
+          <p id="hsDesc"></p>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="details" hidden>
+          <ul class="hsv-feats">
+            <li>Premium, soft fabric</li>
+            <li>Athletic, relaxed fit</li>
+            <li>Durable, everyday wear</li>
+          </ul>
+          <p>Care: Wash inside-out, cold. Hang dry to protect the print.</p>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="sizeguide" hidden>
+          <p>Youth sizes YXXS–YXL. Ages are general youth sizing guidance — when between sizes, size up for the relaxed athletic fit.</p>
+          <button type="button" class="hsv-guide-link hsv-guide-link-inline" data-size-guide-open>📏 Open the full size guide</button>
+        </div>
+        <div class="hsv-tab-panel" data-hs-panel="shipping" hidden>
+          <p>Ships when Drop 001 sales open — no orders are being taken yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ YOUTH SIZE GUIDE (Round 27: ONE shared overlay —
+     every product-view Size Guide link opens this same component;
+     Round 29 removed the menu's entry, the overlay stays) ============ -->
+<div class="sg" id="sizeGuide" hidden role="dialog" aria-modal="true" aria-labelledby="sgTitle">
+  <div class="sg-backdrop" data-sg-close></div>
+  <div class="sg-panel">
+    <button type="button" class="sg-close" data-sg-close aria-label="Close size guide">✕</button>
+    <h4 id="sgTitle">Youth Size Guide</h4>
+    <p class="sg-note">Youth sizes: YXXS · YXS · YS · YM · YL · YXL</p>
+    <table class="sg-table">
+      <thead><tr><th scope="col">Size</th><th scope="col">Age — general youth sizing guidance</th></tr></thead>
+      <tbody>
+        <tr><td>YXXS</td><td>4–5</td></tr>
+        <tr><td>YXS</td><td>6–7</td></tr>
+        <tr><td>YS</td><td>8</td></tr>
+        <tr><td>YM</td><td>10–12</td></tr>
+        <tr><td>YL</td><td>14–16</td></tr>
+        <tr><td>YXL</td><td>18–20</td></tr>
+      </tbody>
+    </table>
+    <p class="sg-note">Ages are general youth sizing guidance, not exact measurements — when between sizes, size up for the relaxed athletic fit.</p>
+  </div>
+</div>
+
+<!-- ============ FINAL CTA ============ -->
+<!-- Round 60 (2026-11-08, Emil's bottom-of-page mock): Rep The
+     Hype leads into this one short closer — a single question and
+     the Submit button. The video-backed "Hype is earned." band
+     retired; the slogan lives on in the collections. -->
+<div class="final view-home">
+  <div class="wrap">
+    <h2>Have a play to share?</h2>
+    <a class="btn btn-lime btn-final" href="#post" data-submit-link>Submit a Hype</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-stack">
+      <a class="brand" href="#top" style="margin-bottom:12px">
+        <img class="footer-lockup" src="/logo-lockup-gold.jpg" alt="HighlightHype — Your moment. Your hype." width="1284" height="880" />
+      </a>
+      <div>@HighlightHype_Official</div>
+      <!-- Round 60 (2026-11-08, Emil's mock): the footer closes
+           with just the essential links — Contact (email), Terms,
+           Privacy. The safety one-liner lives at the board; the
+           Store line left with the Rep The Hype band above. Per
+           Emil's call the private-beta line stays OFF the page. -->
+      <div style="margin-top:9px"><a href="mailto:hello@highlighthype.com">Contact</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></div>
+      <div class="owner-row">
+        <button type="button" class="mini-btn" id="ownerBtn">Owner view</button>
+        <button type="button" class="mini-btn" id="modLinkBtn">Email me a moderation link</button>
+        <span id="modLinkMsg" style="align-self:center"></span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ============ PLAY DETAIL (Round 8: full card for a board tile) ============ -->
+<div class="play-detail" id="playDetail" hidden role="dialog" aria-modal="true" aria-label="Play detail">
+  <div class="play-detail-backdrop" data-detail-close></div>
+  <div class="play-detail-panel">
+    <button type="button" class="mini-btn play-detail-back" data-detail-close>← Back</button>
+    <div id="playDetailBody"></div>
+  </div>
+</div>
+
+<script src="app.js?v=69"></script>
+</body>
+</html>

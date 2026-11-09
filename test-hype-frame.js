@@ -216,7 +216,7 @@ try {
   assert(home.includes('id="guidelinesModal"') && home.includes("Posting guidelines") && appJs.includes("`${filtered.length} plays`"), "Round 62: the guidelines live behind their link (the four rules in a pop-up), and the All Hypes count reads 'N plays'");
   assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
   assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: sections wider and even per the mock — the Hype Frame figure spans its panel, and on phones one 16px gutter aligns every section (the HF panel drops its extra side inset)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=62"') && home.includes('src="app.js?v=62"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=69"') && home.includes('src="app.js?v=69"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
      serves the app at those paths. ---- */
@@ -323,7 +323,7 @@ try {
   // BEFORE the studio card; the freeze flow follows unchanged.
   assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
   assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4\?v=5"/g) || []).length === 2, "Round 48/58: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play) — srcs versioned (v=5: the single-morph cut — her photo hoodie melts into the avatar and back, no captions)");
+  assert((home.match(/src="\/hype-frame-film\.mp4\?v=7"/g) || []).length === 2, "Round 48/58: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play) — srcs versioned (v=7: the video-first cut — her swing, the captured freeze, the hoodie, then the avatar morph with the choice captioned (FROM YOUR VIDEO / YOUR FRAME. YOUR HOODIE. / OR YOUR AVATAR. YOU CHOOSE.))");
   assert(home.includes('class="hf-steps"') && home.includes("Your actual image — or your avatar") && home.includes("/swag/hf-hoodie-softball.jpg"), "Round 58: the four steps live under the homepage film as page text, and the film cover is her softball hoodie");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
