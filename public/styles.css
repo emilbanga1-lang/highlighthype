@@ -2121,3 +2121,23 @@
     .final h2{font-size:clamp(40px,4.6vw,60px)}
     .footer-lockup{width:min(340px,88vw)}
   }
+
+  /* ===== Round 78 (2026-11-09, Emil): the store on desktop. Hero:
+     copy on the left, the WORN football hoodie on the right (the
+     flat design close-up stays on mobile). Shop by Sport: six short
+     tiles in one row on wide screens, 3x2 on smaller laptops.
+     Drop 002 teaser: the Hot Pink photo gets real size. ===== */
+  .hs-hero-img-desk{display:none}
+  @media (min-width:1024px){
+    .hs-hero{display:grid;grid-template-columns:1.05fr .95fr;min-height:0}
+    .hs-hero::after{display:none}
+    .hs-hero-img{display:none}
+    .hs-hero-img-desk{display:block;grid-column:2;grid-row:1;width:100%;height:400px;object-fit:cover;object-position:center 30%}
+    .hs-hero-copy{grid-column:1;grid-row:1;align-self:center;padding:40px 36px}
+    .hs-teaser-media{width:300px}
+    .hs-teaser-media img{width:300px;height:340px}
+    .hs-teaser{padding:24px}
+  }
+  @media (min-width:1280px){
+    .hs-tiles{grid-template-columns:repeat(6,1fr)}
+  }
