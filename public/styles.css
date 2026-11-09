@@ -1313,6 +1313,19 @@
   .tile .votebtn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:transparent}
   .tile-votes{justify-content:flex-end}
   .tile-hf-btn{font-size:12px;padding:5px 10px}
+  /* Round 46 (2026-11-08, Emil's pick): on PHONES the board is a
+     swipe deck, not a scroll grid — each play gets a near-full-width
+     card and the next peeks from the right edge. Desktop keeps the
+     comparative grid untouched (same markup, arrangement only).
+     The featured span rule is grid-only and simply doesn't apply
+     in the flex deck; the first card is sized up instead. */
+  @media (max-width:699px){
+    .tile-grid{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;scrollbar-width:none}
+    .tile-grid::-webkit-scrollbar{display:none}
+    .tile-grid > .tile{flex:0 0 86%;scroll-snap-align:start}
+    .tile-grid > .tile:first-child{flex-basis:94%}
+    .tile-grid > .tile:only-child{flex-basis:100%}
+  }
   /* Round 40 (2026-11-08): Photo/Avatar swipe on the cream-hoodie
      example — homepage, studio and Store feature (Emil: all three).
      Native scroll-snap swipe; labeled Photo/Avatar chips overlay the
