@@ -662,7 +662,7 @@
   /* ---------- final cta / footer ---------- */
   .final{position:relative;text-align:center;padding:52px 0 76px;overflow:hidden;background:#000}
   .final img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;opacity:.5}
-  .final::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--bg) 0%,rgba(0,0,0,.25) 45%,rgba(0,0,0,.75) 100%)}
+  .final::after{content:"";position:absolute;inset:0;background:radial-gradient(560px 240px at 50% 112%,rgba(197,255,0,.13),rgba(197,255,0,0) 70%),linear-gradient(180deg,var(--bg) 0%,rgba(0,0,0,.25) 45%,rgba(0,0,0,.75) 100%)}
   .final .wrap{position:relative;z-index:2}
   .final h2{font-family:"Anton",sans-serif;font-style:italic;font-size:clamp(48px,9vw,96px);margin:0 0 14px;text-transform:uppercase;line-height:.95}
   .final p{font-size:19px;font-weight:600;color:rgba(255,255,255,.85);margin:0 auto 32px;max-width:520px}
@@ -1990,6 +1990,16 @@
   .stories{padding:56px 0 8px}
   .stories-title{font-family:Anton,sans-serif;font-style:italic;font-weight:400;font-size:clamp(2.6rem,9vw,4.2rem);line-height:1.02;margin:10px 0 6px;text-transform:uppercase}
   .stories-sub{color:var(--muted);margin:0 0 22px;font-size:1.05rem}
+  /* Round 68 (2026-11-09, Emil): every homepage section gets its
+     own background voice again - the photo backdrops were turned
+     down so low the page read as one flat black column. Board =
+     stadium night navy, Stories = warm gold, Hype Frame = amber,
+     the final CTA = a lime glow off the footer. Backgrounds only;
+     no layout or content changes. */
+  #plays{background:linear-gradient(180deg,#0a1122 0%,#070b16 340px,var(--bg) 820px)}
+  .board-bg{opacity:.8;height:900px}
+  .stories{background:radial-gradient(640px 360px at 50% 0%,rgba(243,205,107,.14),rgba(243,205,107,0) 70%),linear-gradient(180deg,#0e0c07 0%,var(--bg) 92%)}
+  #hypeframe{background:radial-gradient(760px 420px at 50% 0%,rgba(255,176,66,.10),rgba(255,176,66,0) 70%),linear-gradient(180deg,#130d07 0%,var(--bg) 88%)}
   .story-card{background:#101114;border:1px solid #232329;border-radius:20px;overflow:hidden}
   .story-media{position:relative;width:min(100%,340px);margin:0 auto}
   .story-media video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
