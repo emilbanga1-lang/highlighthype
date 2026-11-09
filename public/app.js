@@ -2553,3 +2553,18 @@ function playHfStoreFilm() {
   vid.hidden = false;
   const p = vid.play(); if (p && p.catch) p.catch(() => {});
 }
+
+/* Round 84 (2026-11-09, Emil): warm the store's landing pictures
+   in the background once the page settles, so clicking Swag Shop
+   shows them instantly instead of popping in one by one. Skips
+   the store page itself and data-saver connections. */
+(function warmStore84() {
+  if ((location.pathname.replace(/\/+$/, "") || "/") === "/store") return;
+  if (navigator.connection && navigator.connection.saveData) return;
+  const imgs = ["tile-baseball", "tile-basketball", "tile-football", "tile-soccer", "tile-softball", "tile-volleyball"].map((n) => "/swag/hs/" + n + ".jpg")
+    .concat(["night-baseball", "night-basketball", "night-football", "night-soccer", "night-softball", "night-volleyball"].map((n) => "/swag/hs/" + n + ".jpg"))
+    .concat(["/swag/hs/football-back.jpg"]);
+  const warm = () => imgs.forEach((src) => { const i = new Image(); i.src = src; });
+  if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 4000 });
+  else setTimeout(warm, 2500);
+})();
