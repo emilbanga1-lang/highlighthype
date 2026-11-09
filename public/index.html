@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=50" />
+<link rel="stylesheet" href="styles.css?v=52" />
 </head>
 <body>
 
@@ -33,10 +33,16 @@
          the menu's Size Guide entry (the shared size-guide overlay
          stays; every product view's Size Guide link still opens it). -->
     <nav class="nav-menu" id="navMenu" aria-label="Sections" hidden>
-      <button type="button" id="menuAllHypes">All Hypes</button>
-      <button type="button" data-panel-btn="mine" aria-current="false">My Highlights</button>
-      <button type="button" data-panel-btn="how" aria-current="false">How it works</button>
-      <a class="nav-swag" href="#shop" data-store-link>Swag Shop — Rep The Hype</a>
+      <!-- Round 51 (2026-11-08, Emil): the menu items are REAL
+           pages now — each has its own URL and loads on its own
+           (the boot router in app.js opens the matching view and
+           page-mode hides the home flow). The panels' in-page
+           Back-to-the-board buttons keep their data-panel-btn
+           wiring; only the menu went full-page. -->
+      <a href="/?view=all" id="menuAllHypes">All Hypes</a>
+      <a href="/my-highlights">My Highlights</a>
+      <a href="/how-it-works">How it works</a>
+      <a class="nav-swag" href="/store">Swag Shop — Rep The Hype</a>
     </nav>
   </div>
 </header>
@@ -652,7 +658,7 @@
          Hot Pink Hype Street hoodie returns as Drop 002's star and
          its quick view (kept below) stays reachable. -->
     <div class="hs-hero" id="hsHero">
-      <img class="hs-hero-img" src="/swag/hs/hero-model.jpg" alt="Young baseball player wearing the Baseball Hype Hoodie, looking back over his shoulder — the back carries a giant baseball, a gold crown and HYPE brush letters" />
+      <img class="hs-hero-img" src="/swag/hs/football-back.jpg" alt="The Football Hype Hoodie from the back — a giant football, a gold crown and HYPE brush letters under the stadium lights" />
       <div class="hs-hero-copy">
         <span class="hs-hero-badge">DROP 001 / HYPE SPORTS</span>
         <h2 class="hs-hero-title">REP YOUR <span class="gold">SPORT.</span></h2>
@@ -664,27 +670,27 @@
     <div class="hs-tiles-wrap" id="hsBySport">
       <h3 class="hs-sec-title">Shop by <span class="gold">Sport</span></h3>
       <div class="hs-tiles">
-        <button type="button" class="hs-tile" data-hs-open="baseball" aria-label="Shop the Baseball Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="baseball" aria-label="Shop the Baseball Hype Hoodie">
           <img src="/swag/hs/tile-baseball.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Baseball</span>
         </button>
-        <button type="button" class="hs-tile" data-hs-open="football" aria-label="Shop the Football Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="football" aria-label="Shop the Football Hype Hoodie">
           <img src="/swag/hs/tile-football.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Football</span>
         </button>
-        <button type="button" class="hs-tile" data-hs-open="basketball" aria-label="Shop the Basketball Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="basketball" aria-label="Shop the Basketball Hype Hoodie">
           <img src="/swag/hs/tile-basketball.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Basketball</span>
         </button>
-        <button type="button" class="hs-tile" data-hs-open="soccer" aria-label="Shop the Soccer Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="soccer" aria-label="Shop the Soccer Hype Hoodie">
           <img src="/swag/hs/tile-soccer.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Soccer</span>
         </button>
-        <button type="button" class="hs-tile" data-hs-open="softball" aria-label="Shop the Softball Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="softball" aria-label="Shop the Softball Hype Hoodie">
           <img src="/swag/hs/tile-softball.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Softball</span>
         </button>
-        <button type="button" class="hs-tile" data-hs-open="volleyball" aria-label="Shop the Volleyball Hype Hoodie">
+        <button type="button" class="hs-tile" data-hs-jump="volleyball" aria-label="Shop the Volleyball Hype Hoodie">
           <img src="/swag/hs/tile-volleyball.jpg" alt="" loading="lazy" decoding="async" />
           <span class="hs-tile-label">Volleyball</span>
         </button>
@@ -692,147 +698,63 @@
     </div>
 
     <div class="hs-grid-wrap" id="hsGridSection">
-      <h3 class="hs-sec-title">The <span class="gold">Hoodies</span></h3>
-      <div class="hs-chips" id="hsChips" role="group" aria-label="Filter hoodies by sport">
-        <button type="button" class="hs-chip" data-hs-filter="all" aria-pressed="true">All Sports</button>
-        <button type="button" class="hs-chip" data-hs-filter="baseball" aria-pressed="false">Baseball</button>
-        <button type="button" class="hs-chip" data-hs-filter="football" aria-pressed="false">Football</button>
-        <button type="button" class="hs-chip" data-hs-filter="basketball" aria-pressed="false">Basketball</button>
-        <button type="button" class="hs-chip" data-hs-filter="soccer" aria-pressed="false">Soccer</button>
-        <button type="button" class="hs-chip" data-hs-filter="softball" aria-pressed="false">Softball</button>
-        <button type="button" class="hs-chip" data-hs-filter="volleyball" aria-pressed="false">Volleyball</button>
+      <div class="hs-grid-head">
+        <h3 class="hs-sec-title">The <span class="gold">Hoodies</span></h3>
+        <p class="hs-grid-meta">Coming Soon<span class="sep">·</span>Planned price: $69.99 each</p>
       </div>
       <div class="hs-grid" id="hsGrid">
         <article class="hs-card" data-hs-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie, front — black hoodie with the gold crest and BASEBALL in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/baseball-back.jpg" alt="Baseball Hype Hoodie, back — black hoodie with a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Baseball hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/baseball-back.jpg" alt="Baseball Hype Hoodie, back — black hoodie with a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 001</p>
             <h4>Baseball Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="baseball">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
         <article class="hs-card" data-hs-card="football" tabindex="0" role="button" aria-label="View the Football Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/football-front.jpg" alt="Football Hype Hoodie, front — black hoodie with the gold crest and FOOTBALL in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/football-back.jpg" alt="Football Hype Hoodie, back — black hoodie with a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Football hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/football-back.jpg" alt="Football Hype Hoodie, back — black hoodie with a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 002</p>
             <h4>Football Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="football">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
         <article class="hs-card" data-hs-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/basketball-front.jpg" alt="Basketball Hype Hoodie, front — black hoodie with the gold crest and BASKETBALL in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/basketball-back.jpg" alt="Basketball Hype Hoodie, back — black hoodie with a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Basketball hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/basketball-back.jpg" alt="Basketball Hype Hoodie, back — black hoodie with a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 003</p>
             <h4>Basketball Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="basketball">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
         <article class="hs-card" data-hs-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/soccer-front.jpg" alt="Soccer Hype Hoodie, front — black hoodie with the gold crest and SOCCER in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/soccer-back.jpg" alt="Soccer Hype Hoodie, back — black hoodie with a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Soccer hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/soccer-back.jpg" alt="Soccer Hype Hoodie, back — black hoodie with a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 004</p>
             <h4>Soccer Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="soccer">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
         <article class="hs-card" data-hs-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/softball-front.jpg" alt="Softball Hype Hoodie, front — black hoodie with the gold crest and SOFTBALL in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/softball-back.jpg" alt="Softball Hype Hoodie, back — black hoodie with a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Softball hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/softball-back.jpg" alt="Softball Hype Hoodie, back — black hoodie with a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 005</p>
             <h4>Softball Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="softball">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
         <article class="hs-card" data-hs-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Hoodie">
           <div class="hs-card-media">
-            <div class="hf-swipe hs-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img class="hs-img-front" src="/swag/hs/volleyball-front.jpg" alt="Volleyball Hype Hoodie, front — black hoodie with the gold crest and VOLLEYBALL in plain caps at the left chest" loading="lazy" decoding="async" />
-                <img class="hs-img-back" src="/swag/hs/volleyball-back.jpg" alt="Volleyball Hype Hoodie, back — black hoodie with a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Volleyball hoodie: Front or Back">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Front</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Back</button>
-              </div>
-            </div>
-            <span class="hs-badge">Sample phase</span>
+            <img class="hs-img-back" src="/swag/hs/volleyball-back.jpg" alt="Volleyball Hype Hoodie, back — black hoodie with a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
           </div>
           <div class="hs-card-body">
-            <p class="hs-eyebrow">HYPE SPORTS / 006</p>
             <h4>Volleyball Hype Hoodie</h4>
-            <p class="hs-fit">Premium youth fit</p>
-            <p class="hs-price">$69.99</p>
-            <button type="button" class="hs-view-btn" data-hs-open="volleyball">VIEW PRODUCT</button>
+            <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
       </div>
@@ -1046,6 +968,6 @@
   </div>
 </div>
 
-<script src="app.js?v=50"></script>
+<script src="app.js?v=52"></script>
 </body>
 </html>

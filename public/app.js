@@ -976,7 +976,8 @@ function showPanel(name) {
   if (viewKey && typeof trackEvent === "function") trackEvent("view", viewKey);
 }
 $$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
-$("#menuAllHypes").addEventListener("click", () => { showHome(); closeMenu(false); showPanel("plays"); switchView("all"); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); });
+/* Round 51 (2026-11-08): #menuAllHypes is a real link (/?view=all)
+   now — no click handler; the boot router applies the view. */
 function switchView(v) {
   currentView = v;
   $$(".viewseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
@@ -1074,6 +1075,10 @@ watchMontageVideos();
    store, land on the plays board, scroll to the top, and drop a stale
    Hype Frame deep link so it can't reopen the studio. */
 function goHome() {
+  /* Round 51 (2026-11-08): from a real sub-page (/my-highlights,
+     /how-it-works, /store), "home" is a real navigation — a panel
+     switch there would surface the board under the wrong URL. */
+  if (location.pathname.replace(/\/+$/, "") !== "") { location.href = "/"; return; }
   showHome();
   showPanel("plays");
   window.scrollTo(0, 0);
@@ -1541,9 +1546,20 @@ function closeHsView() {
   document.body.classList.remove("hsv-open");
 }
 $$("[data-hs-open]").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); openHsView(el.dataset.hsOpen); }));
+/* Round 52 (2026-11-08): Shop by Sport tiles JUMP to their hoodie
+   card instead of opening the product view — Emil's store flow:
+   tile -> its hoodie, hoodie -> product page. The card flashes
+   once so the eye lands on it. */
+$$("[data-hs-jump]").forEach((el) => el.addEventListener("click", () => {
+  const card = document.querySelector(`[data-hs-card="${el.dataset.hsJump}"]`);
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.remove("hs-flash"); void card.offsetWidth; card.classList.add("hs-flash");
+  setTimeout(() => card.classList.remove("hs-flash"), 1300);
+}));
 $$(".hs-card").forEach((card) => {
   card.addEventListener("click", () => openHsView(card.dataset.hsCard));
-  card.addEventListener("keydown", (e) => { if (e.target.closest && e.target.closest("[data-hf-swipe]")) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHsView(card.dataset.hsCard); } });
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHsView(card.dataset.hsCard); } });
 });
 $$("[data-hs-close]").forEach((el) => el.addEventListener("click", closeHsView));
 $$(".hsv-side-btn").forEach((b) => b.addEventListener("click", () => hsSetFrame(b.dataset.hsSide === "back" ? 1 : 0)));
@@ -2351,6 +2367,20 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
 
 /* ---------------- boot / hashes ---------------- */
 (function boot() {
+  /* Round 51 (2026-11-08, Emil): the main sections are REAL pages.
+     The server already serves this app for any path, so
+     /my-highlights, /how-it-works and /store boot straight into
+     their view: page-sub hides the home flow (hero, trust, CTAs)
+     so the page reads as its own page, and the route counts as an
+     explicit target so the default landing rule leaves it alone.
+     /?view=all is the menu's All Hypes landing. */
+  const bootPath = location.pathname.replace(/\/+$/, "") || "/";
+  let bootPathTarget = false;
+  if (bootPath === "/my-highlights") { document.body.classList.add("page-sub"); showPanel("mine"); bootPathTarget = true; }
+  else if (bootPath === "/how-it-works") { document.body.classList.add("page-sub"); showPanel("how"); bootPathTarget = true; }
+  else if (bootPath === "/store") { showStore(); bootPathTarget = true; }
+  if (bootPathTarget) bootHashTarget = true;
+  if (bootPath === "/" && new URLSearchParams(location.search).get("view") === "all") { switchView("all"); bootHashTarget = true; document.getElementById("deck")?.scrollIntoView(); }
   const am = location.hash.match(/^#athlete-(.+)$/);
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   // Explicit hash targets (Round 8): any of these wins over the
@@ -2373,5 +2403,5 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   // shared #play-, an athlete, the owner panel) starts on the home
   // boards, so it counts "home" here.
   trackReferrer();
-  if (!["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
+  if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
 })();
