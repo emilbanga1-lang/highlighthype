@@ -2497,7 +2497,7 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
 (function fabAutoHide69() {
   const fab = document.getElementById("floatSubmit");
   if (!fab || !("IntersectionObserver" in window)) return;
-  const targets = document.querySelectorAll("[data-submit-link]");
+  const targets = document.querySelectorAll("[data-submit-link], .story-card");
   if (!targets.length) return;
   const seen = new Set();
   const io = new IntersectionObserver((entries) => {

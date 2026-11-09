@@ -2059,3 +2059,13 @@
      panels now start 80px down — clear of the logo and its
      shadow on any screen. The homepage flow is untouched. ===== */
   body.page-sub .panel{padding-top:80px}
+
+  /* ===== Round 74 (2026-11-09): desktop polish. Story card capped
+     so its 720px-wide poster is not stretched soft across the full
+     content width; hero film zoomed slightly so the blurred side
+     pads baked into the vertical-source beats fall out of frame.
+     Desktop only — phone layout unchanged. ===== */
+  @media (min-width:1024px){
+    .story-card{max-width:920px;margin-left:auto;margin-right:auto}
+    .hero-media video{transform:scale(1.12)}
+  }
