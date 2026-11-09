@@ -71,7 +71,7 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.6l2.5 5.1 5.6.8-4 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4-4 5.6-.8z"/></svg>
       <div>
         <h3>Every Athlete Has a Moment</h3>
-        <p>The first goal, the diving catch, the personal best — not only the tournament MVP.</p>
+        <p>The first goal, the diving catch, the personal best — not just the MVP.</p>
       </div>
     </div>
     <div class="t">
@@ -85,7 +85,7 @@
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 2.6v5.2c0 4.6-3 8-7 9.7-4-1.7-7-5.1-7-9.7V5.6z"/><path d="M9 11.8l2.2 2.2 4-4.2"/></svg>
       <div>
         <h3>Moments That Last</h3>
-        <p>A safe, parent-managed place to preserve highlights and the memories behind them.</p>
+        <p>A safe, parent-managed place to preserve big plays and memories.</p>
       </div>
     </div>
   </div>
@@ -113,7 +113,7 @@
         <h2 id="boardTitle">This month's <span class="lime">plays</span></h2>
         <div class="count-chip" id="chipMonth">Voting ends in <b id="countdown">—</b></div>
       </div>
-      <p id="boardIntro">Votes cast this month decide Hype of the Month. All-time votes build the Hall of Fame. One vote per person, per play, per month.</p>
+      <p id="boardIntro">Athletes post their plays. Your votes crown the winner — one vote per person, per play, per month.</p>
     </div>
 
     <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
@@ -163,6 +163,42 @@
       <p class="all-count" id="allCount"></p>
       <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board, sport, or search.</div>
+    </div>
+
+    <!-- Round 44 (2026-11-08, concept rebuild): directly below the
+         clips, two separate jobs (Emil): see EVERYTHING, then find a
+         specific sport. See all plays switches to the All Hypes view;
+         the sport row reuses the montage's old goToSportBoard wiring
+         (All Hypes filtered to the sport); All sports clears it. -->
+    <div class="board-under" id="boardUnder">
+      <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
+      <div class="browse-sports">
+        <div class="browse-head">
+          <h3>Browse by sport</h3>
+          <a href="#deck" class="all-sports-link" onclick="event.preventDefault();goToSportBoard('all')">All sports →</a>
+        </div>
+        <div class="sport-row" role="group" aria-label="Browse plays by sport">
+          <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
+          <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
+          <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
+          <button type="button" onclick="goToSportBoard('dance')">Dance</button>
+          <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
+          <button type="button" onclick="goToSportBoard('football')">Football</button>
+          <button type="button" onclick="goToSportBoard('golf')">Golf</button>
+          <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
+          <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
+          <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
+          <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
+          <button type="button" onclick="goToSportBoard('other')">Other</button>
+          <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
+          <button type="button" onclick="goToSportBoard('softball')">Softball</button>
+          <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
+          <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
+          <button type="button" onclick="goToSportBoard('track')">Track & Field</button>
+          <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
+          <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
+        </div>
+      </div>
     </div>
 
     <form id="uploadForm" class="upload-card">
@@ -266,71 +302,15 @@
     </form>
   </div>
 
-  <!-- ============ CTA BAND (Round 25, 2026-11-06) ============
-       Emil, from his phone after Round 24: a parent who has just
-       watched the board is at peak "my kid has a clip like that,"
-       but the only submit asks were the hero (a page up), the
-       final CTA (below the store) and the floating pill. This
-       slim band gives that moment an in-flow ask between the
-       plays and the montage: the mission line as the heading,
-       one subline, the lime button. The button is a
-       <button data-submit-link>, NOT a '#post' anchor — it
-       routes through goSubmit like every submit CTA and opens
-       the Round 24 upload overlay (§34 pins the page's #post
-       links to the pre-existing anchor CTAs). -->
-  <div class="wrap">
-    <div class="cta-band">
-      <div class="sec-head">
-        <h2>YOUR MOMENT. YOUR <span class="lime">HYPE.</span></h2>
-        <p>Post your young athlete's best play — it takes a minute.</p>
-      </div>
-      <button type="button" class="btn btn-lime btn-hero" data-submit-link>Submit a Hype</button>
-    </div>
-  </div>
-
-  <!-- ============ MONTAGE (energy strip) ============ -->
-  <!-- Round 10 (2026-11-05): the strips are real buttons now — each
-       one jumps to All Hypes filtered to its sport (goToSportBoard).
-       They used to be pure decoration wearing a ▶ + "· Video" label,
-       so tapping them did nothing (Nicholas reported exactly that).
-       The video keeps autoplaying muted underneath; pointer-events
-       are off on the video so the surface can't swallow the tap. -->
-  <div class="wrap">
-    <div class="montage" aria-label="Sports videos — tap a sport to watch its plays on the All Hypes board">
-      <figure role="button" tabindex="0" data-sport="baseball" aria-label="Baseball — watch the plays" onclick="goToSportBoard('baseball')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('baseball')}">
-        <video src="/play-baseball.mp4" poster="/play-baseball.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>Baseball — watch the plays →</figcaption>
-      </figure>
-      <figure role="button" tabindex="0" data-sport="basketball" aria-label="Basketball — watch the plays" onclick="goToSportBoard('basketball')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('basketball')}">
-        <video src="/play-basketball.mp4" poster="/play-basketball.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>Basketball — watch the plays →</figcaption>
-      </figure>
-      <figure role="button" tabindex="0" data-sport="soccer" aria-label="Soccer — watch the plays" onclick="goToSportBoard('soccer')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToSportBoard('soccer')}">
-        <video src="/play-soccer.mp4" poster="/play-soccer.webp" autoplay muted loop playsinline preload="metadata"></video>
-        <figcaption>Soccer — watch the plays →</figcaption>
-      </figure>
-    </div>
-  </div>
-
 <!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
 <div class="wrap">
   <div class="hf-examples" id="hfExamplesHome">
     <div class="hf-examples-head">
       <span class="sec-tag">Hype Frame</span>
-      <h4>What yours could look like</h4>
-      <p>Example finishes — yours is made from your own play. Pick a play on the board and tap “Create a Hype Frame” to freeze your moment.</p>
-      <a class="btn btn-lime hf-home-cta" href="#deck" data-tablink="plays">Create a Hype Frame</a>
+      <h4>Hype Frame</h4>
+      <p>Pick a moment. Put it on a hoodie.</p>
     </div>
-    <!-- Hype Frame film (Round 4, 2026-11-05): built around the
-         sweatshirt player — the cream hoodie's printed player comes
-         to life and plays out his swing, then the finished-product
-         examples. Replaced the Round 3 real-clip assembly at Emil's
-         direction. -->
-    <div class="hf-film">
-      <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the player printed on the sweatshirt comes to life, then finished-product examples"></video>
-    </div>
-    <div class="hf-examples-grid hf-grid-solo">
-      <figure class="hf-example hf-example-hoodie">
+    <figure class="hf-example hf-hero-fig">
         <div class="hf-swipe" data-hf-swipe>
           <div class="hf-swipe-track">
             <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
@@ -342,33 +322,12 @@
           </div>
         </div>
         <figcaption>Cream hoodie · Back — example finish · Photo / Avatar</figcaption>
-      </figure>
-    </div>
-    <!-- Photo or Avatar (Round 39, 2026-11-08): the same concept
-         poster two ways — Emil's original photo version and the
-         Avatar edition — so families can SEE the studio's
-         Photo-or-Avatar choice (Round 38, Twinkie's feature)
-         instead of having to imagine it. -->
-    <div class="hf-examples-head hf-sub-head" style="margin-top:24px">
-      <h4>Photo or Avatar — your pick</h4>
-      <p>Every Hype Frame starts from your real moment. Print it as the photo it is, or have it illustrated as an avatar — same play, same uniform, no real face on the garment. You choose in the studio.</p>
-    </div>
-    <!-- Round 43 (2026-11-08, Twinkie: "more swipes"): the pair is
-         ONE swipe card now — Photo first, Avatar a flick away; the
-         block takes half the space and the comparison is instant. -->
-    <figure class="hf-example">
-      <div class="hf-swipe hf-swipe-wide" data-hf-swipe>
-        <div class="hf-swipe-track">
-          <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
-          <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
-        </div>
-        <div class="hf-swipe-chips" role="group" aria-label="Concept poster: Photo or Avatar">
-          <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
-          <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
-        </div>
-      </div>
-      <figcaption>The concept poster, two ways — swipe: Real photo / Avatar</figcaption>
     </figure>
+    <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
+    <!-- Round 44 (2026-11-08): the concept posters moved INTO the
+         studio (below its examples grid) — the homepage section is
+         now the concept's one image + one action, and the Photo /
+         Avatar comparison lives where the choice is actually made. -->
   </div>
 </div>
 </section>
@@ -462,6 +421,26 @@
             <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
           </figure>
         </div>
+    <div class="hf-examples-head hf-sub-head" style="margin-top:24px">
+      <h4>Photo or Avatar — your pick</h4>
+      <p>Every Hype Frame starts from your real moment. Print it as the photo it is, or have it illustrated as an avatar — same play, same uniform, no real face on the garment. You choose in the studio.</p>
+    </div>
+    <!-- Round 43 (2026-11-08, Twinkie: "more swipes"): the pair is
+         ONE swipe card now — Photo first, Avatar a flick away; the
+         block takes half the space and the comparison is instant. -->
+    <figure class="hf-example">
+      <div class="hf-swipe hf-swipe-wide" data-hf-swipe>
+        <div class="hf-swipe-track">
+          <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
+          <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
+        </div>
+        <div class="hf-swipe-chips" role="group" aria-label="Concept poster: Photo or Avatar">
+          <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
+          <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
+        </div>
+      </div>
+      <figcaption>The concept poster, two ways — swipe: Real photo / Avatar</figcaption>
+    </figure>
       </div>
     </div>
 
@@ -633,7 +612,7 @@
       <div class="store-card-body">
         <span class="sec-tag" style="margin-bottom:0">Rep The Hype · Drop 001</span>
         <h2>Rep the <span class="lime">hype</span></h2>
-        <p>Bold, youth-first apparel that turns community into identity. The Drop 001 film, the lookbook, and both collections live in the Store — and Drop 001 is a limited drop, so tap through while it's here.</p>
+        <p>Bold, youth-first apparel that turns community into identity. The film, the lookbook, and both collections live in the Store.</p>
         <div class="store-cta-actions">
           <a class="btn btn-lime btn-hero" href="#shop" data-store-link>Enter the Store</a>
           <div class="store-cta-sub">

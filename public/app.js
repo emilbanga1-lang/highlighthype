@@ -917,6 +917,16 @@ window.goToSportBoard = (sport) => {
   renderAll2();
   $("#viewAll")?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
+/* Round 44 (2026-11-08): "See all plays" under the clips — the All
+   Hypes view with NO sport change (the browse row's job), landing
+   at the board head rather than mid-list. */
+window.seeAllPlays = () => {
+  showHome();
+  showPanel("plays");
+  switchView("all");
+  renderAll2();
+  $("#deck")?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 /* ---------------- athlete collection ---------------- */
 window.openAthlete = async (athleteId) => {
@@ -971,7 +981,8 @@ function switchView(v) {
   $("#viewFame").hidden = v !== "fame";
   $("#viewAll").hidden = v !== "all";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
-  $("#boardTitle").innerHTML = v === "month" ? `This month's <span class="lime">plays</span>` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
+  const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
+  $("#boardTitle").innerHTML = v === "month" ? `Hype of the <span class="lime">Month</span>` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
