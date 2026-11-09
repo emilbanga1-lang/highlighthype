@@ -698,7 +698,7 @@ function renderAll2() { /* All Hypes view */
     divMatch(h, allDiv) &&
     (allSport === "all" || h.sport === allSport) &&
     (!q || [h.title, h.player_name, h.story, h.team, h.sport].join(" ").toLowerCase().includes(q)));
-  $("#allCount").textContent = `${filtered.length} of ${ALL_PLAYS.length} plays`;
+  $("#allCount").textContent = `${filtered.length} plays`;
   const emptyEl = $("#allEmpty");
   emptyEl.textContent = "No plays match — try a different board, sport, or search.";
   const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
@@ -1178,6 +1178,11 @@ function syncFilterUI() {
   renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
+  // Round 62 (2026-11-08): the shared sport pill bar mirrors the
+  // current view's sport (Month reads monthSport, the other views
+  // allSport) — the fallbacks above have already run by here.
+  const spCurrent = (typeof currentView !== "undefined" && currentView === "month") ? monthSport : allSport;
+  $$("#sportPills .sp-pill").forEach((b) => b.classList.toggle("active", b.dataset.sp === spCurrent));
 }
 /* Round 47 (2026-11-08): the search box is retired from the board
    (Emil: "we can always add that again later") — allSearch stays ""
@@ -2411,3 +2416,36 @@ $("#modLinkBtn").addEventListener("click", async () => { const m = $("#modLinkMs
   trackReferrer();
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
 })();
+
+/* ---------------- Round 62 (2026-11-08): board controls ----------------
+   The sport pill bar filters the visible board in place (Month
+   writes monthSport; Fame jumps to All Hypes like the old browse
+   row did; All writes allSport). More expands the full list. The
+   Filter buttons open each view's filter popover (the division
+   seg; the sport <select> stays in the DOM, CSS-hidden, because
+   renderSportSelect/syncFilterUI still run through it). */
+$$("#sportPills .sp-pill").forEach((b) => {
+  b.onclick = () => {
+    const sp = b.dataset.sp;
+    if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
+    else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
+  };
+});
+const spMoreBtn = $("#spMore");
+if (spMoreBtn) spMoreBtn.onclick = () => {
+  const bar = $("#sportPills");
+  const open = bar.classList.toggle("expanded");
+  spMoreBtn.setAttribute("aria-expanded", String(open));
+  spMoreBtn.innerHTML = open ? 'Less <span aria-hidden="true">⌃</span>' : 'More <span aria-hidden="true">⌄</span>';
+};
+$$("[data-filter-btn]").forEach((btn) => {
+  btn.onclick = () => {
+    const pop = document.getElementById(btn.dataset.filterBtn);
+    if (!pop) return;
+    const willShow = pop.hidden;
+    pop.hidden = !willShow;
+    btn.setAttribute("aria-expanded", String(willShow));
+  };
+});
+window.openGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = false; };
+window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = true; };

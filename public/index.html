@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=61" />
+<link rel="stylesheet" href="styles.css?v=62" />
 </head>
 <body>
 
@@ -121,41 +121,42 @@
 
 
 
-    <!-- Round 54 (2026-11-08, Emil): Browse by Sport back
-         ABOVE the videos (the Round 47 placement he prefers);
-         it spent one round under the tiles (53). Tapping a sport
-         jumps to the All Hypes board filtered to it. -->
-    <div class="browse-sports">
-      <div class="browse-head">
-        <h3>Browse by sport</h3>
-      </div>
-      <div class="sport-row" role="group" aria-label="Browse plays by sport">
-        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
-        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
-        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
-        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
-        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
-        <button type="button" onclick="goToSportBoard('football')">Football</button>
-        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
-        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
-        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
-        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
-        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
-        <button type="button" onclick="goToSportBoard('other')">Other</button>
-        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
-        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
-        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
-        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
-        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
-        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
-        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
-      </div>
-    </div>
-
+    <!-- Round 62 (2026-11-08, Emil's board mock): the view
+         toggles move ABOVE the sports (sports stay above the
+         videos), and Browse by Sport becomes his pill bar — All
+         Sports + the first sports, with More expanding the rest.
+         The pills filter the board in place, through the same
+         monthSport / allSport state the dropdowns wrote. -->
     <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
       <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
       <button type="button" data-view="all" aria-pressed="false">All Hypes</button>
+    </div>
+
+    <div class="sport-pills" id="sportPills">
+      <div class="sport-pills-row" role="group" aria-label="Filter plays by sport">
+        <button type="button" class="sp-pill" data-sp="all">All Sports</button>
+        <button type="button" class="sp-pill" data-sp="baseball">Baseball</button>
+        <button type="button" class="sp-pill" data-sp="basketball">Basketball</button>
+        <button type="button" class="sp-pill" data-sp="cheer">Cheer</button>
+        <button type="button" class="sp-pill" data-sp="dance">Dance</button>
+        <button type="button" class="sp-pill" data-sp="fieldhockey">Field Hockey</button>
+        <button type="button" class="sp-pill" data-sp="football">Football</button>
+        <button type="button" class="sp-pill" data-sp="golf">Golf</button>
+        <button type="button" class="sp-pill" data-sp="gymnastics">Gymnastics</button>
+        <button type="button" class="sp-pill" data-sp="hockey">Hockey</button>
+        <button type="button" class="sp-pill" data-sp="lacrosse">Lacrosse</button>
+        <button type="button" class="sp-pill" data-sp="martialarts">Martial Arts</button>
+        <button type="button" class="sp-pill" data-sp="other">Other</button>
+        <button type="button" class="sp-pill" data-sp="soccer">Soccer</button>
+        <button type="button" class="sp-pill" data-sp="softball">Softball</button>
+        <button type="button" class="sp-pill" data-sp="swimming">Swimming</button>
+        <button type="button" class="sp-pill" data-sp="tennis">Tennis</button>
+        <button type="button" class="sp-pill" data-sp="track">Track &amp; Field</button>
+        <button type="button" class="sp-pill" data-sp="volleyball">Volleyball</button>
+        <button type="button" class="sp-pill" data-sp="wrestling">Wrestling</button>
+        <button type="button" class="sp-more" id="spMore" aria-expanded="false">More <span aria-hidden="true">⌄</span></button>
+      </div>
     </div>
 
     <div id="viewMonth">
@@ -165,12 +166,19 @@
            then. No placeholder, no fake winner. -->
       <div class="last-winner" id="lastWinner" hidden></div>
       <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
-      <div class="filters" id="boardFilters">
+      <div class="tools-anchor">
+        <div class="board-tools">
+          <span></span>
+          <button type="button" class="filter-btn" data-filter-btn="boardFilters" aria-expanded="false" aria-controls="boardFilters"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2.2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2.2"/></svg> Filter</button>
+        </div>
+        <div class="filters" id="boardFilters" hidden>
+        <span class="filter-pop-label">Division</span>
         <div class="seg" role="group" aria-label="Division" id="monthDivSeg">
           <button type="button" data-div="boys" aria-pressed="true">Boys</button>
           <button type="button" data-div="girls" aria-pressed="false">Girls</button>
         </div>
         <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
+        </div>
       </div>
       <div class="tile-grid" id="board"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
@@ -188,7 +196,13 @@
 
     <div id="viewAll" hidden>
       <div class="all-bg" aria-hidden="true"></div>
-      <div class="filters" id="allFilters">
+      <div class="tools-anchor">
+        <div class="board-tools">
+          <p class="all-count" id="allCount"></p>
+          <button type="button" class="filter-btn" data-filter-btn="allFilters" aria-expanded="false" aria-controls="allFilters"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10"/><path d="M18 7h2"/><circle cx="16" cy="7" r="2.2"/><path d="M4 17h4"/><path d="M12 17h8"/><circle cx="10" cy="17" r="2.2"/></svg> Filter</button>
+        </div>
+        <div class="filters" id="allFilters" hidden>
+        <span class="filter-pop-label">Board</span>
         <div class="seg" role="group" aria-label="Board" id="allDivSeg">
           <button type="button" data-div="all" aria-pressed="true">All boards</button>
           <button type="button" data-div="boys" aria-pressed="false">Boys</button>
@@ -198,8 +212,8 @@
         <!-- Round 47 (2026-11-08, Emil): the search box is retired
              for now — the filter logic stays dormant in app.js, so
              re-adding the box later is just this input + its listener. -->
+        </div>
       </div>
-      <p class="all-count" id="allCount"></p>
       <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
     </div>
@@ -209,6 +223,24 @@
     <div class="board-under" id="boardUnder">
 
       <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
+    </div>
+
+    <!-- Round 62 (2026-11-08, Emil's board mock): the guidelines
+         that used to sit in a strip above the board (removed in
+         Rounds 59-61) now live behind this one link. -->
+    <p class="guidelines-row"><button type="button" class="guidelines-link" onclick="openGuidelines()">Posting guidelines</button></p>
+    <div class="guidelines-modal" id="guidelinesModal" hidden role="dialog" aria-modal="true" aria-label="Posting guidelines">
+      <div class="play-detail-backdrop" onclick="closeGuidelines()"></div>
+      <div class="guidelines-panel">
+        <h3>Posting guidelines</h3>
+        <ul>
+          <li>Every play is <b>owner-approved before it appears</b> — new posts start in review.</li>
+          <li><b>Only your own clips</b>, and <b>first names only</b> — no full name + school + team together.</li>
+          <li><b>Under 13? A parent or guardian gives permission first.</b> Winners are contacted through the parent/guardian — never the child directly.</li>
+          <li>See a play that doesn't belong? Use <b>Report</b> on any play.</li>
+        </ul>
+        <button type="button" class="mini-btn" onclick="closeGuidelines()">Close</button>
+      </div>
     </div>
 
     <form id="uploadForm" class="upload-card">
@@ -961,6 +993,6 @@
   </div>
 </div>
 
-<script src="app.js?v=61"></script>
+<script src="app.js?v=62"></script>
 </body>
 </html>
