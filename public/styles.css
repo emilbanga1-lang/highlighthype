@@ -2014,7 +2014,7 @@
      row beneath, centered. The master's textured background was
      crushed to the footer's pure black at build time, so the
      lockup floats on the page with no rectangle edge. */
-  footer .foot-stack{text-align:center}
+  footer .foot-stack{width:100%;text-align:center}
   footer .foot-stack .brand{display:inline-block}
   footer .foot-stack .footer-lockup{margin:0 auto}
   footer .owner-row{justify-content:center}
