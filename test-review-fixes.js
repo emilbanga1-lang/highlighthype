@@ -614,7 +614,7 @@ try {
   const hfFilmFile = path.join(tmp, "hf-film-probe.mp4");
   fs.writeFileSync(hfFilmFile, hfFilmBuf);
   const hfFilmDur = Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", hfFilmFile]).toString().trim());
-  assert(hfFilmDur > 12 && hfFilmDur < 18, `the Hype Frame film runs ~15s (${hfFilmDur}s)`);
+  assert(hfFilmDur > 8 && hfFilmDur < 12, `the Hype Frame film runs ~10s (${hfFilmDur}s) — Round 58's single-morph loop (was the ~14s tour)`);
   const hfFilmSize = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", hfFilmFile], { encoding: "utf8" }).trim();
   assert(hfFilmSize === "1280,720", `the Hype Frame film is 1280x720 (${hfFilmSize})`);
   const doorRes = await fetch(`${base}/swag/hf-door.jpg`);
