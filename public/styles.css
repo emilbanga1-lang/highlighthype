@@ -2069,3 +2069,17 @@
     .story-card{max-width:920px;margin-left:auto;margin-right:auto}
     .hero-media video{transform:scale(1.12)}
   }
+
+  /* ===== Round 75 (2026-11-09): desktop compact pass (Emil: on
+     desktop everything a little tighter). Desktop only — phone
+     keeps the Round 70 rhythm exactly. ===== */
+  @media (min-width:1024px){
+    .hero{min-height:min(80vh,580px)}
+    .hero h1{font-size:clamp(46px,6.2vw,88px)}
+    section{padding:30px 0}
+    .sec-head h2{font-size:clamp(38px,4.5vw,54px)}
+    .stories{padding-top:24px}
+    #hypeframe{padding:18px 0 22px}
+    .final{padding:20px 0 26px}
+    footer{padding-bottom:36px}
+  }
