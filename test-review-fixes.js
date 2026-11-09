@@ -144,7 +144,7 @@ try {
   const storeSection = home.slice(home.indexOf('id="shop"'));
   // Prices landed with the tonight additions (Emil, 2026-11-04, BL101
   // pattern): $69.99 + the youth size run, INSIDE the Store only.
-  assert((storeSection.match(/\$69\.99/g) || []).length >= 7, "Drop 001 price $69.99 shows on all six cards + quick view");
+  assert((storeSection.match(/\$69\.99/g) || []).length === 3, "Round 52: $69.99 shows exactly three times from the store on — the hoodies header's planned price, the product view and the Hot Pink quick view (it came off the six cards)");
   assert(storeSection.includes("YXXS · YXS · YS · YM · YL · YXL") && storeSection.includes("Youth sizes"), "youth size run shown in the Store (YXXS–YXL)");
   assert(home.includes('id="qvSizes"') && (home.match(/data-qv-size=/g) || []).length === 6, "quick view has the six-size tappable selector");
   assert(appJs.includes("qv-size"), "quick-view size selection wired (state only — no cart/checkout)");
@@ -277,7 +277,7 @@ try {
   const filmVol = execFileSync("bash", ["-c", `ffmpeg -i "${filmFile}" -map 0:a -af volumedetect -f null - 2>&1 | grep mean_volume`]).toString();
   const filmMeanDb = Number((/mean_volume:\s*(-?[\d.]+)/.exec(filmVol) || [])[1]);
   assert(filmMeanDb < -20 && filmMeanDb > -35, `Round 11: the film's music bed is QUIET (mean ${filmMeanDb} dB — background, not a soundtrack)`);
-  assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 1, "Round 27: only ONE film tag keeps the v6 poster — the homepage entry-card teaser (the store's film tag left with the film)");
+  assert((home.match(/poster="\/swag-poster-v6\.jpg"/g) || []).length === 0, "Round 27/55: no film tag keeps the v6 poster — the store's left in Round 27, and the homepage entry-card teaser left in Round 55 when Rep The Hype became a photo band (the film file stays on the server)");
   /* Scene table integrity: exactly the five new scenes, on the
      assembled film's measured boundaries, and none of the old film's
      scenes (title card / Hype All Day / division & end cards) remain. */
@@ -321,7 +321,7 @@ try {
   assert(appJs.includes("const storeState = { focus: null }"), "store starts unfocused (full landing: film, Boys, Girls, Hype Frame)");
   assert(!home.includes("data-hero-shop"), "Round 27: film overlay Shop Boys/Girls links are gone with the film");
   assert(!home.includes("data-store-focus"), "Round 27: banner focus buttons are gone with the blocks");
-  assert(home.indexOf('data-store-target="hype-boys"') < home.indexOf('data-store-target="hype-girls"'), "homepage store card links: Hype Boys before Hype Girls");
+  assert(!home.includes('data-store-target="hype-boys"') && !home.includes('data-store-target="hype-girls"') && home.includes('class="rep-band"'), "Round 55: the homepage store entry is the Rep The Hype photo band — the old card's Hype Boys/Girls quick links left with the card (divisions are entered inside the Store)");
   const cardTag = (slug) => (home.match(new RegExp(`<article class="prod-card"[^>]*data-slug="${slug}"[^>]*>`)) || [""])[0];
   for (const slug of SLUGS) assert(cardTag(slug) === "", `Round 27: no Original Drop card remains in the markup: ${slug}`);
 
@@ -1396,13 +1396,13 @@ try {
   const r10Ctx = vm.createContext(r10Sandbox);
   vm.runInContext(r10Block, r10Ctx);
   vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === "TILE:12;TILE:14;TILE:15;TILE:99;" && r10Els["#allCount"].textContent === "4 of 4 plays", "behavioral (Round 10): with no team filter, team-tagged AND untagged plays all render — the board behaves as team='all'");
+  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div><div class="tile-deck">TILE:14;TILE:15;TILE:99;</div>' && r10Els["#allCount"].textContent === "4 of 4 plays", "behavioral (Round 10): with no team filter, team-tagged AND untagged plays all render — the board behaves as team='all'");
   r10Sandbox.allSport = "baseball"; vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10): the sport filter still filters on its own (baseball only)");
+  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div>', "behavioral (Round 10): the sport filter still filters on its own (baseball only)");
   r10Sandbox.allSport = "all"; r10Sandbox.allDiv = "girls"; vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === "TILE:15;", "behavioral (Round 10): the division segment still filters on its own (girls only)");
+  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:15;</div>', "behavioral (Round 10): the division segment still filters on its own (girls only)");
   r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "hawks"; vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10/47): the (now dormant) text filter still matches team names — the search UI was retired in Round 47, the logic kept for an easy re-add");
+  assert(r10Els["#allBoard"].innerHTML === '<div class="tile-featured-slot">TILE:12;</div>', "behavioral (Round 10/47): the (now dormant) text filter still matches team names — the search UI was retired in Round 47, the logic kept for an easy re-add");
   r10Sandbox.allSearch = "";
   // (3) Sport jumps: the montage strips retired in Round 44 — the
   // Browse by Sport row under the clips carries the same wiring.
@@ -1432,7 +1432,7 @@ try {
     assert(g10Sandbox.allSport === sport && g10Calls.join(",") === "home,panel:plays,sync,view:all,render,scroll", `behavioral (Round 10): tapping the ${sport} strip sets the All-board sport filter and lands on All Hypes (home → plays panel → sync → view:all → render → scroll)`);
     r10Sandbox.allSport = g10Sandbox.allSport; r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "";
     vm.runInContext("renderAll2()", r10Ctx);
-    assert(r10Els["#allBoard"].innerHTML === tile, `behavioral (Round 10): after the ${sport} tap, the rendered All board holds exactly that sport's seeded sample play (${tile})`);
+    assert(r10Els["#allBoard"].innerHTML === `<div class="tile-featured-slot">${tile}</div>`, `behavioral (Round 10/54): after the ${sport} tap, the rendered All board holds exactly that sport's seeded sample play (${tile}) — alone, it renders as the featured tile`);
   }
   // (4) Film controls: Round 27 removes the film from the store, so
   // Round 10's placement/byte-identity asserts are superseded by
@@ -1559,7 +1559,7 @@ try {
   const headerBlock26 = home.slice(home.indexOf('<header class="nav">'), home.indexOf("</header>"));
   assert(!headerBlock26.includes("nav-store-btn") && !css.includes(".nav-store-btn"), "Round 11→12: the 'Swag' link and its rule are gone — the header carries no store control (§27)");
   assert(!home.includes("🛍️"), "Round 11→12: the bag emoji stays gone from the page (it lived only on the header controls)");
-  assert(headerBlock26.includes("Swag Shop — Rep The Hype") && home.includes("Enter the Store"), "Round 11→12: the ☰ menu entry and the Store Entry Card keep their wording — they carry the store now (§27 drives their handler)");
+  assert(headerBlock26.includes("Swag Shop — Rep The Hype") && home.includes("Shop the Drop"), "Round 11→12/55: the ☰ menu entry keeps its wording, and the homepage store entry is the Rep The Hype band whose call is Shop the Drop — they carry the store now (§27 drives their handler)");
   // (4) The film file: Round 9's own bytes, same picture as ever.
   const filmPath26 = path.join(root, "public", "swag-film.mp4");
   assert(fs.statSync(filmPath26).size === 9384994, "Round 11: the store film is exactly Round 9's music-bed file (9,384,994 bytes) — reverted, not re-muxed");
@@ -1626,7 +1626,7 @@ try {
   assert(!headerBlock27.includes(">Swag</a>") && headerBlock27.includes('id="menuBtn"') && headerBlock27.includes('class="brand"') && headerBlock27.includes("nav-swag"), "Round 12: the header renders logo + ☰ only — no store anchor floats in the bar; the menu (with its store entry) is intact");
   assert(!css.includes(".nav .menu-btn{margin-left:0}") && css.includes(".menu-btn{margin-left:auto"), "Round 12: the Round 9 margin override is gone — the base .menu-btn rule's margin-left:auto pushes the ☰ back to the right edge");
   const storeAnchors27 = [...home.matchAll(/<a [^>]*data-store-link[^>]*>/g)].map((m) => m[0]);
-  assert(storeAnchors27.length === 4 && storeAnchors27.some((a) => a.includes("btn-hero")) && storeAnchors27.some((a) => a.includes('data-store-target="hype-boys"')) && storeAnchors27.some((a) => a.includes('data-store-target="hype-girls"')), "Round 12/51: exactly four data-store-link anchors remain — the Store Entry Card, its two door links and the final CTA (the ☰ menu entry became the real /store page link in Round 51)");
+  assert(storeAnchors27.length === 2 && storeAnchors27.some((a) => a.includes("rep-band")) && storeAnchors27.some((a) => a.includes('href="#shop"')), "Round 12/51/55: exactly two data-store-link anchors remain — the Rep The Hype band and the final CTA (the old entry card and its door links left in Round 55; the ☰ menu entry became the real /store page link in Round 51)");
   // Drive the REAL [data-store-link] handler line from app.js:
   // every remaining store anchor must still land in showStore.
   const linkLine27 = appJs.slice(appJs.indexOf('$$("[data-store-link]")'), appJs.indexOf("\n", appJs.indexOf('$$("[data-store-link]")')));
@@ -2451,24 +2451,26 @@ try {
   assert(shopSlice36.includes("Six sports. One attitude. Your moment. Your hype."), "Round 27: hero subline is exact");
   assert(shopSlice36.includes('id="hsShopBtn"') && shopSlice36.includes("SHOP HYPE SPORTS"), "Round 27: gold SHOP HYPE SPORTS button present");
   assert(appJs.includes('$("#hsShopBtn")') && appJs.includes('getElementById("hsBySport")'), "Round 27: the hero button smooth-scrolls to Shop by Sport");
-  assert(shopSlice36.includes("/swag/hs/hero-model.jpg"), "Round 27: hero art is the photo-50 model crop");
+  assert(shopSlice36.includes("/swag/hs/football-back.jpg") && !shopSlice36.includes("hero-model.jpg"), "Round 52: hero art is the football hoodie back (Emil's mock hero; the Round 27 baseball model crop retired)");
   const HS_SPORTS36 = ["baseball", "football", "basketball", "soccer", "softball", "volleyball"];
   assert((shopSlice36.match(/class="hs-tile"/g) || []).length === 6, "Round 27: six Shop by Sport tiles");
   for (const s of HS_SPORTS36) {
-    assert(shopSlice36.includes(`data-hs-open="${s}"`), `Round 27: a tile opens the ${s} product view`);
+    assert(shopSlice36.includes(`data-hs-jump="${s}"`), `Round 52: a tile jumps to the ${s} hoodie card (Round 27's direct product-view open retired)`);
     assert(shopSlice36.includes(`/swag/hs/tile-${s}.jpg`), `Round 27: tile art present: ${s}`);
   }
   for (const label of ["Baseball", "Football", "Basketball", "Soccer", "Softball", "Volleyball"]) assert(shopSlice36.includes(`<span class="hs-tile-label">${label}</span>`), `Round 27: tile label is real HTML: ${label}`);
   assert((shopSlice36.match(/class="hs-card"/g) || []).length === 6, "Round 27: six Hype Sports grid cards");
   for (const s of HS_SPORTS36) {
-    assert(shopSlice36.includes(`data-hs-card="${s}"`) && shopSlice36.includes(`/swag/hs/${s}-front.jpg`) && shopSlice36.includes(`/swag/hs/${s}-back.jpg`), `Round 27/43: grid card carries the front/back swipe slides: ${s}`);
+    const card52 = (home.match(new RegExp(`<article class="hs-card" data-hs-card="${s}"[\\s\\S]*?</article>`)) || [""])[0];
+    assert(card52.includes(`/swag/hs/${s}-back.jpg`) && !card52.includes("-front.jpg") && appJs.includes(`/swag/hs/${s}-front.jpg`), `Round 52: the ${s} card leads with the back only — the front lives on the product page (its data is intact)`);
   }
-  assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 6, "Round 27: every grid card carries the Sample phase badge");
-  assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 6, "Round 27: every grid card has the gold VIEW PRODUCT button");
+  assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 0, "Round 52: the per-card Sample phase badges are gone — the hoodies header's COMING SOON carries the preview status now");
+  assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 0, "Round 52: no VIEW PRODUCT buttons on the cards — the whole card is the tap target (the name bar carries a chevron)");
   assert(!shopSlice36.includes("data-flip"), "Round 27: grid cards have NO front/back toggle (the pair layout makes it redundant — dropped per the comp steer; the product view keeps its switch)");
-  assert(shopSlice36.includes("Premium youth fit") && shopSlice36.includes("HYPE SPORTS / 001") && shopSlice36.includes("HYPE SPORTS / 006"), "Round 27: cards carry the fit line and the 001-006 eyebrows");
-  assert((shopSlice36.match(/class="hs-chip"/g) || []).length === 7, "Round 27: seven filter chips (All Sports + six sports)");
-  assert(shopSlice36.includes('data-hs-filter="all" aria-pressed="true"') && shopSlice36.includes('data-hs-filter="volleyball"'), "Round 27: chips are aria-pressed buttons, All Sports active by default");
+  const gridSlice52 = shopSlice36.slice(shopSlice36.indexOf('id="hsGrid">'), shopSlice36.indexOf('id="hsHfFeature"'));
+  assert(!gridSlice52.includes("Premium youth fit") && !gridSlice52.includes("HYPE SPORTS /") && gridSlice52.includes("<h4>Baseball Hype Hoodie</h4>") && gridSlice52.includes("<h4>Volleyball Hype Hoodie</h4>"), "Round 52: card bodies are slim name bars — no fit line, no eyebrows (the product view keeps its own eyebrow)");
+  assert((shopSlice36.match(/class="hs-chip"/g) || []).length === 0, "Round 52: the filter chips are gone (the Shop by Sport tiles do the navigating now)");
+  assert(!shopSlice36.includes("data-hs-filter="), "Round 52: no filter wiring remains in the store markup (the app.js chip handler is dormant without chips)");
   assert(appJs.includes("chip.dataset.hsFilter") && appJs.includes('card.hidden = f !== "all"'), "Round 27: chip filtering hides non-matching cards in app.js");
   const HS_LINES36 = { baseball: "Built for the diamond. Made for the hype.", football: "Friday lights. Full send.", basketball: "Built for the blacktop. Ready for the lights.", soccer: "Top corner is a lifestyle.", softball: "Yellow ball. Loud bat. Louder hype.", volleyball: "All hustle above the net." };
   for (const [s, line] of Object.entries(HS_LINES36)) assert(appJs.includes(`${s}: {`) && appJs.includes(`line: "${line}"`), `Round 27: HS_PRODUCTS ${s} carries its exact personality line`);
