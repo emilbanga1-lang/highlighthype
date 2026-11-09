@@ -2051,3 +2051,11 @@
   .board-under{margin-top:14px}
   .final{padding:26px 0 32px}
   footer{padding-top:14px;padding-bottom:48px}
+
+  /* ===== Round 73 (2026-11-09): sub-page panels clear the
+     absolute nav. The My Highlights and How It Works headers
+     started high enough that their gold kicker line sat on top
+     of the header logo (Emil's phone screenshot). Page-sub
+     panels now start 80px down — clear of the logo and its
+     shadow on any screen. The homepage flow is untouched. ===== */
+  body.page-sub .panel{padding-top:80px}
