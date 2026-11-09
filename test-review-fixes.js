@@ -2467,7 +2467,7 @@ try {
   assert(hsViewSlice36.includes("Ships when Drop 001 sales open — no orders are being taken yet."), "Round 27: shipping note is the no-orders hold copy (no shipping promise)");
   assert(hsViewSlice36.includes("Wash inside-out, cold. Hang dry to protect the print."), "Round 27: care note is exact");
   assert(appJs.includes("Chest detail: crest with sport name"), "Round 27: generated chest-detail graphics carry the honest 'Chest detail: crest with sport name' alt text");
-  assert(shopSlice36.includes('id="hsHfFeature"') && shopSlice36.includes("/swag/hf-example-hoodie-back.jpg"), "Round 27: Hype Frame feature sits inside the store with the example hoodie photo");
+  assert(shopSlice36.includes('id="hsHfFeature"') && shopSlice36.includes('id="hfStoreFilm"') && shopSlice36.includes("playHfStoreFilm()"), "Round 27/83: Hype Frame feature sits inside the store — since Round 83 (Emil) with the Hype Frame film + steps instead of the still photo");
   assert(shopSlice36.includes("NEXT DROP") && shopSlice36.includes("DROP 002 · COMING SOON"), "Round 27: NEXT DROP teaser carries the Drop 002 copy");
   assert(shopSlice36.includes("Hot Pink returns for Drop 002."), "Round 27/59: Hot Pink is named as Drop 002's returning star (Round 59: the mock's exact caption)");
   assert(shopSlice36.includes('class="hs-teaser-card" data-slug="girls-street"') && shopSlice36.includes('id="hsHotPinkBtn"') && shopSlice36.includes("Preview Hot Pink"), "Round 27: the teaser card is wired as the girls-street product with a Preview Hot Pink button");
