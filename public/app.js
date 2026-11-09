@@ -986,7 +986,7 @@ function switchView(v) {
   $("#viewAll").hidden = v !== "all";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
-  $("#boardTitle").innerHTML = v === "month" ? `Hype of the <span class="lime">Month</span>` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
+  $("#boardTitle").innerHTML = v === "month" ? `Hype of the Month` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store

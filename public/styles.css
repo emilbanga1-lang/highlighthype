@@ -1378,6 +1378,16 @@
     .shop .hs-grid{grid-template-columns:repeat(2,1fr);gap:12px}
     .hs-hero .hs-hero-img{object-position:50% 42%}
   }
+  /* ---- Round 53 (2026-11-08): the BOARD takes the mock's
+     atmosphere — a stadium-crowd backdrop (a frame from Emil's
+     own B15 lineup shot, graded dark and teal) fading down the
+     board; Browse by Sport back under the tiles with See all
+     plays below it. ---- */
+  #plays{position:relative}
+  .board-bg{position:absolute;top:0;left:0;right:0;height:640px;background:url(/board-bg.jpg) center top/cover no-repeat;opacity:.5;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 20%,transparent 97%);mask-image:linear-gradient(180deg,#000 20%,transparent 97%)}
+  #plays .wrap{position:relative;z-index:1}
+  .sport-row button:last-child{border-right:0}
+  .board-under .browse-sports{margin:30px 0 6px}
   /* Round 48 (2026-11-08): the homepage Hype Frame film under a
      cream-hoodie cover. The box is the film's own 16:9, so the tap
      swaps cover for film with no layout shift; the cover image is

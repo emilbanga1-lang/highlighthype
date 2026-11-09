@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=53" />
+<link rel="stylesheet" href="styles.css?v=54" />
 </head>
 <body>
 
@@ -102,6 +102,7 @@
 
 <!-- ============ BOARD ============ -->
 <section class="panel active" id="plays" data-panel="plays">
+    <div class="board-bg" aria-hidden="true"></div>
   <div class="wrap">
     <div class="beta-note">
       <b>🔒 Private beta — invite only.</b> Testing with Nicholas's team and friends — not a public launch.
@@ -116,44 +117,12 @@
     <div class="sec-head">
       <span class="sec-tag" id="boardTag">The board</span>
       <div class="sec-head-row">
-        <h2 id="boardTitle">This month's <span class="lime">plays</span></h2>
+        <h2 id="boardTitle">Hype of the Month</h2>
         <div class="count-chip" id="chipMonth">Voting ends in <b id="countdown">—</b></div>
       </div>
-      <p id="boardIntro">Athletes post their plays. Your votes crown the winner — one vote per person, per play, per month.</p>
+      <p id="boardIntro">Athletes post their plays. Your votes crown the winner.</p>
     </div>
 
-    <!-- Round 47 (2026-11-08, Emil): the sport "elevators" moved
-         ABOVE the videos — pick a sport first, then watch. The
-         Round 44 All-sports link is gone (the All Hypes view
-         and the sport dropdown still cover the reset). Tapping a
-         sport jumps to the All Hypes board filtered to it
-         (goToSportBoard). -->
-    <div class="browse-sports">
-      <div class="browse-head">
-        <h3>Browse by sport</h3>
-      </div>
-      <div class="sport-row" role="group" aria-label="Browse plays by sport">
-        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
-        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
-        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
-        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
-        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
-        <button type="button" onclick="goToSportBoard('football')">Football</button>
-        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
-        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
-        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
-        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
-        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
-        <button type="button" onclick="goToSportBoard('other')">Other</button>
-        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
-        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
-        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
-        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
-        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
-        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
-        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
-      </div>
-    </div>
 
     <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
@@ -206,10 +175,40 @@
       <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
     </div>
 
-    <!-- Round 44 (2026-11-08): See all plays sits directly below the
-         clips (switches to the All Hypes view). Round 47 moved the
-         Browse by Sport row above the videos. -->
+    <!-- Round 44 (2026-11-08): See all plays switches to the All
+         Hypes view. Round 53: it sits below Browse by Sport. -->
     <div class="board-under" id="boardUnder">
+
+    <!-- Round 53 (2026-11-08, Emil): Browse by Sport sits under
+         the videos again, with See all plays below it — the
+         concept mock's board order (featured, tiles, browse,
+         see all). It was above the videos for one round (47). -->
+    <div class="browse-sports">
+      <div class="browse-head">
+        <h3>Browse by sport</h3>
+      </div>
+      <div class="sport-row" role="group" aria-label="Browse plays by sport">
+        <button type="button" onclick="goToSportBoard('baseball')">Baseball</button>
+        <button type="button" onclick="goToSportBoard('basketball')">Basketball</button>
+        <button type="button" onclick="goToSportBoard('cheer')">Cheer</button>
+        <button type="button" onclick="goToSportBoard('dance')">Dance</button>
+        <button type="button" onclick="goToSportBoard('fieldhockey')">Field Hockey</button>
+        <button type="button" onclick="goToSportBoard('football')">Football</button>
+        <button type="button" onclick="goToSportBoard('golf')">Golf</button>
+        <button type="button" onclick="goToSportBoard('gymnastics')">Gymnastics</button>
+        <button type="button" onclick="goToSportBoard('hockey')">Hockey</button>
+        <button type="button" onclick="goToSportBoard('lacrosse')">Lacrosse</button>
+        <button type="button" onclick="goToSportBoard('martialarts')">Martial Arts</button>
+        <button type="button" onclick="goToSportBoard('other')">Other</button>
+        <button type="button" onclick="goToSportBoard('soccer')">Soccer</button>
+        <button type="button" onclick="goToSportBoard('softball')">Softball</button>
+        <button type="button" onclick="goToSportBoard('swimming')">Swimming</button>
+        <button type="button" onclick="goToSportBoard('tennis')">Tennis</button>
+        <button type="button" onclick="goToSportBoard('track')">Track &amp; Field</button>
+        <button type="button" onclick="goToSportBoard('volleyball')">Volleyball</button>
+        <button type="button" onclick="goToSportBoard('wrestling')">Wrestling</button>
+      </div>
+    </div>
       <p class="see-all-row" id="seeAllRow"><a href="#deck" class="see-all-link" onclick="event.preventDefault();seeAllPlays()">See all plays →</a></p>
     </div>
 
@@ -334,7 +333,7 @@
           <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a cream hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
           <button type="button" class="hf-film-btn" onclick="playHfHomeFilm()">▶ See how it works</button>
         </div>
-        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4" controls playsinline preload="none" hidden></video>
+        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4?v=3" controls playsinline preload="none" hidden></video>
       </div>
       <figcaption>Cream hoodie · Back — example finish</figcaption>
     </figure>
@@ -413,7 +412,7 @@
          first, data collection last. -->
     <div class="hf-payoff">
       <div class="hf-film">
-        <video src="/hype-frame-film.mp4" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the player printed on the sweatshirt comes to life, turns into the Avatar version, then finished-product examples"></video>
+        <video src="/hype-frame-film.mp4?v=3" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — the guided tour: start with your hype video, pick your frame, choose your actual image or your avatar, and we take care of the rest"></video>
       </div>
       <p class="hf-payoff-line">This is what your moment becomes.</p>
       <div class="hf-examples hf-examples-studio">
@@ -968,6 +967,6 @@
   </div>
 </div>
 
-<script src="app.js?v=53"></script>
+<script src="app.js?v=54"></script>
 </body>
 </html>
