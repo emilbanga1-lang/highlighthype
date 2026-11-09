@@ -624,7 +624,7 @@ try {
   const playsIdx = home.indexOf('data-panel="plays"'), mineIdx = home.indexOf('data-panel="mine"'), exIdx = home.indexOf('id="hfExamplesHome"');
   assert(playsIdx > -1 && exIdx > playsIdx && exIdx < mineIdx, "homepage examples block sits inside the plays panel (before My Highlights)");
   const exSlice = home.slice(exIdx, mineIdx);
-  assert(!exSlice.includes("hype-frame-film.mp4") && exSlice.includes("hf-hero-fig"), "Round 44: the homepage Hype Frame section is ONE hero figure (the hoodie swipe) — the film lives in the studio payoff now");
+  assert(exSlice.includes("hype-frame-film.mp4") && exSlice.includes("hf-hero-fig") && exSlice.includes("See how it works"), "Round 44/48: the homepage Hype Frame section is ONE hero figure — since Round 48 it carries the film under the cream-hoodie cover (click-to-play)");
   // Server: size column + sanitizer + owner-email surfacing.
   assert(serverJs.includes('ADD COLUMN size TEXT') && serverJs.includes('"YXXS", "YXS", "YS", "YM", "YL", "YXL"'), "server stores the HF order size (additive column + whitelist)");
   assert(serverJs.includes("Size: ${order.size"), "the owner notification email enumerates the size alongside the colorway");
@@ -669,8 +669,8 @@ try {
      video; an explicitly paused video never auto-resumes, so the Hype
      Frame films are restarted explicitly — studio film on studio open,
      homepage film on return home. */
-  assert("18.1 showHome resumes the homepage Hype Frame film",
-    /#hfExamplesHome video/.test(appJs) && /hfHome\.play\(\)/.test(appJs));
+  assert("18.1 (Round 48) showHome does NOT resume any homepage Hype Frame film — it is click-to-play now (Emil: no autoplay competing with the hero)",
+    !appJs.includes('$("#hfExamplesHome video")'));
   assert("18.2 openHypeFrame plays the studio film",
     /#hypeframe \.hf-film video/.test(appJs) && /hfFilm\.play\(\)/.test(appJs));
 
@@ -1503,14 +1503,14 @@ try {
     location: { hash: "#top" }, history: { replaceState: () => {} },
     setStoreFocus: () => {},
     IntersectionObserver: FakeIO26,
-    $: (sel) => (sel === "#heroVideo" ? heroVid26 : sel === "#hfExamplesHome video" ? hfVid26 : null),
+    $: (sel) => (sel === "#heroVideo" ? heroVid26 : null),
     $$: (sel) => (sel === ".montage video" ? montageVids26 : []),
   };
   const ctx26 = vm.createContext(sb26);
   vm.runInContext(showHome26, ctx26);
   assert(ioSeen26.length === 3 && ioOpts26 && ioOpts26.threshold.includes(0.25), "behavioral (Round 11): the watcher observes all three montage clips with the 25% threshold");
   vm.runInContext("showHome()", ctx26);
-  assert(montageVids26.every((v) => v.plays === 1) && heroVid26.plays === 1 && hfVid26.plays === 1, "behavioral (Round 11): returning home from the Store plays hero + Hype Frame film + ALL three montage clips (under Round 10 the montage stayed at 0 — frozen on posters)");
+  assert(montageVids26.every((v) => v.plays === 1) && heroVid26.plays === 1 && hfVid26.plays === 0, "behavioral (Round 11/48): returning home from the Store plays hero + ALL three montage clips; the homepage Hype Frame film is NOT resumed (click-to-play since Round 48 — hfVid26 stands in for it and must stay at 0)");
   ioCb26([{ target: montageVids26[0], intersectionRatio: 0.5 }, { target: montageVids26[1], intersectionRatio: 0.1 }, { target: montageVids26[2], intersectionRatio: 0 }]);
   assert(montageVids26[0].plays === 2 && montageVids26[1].pauses === 1 && montageVids26[2].pauses === 1, "behavioral (Round 11): the observer plays a clip scrolled >=25% into view and pauses the ones below the line / off-screen");
   for (const p of ["play-baseball.webp", "play-basketball.webp", "play-soccer.webp"]) {

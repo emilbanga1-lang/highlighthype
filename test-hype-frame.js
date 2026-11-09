@@ -170,8 +170,8 @@ try {
     const ir = await fetch(base + pth);
     assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
   }
-  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 3, "Round 40: all three cream-hoodie examples (homepage, studio, Store feature) carry the avatar slide");
-  assert((home.match(/data-hf-swipe/g) || []).length === 10, "Round 43: ten swipes page-wide — 3 hoodie Photo/Avatar + 1 poster Photo/Avatar + 6 store-card Front/Back");
+  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 2, "Round 40/48: the studio + Store cream-hoodie examples carry the avatar slide (the homepage figure became the film cover in Round 48)");
+  assert((home.match(/data-hf-swipe/g) || []).length === 9, "Round 43/48: nine swipes page-wide — 2 hoodie Photo/Avatar (studio + Store; the homepage figure is the film cover since Round 48) + 1 poster Photo/Avatar + 6 store-card Front/Back");
   assert(appJs.includes("[data-hf-swipe]") && appJs.includes("data-hf-chip"), "Round 40: the swipe initializer wires the chips and scroll sync");
   assert(css.includes(".hf-swipe-track") && css.includes("scroll-snap-type"), "Round 40: the swipe track uses native scroll-snap");
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
@@ -194,6 +194,7 @@ try {
   assert(css.includes(".tile-disc{") && css.includes(".tile-title{font-style:italic"), "Round 45: the disc and the italic tile titles are styled");
   assert(css.includes("@media (max-width:699px)") && css.includes("scroll-snap-type:x mandatory") && css.includes(".tile-grid > .tile{flex:0 0 86%"), "Round 46: on phones the board grids are swipe decks (snap track, near-full-width cards); the desktop grid is untouched");
   assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="browse-sports"') > -1 && home.indexOf('class="browse-sports"') < home.indexOf('id="viewMonth"'), "Round 47: the search box is retired, the All sports link is gone, and Browse by Sport sits ABOVE the videos");
+  assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
@@ -276,7 +277,7 @@ try {
   // BEFORE the studio card; the freeze flow follows unchanged.
   assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
   assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 1, "the Hype Frame film plays in the studio payoff (Round 44: the homepage section is a still hero now)");
+  assert((home.match(/src="\/hype-frame-film\.mp4"/g) || []).length === 2, "Round 48: the Hype Frame film plays in the studio payoff AND under the homepage cover (click-to-play)");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
   assert(r.status === 201, "order with a chosen size is created");
