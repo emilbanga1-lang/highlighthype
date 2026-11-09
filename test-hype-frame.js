@@ -171,7 +171,7 @@ try {
     assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
   }
   assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 2, "Round 40/48: the studio + Store cream-hoodie examples carry the avatar slide (the homepage figure became the film cover in Round 48)");
-  assert((home.match(/data-hf-swipe/g) || []).length === 9, "Round 43/48: nine swipes page-wide — 2 hoodie Photo/Avatar (studio + Store; the homepage figure is the film cover since Round 48) + 1 poster Photo/Avatar + 6 store-card Front/Back");
+  assert((home.match(/data-hf-swipe/g) || []).length === 3, "Round 43/48/52: three swipes page-wide — 2 hoodie Photo/Avatar (studio + Store feature) + 1 poster Photo/Avatar (the store cards lost their Front/Back swipes in Round 52; front/back live on the product page)");
   assert(appJs.includes("[data-hf-swipe]") && appJs.includes("data-hf-chip"), "Round 40: the swipe initializer wires the chips and scroll sync");
   assert(css.includes(".hf-swipe-track") && css.includes("scroll-snap-type"), "Round 40: the swipe track uses native scroll-snap");
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
@@ -183,9 +183,9 @@ try {
   assert((home.match(/hf-example-lineup\.jpg/g) || []).length === 1, "Round 42: the lineup image appears exactly once on the page now (studio only)");
   assert(css.includes("#hfExamplesHome{") && css.includes("clamp(30px,5vw,44px)"), "Round 42: anchoring pass — the homepage Hype Frame block is a panelled place and its header sits at section scale");
   assert(home.includes('class="hf-swipe hf-swipe-wide"') && !home.includes("hf-poster-pair"), "Round 43: the concept posters are one Photo/Avatar swipe card, not a stacked pair");
-  assert((home.match(/class="hf-swipe hs-swipe"/g) || []).length === 6, "Round 43: all six store cards carry the Front/Back swipe");
-  assert(appJs.includes("e.stopPropagation()") && appJs.includes('e.target.closest("[data-hf-swipe]")'), "Round 43: swipe chips never trigger the store card's open-product click/keydown");
-  assert(css.includes(".hs-swipe .hf-swipe-track{aspect-ratio:4/3}") && css.includes("hs-img-front") && css.includes("hs-img-back"), "Round 43: store swipes keep the 4/3 card box with crest/HYPE cover positions");
+  assert((home.match(/class="hf-swipe hs-swipe"/g) || []).length === 0, "Round 52: the store cards no longer carry Front/Back swipes (Round 43's card swipes retired — front/back live on the product page; cards lead with the back)");
+  assert(appJs.includes("e.stopPropagation()"), "Round 43/52: chip clicks still stop propagation where swipes remain (studio + Store Hype Frame feature)");
+  assert(css.includes("hs-img-back"), "Round 52: the back-led card image class is styled (the Round 43 card-swipe box retired with the swipes)");
   assert(css.includes(".hero h1{font-family:\"Anton\",sans-serif;font-style:italic") && css.includes(".tile-grid > .tile:first-child{grid-column:1/-1}"), "Round 44: the concept's italic display system is in, and the board's first play renders featured (full-width)");
   assert((home.match(/goToSportBoard\('/g) || []).length === 19, "Round 44/47: the Browse by Sport row wires all 19 sports to goToSportBoard (the All sports link was removed in Round 47)");
   assert(appJs.includes("window.seeAllPlays") && appJs.includes('Hype of the <span class="lime">Month</span>'), "Round 44: See all plays has its handler, and the month view titles itself Hype of the Month");
@@ -196,7 +196,7 @@ try {
   assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="browse-sports"') > -1 && home.indexOf('class="browse-sports"') < home.indexOf('id="viewMonth"'), "Round 47: the search box is retired, the All sports link is gone, and Browse by Sport sits ABOVE the videos");
   assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
   assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: sections wider and even per the mock — the Hype Frame figure spans its panel, and on phones one 16px gutter aligns every section (the HF panel drops its extra side inset)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=51"') && home.includes('src="app.js?v=51"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=53"') && home.includes('src="app.js?v=53"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
      serves the app at those paths. ---- */
@@ -206,9 +206,21 @@ try {
   assert(appJs.includes('bootPath === "/my-highlights"') && appJs.includes('bootPath === "/how-it-works"') && appJs.includes('bootPath === "/store"') && appJs.includes('classList.add("page-sub")'), "Round 51: the boot router opens mine/how in page mode and the store at /store");
   assert(appJs.includes('location.href = "/"; return;'), "Round 51: goHome navigates for real from a sub-page instead of switching panels under the wrong URL");
   assert(css.includes("body.page-sub .view-home{display:none}") && css.includes("body.page-sub .shop{display:none}"), "Round 51: page mode hides the home flow and the store so the panel reads as its own page");
+  assert(css.includes("body.page-sub .deck.view-home{display:block}"), "Round 51b: the deck stays visible in page mode — it wraps ALL five panels, so hiding it blanked /my-highlights and /how-it-works (live-caught)");
   const pageProbe = await fetch(base + "/how-it-works");
   const pageHtml = await pageProbe.text();
   assert(pageProbe.status === 200 && pageHtml.includes('id="how"') && pageHtml.includes('id="navMenu"'), "Round 51: /how-it-works serves the app (200) — the server's index fallback covers the page routes");
+  /* ---- Round 52: the store takes Emil's mobile mock — football
+     hero, tiles jump to their hoodie, the hoodies header carries
+     the preview status, cards lead with the back. ---- */
+  const shop52 = home.slice(home.indexOf('id="shop"'), home.indexOf('id="hsView"'));
+  assert(shop52.includes('class="hs-hero-img" src="/swag/hs/football-back.jpg"') && !shop52.includes("hero-model.jpg"), "Round 52: the store hero is the football hoodie back (the mock's hero), not the baseball model photo");
+  assert((shop52.match(/data-hs-jump=/g) || []).length === 6 && !shop52.slice(shop52.indexOf('id="hsBySport"'), shop52.indexOf('id="hsGridSection"')).includes("data-hs-open"), "Round 52: all six Shop by Sport tiles jump to their hoodie card — none opens the product view directly");
+  assert(appJs.includes("[data-hs-jump]") && appJs.includes("hs-flash"), "Round 52: the tile jump handler scrolls to the card and flashes it");
+  assert(shop52.includes("Planned price: $69.99 each") && shop52.includes("Coming Soon") && !shop52.includes('id="hsChips"') && !shop52.includes('class="hs-price"'), "Round 52: the hoodies header carries COMING SOON + the planned price; the filter chips and per-card prices are gone (the product view keeps its own price)");
+  const grid52 = shop52.slice(shop52.indexOf('id="hsGrid">'), shop52.indexOf('id="hsHfFeature"'));
+  assert((grid52.match(/class="hs-img-back"/g) || []).length === 6 && !grid52.includes("data-hf-swipe") && !grid52.includes("hs-view-btn"), "Round 52: each card leads with its back graphic — no in-card swipe, no view button; the whole card is the tap target");
+  assert(css.includes(".shop .hs-grid{grid-template-columns:repeat(2,1fr)") && css.includes(".hs-card-media{aspect-ratio:4/5}"), "Round 52: the grid runs two-up on phones and the card media is a taller back-led box");
   assert(appJs.includes("function hfGrungeFrame") && appJs.includes("function hfDrawLockup"), "Hype Frame preset composes the grunge frame + under-photo lockup (poster identity)");
   assert(!appJs.includes("hfBranding") && !appJs.includes("hfStill") && !appJs.includes("hfDrag") && !appJs.includes("hfSetPlacementSize"), "old checkbox / still box / drag + size JS are gone");
   assert(appJs.includes("placement: hfState.placement") && appJs.includes("HF_PLACEMENT_DEFAULT"), "studio sends the (fixed) default placement with the order");
