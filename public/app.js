@@ -2167,7 +2167,10 @@ $$("[data-hf-swipe]").forEach((root) => {
      showStore owns the screen. The film starts on the homepage
      only. */
   const heroPath = location.pathname.replace(/\/+$/, "") || "/";
-  if (heroPath !== "/" || ["#shop", "#hype-girls", "#hype-boys"].includes(location.hash)) { v.pause(); return; }
+  /* Round 80 (2026-11-09, Emil): a Watch Highlights landing
+     (/?view=all) is a board visit, not a homepage visit — the
+     hero film stays off there too. */
+  if (heroPath !== "/" || ["#shop", "#hype-girls", "#hype-boys"].includes(location.hash) || new URLSearchParams(location.search).get("view") === "all") { v.pause(); return; }
   const setIcon = () => { if (!mute) return; mute.textContent = v.muted ? "🔇" : "🔊"; mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
   v.muted = false;
   const p = v.play();
@@ -2431,7 +2434,7 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   else if (bootPath === "/how-it-works") { document.body.classList.add("page-sub"); showPanel("how"); bootPathTarget = true; }
   else if (bootPath === "/store") { showStore(); bootPathTarget = true; }
   if (bootPathTarget) bootHashTarget = true;
-  if (bootPath === "/" && new URLSearchParams(location.search).get("view") === "all") { switchView("all"); bootHashTarget = true; /* Round 77 (2026-11-09, Emil): All Hypes must LAND on the board, not the homepage — jump to #plays now, then re-check after load settles (fonts, film, tiles) and jump again if the board is off screen, the two-stage pattern the store uses. */ const pl = document.getElementById("plays"); if (pl) { pl.scrollIntoView(); setTimeout(() => { const r = pl.getBoundingClientRect(); if (r.top > window.innerHeight || r.bottom < 0) pl.scrollIntoView(); }, 900); } }
+  if (bootPath === "/" && new URLSearchParams(location.search).get("view") === "all") { switchView("all"); bootHashTarget = true; $("#heroVideo")?.pause(); /* Round 77 (2026-11-09, Emil): All Hypes must LAND on the board, not the homepage — jump to #plays now, then re-check after load settles (fonts, film, tiles) and jump again if the board is off screen, the two-stage pattern the store uses. */ const pl = document.getElementById("plays"); if (pl) { pl.scrollIntoView(); setTimeout(() => { const r = pl.getBoundingClientRect(); if (r.top > window.innerHeight || r.bottom < 0) pl.scrollIntoView(); }, 900); } }
   const am = location.hash.match(/^#athlete-(.+)$/);
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   // Explicit hash targets (Round 8): any of these wins over the

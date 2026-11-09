@@ -2152,3 +2152,13 @@
     #plays .viewseg{grid-column:2;grid-row:1;align-self:center;margin:0}
     #plays .wrap > :not(.sec-head):not(.viewseg){grid-column:1/-1}
   }
+
+  /* ===== Round 80 (2026-11-09, Emil): sub-pages (How It Works,
+     My Highlights) — on desktop the header is an in-flow bar, so
+     the old 80px clearance padding is pure black space. Content
+     starts just under the bar. Phone keeps the Round 73 clearance
+     (its header floats). ===== */
+  @media (min-width:1024px){
+    body.page-sub .deck{padding-top:0}
+    body.page-sub .panel{padding-top:24px}
+  }
