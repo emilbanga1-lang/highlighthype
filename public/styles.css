@@ -1325,6 +1325,13 @@
      it (Round 46's one-big-deck is superseded). Desktop keeps
      the comparative grid untouched. */
   @media (max-width:699px){
+    /* Round 66 (2026-11-09, Emil): in the two-up phone deck the
+       Vote pill shared the title's row and crowded long titles
+       (BREAKAWAY TOUCHDOWN) - deck titles now take the full row
+       and the Vote pill wraps to its own line beneath. Featured
+       tile and desktop keep the side-by-side row. */
+    .tile-deck .tile-toprow{flex-wrap:wrap}
+    .tile-deck .tile-toprow .tile-title{flex:1 1 100%}
     .tile-grid{display:block}
     .tile-featured-slot{display:block;margin-bottom:12px}
     .tile-deck{display:flex;flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:8px;scrollbar-width:none}
