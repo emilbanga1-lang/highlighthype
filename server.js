@@ -1345,16 +1345,25 @@ const server = http.createServer(async (req, res) => {
       filePath = path.join(__dirname, "public", "index.html");
     const type = MIME[path.extname(filePath)] || "text/plain";
     const size = fs.statSync(filePath).size;
+    /* Round 84 (2026-11-09, Emil): the store's pictures popped in
+       late because static files carried NO cache headers at all —
+       every visit re-downloaded megabytes from this small server.
+       Versioned URLs (?v=) cache for a week (the version IS the
+       invalidation), images/video/fonts for a day, pages never. */
+    const staticExt = path.extname(filePath).toLowerCase();
+    const cacheControl = /[?&]v=/.test(req.url || "") ? "public, max-age=604800"
+      : /\.(jpe?g|png|webp|gif|svg|ico|mp4|webm|woff2?)$/.test(staticExt) ? "public, max-age=86400"
+      : "no-cache";
     const range = req.headers.range;
     if (range) {
       const m = /bytes=(\d*)-(\d*)/.exec(range);
       const start = m && m[1] ? Number(m[1]) : 0;
       const end = m && m[2] ? Number(m[2]) : size - 1;
       if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
-      res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+      res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1, "cache-control": cacheControl });
       return fs.createReadStream(filePath, { start, end }).pipe(res);
     }
-    res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size });
+    res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size, "cache-control": cacheControl });
     fs.createReadStream(filePath).pipe(res);
   } catch (e) {
     console.error(e);
