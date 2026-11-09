@@ -292,11 +292,16 @@ function humanAge(createdAt, now = Date.now()) {
   if (weeks < 52) return `${weeks}w ago`;
   return `${Math.floor(weeks / 52)}y ago`;
 }
-function tileInfoHtml(h, votes) {
+function tileInfoHtml(h, votes, voteLabel) {
+  /* Round 45 (2026-11-08): ONE muted line under the title — name ·
+     sport · division · count · age (the concept's quiet line; the
+     count is bold so it still reads at a glance). */
   const parts = [];
   const first = firstNameOf(h);
   if (first) parts.push(esc(first));
-  parts.push(`${votes} vote${votes === 1 ? "" : "s"}`);
+  parts.push(esc(cap(h.sport)));
+  parts.push(h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed");
+  parts.push(`<b>${votes}</b> ${voteLabel || "all-time"} vote${votes === 1 ? "" : "s"}`);
   const age = humanAge(h.created_at);
   if (age) parts.push(age);
   return `<p class="tile-meta tile-info">${parts.join(" · ")}</p>`;
@@ -305,18 +310,16 @@ function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
     <div class="tile-body">
-      <h3 class="tile-title">${esc(h.title)}</h3>
-      <p class="tile-meta"><b>${esc(cap(h.sport))}</b> · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
-      ${tileInfoHtml(h, votes)}
+      <div class="tile-toprow">
+        <h3 class="tile-title">${esc(h.title)}</h3>
+        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted — tap to remove" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted ✓" : "Vote"}</button>
+      </div>
+      ${tileInfoHtml(h, votes, voteLabel)}
       ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
       <div class="tile-votes">
-        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
-        <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
-      </div>
-      <div class="tile-actions">
-        <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
+        <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
       </div>
     </div>
   </article>`;

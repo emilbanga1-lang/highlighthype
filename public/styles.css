@@ -1297,6 +1297,22 @@
   .hf-hero-fig{max-width:520px;margin:14px auto 0}
   .hf-create-row{text-align:center;margin:16px 0 0}
   .hf-create-link{color:#fff;font-weight:800;font-size:17px;text-decoration:underline;text-underline-offset:5px}
+  /* Round 45 (2026-11-08): TILES take the concept's video style —
+     the image is the card: a centered play disc on the media, an
+     italic title with the Vote pill at its right, ONE muted info
+     line, and the Hype Frame button shrunk to a compact 📸 Frame
+     chip in the footer row. Voting + the create path stay on the
+     tile (Emil's pick); the full card keeps the long labels. */
+  .tile-disc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;pointer-events:none;width:52px;height:52px;border-radius:50%;background:rgba(5,5,5,.45);border:2px solid rgba(255,255,255,.92);display:grid;place-items:center}
+  .tile-disc svg{margin-left:2px}
+  .tile-grid > .tile:first-child .tile-disc{width:74px;height:74px}
+  .tile-toprow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .tile-toprow .tile-title{flex:1;min-width:0}
+  .tile-title{font-style:italic;font-size:17px}
+  .tile .votebtn{flex:none;border-color:var(--line2)}
+  .tile .votebtn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:transparent}
+  .tile-votes{justify-content:flex-end}
+  .tile-hf-btn{font-size:12px;padding:5px 10px}
   /* Round 40 (2026-11-08): Photo/Avatar swipe on the cream-hoodie
      example — homepage, studio and Store feature (Emil: all three).
      Native scroll-snap swipe; labeled Photo/Avatar chips overlay the
