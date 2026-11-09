@@ -702,7 +702,7 @@ try {
   const ddStart = appJs.indexOf("function sportsInData");
   const ddBlock = appJs.slice(appJs.indexOf("const SPORTS"), appJs.indexOf("const MONTHS")) +
     appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function renderMonth")) +
-    appJs.slice(ddStart, appJs.indexOf('$("#allSearch")', ddStart));
+    appJs.slice(ddStart, appJs.indexOf("/* ---------------- Swag film", ddStart));
   assert(ddBlock.includes("function renderSportSelect") && ddBlock.includes("function syncFilterUI") && ddBlock.includes("function divMatch"), "Round 5: dropdown test block located (SPORTS + divMatch + sportsInData/renderSportSelect/syncFilterUI)");
   const mkSelect = () => ({ innerHTML: "", value: "", onchange: null });
   const monthSel = mkSelect(), allSel = mkSelect();
@@ -1371,7 +1371,7 @@ try {
   assert(!home.includes('id="teamFilter"') && !home.includes('id="teamLabel"') && !home.includes("All teams"), "Round 10: no team select (and no 'All teams' option) anywhere in the served page");
   const allFiltersHtml10 = home.slice(home.indexOf('id="allFilters"'), home.indexOf('id="allCount"'));
   const monthFiltersHtml10 = home.slice(home.indexOf('id="boardFilters"'), home.indexOf('id="board"'));
-  assert(allFiltersHtml10.includes('id="allSportSelect"') && allFiltersHtml10.includes('id="allSearch"') && !allFiltersHtml10.includes("teamFilter") && !allFiltersHtml10.includes("team-select"), "Round 10: the All filter bar keeps sport + search and nothing team-shaped");
+  assert(allFiltersHtml10.includes('id="allSportSelect"') && !allFiltersHtml10.includes('id="allSearch"') && !allFiltersHtml10.includes("teamFilter") && !allFiltersHtml10.includes("team-select"), "Round 10/47: the All filter bar keeps the sport select and nothing team-shaped; the search box was retired in Round 47 (filter logic dormant in app.js)");
   assert(monthFiltersHtml10.includes('id="monthSportSelect"') && !monthFiltersHtml10.includes("teamFilter") && !monthFiltersHtml10.includes("team-select"), "Round 10: the Month filter bar renders with no team select (it never had one — nothing dangles)");
   assert(!appJs.includes("teamFilter") && !appJs.includes("allTeam") && !appJs.includes("#team-"), "Round 10: no code path in app.js references the removed element, its state variable, or its #team- hash route");
   const noTeamProbe10 = await j("/api/highlights?division=all&sort=top");
@@ -1402,14 +1402,14 @@ try {
   r10Sandbox.allSport = "all"; r10Sandbox.allDiv = "girls"; vm.runInContext("renderAll2()", r10Ctx);
   assert(r10Els["#allBoard"].innerHTML === "TILE:15;", "behavioral (Round 10): the division segment still filters on its own (girls only)");
   r10Sandbox.allDiv = "all"; r10Sandbox.allSearch = "hawks"; vm.runInContext("renderAll2()", r10Ctx);
-  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10): team names still find plays — through the search box, the surviving path");
+  assert(r10Els["#allBoard"].innerHTML === "TILE:12;", "behavioral (Round 10/47): the (now dormant) text filter still matches team names — the search UI was retired in Round 47, the logic kept for an easy re-add");
   r10Sandbox.allSearch = "";
   // (3) Sport jumps: the montage strips retired in Round 44 — the
   // Browse by Sport row under the clips carries the same wiring.
   for (const s of ["baseball", "basketball", "soccer"]) {
     assert(home.includes(`onclick="goToSportBoard('${s}')"`), `Round 10/44: the ${s} browse-row button is wired to goToSportBoard`);
   }
-  assert(home.includes("Browse plays by sport") && home.includes("See all plays →") && home.includes("All sports →"), "Round 44: under the clips sit See all plays, then Browse by Sport with All sports beside the heading (Emil's order)");
+  assert(home.includes("Browse plays by sport") && home.includes("See all plays →") && !home.includes("All sports →"), "Round 44/47: See all plays sits under the clips; Browse by Sport moved above the videos in Round 47 and its All sports link is gone");
   assert(css.includes(".sport-row") && css.includes(".browse-head"), "Round 44: the browse block has its row + heading styles");
   const g10Calls = [];
   const g10Sandbox = {
@@ -2428,7 +2428,7 @@ try {
   const underAt35 = home.indexOf('id="boardUnder"');
   const hfAt35 = home.indexOf('id="hfExamplesHome"');
   assert(boardAt35 > -1 && underAt35 > boardAt35 && hfAt35 > underAt35, "Round 44: document order is board -> See all/Browse block -> Hype Frame section");
-  assert(home.includes("See all plays →") && home.includes("Browse by sport") && home.includes("All sports →"), "Round 44: under the clips — See all plays first, then Browse by Sport with All sports beside the heading (Emil's refinement)");
+  assert(home.includes("See all plays →") && home.includes("Browse by sport") && !home.includes("All sports →"), "Round 44/47: under the clips sits See all plays; Browse by Sport moved above the videos in Round 47, All sports link removed");
 
   /* ---- 36. Round 27 (2026-11-06): the Hype Sports store rebuild ----
      Emil's direction + resolutions: the store is rebuilt around
