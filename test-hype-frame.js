@@ -170,8 +170,8 @@ try {
     const ir = await fetch(base + pth);
     assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
   }
-  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 2, "Round 40/48: the studio + Store cream-hoodie examples carry the avatar slide (the homepage figure became the film cover in Round 48)");
-  assert((home.match(/data-hf-swipe/g) || []).length === 3, "Round 43/48/52: three swipes page-wide — 2 hoodie Photo/Avatar (studio + Store feature) + 1 poster Photo/Avatar (the store cards lost their Front/Back swipes in Round 52; front/back live on the product page)");
+  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 1, "Round 40/48/59: the STUDIO cream-hoodie example carries the avatar slide — the Store feature went single-photo in Round 59 per Emil's mock, and the homepage figure is the film cover since Round 48");
+  assert((home.match(/data-hf-swipe/g) || []).length === 2, "Round 43/48/52/59: two swipes page-wide, both in the studio (hoodie + poster Photo/Avatar) — the Store feature went single-photo in Round 59 per Emil's mock");
   assert(appJs.includes("[data-hf-swipe]") && appJs.includes("data-hf-chip"), "Round 40: the swipe initializer wires the chips and scroll sync");
   assert(css.includes(".hf-swipe-track") && css.includes("scroll-snap-type"), "Round 40: the swipe track uses native scroll-snap");
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
@@ -205,9 +205,14 @@ try {
   /* ---- Round 57: All Hypes + Hype Frame atmospheres. ---- */
   assert(home.includes('<div class="all-bg" aria-hidden="true"></div>') && css.includes("background:url(/all-bg.jpg)"), "Round 57: All Hypes carries the Rep The Hype stadium backdrop under a soft gradient (same night-game grade as the band)");
   assert(home.includes('<div class="hf-bg" aria-hidden="true"></div>') && css.includes("background:url(/hf-bg.jpg)"), "Round 57: the homepage Hype Frame section carries the mock's warm floodlight-bokeh backdrop");
+  /* ---- Round 59: the store takes Emil's photo-74 mock. ---- */
+  assert((home.match(/\/swag\/hs\/night-[a-z]+\.jpg/g) || []).length === 6, "Round 59: all six hoodie cards lead with the worn night-shot photos (player from behind under the stadium lights, each sport's real back design)");
+  assert(home.includes('/swag/street-sunset.jpg') && home.includes("Hot Pink returns for Drop 002."), "Round 59: the Drop 002 teaser shows the cleaned-up sunset Hot Pink photo with the mock's caption");
+  assert(home.includes("<h2>Have a play to share?</h2>") && !home.includes("Hype is earned.</h2>"), "Round 60: the page closes with Emil's short 'Have a play to share?' section and its one Submit button — the video-backed band retired");
+  assert(home.includes('<a href="mailto:hello@highlighthype.com">Contact</a>'), "Round 60: the footer closes with the essential links only — Contact · Terms · Privacy under the lockup and handle");
   assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
   assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: sections wider and even per the mock — the Hype Frame figure spans its panel, and on phones one 16px gutter aligns every section (the HF panel drops its extra side inset)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=58"') && home.includes('src="app.js?v=58"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=60"') && home.includes('src="app.js?v=60"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
      serves the app at those paths. ---- */

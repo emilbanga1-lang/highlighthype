@@ -195,7 +195,7 @@ try {
       assert(r.status === 200 && buf.byteLength > 5000, `real ${kind} photo serves and is non-trivial: /swag/${slug}-${kind}.jpg (${buf.byteLength} bytes)`);
     }
   }
-  assert(home.includes("/swag/girls-street-back.jpg"), "Round 27: the NEXT DROP teaser shows the girls-street (Hot Pink) back photo");
+  assert(home.includes("/swag/street-sunset.jpg"), "Round 27/59: the Drop 002 teaser shows the Hot Pink street hoodie — the cleaned-up sunset photo since Round 59 (was the soft girls-street-back.jpg)");
   assert(!home.includes("/swag-boards/"), "Round 2: cards no longer reference the flat board illustrations");
   assert(!home.includes("prod-photo"), "Round 27: the old card photo treatment class left with the cards");
   assert(!home.includes('class="look-board"'), "old stacked look-board markup is gone");
@@ -300,7 +300,7 @@ try {
   assert(css.includes(".hf-creative{display:grid") && css.includes("border-top:1px solid var(--line)"), "creative is styled for the dark store (v2 palette, unscoped by .store-light)");
   assert(home.includes("Freeze a frame from your own highlight video — and wear it."), "feature subline: freeze a frame from your own highlight video — and wear it");
   for (const step of ["Your Play. Your", "Hoodie.", "Create a Hype Frame"]) assert(home.includes(step), `Round 27 Hype Frame feature includes: ${step}`);
-  assert(home.includes('class="hfc-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame'");
+  assert(home.includes('class="hfc-cta hs-hf-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame' (Round 59: the store feature's link carries the purple-underline class from Emil's mock)");
   const hfCreative = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
   assert(!hfCreative.includes("$"), "Hype Frame feature stays price-free (prices live on the product cards only)");
   assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
@@ -659,7 +659,7 @@ try {
   // (1d) The panel's CTA keeps its exact Round 3 wiring into the
   // studio path (data-tablink to the plays panel).
   const hfCreativeSlice = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
-  assert(hfCreativeSlice.includes('class="hfc-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 27: the in-store feature's 'Create a Hype Frame' CTA keeps the Round 4 wiring (opens the studio exactly as before)");
+  assert(hfCreativeSlice.includes('class="hfc-cta hs-hf-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 27/59: the in-store feature's 'Create a Hype Frame' CTA keeps the Round 4 wiring (opens the studio exactly as before)");
   // (2) The new film: same slot facts as Round 3 (serves, ~13-15s,
   // 1280x720) — asserted in section 16 above against the live file;
   // its composition is the sweatshirt-player build (see DEPLOY-NOTES).
@@ -1626,7 +1626,7 @@ try {
   assert(!headerBlock27.includes(">Swag</a>") && headerBlock27.includes('id="menuBtn"') && headerBlock27.includes('class="brand"') && headerBlock27.includes("nav-swag"), "Round 12: the header renders logo + ☰ only — no store anchor floats in the bar; the menu (with its store entry) is intact");
   assert(!css.includes(".nav .menu-btn{margin-left:0}") && css.includes(".menu-btn{margin-left:auto"), "Round 12: the Round 9 margin override is gone — the base .menu-btn rule's margin-left:auto pushes the ☰ back to the right edge");
   const storeAnchors27 = [...home.matchAll(/<a [^>]*data-store-link[^>]*>/g)].map((m) => m[0]);
-  assert(storeAnchors27.length === 2 && storeAnchors27.some((a) => a.includes("rep-band")) && storeAnchors27.some((a) => a.includes('href="#shop"')), "Round 12/51/55: exactly two data-store-link anchors remain — the Rep The Hype band and the final CTA (the old entry card and its door links left in Round 55; the ☰ menu entry became the real /store page link in Round 51)");
+  assert(storeAnchors27.length === 1 && storeAnchors27.some((a) => a.includes("rep-band")), "Round 12/51/55/60: exactly one data-store-link anchor remains — the Rep The Hype band (the footer Store line left in Round 60 per Emil's bottom-of-page mock; the ☰ menu entry is the real /store page link since Round 51)");
   // Drive the REAL [data-store-link] handler line from app.js:
   // every remaining store anchor must still land in showStore.
   const linkLine27 = appJs.slice(appJs.indexOf('$$("[data-store-link]")'), appJs.indexOf("\n", appJs.indexOf('$$("[data-store-link]")')));
@@ -2462,7 +2462,7 @@ try {
   assert((shopSlice36.match(/class="hs-card"/g) || []).length === 6, "Round 27: six Hype Sports grid cards");
   for (const s of HS_SPORTS36) {
     const card52 = (home.match(new RegExp(`<article class="hs-card" data-hs-card="${s}"[\\s\\S]*?</article>`)) || [""])[0];
-    assert(card52.includes(`/swag/hs/${s}-back.jpg`) && !card52.includes("-front.jpg") && appJs.includes(`/swag/hs/${s}-front.jpg`), `Round 52: the ${s} card leads with the back only — the front lives on the product page (its data is intact)`);
+    assert(card52.includes(`/swag/hs/night-${s}.jpg`) && !card52.includes("-front.jpg") && appJs.includes(`/swag/hs/${s}-front.jpg`), `Round 52/59: the ${s} card leads with the worn night-shot of the back (Round 59) — the front lives on the product page (its data is intact)`);
   }
   assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 0, "Round 52: the per-card Sample phase badges are gone — the hoodies header's COMING SOON carries the preview status now");
   assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 0, "Round 52: no VIEW PRODUCT buttons on the cards — the whole card is the tap target (the name bar carries a chevron)");
@@ -2490,7 +2490,7 @@ try {
   assert(appJs.includes("Chest detail: crest with sport name"), "Round 27: generated chest-detail graphics carry the honest 'Chest detail: crest with sport name' alt text");
   assert(shopSlice36.includes('id="hsHfFeature"') && shopSlice36.includes("/swag/hf-example-hoodie-back.jpg"), "Round 27: Hype Frame feature sits inside the store with the example hoodie photo");
   assert(shopSlice36.includes("NEXT DROP") && shopSlice36.includes("DROP 002 · COMING SOON"), "Round 27: NEXT DROP teaser carries the Drop 002 copy");
-  assert(shopSlice36.includes("Hot Pink returns in Drop 002"), "Round 27: Hot Pink is named as Drop 002's returning star");
+  assert(shopSlice36.includes("Hot Pink returns for Drop 002."), "Round 27/59: Hot Pink is named as Drop 002's returning star (Round 59: the mock's exact caption)");
   assert(shopSlice36.includes('class="hs-teaser-card" data-slug="girls-street"') && shopSlice36.includes('id="hsHotPinkBtn"') && shopSlice36.includes("Preview Hot Pink"), "Round 27: the teaser card is wired as the girls-street product with a Preview Hot Pink button");
   assert(appJs.includes("openQuickView(hsTeaserCard)") && appJs.includes('"girls-street": {'), "Round 27: the teaser card opens the existing quick view (girls-street QV data intact)");
   assert(!shopSlice36.includes("data-store-block") && !shopSlice36.includes('id="swagVideo"') && !shopSlice36.includes("swag-film"), "Round 27: Boys/Girls blocks and the store film are ABSENT from the store view");
