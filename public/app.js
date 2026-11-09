@@ -2506,3 +2506,20 @@ window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidde
   }, { threshold: 0.2 });
   targets.forEach((t) => io.observe(t));
 })();
+
+/* ===== Round 70 (2026-11-09): story player grows tall on play.
+   The Round 63 wiring swaps cover -> video; this adds the tall
+   shape + a close button that returns to the wide poster. ===== */
+(function storyTall70() {
+  const cover = document.getElementById("storyCover");
+  const video = document.getElementById("storyVideo");
+  const close = document.getElementById("storyClose");
+  if (!cover || !video || !close) return;
+  const media = cover.closest(".story-media");
+  cover.addEventListener("click", () => { if (media) media.classList.add("playing"); close.hidden = false; });
+  close.addEventListener("click", () => {
+    try { video.pause(); video.currentTime = 0; } catch (e) {}
+    video.hidden = true; cover.hidden = false; close.hidden = true;
+    if (media) media.classList.remove("playing");
+  });
+})();
