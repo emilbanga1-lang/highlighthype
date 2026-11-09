@@ -59,7 +59,13 @@ try {
   assert(home.includes("What happened? (optional)") && appJs.includes("'s highlight`"), "the title is one optional 'What happened?' line; blank auto-fills as <Name>'s highlight at submit");
   const moreAt = home.indexOf("Add more (optional)");
   assert(moreAt > -1 && home.includes('class="quick-more"'), "'Add more (optional)' collapsed section present");
-  for (const f of ["playType", "story", "jersey", "team"]) assert(home.indexOf(`name="${f}"`) > moreAt, `optional field lives inside Add more: ${f}`);
+  for (const f of ["playType", "jersey", "team"]) assert(home.indexOf(`name="${f}"`) > moreAt, `optional field lives inside Add more: ${f}`);
+  // Round 63 (2026-11-08): the story field MOVED OUT of "Add more"
+  // into the main form as "What made this moment matter?" — Emil's
+  // Hype Stories concept asks the question at submit time, with the
+  // separate storyConsent permission checkbox beside it.
+  assert(home.indexOf('name="story"') > -1 && home.indexOf('name="story"') < moreAt, "Round 63: story field lives in the main form, before Add more");
+  assert(home.includes("What made this moment matter?") && home.includes('name="storyConsent"'), "Round 63: the moment question + story permission checkbox are in the form");
   // Round 6 (2026-11-05): the guardian-contact block MOVED OUT of
   // "Add more" into the main form — youth rerun v3's #1 finding was
   // that the contact deciding featuring sat hidden in a section
@@ -335,7 +341,7 @@ try {
      play from any view; (9) board videos autoplay. */
   assert(home.includes('href="/logo-crest-header.png"'), "logo preload points at the crest header lockup (Round 19)");
   assert((home.split('src="/logo-crest-header.png"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19)");
-  assert(home.includes('src="/logo-crest-lockup.png"'), "footer uses the full crest lockup with tagline (Round 19)");
+  assert(home.includes('src="/logo-lockup-gold.jpg"'), "footer uses the full lockup with tagline (Round 19; Round 65: Emil's metallic gold master)");
   assert(home.includes('href="/favicon.ico"') && home.includes('href="/favicon.png"'), "favicon is the gold crest badge (Round 19)");
   const logoRes = await fetch(`${base}/logo-crest-header.png`);
   const logoBuf = Buffer.from(await logoRes.arrayBuffer());
@@ -1262,10 +1268,10 @@ try {
   assert(headerBlock9.includes("Swag Shop — Rep The Hype"), "Round 9→12: the menu's store entry stays — it is once again the header's only store path");
   // (2) Board control sizing lives in the stylesheet (both boards).
   assert(css.includes(".viewseg button{min-height:48px"), "Round 9: board view tabs are >=48px tall");
-  assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px"), "Round 9: segmented buttons stretch to fill their pill row at ~52px tall, on BOTH boards");
+  assert(css.includes(".board-tools .seg button{min-height:44px"), "Round 9/67: division seg buttons are comfortably tall in the board-tools rows on BOTH boards (the segs left the filter bars in Round 67)");
   assert(css.includes(".team-select,.sport-select,.search-input{min-height:48px}"), "Round 9: sport/team selects and the search field are >=48px tall");
   assert(css.includes("#boardFilters,#allFilters{row-gap:14px}"), "Round 9: stacked board control rows are >=12px apart");
-  assert(css.includes("#boardFilters .seg button,#allFilters .seg button{flex:1 1 0;min-height:52px;display:flex;align-items:center;justify-content:center;color:#e8e8e2"), "Round 9: inactive segmented labels are near-white, not the dim muted gray");
+  assert(css.includes(".board-tools .seg button{min-height:44px;display:flex;align-items:center;justify-content:center;color:#e8e8e2"), "Round 9: inactive segmented labels are near-white, not the dim muted gray");
   // (3) Tile tap layer: drive the REAL tileHtml and inspect order.
   const tileFn9 = appJs.slice(appJs.indexOf("const TILE_DURATIONS"), appJs.indexOf("/* Vote hardening")); // Round 14: the slice starts at the tile helpers tileHtml now calls
   const tileSandbox9 = {
@@ -2282,48 +2288,21 @@ try {
   assert(media23.includes(".float-submit{width:auto;height:48px") && media23.includes("padding:0 16px") && media23.includes("border-radius:999px") && media23.includes(".float-submit svg{width:20px;height:20px}"), "Round 23: on phones the FAB is a compact pill — auto width, 48px tall, 999px radius, 16px horizontal padding, 20px icon");
   assert(media23.includes(".float-submit .float-submit-short{display:inline}") && media23.includes(".float-submit .float-submit-label{display:none}"), "Round 23: on phones the short 'Post' label shows and the full label hides");
   assert(media23.includes("body.upload-open .float-submit{display:none}"), "Round 23: the pill still hides while the upload overlay is open (Round 22 behavior kept)");
-  // (B1) Same footer file, same canvas — the layout cannot shift.
-  assert(home.includes('src="/logo-crest-lockup.png"'), "Round 23: the footer still uses /logo-crest-lockup.png (same filename, reference untouched)");
-  const lockBuf33 = Buffer.from(await (await fetch(base + "/logo-crest-lockup.png")).arrayBuffer());
-  assert(lockBuf33.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) && lockBuf33.toString("ascii", 12, 16) === "IHDR", "Round 23: the served footer lockup is a PNG with an IHDR header");
-  assert(lockBuf33.readUInt32BE(16) === 4395 && lockBuf33.readUInt32BE(20) === 3701, "Round 23: the lockup canvas is unchanged at 4395×3701 — rendered footer size cannot shift");
-  assert(lockBuf33[24] === 8 && lockBuf33[25] === 6, "Round 23: the lockup PNG is 8-bit RGBA (the decoder below's precondition)");
-  // (B2) Pixel proof: unfilter rows 0–2700 (the whole badge) and
-  // sample the crown band for gold, the HH band for silver.
-  const bands33 = (() => {
-    let pos = 8; const idat = [];
-    while (pos < lockBuf33.length) {
-      const len = lockBuf33.readUInt32BE(pos), type = lockBuf33.toString("ascii", pos + 4, pos + 8);
-      if (type === "IDAT") idat.push(lockBuf33.subarray(pos + 8, pos + 8 + len));
-      pos += 12 + len; if (type === "IEND") break;
-    }
-    const W = 4395, bpp = 4, stride = W * bpp, maxRow = 2700;
-    const raw = inflateSync(Buffer.concat(idat));
-    const out = Buffer.alloc((maxRow + 1) * stride);
-    let rp = 0, gold = 0, silver = 0;
-    for (let y = 0; y <= maxRow; y++) {
-      const f = raw[rp++]; const row = raw.subarray(rp, rp + stride); rp += stride;
-      const prev = y > 0 ? out.subarray((y - 1) * stride, y * stride) : null;
-      const cur = out.subarray(y * stride, (y + 1) * stride);
-      for (let x = 0; x < stride; x++) {
-        const a = x >= bpp ? cur[x - bpp] : 0, b = prev ? prev[x] : 0, c = prev && x >= bpp ? prev[x - bpp] : 0;
-        let v = row[x];
-        if (f === 1) v = (v + a) & 255; else if (f === 2) v = (v + b) & 255;
-        else if (f === 3) v = (v + ((a + b) >> 1)) & 255;
-        else if (f === 4) { const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c); v = (v + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255; }
-        cur[x] = v;
-      }
-      if (y <= 1056 || (y >= 1085 && y <= 2687)) for (let x = 0; x < stride; x += 7 * bpp) {
-        const r = cur[x], g = cur[x + 1], bl = cur[x + 2], al = cur[x + 3];
-        if (al < 128) continue;
-        if (y <= 1056 && r > 150 && g > 110 && g < 210 && bl < 110 && r > bl + 60) gold++;
-        if (y >= 1085 && r > 195 && g > 195 && bl > 195 && Math.abs(r - bl) < 30) silver++;
-      }
-    }
-    return { gold, silver };
-  })();
-  assert(bands33.gold > 10000, `Round 23: the footer badge's crown band is gold (${bands33.gold} sampled px)`);
-  assert(bands33.silver > 10000, `Round 23: the footer badge's HH band is SILVER-WHITE (${bands33.silver} sampled px) — it now matches the header's crest-color badge (the old all-gold file had zero)`);
+  // (B) Round 65 (2026-11-09) SUPERSEDES the Round 23 footer
+  // lockup design: Emil supplied the metallic GOLD master (gold
+  // crown AND gold HH, white+gold wordmark, tagline) and approved
+  // swapping the footer's flat crest-color lockup for it,
+  // centered. The served file is /logo-lockup-gold.jpg (a
+  // 1284x880 JPEG; its textured background was crushed to the
+  // footer's pure black so it floats with no rectangle edge).
+  // The Round 23 pixel proof (silver HH band matching the
+  // header badge) is retired by this decision - gold HH in the
+  // footer is now the intended design; the header keeps the
+  // flat crest-color badge.
+  assert(home.includes('src="/logo-lockup-gold.jpg"'), "Round 65: the footer uses Emil's metallic gold master lockup");
+  assert(home.includes('class="foot-stack"') && css.includes("footer .foot-stack{width:100%;text-align:center}"), "Round 65: the footer brand stack is centered");
+  const goldBuf = Buffer.from(await (await fetch(base + "/logo-lockup-gold.jpg")).arrayBuffer());
+  assert(goldBuf[0] === 0xff && goldBuf[1] === 0xd8 && goldBuf.length > 50000, "Round 65: the served gold lockup is a real JPEG");
 
   /* ---- 34. Round 24 (2026-11-06): the upload overlay at EVERY
      width — feedback item 5 completed --------------------------
