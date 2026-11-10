@@ -2683,23 +2683,25 @@ function btlMiniHTML(slot) {
   const isChamp = btl.mode === "stay" && btl.champ === p.id;
   return `<article class="btl-mini" id="btlMini${slot}" data-slot="${slot}">
     <video src="${esc(p.media_url)}" preload="metadata" muted playsinline></video>
-    ${isChamp ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
+    ${isChamp && btl.streak >= 2 ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
     <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
   </article>`;
 }
 function btlRenderCount() {
   const el = document.getElementById("btlCount");
-  if (el) el.textContent = "Battle " + (btl.battle + 1) + (btl.mode === "stay" && btl.champ ? " · Champion: " + (findPlay(btl.champ) || {}).title + " · Won " + btl.streak + " in a row" : "");
+  if (el) el.textContent = "Battle " + (btl.battle + 1) + (btl.mode === "stay" && btl.champ ? " · Champion: " + (findPlay(btl.champ) || {}).title + (btl.streak >= 2 ? " · Won " + btl.streak + " in a row" : "") : "");
 }
 function btlRender() {
   const main = document.getElementById("btlMain");
   const empty = document.getElementById("btlEmpty");
   const note = document.getElementById("btlPoolNote");
+  const practice = document.getElementById("btlPractice");
   const has = !!(btl.cur.L && btl.cur.R);
   if (main) main.hidden = !has;
   if (empty) empty.hidden = has;
   if (note) note.hidden = !has || btl.pairReal;
+  if (practice) practice.hidden = !has || btl.pairReal;
   if (!has) return;
   btl.picked = false;
   const matchup = document.getElementById("btlMatchup");
