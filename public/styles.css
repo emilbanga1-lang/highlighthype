@@ -2205,3 +2205,20 @@
   #hfExamplesHome .hf-ex-strip{position:relative;z-index:1}
   @media (min-width:1024px){ #hfExamplesHome .hf-ex-strip{grid-column:1/-1} }
   .hs-hf .hf-ex-strip{grid-column:1/-1;margin-top:2px}
+
+  /* ===== Round 86 (2026-11-09, kid-experience feedback): the Hype
+     Frame choice card (reuses the guidelines modal shell), the
+     Demo tag that replaces Vote on sample plays, the All Hypes
+     sample strip, and the parent banner atop the upload form. ===== */
+  .hf-choice-sub{color:var(--muted);font-weight:600;margin:0 0 14px}
+  .hf-choice-btn{display:block;width:100%;text-align:left;background:#17181d;border:1px solid var(--line2);border-radius:14px;padding:14px 16px;margin:0 0 10px;cursor:pointer;color:#fff;font:inherit}
+  .hf-choice-btn:hover{border-color:var(--gold)}
+  .hf-choice-btn b{display:block;font-size:16.5px;margin-bottom:3px}
+  .hf-choice-btn span{color:var(--muted);font-size:13.5px;font-weight:600;line-height:1.45}
+  .tile-demo-tag{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;border:1px dashed #4a4b52;color:var(--muted);font-weight:800;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .sample-strip{border:1px solid var(--line2);border-radius:12px;padding:10px 14px;background:rgba(255,255,255,.03)}
+  .sample-strip[hidden]{display:none}
+  .upload-parent-banner{background:rgba(230,190,60,.12);border:1px solid var(--gold);color:#f5ecc9;border-radius:12px;padding:11px 14px;font-size:14.5px;line-height:1.5;margin:12px 0 2px}
+  .hs-hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .hs-hero-btn-hf{background:transparent;border:2px solid var(--hf-purple-soft);color:#fff;text-decoration:none}
+  .hs-hero-btn-hf:hover{background:rgba(139,61,255,.18)}

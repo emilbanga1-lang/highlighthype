@@ -133,6 +133,16 @@ async function loadData() {
   }
   applyDefaultView();
   renderAll();
+  /* Round 86 (2026-11-09, Emil): an in-site "All Hypes / Watch
+     Highlights" tap from a sub-page flagged its intent before
+     navigating — land on the board, once. A fresh /?view=all visit
+     carries no flag and opens at the top (Round 82 stands). */
+  try {
+    if (sessionStorage.getItem("hhGotoBoard86")) {
+      sessionStorage.removeItem("hhGotoBoard86");
+      document.getElementById("plays")?.scrollIntoView();
+    }
+  } catch (err) {}
 }
 /* The period ("YYYY-MM") right before the given one. */
 function prevPeriodOf(period) {
@@ -173,7 +183,7 @@ function cardHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="card" data-play-id="${h.id}">
-    <div class="thumb">${mediaHtml(h)}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="thumb">${mediaHtml(h)}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
     <div class="card-body">
       <h3>${esc(h.title)}</h3>
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
@@ -182,7 +192,7 @@ function cardHtml(h, opts = {}) {
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
       ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
-        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>
+        ${h.isSample ? `<span class="tile-demo-tag" title="Sample play — a demo, not in the contest">Demo</span>` : `<button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "Vote"}</button>`}
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
       </div>
       <div class="card-actions">
@@ -310,11 +320,11 @@ function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
     <div class="tile-body">
       <div class="tile-toprow">
         <h3 class="tile-title">${esc(h.title)}</h3>
-        <button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted — tap to remove" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted ✓" : "Vote"}</button>
+        ${h.isSample ? `<span class="tile-demo-tag" title="Sample play — a demo, not in the contest">Demo</span>` : `<button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted — tap to remove" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted ✓" : "Vote"}</button>`}
       </div>
       ${tileInfoHtml(h, votes, voteLabel)}
       ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
@@ -592,6 +602,12 @@ function renderMonth() {
   $("#board").innerHTML = monthTiles.length ? `<div class="tile-featured-slot">${monthTiles[0]}</div>` + (monthTiles.length > 1 ? `<div class="tile-deck">${monthTiles.slice(1).join("")}</div>` : "") : "";
   hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
+  /* Round 86 (2026-11-09): when the month has NO entries at all, the
+     empty state explains what this board is — the real contest — and
+     that the All Hypes plays are samples. A merely filtered-to-zero
+     grid keeps the generic line. */
+  if (entries.length === 0) $("#emptyState").innerHTML = "<b>Hype of the Month is the real contest.</b> No entries yet this month — post a play, and once it\u2019s approved and entered it competes here. The plays in All Hypes right now are samples that show how it works.";
+  else $("#emptyState").textContent = "No plays here yet — be the first to post one.";
   /* Round 9: (a) the never-disappear line — keyed to the CURRENT
      MONTH's entries (not the filtered list): whenever the month has
      no entries at all, say plainly that plays don't delete when a
@@ -705,6 +721,10 @@ function renderAll2() { /* All Hypes view */
   $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${allTiles.slice(1).join("")}</div>` : "") : "";
   hydrateDurPills();
   emptyEl.style.display = filtered.length ? "none" : "block";
+  /* Round 86 (2026-11-09): while every play on the board is a sample,
+     the strip above the grid says so plainly — demos vs the contest. */
+  const sampleStrip86 = $("#allSampleStrip");
+  if (sampleStrip86) sampleStrip86.hidden = !(ALL_PLAYS.length > 0 && ALL_PLAYS.every((h) => h.isSample));
 }
 /* ---------------- play detail (Round 8, 2026-11-05) ----------------
    The boards are compact tiles now; the FULL card lives here, in an
@@ -781,7 +801,11 @@ function upNextHtml(play) {
       <span class="upnext-text"><span class="upnext-name">${esc(p.title)}</span><span class="upnext-meta">${first ? `${esc(first)} · ` : ""}${p.voteCount || 0} vote${p.voteCount === 1 ? "" : "s"}</span></span>
     </button>`;
   }).join("");
-  return `<div class="upnext"><div class="upnext-head"><h4 class="upnext-title">Up next</h4>${autoplayToggleHtml()}</div>${rows}</div>`;
+  /* Round 86 (2026-11-09): the queue sorts same-sport first, but when
+     NO queued clip shares the open play's sport, "Up next" overpromises
+     — the section honestly becomes Explore other sports. */
+  const upHead86 = next.some((p) => p.sport === play.sport) ? "Up next" : "Explore other sports";
+  return `<div class="upnext"><div class="upnext-head"><h4 class="upnext-title">${upHead86}</h4>${autoplayToggleHtml()}</div>${rows}</div>`;
 }
 /* Round 15: the Autoplay switch flips the session variable and
    repaints ITSELF in place — a full detail re-render would restart
@@ -2582,3 +2606,37 @@ function playHfStoreFilm() {
   window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(apply); } }, { passive: true });
   apply();
 })();
+
+/* Round 86 (2026-11-09, kid-experience feedback): the "Create a Hype
+   Frame" entry points (homepage section + Store feature) open a
+   two-choice card instead of landing on the board. Sample -> the
+   studio with a sample play loaded (baseball preferred — the payoff
+   is visible immediately); Own video -> the upload form (which now
+   opens with the parent/guardian banner). */
+window.openHfChoice = () => { const m = $("#hfChoiceModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };
+window.closeHfChoice = () => { const m = $("#hfChoiceModal"); if (m) m.hidden = true; };
+window.hfChoiceSample = () => {
+  closeHfChoice();
+  const pool = ALL_PLAYS || [];
+  const pick = pool.find((p) => p.isSample && p.sport === "baseball") || pool.find((p) => p.isSample) || pool[0];
+  if (pick) openHypeFrame(pick.id);
+};
+window.hfChoiceOwn = () => { closeHfChoice(); goSubmit(); };
+$$("[data-hf-start]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); openHfChoice(); }));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHfChoice(); });
+
+/* Round 86 (2026-11-09, Emil): the "All Hypes" menu link and the
+   "Watch Highlights" header link point at /?view=all — a full page
+   load that lands on the hero, which reads as "it took me back to
+   the home page." A tap INSIDE the site means "take me to the
+   board": on the homepage it switches in place and scrolls to the
+   board; from a sub-page it flags the intent (consumed in loadData)
+   so the landing goes to the board. Fresh visits to /?view=all
+   carry no flag and still open at the top — Round 82 stands. */
+$$('a[href="/?view=all"]').forEach((a) => a.addEventListener("click", (e) => {
+  const onHome = (location.pathname.replace(/\/+$/, "") || "/") === "/";
+  if (onHome) {
+    e.preventDefault(); closeMenu(false); showHome(); showPanel("plays"); switchView("all");
+    document.getElementById("plays")?.scrollIntoView({ behavior: "smooth" });
+  } else { try { sessionStorage.setItem("hhGotoBoard86", "1"); } catch (err) {} }
+}));

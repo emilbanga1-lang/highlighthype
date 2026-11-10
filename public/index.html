@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=88" />
+<link rel="stylesheet" href="styles.css?v=89" />
 </head>
 <body>
 
@@ -223,6 +223,7 @@
              re-adding the box later is just this input + its listener. -->
         </div>
       </div>
+      <p class="board-note sample-strip" id="allSampleStrip" hidden>Right now these are <b>sample plays</b> — demos that show how HighlightHype works. Real plays posted by families compete in <b>Hype of the Month</b>.</p>
       <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
     </div>
@@ -252,6 +253,23 @@
       </div>
     </div>
 
+    <!-- Round 86 (2026-11-09, kid-experience feedback): "Create a
+         Hype Frame" used to land on the (empty) Month board, because
+         the studio can only start from a play and the links pointed
+         at the plays panel. The button now opens this choice card:
+         sample clip -> the studio with a sample loaded; own video ->
+         the upload form. -->
+    <div class="guidelines-modal hf-choice-modal" id="hfChoiceModal" hidden role="dialog" aria-modal="true" aria-label="Make a Hype Frame">
+      <div class="play-detail-backdrop" onclick="closeHfChoice()"></div>
+      <div class="guidelines-panel hf-choice-panel">
+        <h3>Make a Hype Frame</h3>
+        <p class="hf-choice-sub">Your play, frozen on a hoodie. Two ways to start:</p>
+        <button type="button" class="hf-choice-btn" onclick="hfChoiceSample()"><b>Try it with a sample clip</b><span>See the payoff right away, with a sample baseball play.</span></button>
+        <button type="button" class="hf-choice-btn" onclick="hfChoiceOwn()"><b>Use my own video</b><span>Post your clip — a parent or guardian helps you.</span></button>
+        <button type="button" class="mini-btn" onclick="closeHfChoice()">Not now</button>
+      </div>
+    </div>
+
     <form id="uploadForm" class="upload-card">
       <!-- Round 22 (2026-11-06): overlay close — visible only while
            the form is shown as the overlay (styles.css,
@@ -262,6 +280,7 @@
            Round 18 desktop grid. -->
       <button type="button" class="upload-close" id="uploadClose" aria-label="Close the upload form">✕</button>
       <h3 id="post">Post a play</h3>
+      <div class="upload-parent-banner"><b>Kids — ask a parent or guardian to help you post your clip.</b> They give permission, and their email or mobile is how we reach you if your play wins.</div>
       <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>
 
       <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — tap to pick a clip from your camera roll, or drop a file here">
@@ -431,7 +450,7 @@
       <li><b>3</b><span>Your actual image — or your avatar</span></li>
       <li><b>4</b><span>We take care of the rest</span></li>
     </ol>
-    <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
+    <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-hf-start>Create a Hype Frame →</a></p>
     <!-- Round 85 (2026-11-09, youth tester rerun): the film is a
          softball story — the Boy tester asked where the baseball
          frame is. The finished baseball example rides under the
@@ -760,7 +779,10 @@
         <span class="hs-hero-badge">DROP 001 / HYPE SPORTS</span>
         <h2 class="hs-hero-title">REP YOUR <span class="gold">SPORT.</span></h2>
         <p class="hs-hero-sub">Six sports. One attitude. Your moment. Your hype.</p>
-        <button type="button" class="btn btn-gold hs-hero-btn" id="hsShopBtn">SHOP HYPE SPORTS</button>
+        <div class="hs-hero-btns">
+          <button type="button" class="btn btn-gold hs-hero-btn" id="hsShopBtn">SHOP HYPE SPORTS</button>
+          <a class="btn hs-hero-btn hs-hero-btn-hf" href="#deck" data-hf-start>CREATE A HYPE FRAME</a>
+        </div>
       </div>
     </div>
 
@@ -869,7 +891,7 @@
         <h3>Your Play. Your <span class="purple">Hoodie.</span></h3>
         <p>Freeze a frame from your own highlight video — and wear it. Your still, your name, your number, printed on a premium youth hoodie or tee.</p>
         <p class="hs-hf-guardian">No payment today — a parent or guardian confirms by email before anything is printed.</p>
-        <a class="hfc-cta hs-hf-cta" href="#deck" data-tablink="plays">Create a Hype Frame →</a>
+        <a class="hfc-cta hs-hf-cta" href="#deck" data-hf-start>Create a Hype Frame →</a>
       </div>
       <!-- Round 83 (2026-11-09, Emil): the still photo is replaced
            by the homepage's Hype Frame film (same cover, same
@@ -1082,6 +1104,6 @@
   </div>
 </div>
 
-<script src="app.js?v=88"></script>
+<script src="app.js?v=89"></script>
 </body>
 </html>
