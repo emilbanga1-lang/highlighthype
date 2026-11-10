@@ -309,7 +309,7 @@ try {
   assert(home.includes('class="hfc-cta hs-hf-cta"') && home.includes("Create a Hype Frame"), "creative CTA: 'Create a Hype Frame' (Round 59: the store feature's link carries the purple-underline class from Emil's mock)");
   const hfCreative = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
   assert(!hfCreative.includes("$"), "Hype Frame feature stays price-free (prices live on the product cards only)");
-  assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-tablink="plays"'), "creative CTA takes the user to the plays, like the old banner button");
+  assert(hfCreative.includes('href="#deck"') && hfCreative.includes('data-hf-start') && !hfCreative.includes('data-tablink'), "Round 86 (supersedes the old banner-button pin): the creative CTA opens the Hype Frame choice card (data-hf-start) instead of landing on the plays board — the studio starts from a play, so the button offers sample vs own video");
   assert(hfCreative.includes("parent or guardian confirms by email before anything is printed"), "creative keeps the guardian-approval framing (no payment/checkout language)");
 
   /* ---- Store v6: film at the very top under the floating nav,
@@ -662,10 +662,13 @@ try {
   assert(appJs.includes('div === "hypeframe" ? "Hype Frame"'), "Round 4: the focus bar titles the panel 'Hype Frame'");
   assert(appJs.includes('$("#storeFocusExit")') && appJs.includes("setStoreFocus(null)"), "Round 4: the focus-bar exit clears the focus (back to the doors landing)");
   assert(!appJs.includes('$$("[data-hf-door]")') && !appJs.includes('$$(".store-banner-hf")'), "Round 4: the old scroll-to-creative door handlers are gone");
-  // (1d) The panel's CTA keeps its exact Round 3 wiring into the
-  // studio path (data-tablink to the plays panel).
+  // (1d) The panel's CTA wiring into the studio path. Round 86
+  // supersedes the Round 3/4 data-tablink-to-plays wiring: the link
+  // opens the Hype Frame choice card (data-hf-start), because the
+  // studio starts from a play and the bare board landing was a
+  // dead end (kid-experience feedback, 2026-11-09).
   const hfCreativeSlice = home.slice(home.indexOf('id="hsHfFeature"'), home.indexOf('id="quickView"'));
-  assert(hfCreativeSlice.includes('class="hfc-cta hs-hf-cta"') && hfCreativeSlice.includes('data-tablink="plays"') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 27/59: the in-store feature's 'Create a Hype Frame' CTA keeps the Round 4 wiring (opens the studio exactly as before)");
+  assert(hfCreativeSlice.includes('class="hfc-cta hs-hf-cta"') && hfCreativeSlice.includes('data-hf-start') && !hfCreativeSlice.includes('data-tablink') && hfCreativeSlice.includes("Create a Hype Frame"), "Round 86 (supersedes Round 27/59): the in-store feature's 'Create a Hype Frame' CTA opens the choice card (data-hf-start)");
   // (2) The new film: same slot facts as Round 3 (serves, ~13-15s,
   // 1280x720) — asserted in section 16 above against the live file;
   // its composition is the sweatshirt-player build (see DEPLOY-NOTES).
@@ -2573,7 +2576,7 @@ try {
      unchanged — with tiles fixed, its route completes. ---- */
   assert(appJs.includes('class="mini-btn tile-hf-btn"') && appJs.includes('event.stopPropagation();openHypeFrame(${h.id})'), "Round 32: every board tile has a 📸 Create a Hype Frame button that opens the studio for that play without opening the detail");
   const hfHome39 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('data-panel="mine"'));
-  assert(hfHome39.includes('class="hf-create-link"') && hfHome39.includes('data-tablink="plays"') && hfHome39.includes(">Create a Hype Frame →<"), "Round 32/44: the homepage Hype Frame section carries its own Create CTA to the board (the concept's text link under the hero image)");
+  assert(hfHome39.includes('class="hf-create-link"') && hfHome39.includes('data-hf-start') && !hfHome39.includes('data-tablink') && hfHome39.includes(">Create a Hype Frame →<"), "Round 86 (supersedes Round 32/44): the homepage Hype Frame section's Create CTA opens the choice card (data-hf-start) — the Round 32 trip to the board was the compromise this replaces");
   assert(css.includes(".tile-actions{padding-top:8px}") && css.includes(".hf-home-cta{"), "Round 32: tile action row + homepage CTA styles exist");
 
   /* ---- 40. Round 34 (2026-11-07): grab-the-video sharing ------------
