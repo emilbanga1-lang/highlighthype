@@ -2682,7 +2682,7 @@ function btlMiniHTML(slot) {
   if (!p) return "";
   const isChamp = btl.mode === "stay" && btl.champ === p.id;
   return `<article class="btl-mini" id="btlMini${slot}" data-slot="${slot}">
-    <video src="${esc(p.media_url)}" preload="metadata" muted playsinline></video>
+    <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
     ${isChamp && btl.streak >= 2 ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
     <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
@@ -2707,7 +2707,7 @@ function btlRender() {
   const matchup = document.getElementById("btlMatchup");
   if (matchup) {
     matchup.innerHTML = btlMiniHTML("L") + '<div class="btl-vs">VS</div>' + btlMiniHTML("R");
-    matchup.querySelectorAll(".btl-mini").forEach((el) => el.addEventListener("click", () => btlWatch(el.dataset.slot)));
+    matchup.querySelectorAll(".btl-mini").forEach((el) => { el.addEventListener("click", () => btlWatch(el.dataset.slot)); btlMiniFrame(el.querySelector("video")); });
   }
   const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
   if (pickL) { pickL.disabled = false; pickL.textContent = "👑 Pick this play"; }
@@ -2716,6 +2716,13 @@ function btlRender() {
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "";
   btlRenderCount();
   btlWatch(btl.watching, true);
+}
+function btlMiniFrame(v) {
+  if (!v) return;
+  const grab = () => { if (v.currentTime >= 0.55) { v.pause(); v.removeEventListener("timeupdate", grab); } };
+  v.addEventListener("timeupdate", grab);
+  try { const p = v.play(); if (p && p.catch) p.catch(() => v.removeEventListener("timeupdate", grab)); } catch (e) { v.removeEventListener("timeupdate", grab); }
+  setTimeout(() => { if (!v.paused) v.pause(); v.removeEventListener("timeupdate", grab); }, 2600);
 }
 function btlWatch(slot, keepPaused) {
   btl.watching = slot;
