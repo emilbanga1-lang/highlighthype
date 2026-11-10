@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=93" />
+<link rel="stylesheet" href="styles.css?v=94" />
 </head>
 <body>
 
@@ -137,10 +137,11 @@
          Sports + the first sports, with More expanding the rest.
          The pills filter the board in place, through the same
          monthSport / allSport state the dropdowns wrote. -->
-    <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes">
+    <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes, Battles">
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
       <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
       <button type="button" data-view="all" aria-pressed="false">All Hypes</button>
+      <button type="button" data-view="battles" aria-pressed="false">Battles</button>
     </div>
 
     <!-- Round 67 (2026-11-09, Emil): the pill bar is ONE sideways-
@@ -227,6 +228,39 @@
       <p class="board-note sample-strip" id="allSampleStrip" hidden>Right now these are <b>sample plays</b> — demos that show how HighlightHype works. Real plays posted by families compete in <b>Hype of the Month</b>.</p>
       <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
+    </div>
+
+
+    <!-- Round 91 (2026-11-10): Hype Battles — head-to-head voting,
+         promoted from the hidden preview page after Emil's and
+         Nicholas's tests. Fresh pairs by default; Winner stays holds
+         a champion only against a NEW challenger. Picks cast a real
+         vote only for real same-sport contest matchups (see app.js). -->
+    <div id="viewBattles" hidden>
+      <div class="btl-modes" role="group" aria-label="Battle mode">
+        <button type="button" id="btlModeFresh" class="on">Fresh pairs</button>
+        <button type="button" id="btlModeStay">Winner stays</button>
+      </div>
+      <p class="btl-pool" id="btlPoolNote" hidden><strong>Sample pool</strong> — demo plays only. Battle picks join Hype of the Month once real entries have enough same-sport matchups.</p>
+      <p class="btl-prompt">Which play made you hit replay?</p>
+      <p class="btl-prompt-sub">Tap either clip to watch it big. Then pick the play.</p>
+      <div id="btlMain">
+        <div class="btl-matchup" id="btlMatchup"></div>
+        <div class="btl-player" id="btlPlayerBox">
+          <video id="btlPlayer" playsinline loop preload="metadata" controls></video>
+          <span class="btl-now" id="btlNowLabel"></span>
+        </div>
+        <div class="btl-pickrow">
+          <button type="button" class="btl-pick" id="btlPickL">👑 Pick this play</button>
+          <button type="button" class="btl-pick" id="btlPickR">👑 Pick this play</button>
+        </div>
+        <div class="btl-controls">
+          <button type="button" class="btl-skip" id="btlSkip">Skip matchup</button>
+          <button type="button" class="btl-next" id="btlNext">Next battle →</button>
+        </div>
+        <p class="btl-count" id="btlCount">Battle 1</p>
+      </div>
+      <p class="btl-empty" id="btlEmpty" hidden>Battles need at least two plays — check back as more plays are posted.</p>
     </div>
 
     <!-- Round 44 (2026-11-08): See all plays switches to the All
@@ -1105,6 +1139,6 @@
   </div>
 </div>
 
-<script src="app.js?v=93"></script>
+<script src="app.js?v=94"></script>
 </body>
 </html>

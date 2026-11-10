@@ -1014,11 +1014,13 @@ function switchView(v) {
   $("#viewMonth").hidden = v !== "month";
   $("#viewFame").hidden = v !== "fame";
   $("#viewAll").hidden = v !== "all";
+  const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
-  $("#boardTitle").innerHTML = v === "month" ? `Hype of the Month` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : `All <span class="lime">Hypes</span>`;
+  $("#boardTitle").innerHTML = v === "month" ? `Hype of the Month` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  $("#boardIntro").textContent = v === "month" ? "Athletes post their plays. Your votes crown the winner." : v === "fame" ? "The most-voted plays of all time." : "Watch plays from every sport.";
+  $("#boardIntro").textContent = v === "month" ? "Athletes post their plays. Your votes crown the winner." : v === "fame" ? "The most-voted plays of all time." : v === "battles" ? "Two plays go head to head. Pick the one that made you hit replay." : "Watch plays from every sport.";
+  if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
@@ -2640,3 +2642,194 @@ $$('a[href="/?view=all"]').forEach((a) => a.addEventListener("click", (e) => {
     document.getElementById("plays")?.scrollIntoView({ behavior: "smooth" });
   } else { try { sessionStorage.setItem("hhGotoBoard86", "1"); } catch (err) {} }
 }));
+
+/* Round 91 (2026-11-10): Hype Battles — head-to-head voting on the
+   board, promoted from the hidden preview page after Emil's and
+   Nicholas's tests. Fresh pairs by default; Winner stays keeps a
+   champion only against a NEW challenger (never the clip it just
+   beat — Emil's catch on the preview). Pairing prefers real
+   same-sport Hype of the Month matchups, then same-sport sample
+   pairs, then mixed approved pairs. A pick casts a REAL vote only
+   when both contenders are current contest entries — via the same
+   vote endpoint the tiles use, and only when the voter has not
+   already voted for that play (a battle pick must never toggle a
+   vote OFF). Every pick also fires a battle_pick stat. Appended at
+   the end of app.js per the sandbox-slice rule; every element
+   lookup is guarded. */
+const btl = { mode: "fresh", battle: 0, pairIdx: 0, flip: false, cur: { L: null, R: null }, watching: "L", champ: null, streak: 0, lastBeaten: null, picked: false, pairReal: false, built: false };
+function btlPairs() {
+  const bySport = (list) => { const m = new Map(); list.forEach((p) => { if (!m.has(p.sport)) m.set(p.sport, []); m.get(p.sport).push(p.id); }); return m; };
+  const pairsOf = (m) => { const out = []; m.forEach((ids) => { for (let i = 0; i + 1 < ids.length; i += 2) out.push([ids[i], ids[i + 1]]); }); return out; };
+  const real = pairsOf(bySport((CONTEST.entries || []).filter((p) => !p.isSample)));
+  if (real.length) return { pairs: real, real: true };
+  const sample = pairsOf(bySport(ALL_PLAYS.filter((p) => p.isSample)));
+  if (sample.length) return { pairs: sample, real: false };
+  const ids = ALL_PLAYS.map((p) => p.id);
+  const mixed = []; for (let i = 0; i + 1 < ids.length; i += 2) mixed.push([ids[i], ids[i + 1]]);
+  return { pairs: mixed, real: false };
+}
+function btlDealFresh() {
+  const { pairs, real } = btlPairs();
+  btl.pairReal = real;
+  if (!pairs.length) { btl.cur = { L: null, R: null }; return; }
+  const pair = pairs[btl.pairIdx % pairs.length];
+  const order = btl.flip ? [pair[1], pair[0]] : pair;
+  btl.cur = { L: order[0], R: order[1] };
+  btl.watching = "L";
+}
+function btlMiniHTML(slot) {
+  const p = findPlay(btl.cur[slot]);
+  if (!p) return "";
+  const isChamp = btl.mode === "stay" && btl.champ === p.id;
+  return `<article class="btl-mini" id="btlMini${slot}" data-slot="${slot}">
+    <video src="${esc(p.media_url)}" preload="metadata" muted playsinline></video>
+    ${isChamp ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
+    <span class="btl-stamp">👑 WINNER</span>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
+  </article>`;
+}
+function btlRenderCount() {
+  const el = document.getElementById("btlCount");
+  if (el) el.textContent = "Battle " + (btl.battle + 1) + (btl.mode === "stay" && btl.champ ? " · Champion: " + (findPlay(btl.champ) || {}).title + " · Won " + btl.streak + " in a row" : "");
+}
+function btlRender() {
+  const main = document.getElementById("btlMain");
+  const empty = document.getElementById("btlEmpty");
+  const note = document.getElementById("btlPoolNote");
+  const has = !!(btl.cur.L && btl.cur.R);
+  if (main) main.hidden = !has;
+  if (empty) empty.hidden = has;
+  if (note) note.hidden = !has || btl.pairReal;
+  if (!has) return;
+  btl.picked = false;
+  const matchup = document.getElementById("btlMatchup");
+  if (matchup) {
+    matchup.innerHTML = btlMiniHTML("L") + '<div class="btl-vs">VS</div>' + btlMiniHTML("R");
+    matchup.querySelectorAll(".btl-mini").forEach((el) => el.addEventListener("click", () => btlWatch(el.dataset.slot)));
+  }
+  const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
+  if (pickL) { pickL.disabled = false; pickL.textContent = "👑 Pick this play"; }
+  if (pickR) { pickR.disabled = false; pickR.textContent = "👑 Pick this play"; }
+  const next = document.getElementById("btlNext"); if (next) next.classList.remove("show");
+  const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "";
+  btlRenderCount();
+  btlWatch(btl.watching, true);
+}
+function btlWatch(slot, keepPaused) {
+  btl.watching = slot;
+  const p = findPlay(btl.cur[slot]);
+  const player = document.getElementById("btlPlayer");
+  if (!p || !player) return;
+  const miniL = document.getElementById("btlMiniL"), miniR = document.getElementById("btlMiniR");
+  if (miniL) miniL.classList.toggle("watching", slot === "L");
+  if (miniR) miniR.classList.toggle("watching", slot === "R");
+  if (player.getAttribute("src") !== p.media_url) { player.src = p.media_url; player.load(); }
+  const label = document.getElementById("btlNowLabel");
+  if (label) label.textContent = "Now watching: " + p.title;
+  if (!keepPaused) { try { player.play(); } catch { /* autoplay refusal is fine */ } }
+}
+function btlNewChallenger() {
+  const src = btl.pairReal ? (CONTEST.entries || []).filter((p) => !p.isSample) : ALL_PLAYS;
+  const pool = src.map((p) => p.id).filter((id) => id !== btl.champ && id !== btl.lastBeaten);
+  if (!pool.length) return null;
+  const champPlay = findPlay(btl.champ);
+  const same = champPlay ? pool.filter((id) => (findPlay(id) || {}).sport === champPlay.sport) : [];
+  const pickFrom = same.length ? same : pool;
+  return pickFrom[btl.battle % pickFrom.length];
+}
+function btlNext() {
+  btl.battle++;
+  const player = document.getElementById("btlPlayer"); if (player) player.pause();
+  if (btl.mode === "fresh") { btl.pairIdx++; btl.flip = !btl.flip; btlDealFresh(); }
+  else {
+    const challenger = btlNewChallenger();
+    if (challenger == null) { btlDealFresh(); }
+    else {
+      const loserSlot = btl.cur.L === btl.champ ? "R" : "L";
+      btl.cur[loserSlot] = challenger;
+      btl.watching = loserSlot;
+    }
+  }
+  btlRender();
+}
+async function btlPick(slot) {
+  if (btl.picked || !btl.cur[slot]) return;
+  btl.picked = true;
+  const winnerId = btl.cur[slot];
+  const loserSlot = slot === "L" ? "R" : "L";
+  const loserId = btl.cur[loserSlot];
+  const player = document.getElementById("btlPlayer"); if (player) player.pause();
+  const mini = document.getElementById("btlMini" + slot); if (mini) mini.classList.add("winner");
+  const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
+  if (pickL) pickL.disabled = true;
+  if (pickR) pickR.disabled = true;
+  const loserBtn = document.getElementById("btlPick" + loserSlot); if (loserBtn) loserBtn.textContent = "Not this time";
+  const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "none";
+  const next = document.getElementById("btlNext"); if (next) next.classList.add("show");
+  trackEvent("battle_pick", winnerId);
+  if (btl.pairReal) {
+    const w = findPlay(winnerId);
+    if (w && !w.hasVoted) {
+      w.hasVoted = true;
+      try {
+        await api(`/api/highlights/${winnerId}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) });
+        loadData().catch(() => {});
+      } catch { /* a failed vote never breaks the game */ }
+    }
+  }
+  if (btl.mode === "stay") {
+    btl.lastBeaten = loserId;
+    if (btl.champ === winnerId) btl.streak++; else { btl.champ = winnerId; btl.streak = 1; }
+    btlRenderCount();
+  }
+}
+function btlSkip() {
+  if (btl.mode === "stay" && btl.champ && !btl.picked) {
+    btl.battle++;
+    const challengerSlot = btl.cur.L === btl.champ ? "R" : "L";
+    btl.lastBeaten = btl.cur[challengerSlot];
+    const challenger = btlNewChallenger();
+    if (challenger != null) { btl.cur[challengerSlot] = challenger; btl.watching = challengerSlot; btlRender(); return; }
+  }
+  btlNext();
+}
+function btlSetMode(m) {
+  btl.mode = m; btl.battle = 0; btl.pairIdx = 0; btl.flip = false; btl.champ = null; btl.streak = 0; btl.lastBeaten = null;
+  const f = document.getElementById("btlModeFresh"), s = document.getElementById("btlModeStay");
+  if (f) f.classList.toggle("on", m === "fresh");
+  if (s) s.classList.toggle("on", m === "stay");
+  btlDealFresh();
+  btlRender();
+}
+function initBattles() {
+  if (!btl.built) { btl.built = true; btlDealFresh(); }
+  btlRender();
+}
+(function battlesWire91() {
+  const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  bind("btlPickL", "click", () => btlPick("L"));
+  bind("btlPickR", "click", () => btlPick("R"));
+  bind("btlNext", "click", btlNext);
+  bind("btlSkip", "click", btlSkip);
+  bind("btlModeFresh", "click", () => btlSetMode("fresh"));
+  bind("btlModeStay", "click", () => btlSetMode("stay"));
+  try {
+    if (new URLSearchParams(location.search).get("view") === "battles" && typeof applyDefaultView === "function") {
+      // Ride applyDefaultView itself: loadData calls it after the
+      // first fetch lands, so switching right after it runs cannot
+      // be overridden — no matter when loadData was invoked.
+      let btlDeepLink91 = true;
+      const origApplyDefault91 = applyDefaultView;
+      applyDefaultView = function (...args) {
+        const r = origApplyDefault91.apply(this, args);
+        if (btlDeepLink91) {
+          btlDeepLink91 = false;
+          switchView("battles");
+          const playsEl = document.getElementById("plays");
+          if (playsEl) playsEl.scrollIntoView();
+        }
+        return r;
+      };
+    }
+  } catch { /* deep link is a nicety, never a breaker */ }
+})();
