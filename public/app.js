@@ -2168,7 +2168,7 @@ $$("[data-hf-swipe]").forEach((root) => {
      only. */
   const heroPath = location.pathname.replace(/\/+$/, "") || "/";
   if (heroPath !== "/" || ["#shop", "#hype-girls", "#hype-boys"].includes(location.hash)) { v.pause(); return; }
-  const setIcon = () => { if (!mute) return; mute.textContent = v.muted ? "🔇" : "🔊"; mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
+  const setIcon = () => { if (!mute) return; mute.classList.toggle("is-muted", v.muted); mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
   v.muted = false;
   const p = v.play();
   if (p && p.catch) p.catch(() => { v.muted = true; const q = v.play(); if (q && q.catch) q.catch(() => {}); setIcon(); });
@@ -2567,4 +2567,18 @@ function playHfStoreFilm() {
   const warm = () => imgs.forEach((src) => { const i = new Image(); i.src = src; });
   if ("requestIdleCallback" in window) requestIdleCallback(warm, { timeout: 4000 });
   else setTimeout(warm, 2500);
+})();
+
+/* Round 85 (2026-11-09, youth tester rerun): once the visitor scrolls
+   past the hero, the floating Submit pill collapses to a compact
+   round button so it stops parking on top of board tiles mid-browse;
+   near the top it keeps its full "Submit a Hype" label. The Round 69
+   auto-hide near in-page Submit links is unchanged. */
+(function fabCompact85() {
+  const fab = document.getElementById("floatSubmit");
+  if (!fab) return;
+  let ticking = false;
+  const apply = () => { ticking = false; fab.classList.toggle("fab-compact85", window.scrollY > 520); };
+  window.addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(apply); } }, { passive: true });
+  apply();
 })();

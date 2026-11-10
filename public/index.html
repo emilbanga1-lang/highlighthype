@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=87" />
+<link rel="stylesheet" href="styles.css?v=88" />
 </head>
 <body>
 
@@ -76,7 +76,7 @@
       <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Submit a Hype</a>
     </div>
   </div>
-  <button type="button" class="hero-mute" id="heroMute" aria-label="Unmute the film">🔇</button>
+  <button type="button" class="hero-mute is-muted" id="heroMute" aria-label="Unmute the film"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path class="hm-waves" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="hm-waves" d="M18.4 5.8a9.2 9.2 0 0 1 0 12.4"/><line class="hm-slash" x1="3" y1="3" x2="21" y2="21"/></svg><span>Sound</span></button>
 </div>
 
 <!-- ============ TRUST STRIP ============ -->
@@ -432,6 +432,14 @@
       <li><b>4</b><span>We take care of the rest</span></li>
     </ol>
     <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-tablink="plays">Create a Hype Frame →</a></p>
+    <!-- Round 85 (2026-11-09, youth tester rerun): the film is a
+         softball story — the Boy tester asked where the baseball
+         frame is. The finished baseball example rides under the
+         steps on the homepage and in the Store feature. -->
+    <figure class="hf-ex-strip">
+      <img src="/swag/hf-example-hoodie-back.jpg" alt="Baseball Hype Frame example: a real swing frozen at contact, printed on the back of a black hoodie" width="386" height="448" loading="lazy" decoding="async" />
+      <figcaption><span class="hf-ex-tag">Baseball · Photo</span><strong>Not just softball.</strong> A real baseball swing, frozen at contact — printed on black, Hype Frame style.</figcaption>
+    </figure>
     <!-- Round 44 (2026-11-08): the concept posters moved INTO the
          studio (below its examples grid) — the homepage section is
          now the concept's one image + one action, and the Photo /
@@ -795,6 +803,7 @@
         <article class="hs-card" data-hs-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-baseball.jpg" alt="Baseball Hype Hoodie, back — black hoodie with a giant baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/baseball-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Baseball Hype Hoodie</h4>
@@ -804,6 +813,7 @@
         <article class="hs-card" data-hs-card="football" tabindex="0" role="button" aria-label="View the Football Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-football.jpg" alt="Football Hype Hoodie, back — black hoodie with a giant football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/football-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Football Hype Hoodie</h4>
@@ -813,6 +823,7 @@
         <article class="hs-card" data-hs-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-basketball.jpg" alt="Basketball Hype Hoodie, back — black hoodie with a giant basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/basketball-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Basketball Hype Hoodie</h4>
@@ -822,6 +833,7 @@
         <article class="hs-card" data-hs-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-soccer.jpg" alt="Soccer Hype Hoodie, back — black hoodie with a giant soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/soccer-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Soccer Hype Hoodie</h4>
@@ -831,6 +843,7 @@
         <article class="hs-card" data-hs-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-softball.jpg" alt="Softball Hype Hoodie, back — black hoodie with a giant yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/softball-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Softball Hype Hoodie</h4>
@@ -840,6 +853,7 @@
         <article class="hs-card" data-hs-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Hoodie">
           <div class="hs-card-media">
             <img class="hs-img-back" src="/swag/hs/night-volleyball.jpg" alt="Volleyball Hype Hoodie, back — black hoodie with a giant volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            <span class="hs-card-front"><img src="/swag/hs/volleyball-front.jpg" alt="" loading="lazy" decoding="async" /><span class="hs-card-front-tag">Front</span></span>
           </div>
           <div class="hs-card-body">
             <h4>Volleyball Hype Hoodie</h4>
@@ -876,6 +890,15 @@
           <li><b>3</b><span>Your actual image — or your avatar</span></li>
           <li><b>4</b><span>We take care of the rest</span></li>
         </ol>
+      </figure>
+
+    <!-- Round 85 (2026-11-09, youth tester rerun): the film is a
+         softball story — the Boy tester asked where the baseball
+         frame is. The finished baseball example rides under the
+         steps on the homepage and in the Store feature. -->
+      <figure class="hf-ex-strip">
+        <img src="/swag/hf-example-hoodie-back.jpg" alt="Baseball Hype Frame example: a real swing frozen at contact, printed on the back of a black hoodie" width="386" height="448" loading="lazy" decoding="async" />
+        <figcaption><span class="hf-ex-tag">Baseball · Photo</span><strong>Not just softball.</strong> A real baseball swing, frozen at contact — printed on black, Hype Frame style.</figcaption>
       </figure>
     </div>
 
@@ -1059,6 +1082,6 @@
   </div>
 </div>
 
-<script src="app.js?v=87"></script>
+<script src="app.js?v=88"></script>
 </body>
 </html>

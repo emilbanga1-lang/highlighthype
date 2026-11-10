@@ -294,7 +294,7 @@
   .viewseg button:hover{color:#fff}
   .viewseg button[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink)}
   .viewseg button:focus-visible,.search-input:focus-visible,.team-select:focus-visible,.sport-select:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
-  @media (max-width:640px){ .viewseg{display:flex;width:100%} .viewseg button{flex:1;padding:10px 4px;font-size:12.5px;white-space:normal;line-height:1.2} }
+  @media (max-width:640px){ .viewseg{display:flex;width:100%} .viewseg button{flex:1;padding:10px 4px;font-size:12px;white-space:nowrap;line-height:1.2} }
   /* Hall of Fame — ranked all-time list */
   .fame-list{border-top:1px solid var(--line);margin-bottom:10px}
   .fame-row{display:grid;grid-template-columns:58px 128px 1fr auto;gap:18px;align-items:center;padding:15px 4px;border-bottom:1px solid var(--line);cursor:pointer}
@@ -1389,7 +1389,7 @@
   @keyframes hsFlash52{0%,55%{box-shadow:0 0 0 3px var(--volt)}100%{box-shadow:0 0 0 0 transparent}}
   @media (max-width:700px){
     .shop .hs-grid{grid-template-columns:repeat(2,1fr);gap:12px}
-    .hs-hero .hs-hero-img{object-position:50% 42%}
+    .hs-hero .hs-hero-img{object-position:50% 46%}
   }
   /* ---- Round 53/54 (2026-11-08): the BOARD takes the mock's
      atmosphere — a stadium-crowd backdrop (a frame from Emil's
@@ -1888,9 +1888,9 @@
      left with the group markup itself. */
   @media (max-width:760px){
     .shop .store-bar{margin-top:76px}
-    .hs-hero{min-height:300px}
+    .hs-hero{min-height:400px}
     .hs-hero::after{background:linear-gradient(90deg,rgba(0,0,0,.92) 40%,rgba(0,0,0,.62) 72%,rgba(0,0,0,.28) 100%)}
-    .hs-hero-img{object-position:72% center}
+    .hs-hero-img{object-position:50% 42%}
     .hs-hero-copy{padding:24px}
     .hs-tiles{gap:8px}
     .hs-tile-label{font-size:13px;padding:8px 10px}
@@ -2173,3 +2173,35 @@
   .stories{padding-top:12px}
   #hfExamplesHome{margin-top:26px;border-top:1px solid var(--line2);padding-top:26px}
   .hs-hf-steps{grid-template-columns:repeat(2,1fr);margin:14px 0 0}
+
+  /* ===== Round 85 (2026-11-09, youth tester rerun fixes): (1) the
+     sport pill row FADES at its right edge instead of showing a
+     half-cut pill that reads as broken; (2) hoodie cards carry a
+     small FRONT thumbnail chip (the card still leads with the worn
+     back shot — the chip answers "show me the front"); (3) the
+     floating Submit pill collapses to a compact round button once
+     the visitor scrolls past the hero, so it stops parking on top
+     of board tiles; (4) the hero sound control is a labeled pill,
+     not a mystery circle; (5) a finished BASEBALL Hype Frame
+     example strip rides with the (softball) film on the homepage
+     and in the Store feature. ===== */
+  .sport-pills-row{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 38px),transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 38px),transparent 100%)}
+  .hs-card-front{position:absolute;left:10px;bottom:10px;width:58px;border-radius:9px;overflow:hidden;border:2px solid rgba(255,255,255,.92);box-shadow:0 6px 16px rgba(0,0,0,.5);background:#111;line-height:1;z-index:2}
+  .hs-card-front img{width:100%;height:72px;object-fit:cover;display:block}
+  .hs-card-front-tag{display:block;background:rgba(0,0,0,.85);color:#fff;font-size:9.5px;font-weight:800;letter-spacing:.15em;text-align:center;padding:3px 0 4px;text-transform:uppercase}
+  @media (min-width:1024px){ .hs-card-front{width:66px} .hs-card-front img{height:82px} }
+  .float-submit{transition:background .15s ease,transform .15s ease,opacity .15s ease,visibility 0s,padding .18s ease,width .18s ease}
+  .float-submit.fab-compact85{width:48px;height:48px;padding:0;justify-content:center}
+  .float-submit.fab-compact85 .float-submit-label,.float-submit.fab-compact85 .float-submit-short{display:none}
+  .hero-mute{width:auto;height:38px;border-radius:999px;padding:0 13px;gap:6px;font-size:12.5px;font-weight:800;letter-spacing:.05em}
+  .hero-mute .hm-slash{display:none}
+  .hero-mute.is-muted .hm-slash{display:block}
+  .hero-mute.is-muted .hm-waves{display:none}
+  .hf-ex-strip{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:12px 14px;margin:16px 0 0}
+  .hf-ex-strip img{width:74px;height:86px;object-fit:cover;border-radius:10px;flex:none}
+  .hf-ex-strip figcaption{font-size:14px;color:var(--muted);font-weight:600;line-height:1.45}
+  .hf-ex-strip figcaption strong{color:#fff}
+  .hf-ex-tag{display:block;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+  #hfExamplesHome .hf-ex-strip{position:relative;z-index:1}
+  @media (min-width:1024px){ #hfExamplesHome .hf-ex-strip{grid-column:1/-1} }
+  .hs-hf .hf-ex-strip{grid-column:1/-1;margin-top:2px}
