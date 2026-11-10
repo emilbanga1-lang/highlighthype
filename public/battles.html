@@ -6,44 +6,53 @@
   :root{ --bg:#0a0a0a; --panel:#131313; --line:#2a2a2a; --gold:#f0b93e; --gold2:#c9932b; --ink:#f5f1e6; --mut:#a49e8f; }
   *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
   body{background:radial-gradient(120% 60% at 50% 0%, #1a160d 0%, var(--bg) 55%); color:var(--ink); font-family:"Helvetica Neue", Arial, sans-serif; min-height:100vh;}
-  .wrap{max-width:430px; margin:0 auto; padding:18px 14px 26px;}
+  .topbar{position:sticky; top:0; z-index:50; display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(10,10,10,.94); border-bottom:1px solid var(--line);}
+  .brand{font-weight:900; font-style:italic; font-size:17px; letter-spacing:.02em;}
+  .brand .gold{color:var(--gold);}
+  .exit{flex:0 0 auto; color:var(--ink); text-decoration:none; font-weight:800; font-size:13.5px; border:1px solid var(--line); border-radius:999px; padding:8px 13px; background:#1b1b1b;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px 14px 30px;}
   .tag{color:var(--gold); font-weight:800; letter-spacing:.22em; font-size:10px; text-transform:uppercase; text-align:center;}
-  h1{font-size:34px; font-weight:900; font-style:italic; text-align:center; margin-top:4px;}
-  h1 .gold{color:var(--gold);}
-  .modes{display:flex; background:#1b1b1b; border:1px solid var(--line); border-radius:999px; padding:4px; margin:14px auto 0; max-width:320px;}
+  .modes{display:flex; background:#1b1b1b; border:1px solid var(--line); border-radius:999px; padding:4px; margin:12px auto 0; max-width:320px;}
   .modes button{flex:1; border:0; background:transparent; color:var(--mut); font-weight:800; font-size:13px; padding:8px 0; border-radius:999px; cursor:pointer;}
   .modes button.on{background:var(--gold); color:#1a1204;}
-  .pool{margin:12px auto 0; max-width:340px; text-align:center; font-size:11.5px; line-height:1.45; color:#e8cf8f; background:rgba(240,185,62,.09); border:1px solid rgba(240,185,62,.45); border-radius:10px; padding:7px 10px;}
+  .pool{margin:12px auto 0; max-width:360px; text-align:center; font-size:11.5px; line-height:1.45; color:#e8cf8f; background:rgba(240,185,62,.09); border:1px solid rgba(240,185,62,.45); border-radius:10px; padding:7px 10px;}
   .prompt{text-align:center; font-size:19px; font-weight:800; margin-top:16px;}
   .promptSub{text-align:center; color:var(--mut); font-size:13px; margin-top:3px;}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-top:14px; transition:box-shadow .25s, border-color .25s, transform .25s;}
-  .card.winner{border:2px solid var(--gold); box-shadow:0 0 0 5px rgba(240,185,62,.15), 0 14px 40px rgba(0,0,0,.5); transform:scale(1.015);}
-  .media{position:relative; cursor:pointer;}
-  .media video{display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:#000;}
-  .playdisc{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
-  .playdisc span{width:54px; height:54px; border-radius:50%; background:rgba(0,0,0,.55); border:2px solid rgba(255,255,255,.85); color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center; padding-left:4px;}
-  .card.playing .playdisc{display:none;}
-  .stamp{position:absolute; top:10px; right:10px; background:var(--gold); color:#191204; font-weight:900; font-size:12px; letter-spacing:.1em; padding:6px 10px; border-radius:999px; transform:rotate(4deg) scale(0); transition:transform .3s cubic-bezier(.2,1.6,.4,1);}
-  .card.winner .stamp{transform:rotate(4deg) scale(1);}
-  .streak{position:absolute; top:10px; left:10px; background:rgba(0,0,0,.7); color:var(--gold); font-weight:800; font-size:12px; padding:5px 9px; border-radius:999px; display:none;}
-  .card.champ .streak{display:block;}
-  .cbody{padding:12px 14px 14px;}
-  .title{font-size:18px; font-weight:800;}
-  .meta{color:var(--mut); font-size:12.5px; margin-top:2px;}
-  .pick{width:100%; margin-top:11px; border:0; border-radius:12px; padding:14px; font-size:16px; font-weight:900; cursor:pointer; background:linear-gradient(180deg, var(--gold), var(--gold2)); color:#1a1204;}
+  .matchup{display:flex; gap:10px; margin-top:16px; align-items:stretch;}
+  .mini{flex:1; background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden; cursor:pointer; position:relative; transition:border-color .2s, box-shadow .2s;}
+  .mini img{display:block; width:100%; aspect-ratio:16/9; object-fit:cover;}
+  .mini .mbody{padding:8px 10px 10px;}
+  .mini .mtitle{font-size:14.5px; font-weight:800; line-height:1.25;}
+  .mini .mmeta{color:var(--mut); font-size:11.5px; margin-top:2px;}
+  .mini.watching{border-color:var(--gold); box-shadow:0 0 0 3px rgba(240,185,62,.18);}
+  .mini.winner{border:2px solid var(--gold); box-shadow:0 0 0 5px rgba(240,185,62,.15);}
+  .mini .stamp{position:absolute; top:8px; right:8px; background:var(--gold); color:#191204; font-weight:900; font-size:10.5px; letter-spacing:.08em; padding:5px 8px; border-radius:999px; transform:rotate(4deg) scale(0); transition:transform .3s cubic-bezier(.2,1.6,.4,1);}
+  .mini.winner .stamp{transform:rotate(4deg) scale(1);}
+  .mini .streak{position:absolute; top:8px; left:8px; background:rgba(0,0,0,.72); color:var(--gold); font-weight:800; font-size:11px; padding:4px 8px; border-radius:999px; display:none;}
+  .mini.champ .streak{display:block;}
+  .vs{align-self:center; flex:0 0 auto; width:38px; height:38px; border-radius:50%; background:#000; border:2px solid var(--gold); color:var(--gold); font-weight:900; font-style:italic; font-size:13px; display:flex; align-items:center; justify-content:center;}
+  .player{margin-top:12px; background:#000; border:1px solid var(--line); border-radius:14px; overflow:hidden; position:relative;}
+  .player video{display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:#000;}
+  .player .now{position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.7); color:var(--ink); font-size:12px; font-weight:700; padding:4px 9px; border-radius:999px;}
+  .player .playdisc{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;}
+  .player .playdisc span{width:54px; height:54px; border-radius:50%; background:rgba(0,0,0,.55); border:2px solid rgba(255,255,255,.85); color:#fff; font-size:20px; display:flex; align-items:center; justify-content:center; padding-left:4px;}
+  .player.playing .playdisc{display:none;}
+  .pickrow{display:flex; gap:10px; margin-top:12px;}
+  .pick{flex:1; border:0; border-radius:12px; padding:14px 8px; font-size:15px; font-weight:900; cursor:pointer; background:linear-gradient(180deg, var(--gold), var(--gold2)); color:#1a1204;}
   .pick:disabled{opacity:.45;}
-  .vs{display:flex; align-items:center; justify-content:center; margin:10px 0 -4px;}
-  .vs span{width:44px; height:44px; border-radius:50%; background:#000; border:2px solid var(--gold); color:var(--gold); font-weight:900; font-style:italic; font-size:15px; display:flex; align-items:center; justify-content:center;}
-  .controls{display:flex; gap:10px; margin-top:18px; align-items:center;}
+  .controls{display:flex; gap:10px; margin-top:14px; align-items:center;}
   .skip{flex:0 0 auto; background:transparent; border:1px solid var(--line); color:var(--ink); border-radius:12px; padding:13px 14px; font-size:14px; font-weight:700; cursor:pointer;}
   .next{flex:1; border:0; border-radius:12px; padding:14px; font-size:16px; font-weight:900; cursor:pointer; background:#f5f1e6; color:#111; display:none;}
   .next.show{display:block;}
   .count{text-align:center; color:var(--mut); font-size:13px; margin-top:14px;}
 </style></head>
 <body>
+  <div class="topbar">
+    <span class="brand">HYPE <span class="gold">BATTLES</span></span>
+    <a class="exit" href="/">Exit Battles ✕</a>
+  </div>
   <div class="wrap">
     <p class="tag">Preview · Test page</p>
-    <h1>HYPE <span class="gold">BATTLES</span></h1>
 
     <div class="modes" role="tablist">
       <button id="modeFresh" class="on" onclick="setMode('fresh')">Fresh pairs</button>
@@ -53,18 +62,26 @@
     <p class="pool"><strong>SAMPLE POOL</strong> — demo plays only. Battle picks join Hype of the Month once real entries have enough same-sport matchups.</p>
 
     <p class="prompt">Which play made you hit replay?</p>
-    <p class="promptSub">Tap a clip to watch it. Then pick the play.</p>
+    <p class="promptSub">Tap either clip to watch it big. Then pick the play.</p>
 
-    <div id="slotA"></div>
-    <div class="vs"><span>VS</span></div>
-    <div id="slotB"></div>
+    <div class="matchup" id="matchup"></div>
+
+    <div class="player" id="playerBox" onclick="togglePlayer()">
+      <video id="player" playsinline loop preload="metadata"></video>
+      <div class="playdisc"><span>▶</span></div>
+      <span class="now" id="nowLabel"></span>
+    </div>
+
+    <div class="pickrow">
+      <button class="pick" id="pickL" onclick="pick('L')">👑 Pick this play</button>
+      <button class="pick" id="pickR" onclick="pick('R')">👑 Pick this play</button>
+    </div>
 
     <div class="controls">
       <button class="skip" id="skipBtn" onclick="skipBattle()">Skip matchup</button>
       <button class="next" id="nextBtn" onclick="nextBattle()">Next battle →</button>
     </div>
     <p class="count" id="countLine">Battle 1</p>
-    <p class="count" style="margin-top:18px"><a href="/" style="color:var(--mut)">← Back to HighlightHype</a></p>
   </div>
 
 <script>
@@ -76,98 +93,122 @@
   };
   const PAIRS = [ ['bb1','bb2'], ['sb1','sb2'] ];
   let mode = 'fresh';
-  let battle = 0;          // battle counter
-  let pairIdx = 0;         // which pool pair
-  let flip = false;        // rotate which clip appears first
-  let cur = { A: null, B: null };
-  let champ = null, streak = 0;
+  let battle = 0, pairIdx = 0, flip = false;
+  let cur = { L: null, R: null };
+  let watching = 'L';
+  let champ = null, streak = 0, lastBeaten = null;
   let picked = false;
 
-  function cardHTML(slot, key, isChamp) {
+  const player = document.getElementById('player');
+  const playerBox = document.getElementById('playerBox');
+
+  function miniHTML(slot, key) {
     const c = CLIPS[key];
-    return `<article class="card${isChamp ? ' champ' : ''}" id="card${slot}">
-      <div class="media" onclick="togglePlay('${slot}')">
-        <video id="vid${slot}" src="${c.src}" poster="${c.poster}" playsinline loop preload="metadata"></video>
-        <div class="playdisc"><span>▶</span></div>
-        ${isChamp ? `<span class="streak">👑 Won ${streak} in a row</span>` : ''}
-        <span class="stamp">👑 WINNER</span>
-      </div>
-      <div class="cbody">
-        <p class="title">${c.title}</p>
-        <p class="meta">${c.meta}</p>
-        <button class="pick" id="pick${slot}" onclick="pick('${slot}')">Pick this play</button>
-      </div>
+    const isChamp = (mode === 'stay' && champ === key);
+    return `<article class="mini${isChamp ? ' champ' : ''}" id="mini${slot}" onclick="watch('${slot}')">
+      <img src="${c.poster}" alt="${c.title}">
+      ${isChamp ? `<span class="streak">👑 Won ${streak} in a row</span>` : ''}
+      <span class="stamp">👑 WINNER</span>
+      <div class="mbody"><p class="mtitle">${c.title}</p><p class="mmeta">${c.meta}</p></div>
     </article>`;
   }
 
   function render() {
     picked = false;
-    const champKey = (mode === 'stay') ? champ : null;
-    document.getElementById('slotA').innerHTML = cardHTML('A', cur.A, champKey === cur.A);
-    document.getElementById('slotB').innerHTML = cardHTML('B', cur.B, champKey === cur.B);
+    document.getElementById('matchup').innerHTML =
+      miniHTML('L', cur.L) + '<div class="vs">VS</div>' + miniHTML('R', cur.R);
+    document.getElementById('pickL').disabled = false;
+    document.getElementById('pickR').disabled = false;
+    document.getElementById('pickL').textContent = '👑 Pick this play';
+    document.getElementById('pickR').textContent = '👑 Pick this play';
     document.getElementById('nextBtn').classList.remove('show');
     document.getElementById('skipBtn').style.display = '';
     document.getElementById('countLine').textContent =
       'Battle ' + (battle + 1) + (mode === 'stay' && champ ? ' · Champion: ' + CLIPS[champ].title : '');
+    watch(watching, true);
   }
+
+  function watch(slot, keepPaused) {
+    watching = slot;
+    const key = cur[slot];
+    const c = CLIPS[key];
+    document.getElementById('miniL').classList.toggle('watching', slot === 'L');
+    document.getElementById('miniR').classList.toggle('watching', slot === 'R');
+    if (player.getAttribute('src') !== c.src) {
+      player.src = c.src; player.poster = c.poster; player.load();
+    }
+    document.getElementById('nowLabel').textContent = 'Now watching: ' + c.title;
+    if (!keepPaused) { player.play(); playerBox.classList.add('playing'); }
+  }
+
+  function togglePlayer() {
+    if (player.paused) { player.play(); playerBox.classList.add('playing'); }
+    else { player.pause(); playerBox.classList.remove('playing'); }
+  }
+  player.addEventListener('pause', () => playerBox.classList.remove('playing'));
 
   function dealFresh() {
     const pair = PAIRS[pairIdx % PAIRS.length];
     const order = flip ? [pair[1], pair[0]] : [pair[0], pair[1]];
-    cur = { A: order[0], B: order[1] };
+    cur = { L: order[0], R: order[1] };
+    watching = 'L';
+  }
+
+  function newChallenger() {
+    // A challenger is only a challenger if it's new: never the champion,
+    // and never the clip the champion just beat.
+    const candidates = Object.keys(CLIPS).filter(k => k !== champ && k !== lastBeaten);
+    return candidates[battle % candidates.length];
   }
 
   function nextBattle() {
     battle++;
+    player.pause();
     if (mode === 'fresh') { pairIdx++; flip = !flip; dealFresh(); }
     else {
-      // winner stays: challenger = next clip that isn't the champion, preferring same sport
-      const others = Object.keys(CLIPS).filter(k => k !== champ);
-      const sameSport = others.filter(k => CLIPS[k].sport === CLIPS[champ].sport);
-      const pool = sameSport.length ? sameSport : others;
-      const challenger = pool[battle % pool.length];
-      const loserSlot = cur.A === champ ? 'B' : 'A';
-      cur[loserSlot] = challenger;
+      const loserSlot = cur.L === champ ? 'R' : 'L';
+      cur[loserSlot] = newChallenger();
+      watching = loserSlot;
     }
     render();
   }
 
-  function skipBattle() { nextBattle(); }
+  function skipBattle() {
+    if (mode === 'stay' && champ && !picked) {
+      // Champion holds; only the challenger rotates — to a fresh one.
+      battle++;
+      const challengerSlot = cur.L === champ ? 'R' : 'L';
+      lastBeaten = cur[challengerSlot];
+      cur[challengerSlot] = newChallenger();
+      watching = challengerSlot;
+      render();
+      return;
+    }
+    nextBattle();
+  }
 
   function pick(slot) {
     if (picked) return;
     picked = true;
     const winnerKey = cur[slot];
-    const loserSlot = slot === 'A' ? 'B' : 'A';
-    pauseAll();
-    document.getElementById('card' + slot).classList.add('winner');
-    document.getElementById('pickA').disabled = true;
-    document.getElementById('pickB').disabled = true;
+    const loserSlot = slot === 'L' ? 'R' : 'L';
+    player.pause();
+    document.getElementById('mini' + slot).classList.add('winner');
+    document.getElementById('pickL').disabled = true;
+    document.getElementById('pickR').disabled = true;
     document.getElementById('pick' + loserSlot).textContent = 'Not this time';
     document.getElementById('skipBtn').style.display = 'none';
     document.getElementById('nextBtn').classList.add('show');
     if (mode === 'stay') {
+      lastBeaten = cur[loserSlot];
       if (champ === winnerKey) streak++; else { champ = winnerKey; streak = 1; }
+      document.getElementById('countLine').textContent =
+        'Battle ' + (battle + 1) + ' · Champion: ' + CLIPS[champ].title + ' · Won ' + streak + ' in a row';
     }
   }
 
-  function pauseAll() {
-    ['A','B'].forEach(s => {
-      const v = document.getElementById('vid' + s);
-      if (v) { v.pause(); document.getElementById('card' + s).classList.remove('playing'); }
-    });
-  }
-
-  function togglePlay(slot) {
-    const v = document.getElementById('vid' + slot);
-    const card = document.getElementById('card' + slot);
-    if (!v.paused) { v.pause(); card.classList.remove('playing'); return; }
-    pauseAll();
-    v.play(); card.classList.add('playing');
-  }
-
   function setMode(m) {
-    mode = m; battle = 0; pairIdx = 0; flip = false; champ = null; streak = 0;
+    mode = m; battle = 0; pairIdx = 0; flip = false; champ = null; streak = 0; lastBeaten = null;
     document.getElementById('modeFresh').classList.toggle('on', m === 'fresh');
     document.getElementById('modeStay').classList.toggle('on', m === 'stay');
     dealFresh(); render();
