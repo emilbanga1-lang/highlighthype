@@ -1928,7 +1928,7 @@
   .all-bg{position:absolute;inset:0;background:url(/all-bg.jpg) center 32%/cover no-repeat;opacity:.38;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 100px,#000 84%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 100px,#000 84%,transparent 100%)}
   #viewAll > :not(.all-bg){position:relative;z-index:1}
   #hfExamplesHome{overflow:hidden}
-  .hf-bg{position:absolute;inset:0;background:url(/hf-bg.jpg) center/cover no-repeat;opacity:.5;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 98%);mask-image:linear-gradient(180deg,#000 30%,transparent 98%)}
+  .hf-bg{position:absolute;inset:0;background:url(/hf-bg.jpg) center/cover no-repeat;opacity:.34;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 150px,#000 84%,transparent 99%);mask-image:linear-gradient(180deg,transparent 0,#000 150px,#000 84%,transparent 99%)}
   #hfExamplesHome > :not(.hf-bg){position:relative;z-index:1}
 
   /* ---- Round 58 (2026-11-08, Emil's pick): the four steps as
@@ -1997,7 +1997,7 @@
      stadium night navy, Stories = warm gold, Hype Frame = amber,
      the final CTA = a lime glow off the footer. Backgrounds only;
      no layout or content changes. */
-  #plays{background:linear-gradient(180deg,#000 0,#0a1122 170px,#070b16 430px,var(--bg) 900px)}
+  #plays{background:linear-gradient(180deg,#000 0,#14110c 170px,#0d0b08 430px,var(--bg) 900px)}
   .board-bg{opacity:.8;height:900px}
   .stories{background:radial-gradient(640px 360px at 50% 0%,rgba(243,205,107,.14),rgba(243,205,107,0) 70%),linear-gradient(180deg,#0e0c07 0%,var(--bg) 92%)}
   #hypeframe{background:radial-gradient(760px 420px at 50% 0%,rgba(255,176,66,.10),rgba(255,176,66,0) 70%),linear-gradient(180deg,#130d07 0%,var(--bg) 88%)}
