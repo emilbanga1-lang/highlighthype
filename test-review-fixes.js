@@ -2441,7 +2441,7 @@ try {
   assert((shopSlice36.match(/class="hs-card"/g) || []).length === 6, "Round 27: six Hype Sports grid cards");
   for (const s of HS_SPORTS36) {
     const card52 = (home.match(new RegExp(`<article class="hs-card" data-hs-card="${s}"[\\s\\S]*?</article>`)) || [""])[0];
-    assert(card52.includes(`/swag/hs/night-${s}.jpg`) && !card52.includes("-front.jpg") && appJs.includes(`/swag/hs/${s}-front.jpg`), `Round 52/59: the ${s} card leads with the worn night-shot of the back (Round 59) — the front lives on the product page (its data is intact)`);
+    assert(card52.includes(`/swag/hs/night-${s}.jpg`) && card52.includes('class="hs-card-front"') && card52.includes(`/swag/hs/${s}-front.jpg`) && appJs.includes(`/swag/hs/${s}-front.jpg`), `Round 52/59 + 85: the ${s} card leads with the worn night-shot of the back (Round 59) and carries the small FRONT thumbnail chip (Round 85, youth tester ask); the full front still lives on the product page (its data is intact)`);
   }
   assert((shopSlice36.match(/class="hs-badge">Sample phase<\/span>/g) || []).length === 0, "Round 52: the per-card Sample phase badges are gone — the hoodies header's COMING SOON carries the preview status now");
   assert((shopSlice36.match(/>VIEW PRODUCT<\/button>/g) || []).length === 0, "Round 52: no VIEW PRODUCT buttons on the cards — the whole card is the tap target (the name bar carries a chevron)");
