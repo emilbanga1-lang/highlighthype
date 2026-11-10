@@ -223,7 +223,7 @@ try {
     assert(vt.body.voteCount === 1, "stats suite: vote cast (feeds the existing-system totals)");
     // Valid events: views across the four main views, opens of both
     // plays, and one arrival per referrer flavor.
-    for (const [evt, n] of [[{ kind: "view", key: "home" }, 2], [{ kind: "view", key: "store" }, 1], [{ kind: "view", key: "mine" }, 1], [{ kind: "view", key: "how" }, 1], [{ kind: "play_open", key: String(sp1) }, 3], [{ kind: "play_open", key: String(sp2) }, 1]]) {
+    for (const [evt, n] of [[{ kind: "view", key: "home" }, 2], [{ kind: "view", key: "store" }, 1], [{ kind: "view", key: "mine" }, 1], [{ kind: "view", key: "how" }, 1], [{ kind: "play_open", key: String(sp1) }, 3], [{ kind: "play_open", key: String(sp2) }, 1], [{ kind: "battle_pick", key: String(sp1) }, 2]]) {
       for (let i = 0; i < n; i++) { const r = await track4(evt); assert(r.status === 200 && r.body.ok, `track accepts ${evt.kind}:${evt.key}`); }
     }
     for (const refKey of ["https://l.instagram.com/some/path?x=1", "www.google.com", "totally-unknown-site.example", "direct"]) {
@@ -248,8 +248,9 @@ try {
     assert(refMap["instagram.com"] === 1 && refMap["google.com"] === 1 && refMap.other === 1 && refMap.direct === 1 && Object.keys(refMap).length === 4, "stats: referrers bucketed (subdomain + full URL -> base host; unknown host -> other; direct stays direct)");
     assert(T.votes === 1 && T.plays.total === 2 && T.plays.approved === 2 && T.plays.pending === 0 && T.plays.hidden === 0, "stats: existing-system totals read from the live tables (votes, plays by status)");
     assert(T.athletes === 1 && T.hypeFrameOrders === 0, "stats: athletes + Hype Frame order counts present (one shared guardian = one athlete)");
+    assert(st.body.battles && st.body.battles.total === 2, "stats: battle picks counted (Round 91)");
     // Invalid events: refused with 400 (never a 500), and NOT counted.
-    for (const [evt, label] of [[{ kind: "bogus", key: "x" }, "unknown kind"], [{ kind: "view", key: "nope" }, "unknown view key"], [{ kind: "view" }, "missing view key"], [{ kind: "play_open", key: "999999" }, "play that does not exist"], [{ kind: "play_open", key: "abc" }, "non-numeric play key"], [{}, "empty event"]]) {
+    for (const [evt, label] of [[{ kind: "bogus", key: "x" }, "unknown kind"], [{ kind: "view", key: "nope" }, "unknown view key"], [{ kind: "view" }, "missing view key"], [{ kind: "play_open", key: "999999" }, "play that does not exist"], [{ kind: "play_open", key: "abc" }, "non-numeric play key"], [{ kind: "battle_pick", key: "999999" }, "battle pick for a play that does not exist"], [{}, "empty event"]]) {
       const r = await track4(evt);
       assert(r.status === 400, `track refuses with 400: ${label}`);
     }
@@ -266,7 +267,7 @@ try {
     const cols = statsDb.prepare("PRAGMA table_info(stat_events)").all().map((c) => c.name);
     assert(JSON.stringify(cols) === JSON.stringify(["day", "kind", "key", "count"]), "stat_events columns are exactly day/kind/key/count (no IP, no user agent, no per-visitor field)");
     const rows = statsDb.prepare("SELECT * FROM stat_events").all();
-    assert(rows.length === 10, "stat_events key space stays bounded: 4 view keys + 2 plays + 4 referrer buckets = 10 rows for 13 events");
+    assert(rows.length === 11, "stat_events key space stays bounded: 4 view keys + 2 plays + 1 battle play + 4 referrer buckets = 11 rows for 15 events");
     const rowsRaw = JSON.stringify(rows);
     assert(!rowsRaw.includes("127.0.0.1") && !/mozilla|user-?agent/i.test(rowsRaw), "no stored stat row contains an IP address or user-agent text");
     statsDb.close();

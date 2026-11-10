@@ -898,6 +898,12 @@ const server = http.createServer(async (req, res) => {
         if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM highlights WHERE id=?").get(id))
           return sendJson(res, 400, { ok: false, message: "Unknown play." });
         bumpStat("play_open", String(id));
+      } else if (kind === "battle_pick") {
+        // Hype Battles (Round 91): key is the winning play's id.
+        const id = Number(key);
+        if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM highlights WHERE id=?").get(id))
+          return sendJson(res, 400, { ok: false, message: "Unknown play." });
+        bumpStat("battle_pick", String(id));
       } else if (kind === "story_open") {
         // Hype Stories (Round 63): key is the episode id ("ep01").
         if (!/^ep\d{2}$/.test(key)) return sendJson(res, 400, { ok: false, message: "Unknown story." });
@@ -1275,6 +1281,7 @@ const server = http.createServer(async (req, res) => {
           daily,
         },
         playOpens: { total: sumKind("play_open"), top: topPlays.map((r) => ({ id: r.id, title: r.title, opens: r.opens })) },
+        battles: { total: sumKind("battle_pick") },
         stories: { total: sumKind("story_open"), byEpisode: db.prepare("SELECT key, SUM(count) AS opens FROM stat_events WHERE kind='story_open' GROUP BY key ORDER BY key ASC").all().map((r) => ({ episode: r.key, opens: r.opens })) },
         referrers,
         totals: {
