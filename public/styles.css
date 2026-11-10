@@ -2225,3 +2225,7 @@
 
   .board-crest{position:absolute;top:-26px;right:-42px;width:264px;opacity:.22;pointer-events:none;z-index:0}
   @media (min-width:1024px){.board-crest{width:340px;top:-40px;right:-24px;opacity:.16}}
+  /* Round 90 (2026-11-09, Emil): on phones the crest's lower half
+     fades out before it reaches the sport filters — the crown
+     carries the corner on its own. Desktop keeps the full mark. */
+  @media (max-width:1023px){.board-crest{-webkit-mask-image:linear-gradient(180deg,#000 26%,transparent 60%);mask-image:linear-gradient(180deg,#000 26%,transparent 60%)}}
