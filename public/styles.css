@@ -1398,7 +1398,7 @@
      under the tiles in 53; Emil restored it above the videos
      in 54 — the base .browse-sports margin rules apply.) ---- */
   #plays{position:relative}
-  .board-bg{position:absolute;top:0;left:0;right:0;height:780px;background:url(/board-bg.jpg?v=3) center top/cover no-repeat;opacity:.55;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 20%,transparent 97%);mask-image:linear-gradient(180deg,#000 20%,transparent 97%)}
+  .board-bg{position:absolute;top:0;left:0;right:0;height:780px;background:url(/board-bg.jpg?v=6) center top/cover no-repeat;opacity:.55;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 20%,transparent 97%);mask-image:linear-gradient(180deg,#000 20%,transparent 97%)}
   #plays .wrap{position:relative;z-index:1}
   .sport-row button:last-child{border-right:0}
   /* Round 48 (2026-11-08): the homepage Hype Frame film under a
@@ -1998,7 +1998,7 @@
      the final CTA = a lime glow off the footer. Backgrounds only;
      no layout or content changes. */
   #plays{background:linear-gradient(180deg,#000 0,#14110c 170px,#0d0b08 430px,var(--bg) 900px)}
-  .board-bg{opacity:.45;height:900px}
+  .board-bg{opacity:.95;height:900px}
   .stories{background:radial-gradient(640px 360px at 50% 0%,rgba(243,205,107,.14),rgba(243,205,107,0) 70%),linear-gradient(180deg,#0e0c07 0%,var(--bg) 92%)}
   #hypeframe{background:radial-gradient(760px 420px at 50% 0%,rgba(255,176,66,.10),rgba(255,176,66,0) 70%),linear-gradient(180deg,#130d07 0%,var(--bg) 88%)}
   .story-card{background:#101114;border:1px solid #232329;border-radius:20px;overflow:hidden}
@@ -2222,3 +2222,6 @@
   .hs-hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   .hs-hero-btn-hf{background:transparent;border:2px solid var(--hf-purple-soft);color:#fff;text-decoration:none}
   .hs-hero-btn-hf:hover{background:rgba(139,61,255,.18)}
+
+  .board-crest{position:absolute;top:-26px;right:-42px;width:264px;opacity:.22;pointer-events:none;z-index:0}
+  @media (min-width:1024px){.board-crest{width:340px;top:-40px;right:-24px;opacity:.16}}
