@@ -1330,17 +1330,32 @@ const server = http.createServer(async (req, res) => {
       if (!fs.existsSync(file)) { res.writeHead(404); return res.end("Not found"); }
       const ext = path.extname(file).toLowerCase();
       const type = { ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".gif": "image/gif", ".webp": "image/webp" }[ext] || "application/octet-stream";
-      const size = fs.statSync(file).size;
+      const upStat = fs.statSync(file);
+      const size = upStat.size;
+      /* Round 97 (2026-11-10): uploads carried no cache headers at
+         all, so repeat visits re-downloaded the board's videos in
+         full. Same one-day media policy as static files, plus
+         ETag/Last-Modified validators so browsers can revalidate
+         with a 304 instead. Range support unchanged. */
+      const upEtag = `"${size.toString(16)}-${Math.floor(upStat.mtimeMs).toString(16)}"`;
+      const upLastMod = upStat.mtime.toUTCString();
+      const upCache = { "cache-control": "public, max-age=86400", etag: upEtag, "last-modified": upLastMod };
+      const inm = req.headers["if-none-match"];
+      const ims = req.headers["if-modified-since"];
+      if ((inm && inm.split(",").map((s) => s.trim()).includes(upEtag)) || (!inm && ims && Date.parse(ims) >= Math.floor(upStat.mtimeMs / 1000) * 1000)) {
+        res.writeHead(304, upCache); return res.end();
+      }
       const range = req.headers.range;
-      if (range) {
+      const ifRange = req.headers["if-range"];
+      if (range && (!ifRange || ifRange === upEtag || ifRange === upLastMod)) {
         const m = /bytes=(\d*)-(\d*)/.exec(range);
         const start = m && m[1] ? Number(m[1]) : 0;
         const end = m && m[2] ? Number(m[2]) : size - 1;
         if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
-        res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1 });
+        res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1, ...upCache });
         return fs.createReadStream(file, { start, end }).pipe(res);
       }
-      res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size });
+      res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": size, ...upCache });
       return fs.createReadStream(file).pipe(res);
     }
 
