@@ -129,6 +129,22 @@ try {
   await wait(400);
   assert(!serverLog.includes("[sms]"), "winner B: NO text is attempted without consent (eligibility widened, texting rules unchanged)");
 
+  // --- Upload Assist labels (Round 99): the browser's AI result rides
+  //     the upload as an UNTRUSTED label — stored, shown owner-only in
+  //     the queue, never public, and it never changes the status. ---
+  let uF = await upload({ title: "Play F", playerName: "Sam Carter", ai: JSON.stringify({ sport: "baseball", division: "boys", title: "Sam's highlight", story: "", gate: "play", confidence: 0.9, reason: "" }) });
+  assert(uF.status === 201 && uF.body.status === "pending", "F: upload with AI assist labels starts pending");
+  let qF = await j("/api/owner/queue", { headers: { "x-owner-token": tok } });
+  const rowF = qF.body.queue.find((x) => x.id === uF.body.id);
+  assert(rowF && rowF.ai && rowF.ai.sport === "baseball" && rowF.ai.gate === "play", "F: owner queue carries the AI first pass (owner only)");
+  let pubF = await j("/api/highlights");
+  assert(!JSON.stringify(pubF.body).includes('"ai"') && !JSON.stringify(pubF.body).includes("ai_json"), "F: AI labels never appear in the public API");
+  let uG = await upload({ title: "Play G", playerName: "Sam Carter", ai: JSON.stringify({ sport: null, division: null, title: "", story: "", gate: "override", confidence: 0.97, reason: "looks like a screen recording" }) });
+  assert(uG.status === 201 && uG.body.status === "pending", "G: gate-override upload still starts pending (the AI never approves or rejects)");
+  let qG = await j("/api/owner/queue", { headers: { "x-owner-token": tok } });
+  const rowG = qG.body.queue.find((x) => x.id === uG.body.id);
+  assert(rowG && rowG.ai && rowG.ai.gate === "override", "G: owner queue shows the gate override");
+
   console.log("\nALL TEXT-OPT-IN TESTS PASSED");
 } finally {
   child.kill();

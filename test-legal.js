@@ -29,7 +29,7 @@ try {
 
   const privacy = await get("/privacy");
   assert(privacy.status === 200, "/privacy loads");
-  for (const marker of ["Privacy Policy", "never sell", "under 13", "Last updated: November 2026", "hello@highlighthype.com"])
+  for (const marker of ["Privacy Policy", "never sell", "under 13", "Last updated: November 2026", "hello@highlighthype.com", "automated assistant"])
     assert(privacy.text.includes(marker), `/privacy contains: ${marker}`);
   assert(!privacy.text.includes("guardian_phone") && !privacy.text.includes("text_consent"), "/privacy contains no private field internals");
 

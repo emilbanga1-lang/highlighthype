@@ -53,6 +53,13 @@ const lookupHitsByIp = new Map();
 const TRACK_RATE_LIMIT = 300;             // track events per IP per window
 const TRACK_RATE_WINDOW_MS = 10 * 60 * 1000;
 const trackHitsByIp = new Map();
+// Upload Assist guard (see /api/upload-assist): every call forwards
+// frames to a PAID vision model, so it gets the lookup-style per-IP
+// cap — far above a family's real use (a few file picks per play),
+// far below anything that could run up the model bill.
+const ASSIST_RATE_LIMIT = 10;             // assist calls per IP per window
+const ASSIST_RATE_WINDOW_MS = 10 * 60 * 1000;
+const assistHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these two
 // data subdirectories (the DB is served by its own snapshot endpoint).
 const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
@@ -163,6 +170,84 @@ function preReview({ title, sport, playType, playerName, story, mediaKind, mime,
   return { verdict: flags.length ? "FLAGGED — needs a closer look" : "Clean — no flags found", flags, checkedAt: new Date().toISOString() };
 }
 
+// ---- Upload Assist (Round 99, 2026-11-11) ----
+// An AI first pass over a few frames of the clip a guardian just
+// picked: it suggests the sport, the division, and a hype-tone
+// title/story (prefilled in the form as EDITABLE suggestions), and it
+// is the gateway that keeps obvious non-plays out of the upload flow.
+// It NEVER approves or rejects a play: a confident "not_a_play" only
+// blocks in the browser, always with an override that files the play
+// for owner review anyway, and every play still starts PENDING.
+// Config (Render env vars, set by Emil to activate):
+//   AI_VISION_API_KEY  — required; without it the endpoint answers
+//                        {configured:false} and the form is untouched.
+//   AI_VISION_MODEL    — default "claude-haiku-4-5" (vision-capable,
+//                        cheapest tier; set to a Sonnet model for a
+//                        stronger read at higher per-call cost).
+//   AI_VISION_BASE_URL — default https://api.anthropic.com (the
+//                        Anthropic Messages API shape is used).
+// Frames are forwarded to the model and then dropped: they are never
+// logged and never stored server-side.
+const AI_VISION_MODEL = process.env.AI_VISION_MODEL || "claude-haiku-4-5";
+const AI_SPORTS = ["baseball", "basketball", "cheer", "dance", "fieldhockey", "football", "golf", "gymnastics", "hockey", "lacrosse", "martialarts", "other", "soccer", "softball", "swimming", "tennis", "track", "volleyball", "wrestling"];
+const AI_GATES = ["play", "unsure", "not_a_play"];
+// Clamp anything the model (or a client re-sending a result) claims
+// into the exact shape the site stores and displays.
+function normalizeAiResult(o) {
+  const sportRaw = String(o?.sport || "").toLowerCase();
+  const divRaw = String(o?.division || "").toLowerCase();
+  let confidence = Number(o?.confidence);
+  if (!isFinite(confidence)) confidence = 0;
+  confidence = Math.min(1, Math.max(0, confidence));
+  return {
+    sport: AI_SPORTS.includes(sportRaw) ? sportRaw : null,
+    division: ["boys", "girls"].includes(divRaw) ? divRaw : null,
+    title: String(o?.title || "").slice(0, 80),
+    story: String(o?.story || "").slice(0, 240),
+    gate: AI_GATES.includes(o?.gate) ? o.gate : "unsure",
+    confidence,
+    reason: String(o?.reason || "").slice(0, 160),
+  };
+}
+// The client sends its assist result back with the upload so it can
+// ride on the highlight row into the owner queue. UNTRUSTED by
+// design: sanitized into the same normalized shape, stored as a
+// display label only — it never touches status or moderation.
+function sanitizeAiField(raw) {
+  let o = null;
+  try { o = JSON.parse(String(raw || "")); } catch { /* not JSON -> no label */ }
+  if (!o || typeof o !== "object") return "";
+  const wasOverride = o.gate === "override";
+  const clean = normalizeAiResult(o);
+  if (wasOverride) clean.gate = "override";
+  if (!clean.sport && !clean.title && clean.gate === "unsure" && !wasOverride) return "";
+  return JSON.stringify(clean);
+}
+async function runUploadAssist(frames) {
+  const base = String(process.env.AI_VISION_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "");
+  const content = frames.map((f) => ({ type: "image", source: { type: "base64", media_type: f.media_type, data: f.data } }));
+  content.push({ type: "text", text:
+`These are frames from one short video a parent/guardian is uploading to a youth sports highlights site. Decide: (1) is this a youth sports play? (2) which sport? (3) boys or girls division, only if clearly readable, else null? (4) a short hype-tone title for what happened (about 60 characters max) and one hype-tone sentence describing it.
+Reply with ONLY a JSON object, no other text:
+{"sport": one of ${JSON.stringify(AI_SPORTS)} or null, "division": "boys" or "girls" or null, "title": string, "story": string, "gate": "play" or "unsure" or "not_a_play", "confidence": number between 0 and 1, "reason": short string}
+Gate rules: "play" = clearly a sports play; "unsure" = probably sports but unclear; "not_a_play" = clearly NOT a sports play (screen recording, meme, scenery, talking selfie, random footage). Never answer "not_a_play" unless you are sure — when in doubt, answer "unsure".` });
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch(base + "/v1/messages", {
+      method: "POST", signal: ctl.signal,
+      headers: { "content-type": "application/json", "x-api-key": process.env.AI_VISION_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: AI_VISION_MODEL, max_tokens: 600, messages: [{ role: "user", content }] }),
+    });
+    if (!r.ok) throw new Error("vision model answered " + r.status);
+    const j = await r.json();
+    const text = (j.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("");
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error("vision model returned no JSON");
+    return normalizeAiResult(JSON.parse(m[0]));
+  } finally { clearTimeout(timer); }
+}
+
 const db = new DatabaseSync(DB_PATH);
 db.exec(`
 CREATE TABLE IF NOT EXISTS highlights(
@@ -247,6 +332,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email TEXT DEFAULT ''");
 // a phone stored WITHOUT consent is never treated as textable.
 try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_phone TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent INTEGER DEFAULT 0"); } catch {}
+// Upload Assist (Round 99, 2026-11-11): the AI first-pass result the
+// uploader's browser collected (sport/division/title suggestions plus
+// the gateway gate verdict), stored as ONE JSON string exactly like
+// `review` above. It is a LABEL for the owner queue only: never on
+// the public allowlist, never part of approval — every play still
+// starts pending and a person still decides.
+try { db.exec("ALTER TABLE highlights ADD COLUMN ai_json TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
@@ -433,6 +525,8 @@ const consentText = (row) => (row && row.guardian_consent_at ? `Guardian consent
 function moderatePage(row, token, message = "") {
   let review = null; try { review = row.review ? JSON.parse(row.review) : null; } catch {}
   const flags = review?.flags?.length ? `<p><b>Pre-review:</b> ${escHtml(review.verdict)} — ${escHtml(review.flags.join("; "))}</p>` : "";
+  let aiRow = null; try { aiRow = row.ai_json ? JSON.parse(row.ai_json) : null; } catch {}
+  const aiLine = aiRow ? `<p><b>🤖 AI:</b> ${escHtml(aiRow.sport || "?")} · ${escHtml(aiRow.division || "?")} · gate ${escHtml(aiRow.gate === "play" ? "pass" : aiRow.gate || "?")}${typeof aiRow.confidence === "number" ? ` (${Math.round(aiRow.confidence * 100)}%)` : ""}${aiRow.reason ? ` — ${escHtml(aiRow.reason)}` : ""}<br><i>AI first pass only — watch the play yourself before deciding.</i></p>` : "";
   const statusNote = row.status !== "pending"
     ? `<p><b>This play is already ${escHtml(row.status)}.</b>${row.status === "approved" ? ` <a href="https://highlighthype.com/#play-${row.id}">View it on the board</a>` : ""}</p>`
     : "";
@@ -456,7 +550,7 @@ function moderatePage(row, token, message = "") {
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
 <h1>Moderate this play</h1>${message ? `<p><b>${escHtml(message)}</b></p>` : ""}
 <p><b>${escHtml(row.title)}</b> — ${escHtml(row.sport)}${row.player_name ? ` — ${escHtml(row.player_name)}` : ""}${row.team ? ` — team: ${escHtml(row.team)}` : ""}${row.athlete_tag ? ` — athlete ${escHtml(row.athlete_tag)}` : ""}</p>
-${consentText(row) ? `<p>${escHtml(consentText(row))}</p>` : ""}${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${moderateMediaHtml(row)}${statusNote}${forms}
+${consentText(row) ? `<p>${escHtml(consentText(row))}</p>` : ""}${row.story ? `<p>${escHtml(row.story)}</p>` : ""}${flags}${aiLine}${moderateMediaHtml(row)}${statusNote}${forms}
 <p><a href="/">← Back to the HighlightHype homepage</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
@@ -726,6 +820,16 @@ function trackRateLimited(req) {
   trackHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for the Upload Assist (see constants).
+function assistRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (assistHitsByIp.get(ip) || []).filter((t) => now - t < ASSIST_RATE_WINDOW_MS);
+  if (hits.length >= ASSIST_RATE_LIMIT) { assistHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  assistHitsByIp.set(ip, hits);
+  return false;
+}
 // True when the data volume is below the free-space floor. Fails OPEN
 // (returns false) if the platform cannot report free space — a backup
 // guard must never take the beta down by itself.
@@ -916,6 +1020,43 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true });
     }
 
+    // ---- Upload Assist (Round 99): AI first pass over clip frames ----
+    // The uploader's browser extracts ~5 frames from the picked clip
+    // and posts them here as data URLs. They are validated, forwarded
+    // to the vision model, and dropped — never logged, never stored.
+    // With no AI_VISION_API_KEY configured the endpoint answers
+    // {configured:false} and the upload form behaves exactly as it
+    // did before this round; any model error answers {failed:true}
+    // with the same effect. The verdict NEVER blocks server-side:
+    // the browser enforces the gate (with its override), and every
+    // upload still starts pending for a human owner decision.
+    if (p === "/api/upload-assist" && req.method === "POST") {
+      if (assistRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many assist requests from this connection right now — the form still works without it." });
+      const ASSIST_MAX = 2.5 * 1024 * 1024;
+      if (Number(req.headers["content-length"] || 0) > ASSIST_MAX) return sendJson(res, 413, { ok: false, message: "Frames too large." });
+      let raw;
+      try { raw = await readBody(req, ASSIST_MAX); }
+      catch { try { return sendJson(res, 413, { ok: false, message: "Frames too large." }); } catch { return; } }
+      let body = null;
+      try { body = JSON.parse(raw.toString("utf8") || "{}"); } catch { body = null; }
+      if (!body || !Array.isArray(body.frames) || !body.frames.length || body.frames.length > 8)
+        return sendJson(res, 400, { ok: false, message: "Send 1–8 frames." });
+      const frames = [];
+      for (const f of body.frames) {
+        const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String(f || ""));
+        if (!m || m[2].length > 1400000) return sendJson(res, 400, { ok: false, message: "Frames must be jpeg/png data URLs." });
+        frames.push({ media_type: "image/" + m[1], data: m[2] });
+      }
+      if (!process.env.AI_VISION_API_KEY) return sendJson(res, 200, { ok: true, configured: false });
+      try {
+        const result = await runUploadAssist(frames);
+        return sendJson(res, 200, { ok: true, configured: true, result });
+      } catch (e) {
+        console.error("upload-assist failed:", e.message);
+        return sendJson(res, 200, { ok: false, configured: true, failed: true, message: "Assist unavailable — the form works without it." });
+      }
+    }
+
     // ---- Public highlights ----
     if (p === "/api/highlights" && req.method === "GET") {
       const sport = u.searchParams.get("sport") || "all";
@@ -986,8 +1127,11 @@ const server = http.createServer(async (req, res) => {
       // as a story episode on the site and social channels. Board
       // posting never depends on it.
       const storyConsent = parseConsent(fields.storyConsent) ? 1 : 0;
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "");
+      // Upload Assist (Round 99): the browser's AI result rides along
+      // as an untrusted label (see sanitizeAiField) — display only.
+      const aiJson = sanitizeAiField(fields.ai);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson);
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
@@ -1206,12 +1350,15 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const rows = db.prepare("SELECT * FROM highlights ORDER BY id DESC").all().map((r) => {
         let review = null; try { review = r.review ? JSON.parse(r.review) : null; } catch {}
+        let ai = null; try { ai = r.ai_json ? JSON.parse(r.ai_json) : null; } catch {}
         // Owner-only: the guardian email is included HERE (owner-authorized
         // endpoint) so the owner can contact a winner's parent/guardian.
         // It stays stripped from every public response. Same for the
         // guardian mobile + text opt-in: owner-visible only, and the
         // text_consent flag says whether texting is permitted at all.
-        return { ...publicHighlight(r), review, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
+        // The Upload Assist result (`ai`) rides the same owner-only
+        // channel — it is a label for the queue, never public.
+        return { ...publicHighlight(r), review, ai, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
       });
       return sendJson(res, 200, { queue: rows });
     }

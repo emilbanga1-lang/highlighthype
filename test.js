@@ -10,7 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-"));
 const PORT = 3456;
 const base = `http://localhost:${PORT}`;
-const child = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT), DATA_DIR: tmp, BACKUP_TOKEN: "test-backup-token" }, stdio: "pipe" });
+const child = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT), DATA_DIR: tmp, BACKUP_TOKEN: "test-backup-token", AI_VISION_API_KEY: "" }, stdio: "pipe" });
 const assert = (cond, msg) => { if (!cond) throw new Error("FAIL: " + msg); console.log("ok -", msg); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const j = async (p, opts = {}) => { const r = await fetch(base + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
@@ -291,6 +291,23 @@ try {
     st = await j4("/api/owner/stats", { headers: { "x-owner-token": tok4 } });
     assert(st.body.views.allTime <= 5 + 300, "rate-limited events never reach the counters");
   } finally { child4.kill(); fs.rmSync(tmp4, { recursive: true, force: true }); }
+  // 8c. Upload Assist (Round 99): this server runs with an empty
+  // AI_VISION_API_KEY, i.e. the assist is OFF — the endpoint must
+  // answer {configured:false}, still validate frame shape and the
+  // payload cap, and the form must carry the assist markup. (The
+  // configured path is rig-verified separately against a stub model;
+  // the AI label storage is asserted in test-text-consent.js.)
+  const assistOff = await j("/api/upload-assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ frames: ["data:image/jpeg;base64,/9j/4AAQSkZJRg=="] }) });
+  assert(assistOff.status === 200 && assistOff.body.configured === false, "upload-assist answers {configured:false} with no key set");
+  const assistBad = await j("/api/upload-assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ frames: ["https://example.com/x.jpg"] }) });
+  assert(assistBad.status === 400, "upload-assist rejects non-image frames (400)");
+  const bigRes = await fetch(base + "/api/upload-assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ frames: ["data:image/jpeg;base64," + "A".repeat(3 * 1024 * 1024)] }) });
+  assert(bigRes.status === 413, "upload-assist rejects oversized payloads (413)");
+  const homeAi = await (await fetch(base + "/")).text();
+  assert(homeAi.includes('id="aiAssist"') && homeAi.includes('id="aiGateOverride"') && homeAi.includes('id="aiField"'), "upload form carries the assist note, gate box and hidden ai field");
+  const appAi = await (await fetch(base + "/app.js")).text();
+  assert(appAi.includes("/api/upload-assist") && appAi.includes("__uaGateCheck") && appAi.includes("Reading your play"), "app.js wires the upload assist (endpoint, gate check, reading state)");
+
   // 9. Upload rate limit: 20 POSTs/hour/IP (2 already made above) — the
   // 21st attempt is refused with 429. Runs last; the scratch server is
   // discarded right after.
