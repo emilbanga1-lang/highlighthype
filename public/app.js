@@ -1008,21 +1008,33 @@ function showPanel(name) {
 $$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 /* Round 51 (2026-11-08): #menuAllHypes is a real link (/?view=all)
    now — no click handler; the boot router applies the view. */
+/* Round 94 (2026-11-10, Emil): three tabs — Watch / Battles /
+   Hype of the Month. The Hall of Fame is the Month tab's All-time
+   sub-view (monthSub), and the division segs ride the pill row;
+   switchView drives their visibility. */
+let monthSub = "month";
+function setMonthSub(s) { monthSub = s === "fame" ? "fame" : "month"; switchView("month"); }
 function switchView(v) {
+  if (v === "fame") { monthSub = "fame"; v = "month"; }
   currentView = v;
   $$(".viewseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
-  $("#viewMonth").hidden = v !== "month";
-  $("#viewFame").hidden = v !== "fame";
+  const fame = v === "month" && monthSub === "fame";
+  $("#viewMonth").hidden = v !== "month" || fame;
+  $("#viewFame").hidden = !fame;
   $("#viewAll").hidden = v !== "all";
+  const subSeg94 = $("#monthSubSeg"); if (subSeg94) { subSeg94.hidden = v !== "month"; $$("#monthSubSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.msub === monthSub))); }
+  const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = !(v === "month" && !fame);
+  const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
-  $("#boardTitle").innerHTML = v === "month" ? `Hype of the Month` : v === "fame" ? `Hall of <span class="lime">Fame</span>` : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
+  $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  $("#boardIntro").textContent = v === "month" ? "Athletes post their plays. Your votes crown the winner." : v === "fame" ? "The most-voted plays of all time." : v === "battles" ? "Two plays go head to head. Pick the one that made you hit replay." : "Watch plays from every sport.";
+  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Athletes post their plays. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Pick the one that made you hit replay." : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+$$("#monthSubSeg button").forEach((b) => b.addEventListener("click", () => setMonthSub(b.dataset.msub)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
    flips from display:none and its images keep loading in, which can
    cancel or strand a lone smooth scroll — the usability audit caught
@@ -2841,4 +2853,12 @@ function initBattles() {
       };
     }
   } catch { /* deep link is a nicety, never a breaker */ }
+})();
+
+/* Round 94: a ?view=fame link lands on the Month tab's All-time sub-view. */
+(function fameLink94() {
+  if (new URLSearchParams(location.search).get("view") !== "fame") return;
+  if (typeof applyDefaultView !== "function") return;
+  const prevAD = applyDefaultView;
+  applyDefaultView = function () { prevAD(); monthSub = "fame"; switchView("month"); };
 })();

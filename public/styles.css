@@ -2273,3 +2273,29 @@
 .btl-mini.winner{animation:btlFlash92 .9s ease-out}
 @keyframes btlPop92{0%{transform:rotate(6deg) scale(0)}55%{transform:rotate(3deg) scale(1.35)}100%{transform:rotate(4deg) scale(1)}}
 @keyframes btlFlash92{0%{box-shadow:0 0 0 0 rgba(240,185,62,.0)}25%{box-shadow:0 0 0 10px rgba(240,185,62,.35)}100%{box-shadow:0 0 0 5px rgba(240,185,62,.15)}}
+
+/* Round 94 (2026-11-10): board simplification — three tabs, division
+   segs ride the sport-pill row, one-line sample note, the trust strip
+   re-rows below the deck on phones, the compact FAB keeps its Post
+   label, and the crest watermark sits softer (Emil). */
+.board-crest{opacity:.15}
+@media (min-width:1024px){ .board-crest{opacity:.12} }
+.sport-pills-row .sp-divseg{flex:0 0 auto;align-self:center;margin-left:8px;border-left:1px solid var(--line2);padding-left:10px}
+.sp-divseg[hidden]{display:none}
+.month-subseg{margin:14px 0 2px}
+.month-subseg[hidden]{display:none}
+.float-submit.fab-compact85{width:auto;height:48px;padding:0 16px;justify-content:center}
+.float-submit.fab-compact85 .float-submit-short{display:inline}
+@media (max-width:1023px){
+  #allCount{display:none}
+  #viewAll .board-tools{margin:2px 0 0;min-height:0}
+  body{display:grid;grid-template-columns:minmax(0,1fr);align-content:start}
+  .hero{grid-row:1}
+  #deck{grid-row:2}
+  .owner-strip{grid-row:3}
+  .store-cta{grid-row:4}
+  .trust{grid-row:5}
+  #shop{grid-row:6}
+  .final{grid-row:7}
+  footer{grid-row:8}
+}

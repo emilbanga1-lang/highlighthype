@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=96" />
+<link rel="stylesheet" href="styles.css?v=97" />
 </head>
 <body>
 
@@ -137,11 +137,10 @@
          Sports + the first sports, with More expanding the rest.
          The pills filter the board in place, through the same
          monthSport / allSport state the dropdowns wrote. -->
-    <div class="viewseg" role="group" aria-label="Board views — Hype of the Month, Hall of Fame, All Hypes, Battles">
-      <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
-      <button type="button" data-view="fame" aria-pressed="false">Hall of Fame</button>
-      <button type="button" data-view="all" aria-pressed="false">All Hypes</button>
+    <div class="viewseg" role="group" aria-label="Board views — Watch, Battles, Hype of the Month">
+      <button type="button" data-view="all" aria-pressed="false">Watch</button>
       <button type="button" data-view="battles" aria-pressed="false">Battles</button>
+      <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
     </div>
 
     <!-- Round 67 (2026-11-09, Emil): the pill bar is ONE sideways-
@@ -171,7 +170,21 @@
         <button type="button" class="sp-pill" data-sp="track">Track &amp; Field</button>
         <button type="button" class="sp-pill" data-sp="volleyball">Volleyball</button>
         <button type="button" class="sp-pill" data-sp="wrestling">Wrestling</button>
+        <div class="seg sp-divseg" role="group" aria-label="Division" id="monthDivSeg">
+          <button type="button" data-div="boys" aria-pressed="true">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
+        <div class="seg sp-divseg" role="group" aria-label="Board" id="allDivSeg" hidden>
+          <button type="button" data-div="all" aria-pressed="true">All boards</button>
+          <button type="button" data-div="boys" aria-pressed="false">Boys</button>
+          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+        </div>
       </div>
+    </div>
+
+    <div class="seg month-subseg" id="monthSubSeg" role="group" aria-label="Hype of the Month — this month or all-time" hidden>
+      <button type="button" data-msub="month" aria-pressed="true">This month</button>
+      <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
     </div>
 
     <div id="viewMonth">
@@ -182,13 +195,6 @@
       <div class="last-winner" id="lastWinner" hidden></div>
       <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
       <div class="tools-anchor">
-        <div class="board-tools">
-          <span></span>
-          <div class="seg" role="group" aria-label="Division" id="monthDivSeg">
-            <button type="button" data-div="boys" aria-pressed="true">Boys</button>
-            <button type="button" data-div="girls" aria-pressed="false">Girls</button>
-          </div>
-        </div>
         <div class="filters" id="boardFilters" hidden>
         <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
         </div>
@@ -212,11 +218,6 @@
       <div class="tools-anchor">
         <div class="board-tools">
           <p class="all-count" id="allCount"></p>
-          <div class="seg" role="group" aria-label="Board" id="allDivSeg">
-            <button type="button" data-div="all" aria-pressed="true">All boards</button>
-            <button type="button" data-div="boys" aria-pressed="false">Boys</button>
-            <button type="button" data-div="girls" aria-pressed="false">Girls</button>
-          </div>
         </div>
         <div class="filters" id="allFilters" hidden>
         <select class="sport-select" id="allSportSelect" aria-label="Sport — all plays"></select>
@@ -225,7 +226,7 @@
              re-adding the box later is just this input + its listener. -->
         </div>
       </div>
-      <p class="board-note sample-strip" id="allSampleStrip" hidden>Right now these are <b>sample plays</b> — demos that show how HighlightHype works. Real plays posted by families compete in <b>Hype of the Month</b>.</p>
+      <p class="board-note sample-strip" id="allSampleStrip" hidden>Sample highlights for now — <b>post yours</b> to join in.</p>
       <div class="tile-grid" id="allBoard"></div>
       <div class="empty" id="allEmpty">No plays match — try a different board or sport.</div>
     </div>
@@ -756,7 +757,7 @@
 </div><!-- /deck -->
 
 <!-- ============ OWNER PANEL ============ -->
-<div class="view-home">
+<div class="view-home owner-strip">
   <div class="wrap">
     <div id="ownerPanel" class="owner-card hidden">
       <h3>Owner view</h3>
@@ -1140,6 +1141,6 @@
   </div>
 </div>
 
-<script src="app.js?v=96"></script>
+<script src="app.js?v=97"></script>
 </body>
 </html>
