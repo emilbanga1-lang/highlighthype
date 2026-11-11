@@ -1081,7 +1081,11 @@ function showHome() {
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
-  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  /* Round 98 (2026-11-11): returning home restarts the hero MUTED
+     even if the visitor had tapped its sound on before entering the
+     Store — sound is per-visit and only the speaker icon turns it
+     on. (The hero's volumechange listener re-syncs the icon.) */
+  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = true; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
   /* Round 48 (2026-11-08): the old homepage-film resume is retired —
      the homepage Hype Frame film is click-to-play now (Emil: no
      autoplay competing with the hero), so returning home must NOT
@@ -2192,10 +2196,16 @@ $$("[data-hf-swipe]").forEach((root) => {
 /* ---------------- hero ---------------- */
 // Round 30 (Emil + Dyanna, 2026-11-07): the hero film is now the B15
 // commercial. The old playback chrome (progress bar, seconds timer,
-// "Tap for sound" pill) is GONE. The music should start on its own:
-// browsers only allow sound-on autoplay after a visitor has interacted
-// with the page, so try unmuted first and fall back to muted autoplay —
-// the small speaker icon on the video itself is then one tap to sound.
+// "Tap for sound" pill) is GONE.
+// Round 98 (2026-11-11, Emil bug report): the Round 30 "try unmuted
+// first, fall back to muted" start is RETIRED. On a first visit the
+// unmuted attempt was rejected and the fallback muted it — but once
+// the tab had any clicks (e.g. Swag Shop, then Home), the browser
+// granted activation and the unmuted play SUCCEEDED, so the music
+// turned itself on when arriving back at the homepage. The rule now:
+// the film ALWAYS starts muted on every home arrival, and the only
+// unmute path is the visitor tapping the speaker icon during that
+// visit.
 (function () {
   const v = $("#heroVideo"), mute = $("#heroMute");
   if (!v) return;
@@ -2211,9 +2221,16 @@ $$("[data-hf-swipe]").forEach((root) => {
      only here, on the home route, right before playback. */
   if (v.dataset && v.dataset.src && !v.getAttribute("src")) v.src = v.dataset.src;
   const setIcon = () => { if (!mute) return; mute.classList.toggle("is-muted", v.muted); mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
-  v.muted = false;
+  /* Round 98: keep the icon synced with ANY later muted change
+     (showHome's reset-to-muted on a store return, the icon tap). */
+  v.addEventListener("volumechange", setIcon);
+  /* A back/forward-cache restore reruns no scripts — if the visitor
+     left with the sound on, a restored page must still arrive
+     muted, so re-mute on a persisted pageshow. */
+  window.addEventListener("pageshow", (e) => { if (e.persisted) { v.muted = true; setIcon(); } });
+  v.muted = true;
   const p = v.play();
-  if (p && p.catch) p.catch(() => { v.muted = true; const q = v.play(); if (q && q.catch) q.catch(() => {}); setIcon(); });
+  if (p && p.catch) p.catch(() => {});
   setIcon();
   mute?.addEventListener("click", () => { v.muted = !v.muted; if (!v.muted) { const q = v.play(); if (q && q.catch) q.catch(() => {}); } setIcon(); });
 })();
