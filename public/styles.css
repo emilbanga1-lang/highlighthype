@@ -2351,3 +2351,21 @@ html,body{overflow-x:hidden;overflow-x:clip}
    WINNER stamp belongs to Battles and the Battle Run reveal, since
    a daily matchup is not decided until the day finalizes. */
 .btl-mini.picked{border:2px solid var(--gold);box-shadow:0 0 0 5px rgba(240,185,62,.15)}
+
+/* Round 102 (2026-11-11): Battles clarity — A/B identity, honest
+   outlines, Post-pill clearance. Gold is RESERVED for the pick
+   (.winner / .picked). Watching gets a pale outline + a tag, so a
+   kid can always tell "what am I watching" from "what did I pick"
+   (Round 100's screenshot had both minis gold at once). */
+.btl-mini.watching{border-color:rgba(245,241,230,.8);box-shadow:0 0 0 3px rgba(245,241,230,.16)}
+.btl-mini.picked,.btl-mini.winner{border-color:var(--gold)}
+.btl-letter{position:absolute;top:8px;left:8px;width:25px;height:25px;border-radius:50%;background:rgba(0,0,0,.8);border:2px solid rgba(255,255,255,.9);color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
+.btl-mini.has-streak .btl-streak{top:41px}
+.btl-watchtag{display:block;height:16px;margin-top:4px;font-size:10.5px;font-weight:800;letter-spacing:.06em;color:#f5f1e6;text-transform:uppercase;opacity:0;visibility:hidden;transition:opacity .2s}
+.btl-mini.watching .btl-watchtag{opacity:1;visibility:visible}
+.btl-yourpick{position:absolute;top:8px;right:8px;background:var(--gold);color:#191204;font-weight:900;font-size:11px;letter-spacing:.06em;padding:5px 9px;border-radius:999px;transform:rotate(4deg);display:none;z-index:3}
+.btl-mini.picked .btl-yourpick{display:block}
+.daily-another-row{text-align:center;margin-top:12px}
+.daily-another-row[hidden]{display:none}
+.daily-another{border:0;border-radius:12px;padding:13px 26px;font:inherit;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(180deg,var(--gold),#c9932b);color:#1a1204}
+#viewBattles{padding-bottom:120px}

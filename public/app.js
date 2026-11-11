@@ -1043,7 +1043,7 @@ function switchView(v) {
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Athletes post their plays. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Pick the one that made you hit replay." : "Watch plays from every sport.";
+  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Athletes post their plays. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
@@ -2743,11 +2743,18 @@ function btlMiniHTML(slot) {
   const p = findPlay(btl.cur[slot]);
   if (!p) return "";
   const isChamp = btl.mode === "stay" && btl.champ === p.id;
-  return `<article class="btl-mini" id="btlMini${slot}" data-slot="${slot}">
+  const showStreak = isChamp && btl.streak >= 2;
+  /* Round 102: every mini carries its A/B letter (L = A, R = B,
+     matching the Pick A / Pick B buttons) and a Now watching tag
+     that lights up via the .watching class — watching no longer
+     borrows the gold outline, which is reserved for the pick. */
+  const letter = slot === "L" ? "A" : "B";
+  return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
     <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
-    ${isChamp && btl.streak >= 2 ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
+    <span class="btl-letter" aria-hidden="true">${letter}</span>
+    ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p><span class="btl-watchtag" aria-hidden="true">▶ Now watching</span></div>
   </article>`;
 }
 function btlRenderCount() {
@@ -2758,12 +2765,10 @@ function btlRender() {
   const main = document.getElementById("btlMain");
   const empty = document.getElementById("btlEmpty");
   const note = document.getElementById("btlPoolNote");
-  const practice = document.getElementById("btlPractice");
   const has = !!(btl.cur.L && btl.cur.R);
   if (main) main.hidden = !has;
   if (empty) empty.hidden = has;
   if (note) note.hidden = !has || btl.pairReal;
-  if (practice) practice.hidden = !has || btl.pairReal;
   if (!has) return;
   btl.picked = false;
   const matchup = document.getElementById("btlMatchup");
@@ -2772,8 +2777,8 @@ function btlRender() {
     matchup.querySelectorAll(".btl-mini").forEach((el) => { el.addEventListener("click", () => btlWatch(el.dataset.slot)); btlMiniFrame(el.querySelector("video")); });
   }
   const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
-  if (pickL) { pickL.disabled = false; pickL.textContent = "👑 Pick this play"; }
-  if (pickR) { pickR.disabled = false; pickR.textContent = "👑 Pick this play"; }
+  if (pickL) { pickL.disabled = false; pickL.textContent = "Pick A"; }
+  if (pickR) { pickR.disabled = false; pickR.textContent = "Pick B"; }
   const next = document.getElementById("btlNext"); if (next) next.classList.remove("show");
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "";
   btlRenderCount();
@@ -3106,10 +3111,15 @@ function etTodayClient100() {
 }
 function d100MiniHTML(prefix, slot, p) {
   if (!p) return "";
+  /* Round 102: A/B letter chip (slot IS the letter here), the Now
+     watching tag (lit by .watching), and a Your pick tag that only
+     the Daily card's .picked class reveals. */
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
     <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
+    <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
+    <span class="btl-yourpick">👑 Your pick</span>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p><span class="btl-watchtag" aria-hidden="true">▶ Now watching</span>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
   </article>`;
 }
 function d100Watch(prefix, slot, play) {
@@ -3132,7 +3142,13 @@ function d100WireMatchup(prefix, plays, onWatch) {
     if (typeof btlMiniFrame === "function") btlMiniFrame(el.querySelector("video"));
   });
 }
-function splitHtml100(split, a, b, yourPickId) {
+function splitHtml100(split, a, b, yourPickId, practice) {
+  /* Round 102: a lone pick gets a sentence, not a 100% bar — one
+     pick shouldn't carry the weight of a landslide. */
+  if (split && split.total === 1) {
+    const only = split.aPct >= 100 ? a : b;
+    return `<p class="split-line">1 ${practice ? "practice " : ""}pick for <b>${esc(only.title)}</b>.</p>`;
+  }
   const yours = yourPickId ? (yourPickId === a.id ? a : b) : null;
   return `<div class="split-bar"><span class="split-a" style="width:${split.aPct}%"></span></div>
   <p class="split-line"><b>${split.aPct}%</b> ${esc(a.title)} · <b>${split.bPct}%</b> ${esc(b.title)} — ${split.total} pick${split.total === 1 ? "" : "s"}${yours ? ` · Your pick: <b>${esc(yours.title)}</b>` : ""}</p>`;
@@ -3179,27 +3195,43 @@ async function loadDaily100() {
   d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); });
   const pickA = document.getElementById("dailyPickA"), pickB = document.getElementById("dailyPickB");
   const split = document.getElementById("dailySplit");
+  const anotherRow = document.getElementById("dailyAnotherRow");
   if (r.yourPick) {
-    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Pick this play"; }
-    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Pick this play"; }
+    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Pick A"; }
+    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Pick B"; }
     const pickedMini = document.getElementById("dailyMini" + (r.yourPick === r.a.id ? "A" : "B"));
     if (pickedMini) pickedMini.classList.add("picked");
-    if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick); split.hidden = false; }
+    if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice); split.hidden = false; }
+    if (anotherRow) anotherRow.hidden = false;
     const pickedPlay = r.yourPick === r.a.id ? r.a : r.b;
     if (stripPick) stripPick.textContent = pickedPlay.title;
-    if (stripSplit && r.split) stripSplit.innerHTML = splitHtml100(r.split, r.a, r.b, null);
+    if (stripSplit && r.split) stripSplit.innerHTML = splitHtml100(r.split, r.a, r.b, null, r.practice);
     setDailyCollapsed100(!d100.dailyJustPicked);
   } else {
     d100.dailyCollapsed = false;
-    if (pickA) { pickA.disabled = false; pickA.textContent = "👑 Pick this play"; }
-    if (pickB) { pickB.disabled = false; pickB.textContent = "👑 Pick this play"; }
+    if (pickA) { pickA.disabled = false; pickA.textContent = "Pick A"; }
+    if (pickB) { pickB.disabled = false; pickB.textContent = "Pick B"; }
+    if (anotherRow) anotherRow.hidden = true;
     if (split) { split.hidden = true; split.innerHTML = ""; }
     if (stripPick) stripPick.textContent = "";
     if (stripSplit) stripSplit.innerHTML = "";
     if (strip) strip.hidden = true;
   }
   const player = document.getElementById("dailyPlayer");
-  if (!d100.dailyCollapsed && player && !player.getAttribute("src")) d100Watch("daily", "A", r.a);
+  if (!d100.dailyCollapsed && player) {
+    if (!player.getAttribute("src")) d100Watch("daily", "A", r.a);
+    else {
+      /* Round 102: the matchup re-render wipes the .watching class —
+         restore the tag/label for the loaded play without touching
+         playback (the gold outline still belongs to the pick). */
+      const wSlot = d100.dailyWatch === "B" ? "B" : "A";
+      const wmA = document.getElementById("dailyMiniA"), wmB = document.getElementById("dailyMiniB");
+      if (wmA) wmA.classList.toggle("watching", wSlot === "A");
+      if (wmB) wmB.classList.toggle("watching", wSlot === "B");
+      const wLabel = document.getElementById("dailyNowLabel");
+      if (wLabel) wLabel.textContent = "Now watching: " + (wSlot === "A" ? r.a : r.b).title;
+    }
+  }
   if (d100.scrollDaily) {
     d100.scrollDaily = false;
     card.classList.add("daily-flash");
@@ -3504,4 +3536,23 @@ async function ownerDailySave100() {
       return r;
     };
   }
+})();
+
+/* ---------------- Round 102 (2026-11-11): Battles clarity —
+   A/B identity, one practice label, the path to the next battle.
+   The A/B chips, watching tags and Pick A / Pick B labels live in
+   the Round 91 / Round 100 renderers above; this block only adds
+   the "Play another battle" wiring: after a Daily pick, one tap
+   deals a Fresh Pairs matchup and scrolls it into view. Works from
+   the expanded card and from the collapsed strip alike (the strip's
+   own click handler ignores button clicks, so no expand fires). */
+function playAnotherBattle102() {
+  if (typeof btlSetMode === "function") btlSetMode("fresh");
+  const main = document.getElementById("btlMain");
+  if (main) setTimeout(() => main.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+}
+(function round102Wire() {
+  const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  bind("dailyAnother", "click", playAnotherBattle102);
+  bind("dailyStripAnother", "click", playAnotherBattle102);
 })();
