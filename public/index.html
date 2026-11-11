@@ -7,18 +7,18 @@
 <title>HighlightHype — Every Athlete Deserves The Hype</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/favicon.png">
-<link rel="preload" as="image" href="/logo-crest-header.png" fetchpriority="high">
+<link rel="preload" as="image" href="/logo-crest-header-sm.png" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=99" />
+<link rel="stylesheet" href="styles.css?v=100" />
 </head>
 <body>
 
 <header class="nav">
   <div class="wrap">
     <a class="brand" href="#top" aria-label="HighlightHype home">
-      <img class="brand-logo" src="/logo-crest-header.png" alt="HighlightHype" width="3277" height="608" fetchpriority="high" />
+      <img class="brand-logo" src="/logo-crest-header-sm.png" alt="HighlightHype" width="820" height="152" fetchpriority="high" />
     </a>
     <!-- Round 76 (2026-11-09, Emil's desktop mockup): on desktop the
          four main links sit across the header; the hamburger stays
@@ -65,7 +65,7 @@
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
   <div class="hero-media">
-    <video id="heroVideo" src="/hero-film.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
+    <video id="heroVideo" data-src="/hero-film.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
   </div>
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
@@ -756,7 +756,7 @@
      lines, one link — the whole band opens the Store. -->
 <div class="store-cta view-home">
   <a class="rep-band" href="/store" data-store-link aria-label="Rep The Hype — Drop 001. Shop the Drop">
-    <img src="/swag/rep-hype-band.jpg" alt="A young ballplayer under stadium lights at night, wearing the black Hype Sports Baseball hoodie">
+    <img src="/swag/rep-hype-band.jpg" loading="lazy" alt="A young ballplayer under stadium lights at night, wearing the black Hype Sports Baseball hoodie">
     <span class="rep-band-shade" aria-hidden="true"></span>
     <span class="rep-band-text">
       <span class="rep-band-title">Rep the Hype</span>
@@ -783,11 +783,11 @@
          Hot Pink Hype Street hoodie returns as Drop 002's star and
          its quick view (kept below) stays reachable. -->
     <div class="hs-hero" id="hsHero">
-      <img class="hs-hero-img" src="/swag/hs/football-back.jpg" alt="The Football Hype Hoodie from the back — a giant football, a gold crown and HYPE brush letters under the stadium lights" />
+      <img class="hs-hero-img" src="/swag/hs/football-back.jpg" loading="lazy" alt="The Football Hype Hoodie from the back — a giant football, a gold crown and HYPE brush letters under the stadium lights" />
       <!-- Round 78 (2026-11-09, Emil): on desktop the hero shows the
            WORN football hoodie on the right of the copy instead of
            the flat design close-up (styles.css swaps by width). -->
-      <img class="hs-hero-img-desk" src="/swag/hs/night-football.jpg" alt="An athlete wearing the Football Hype Hoodie from the back under the stadium lights" />
+      <img class="hs-hero-img-desk" src="/swag/hs/night-football.jpg" loading="lazy" alt="An athlete wearing the Football Hype Hoodie from the back under the stadium lights" />
       <div class="hs-hero-copy">
         <span class="hs-hero-badge">DROP 001 / HYPE SPORTS</span>
         <h2 class="hs-hero-title">REP YOUR <span class="gold">SPORT.</span></h2>
@@ -995,7 +995,7 @@
   <div class="hsv-panel">
     <button type="button" class="hsv-close" data-hs-close aria-label="Close product view">✕</button>
     <div class="hsv-media">
-      <img id="hsMainImg" src="/swag/hs/baseball-front.jpg" alt="Baseball Hype Hoodie — front" />
+      <img id="hsMainImg" src="/swag/hs/baseball-front.jpg" loading="lazy" alt="Baseball Hype Hoodie — front" />
       <div class="hsv-dots" id="hsDots"></div>
       <div class="hsv-switch" role="group" aria-label="View side">
         <button type="button" class="hsv-side-btn" data-hs-side="front" aria-pressed="true">Front</button>
@@ -1144,6 +1144,6 @@
   </div>
 </div>
 
-<script src="app.js?v=99"></script>
+<script src="app.js?v=100"></script>
 </body>
 </html>

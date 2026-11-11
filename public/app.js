@@ -1081,7 +1081,7 @@ function showHome() {
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
-  const hv = $("#heroVideo"); if (hv) { const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
   /* Round 48 (2026-11-08): the old homepage-film resume is retired —
      the homepage Hype Frame film is click-to-play now (Emil: no
      autoplay competing with the hero), so returning home must NOT
@@ -2206,6 +2206,10 @@ $$("[data-hf-swipe]").forEach((root) => {
      only. */
   const heroPath = location.pathname.replace(/\/+$/, "") || "/";
   if (heroPath !== "/" || ["#shop", "#hype-girls", "#hype-boys"].includes(location.hash)) { v.pause(); return; }
+  /* Round 97 (2026-11-10): the film's URL lives in data-src so a
+     sub-page load never fetches the 6.9 MB hero; it is assigned
+     only here, on the home route, right before playback. */
+  if (v.dataset && v.dataset.src && !v.getAttribute("src")) v.src = v.dataset.src;
   const setIcon = () => { if (!mute) return; mute.classList.toggle("is-muted", v.muted); mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
   v.muted = false;
   const p = v.play();
@@ -2596,9 +2600,11 @@ function playHfStoreFilm() {
 /* Round 84 (2026-11-09, Emil): warm the store's landing pictures
    in the background once the page settles, so clicking Swag Shop
    shows them instantly instead of popping in one by one. Skips
-   the store page itself and data-saver connections. */
+   the store page itself and data-saver connections. Round 97
+   (2026-11-10): home route only — sub-page visits no longer spend
+   ~0.8 MB warming a store the visitor may never open. */
 (function warmStore84() {
-  if ((location.pathname.replace(/\/+$/, "") || "/") === "/store") return;
+  if ((location.pathname.replace(/\/+$/, "") || "/") !== "/") return;
   if (navigator.connection && navigator.connection.saveData) return;
   const imgs = ["tile-baseball", "tile-basketball", "tile-football", "tile-soccer", "tile-softball", "tile-volleyball"].map((n) => "/swag/hs/" + n + ".jpg")
     .concat(["night-baseball", "night-basketball", "night-football", "night-soccer", "night-softball", "night-volleyball"].map((n) => "/swag/hs/" + n + ".jpg"))
