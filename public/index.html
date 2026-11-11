@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=102" />
+<link rel="stylesheet" href="styles.css?v=103" />
 </head>
 <body>
 
@@ -214,6 +214,66 @@
          a champion only against a NEW challenger. Picks cast a real
          vote only for real same-sport contest matchups (see app.js). -->
     <div id="viewBattles" hidden>
+      <!-- Round 100 (2026-11-11): Daily Battle — ONE matchup per ET
+           day, the same one the day's TikTok/Instagram post points
+           at. The split stays hidden until you pick; the pick is
+           locked. Practice mode (samples) casts no votes. -->
+      <div class="daily-card" id="dailyCard">
+        <div class="daily-head"><span class="daily-tag">DAILY BATTLE</span><span class="daily-date" id="dailyDate"></span></div>
+        <p class="btl-prompt">Which Play Wins?</p>
+        <p class="daily-practice" id="dailyPractice" hidden>Practice matchup — sample plays while the real board fills in. Picks here don't cast votes yet.</p>
+        <div id="dailyMain" hidden>
+          <div class="btl-matchup" id="dailyMatchup"></div>
+          <div class="btl-player">
+            <video id="dailyPlayer" playsinline loop preload="metadata" controls></video>
+            <span class="btl-now" id="dailyNowLabel"></span>
+          </div>
+          <div class="btl-pickrow">
+            <button type="button" class="btl-pick" id="dailyPickA">👑 Pick this play</button>
+            <button type="button" class="btl-pick" id="dailyPickB">👑 Pick this play</button>
+          </div>
+          <div class="daily-split" id="dailySplit" hidden></div>
+          <p class="daily-share-row"><button type="button" class="mini-btn" id="dailyShare">🔗 Share this matchup</button></p>
+        </div>
+        <p class="btl-empty" id="dailyEmpty" hidden>Today's matchup is on its way — check back in a bit.</p>
+      </div>
+      <!-- Round 100: Battle Run — predict the crowd winner across
+           five FINALIZED Daily Battles. Locked until five decisive
+           real matchups exist. The end screen makes the share card
+           (story + feed sizes) for TikTok/Instagram. -->
+      <div class="daily-card" id="runCard">
+        <div class="daily-head"><span class="daily-tag">BATTLE RUN</span></div>
+        <p class="btl-prompt">Can you match the crowd 5/5?</p>
+        <p class="daily-locked" id="runLocked">Loading…</p>
+        <div id="runMain" hidden>
+          <p class="btl-prompt-sub" id="runStep"></p>
+          <div class="btl-matchup" id="runMatchup"></div>
+          <div class="btl-player">
+            <video id="runPlayer" playsinline loop preload="metadata" controls></video>
+            <span class="btl-now" id="runNowLabel"></span>
+          </div>
+          <div class="btl-pickrow">
+            <button type="button" class="btl-pick" id="runPickA">👑 This one won</button>
+            <button type="button" class="btl-pick" id="runPickB">👑 This one won</button>
+          </div>
+          <div class="daily-split" id="runReveal" hidden></div>
+          <div class="btl-controls"><button type="button" class="btl-next" id="runNext">Next matchup →</button></div>
+        </div>
+        <div id="runEnd" hidden>
+          <p class="run-score" id="runScore"></p>
+          <p class="btl-prompt-sub">Screenshot it, or grab a ready-made card:</p>
+          <div class="run-share-btns">
+            <button type="button" class="mini-btn" id="runShareBtn">📤 Share card</button>
+            <button type="button" class="mini-btn" id="runDlStory">⬇ Story card (9:16)</button>
+            <button type="button" class="mini-btn" id="runDlFeed">⬇ Feed card (4:5)</button>
+            <button type="button" class="mini-btn" id="runCopyTiktok">📋 Copy TikTok caption</button>
+            <button type="button" class="mini-btn" id="runCopyInsta">📋 Copy Instagram caption</button>
+            <button type="button" class="mini-btn" id="runAgain">↻ Run it again</button>
+          </div>
+          <p class="daily-share-msg" id="runShareMsg"></p>
+        </div>
+        <p class="daily-start-row" id="runStartRow" hidden><button type="button" class="btl-pick run-start" id="runStart">▶ Start Battle Run</button></p>
+      </div>
       <div class="btl-modes" role="group" aria-label="Battle mode">
         <button type="button" id="btlModeFresh" class="on">Fresh pairs</button>
         <button type="button" id="btlModeStay">Winner stays</button>
@@ -747,6 +807,23 @@
   </div>
 </section>
 
+<!-- Round 100 (2026-11-11): Plainview Hawks Founding Plays — one
+     slim challenge card under the board. The count comes from the
+     board payload (approved, non-sample, Hawks-tagged plays only);
+     hidden until the first payload lands. -->
+<div class="view-home hawks-band" id="hawksCard" hidden>
+  <div class="wrap">
+    <div class="hawks-inner">
+      <div class="hawks-copy">
+        <span class="hawks-tag">PLAINVIEW HAWKS — FOUNDING PLAYS</span>
+        <div class="hawks-bar"><span id="hawksBarFill"></span></div>
+        <p class="hawks-count" id="hawksCount">0 of 10 founding plays posted</p>
+      </div>
+      <button type="button" class="btn btn-gold hawks-btn" id="hawksPostBtn">Post a Hawks play</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- /deck -->
 
 <!-- ============ OWNER PANEL ============ -->
@@ -762,6 +839,12 @@
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
       <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div>
+      <h3 style="margin-top:22px">Daily Battle</h3><div id="ownerDaily">
+      <p style="color:var(--muted2);font-size:13px">Fix a date's matchup ahead of time so it matches the social post. A matchup that already has picks (or is finalized) is locked.</p>
+      <p><input type="date" id="odDate"> <span id="odCurrent" style="color:var(--muted2);font-size:13px"></span></p>
+      <p><select id="odPlayA" aria-label="Daily Battle play A"></select> <b>vs</b> <select id="odPlayB" aria-label="Daily Battle play B"></select></p>
+      <p><button type="button" class="mini-btn" id="odSave">Save Daily Battle</button> <span id="odMsg"></span></p>
+      </div>
     </div>
   </div>
 </div>
@@ -1161,6 +1244,6 @@
   </div>
 </div>
 
-<script src="app.js?v=102"></script>
+<script src="app.js?v=103"></script>
 </body>
 </html>

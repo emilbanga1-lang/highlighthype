@@ -2301,3 +2301,47 @@ html,body{overflow-x:hidden;overflow-x:clip}
 #aiAssistNote{color:var(--gold);font-weight:600}
 .ai-gate{border:1px solid #6b5410;background:rgba(212,175,55,.08);border-radius:12px;padding:12px 14px;margin-top:8px}
 .ai-gate p{margin:4px 0}
+
+/* Round 100 (2026-11-11): Daily Battle + Battle Run cards, play
+   badges, Hawks Founding Plays band. Reuses the Battles palette and
+   classes (.btl-matchup/.btl-mini/.btl-pick) wherever possible. The
+   [hidden] guards matter: any display rule below would otherwise
+   override the hidden attribute (the standing CSS trap). */
+.daily-card{max-width:560px;margin:0 auto 22px;background:var(--card);border:1px solid rgba(240,185,62,.45);border-radius:16px;padding:16px 14px 18px}
+.daily-card .btl-prompt{margin-top:8px}
+.daily-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.daily-tag{font-size:11px;font-weight:900;letter-spacing:.14em;color:#1a1204;background:var(--gold);border-radius:999px;padding:4px 10px}
+.daily-date{color:var(--muted);font-size:12.5px;font-weight:700}
+.daily-practice{text-align:center;color:#e8cf8f;font-size:12.5px;font-weight:700;margin:10px auto 0}
+.daily-locked{text-align:center;color:var(--muted);font-size:13.5px;line-height:1.5;margin:10px auto 0;max-width:460px}
+.daily-start-row{margin:14px auto 0;max-width:320px}
+.daily-start-row[hidden]{display:none}
+.btl-pick.run-start{width:100%}
+.daily-split{margin:14px auto 0;max-width:560px}
+.daily-split[hidden]{display:none}
+#dailyMain[hidden],#dailyPractice[hidden],#dailyEmpty[hidden],#runMain[hidden],#runEnd[hidden],#runLocked[hidden]{display:none}
+.split-bar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:#3a3f47;border:1px solid var(--line2)}
+.split-bar .split-a{background:linear-gradient(90deg,var(--gold),#c9932b);height:100%}
+.split-line{text-align:center;color:var(--ink);font-size:13.5px;margin-top:8px;line-height:1.5}
+.daily-share-row{text-align:center;margin-top:12px}
+.daily-flash{animation:dailyFlash100 1.6s ease-out}
+@keyframes dailyFlash100{0%{box-shadow:0 0 0 0 rgba(240,185,62,.55)}100%{box-shadow:0 0 0 18px rgba(240,185,62,0)}}
+.run-score{text-align:center;font-size:24px;font-weight:900;color:var(--gold);margin-top:12px}
+.run-share-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.daily-share-msg{text-align:center;color:var(--gold);font-size:13px;font-weight:700;margin-top:10px;min-height:18px}
+.play-badges{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.badge-chip{font-size:10.5px;font-weight:900;letter-spacing:.06em;color:#1a1204;background:linear-gradient(180deg,var(--gold),#c9932b);border-radius:999px;padding:3px 8px}
+.hawks-band{padding:0 0 8px}
+.hawks-band[hidden]{display:none}
+.hawks-inner{max-width:860px;margin:0 auto;background:var(--card);border:1px solid rgba(240,185,62,.45);border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.hawks-copy{flex:1 1 260px;min-width:0}
+.hawks-tag{font-size:11px;font-weight:900;letter-spacing:.13em;color:var(--gold)}
+.hawks-bar{height:10px;border-radius:999px;background:#3a3f47;border:1px solid var(--line2);overflow:hidden;margin-top:8px}
+.hawks-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),#c9932b);transition:width .5s ease}
+.hawks-count{color:var(--ink);font-size:13.5px;font-weight:700;margin-top:7px}
+.hawks-btn{flex:0 0 auto}
+
+/* The Daily card marks YOUR pick with the gold border only — the
+   WINNER stamp belongs to Battles and the Battle Run reveal, since
+   a daily matchup is not decided until the day finalizes. */
+.btl-mini.picked{border:2px solid var(--gold);box-shadow:0 0 0 5px rgba(240,185,62,.15)}

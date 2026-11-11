@@ -114,6 +114,7 @@ async function loadData() {
     api(`/api/contest?voterToken=${voterToken}`),
   ]);
   ALL_PLAYS = h.highlights || [];
+  if (typeof renderHawks100 === "function") renderHawks100(h.hawksFounding);
   CONTEST = c;
   /* Round 9: fetch the PREVIOUS month's contest too — the server
      already records each period's winner (contest_winners), and
@@ -179,6 +180,16 @@ function athleteLine(h) {
   if (h.athlete_id) return `<p class="meta">Athlete: <button type="button" class="athlete-link" onclick="openAthlete('${esc(h.athlete_id)}')">${esc(parts.join(" · "))}</button>${tag}</p>`;
   return `<p class="meta">Athlete: ${esc(parts.join(" · "))}${tag}</p>`;
 }
+/* Round 100 (2026-11-11): play badges — the server computes the
+   keys (badgesFor in server.js; samples always []), the client only
+   labels them. Gold chips, one row, on tiles and full cards alike.
+   Call sites use a typeof guard because test sandboxes slice app.js
+   by function-name anchors and a slice may not include this helper. */
+const BADGE_LABELS100 = { first_hype: "First Hype", battle_tested: "Battle Tested", best_celebration: "Best Celebration" };
+function badgesHtml100(h) {
+  if (!h || h.isSample || !Array.isArray(h.badges) || !h.badges.length) return "";
+  return `<p class="play-badges">${h.badges.map((b) => `<span class="badge-chip">${BADGE_LABELS100[b] || esc(b)}</span>`).join("")}</p>`;
+}
 function cardHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
@@ -189,6 +200,7 @@ function cardHtml(h, opts = {}) {
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
       ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
       ${athleteLine(h)}
+      ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
       ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
@@ -327,6 +339,7 @@ function tileHtml(h, opts = {}) {
         ${h.isSample ? `<span class="tile-demo-tag" title="Sample play — a demo, not in the contest">Demo</span>` : `<button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted — tap to remove" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted ✓" : "Vote"}</button>`}
       </div>
       ${tileInfoHtml(h, votes, voteLabel)}
+      ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
       <div class="tile-votes">
         <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
@@ -2437,7 +2450,8 @@ async function loadOwner() {
       ${h.story_consent ? `<br><span class="tagchip">⭐ Story OK — may feature as a Hype Story</span>${h.story_text ? `<br>“What made this moment matter?” ${esc(h.story_text)}` : ""}` : (h.story_text ? `<br><span style="color:var(--muted)">Story note (no story permission given):</span> ${esc(h.story_text)}` : "")}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
-      <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}</div></div>`).join("") || "<p>Queue is empty.</p>";
+      <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("") || "<p>Queue is empty.</p>";
+    if (typeof buildOwnerDaily100 === "function") buildOwnerDaily100(q.queue);
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${esc(r.created_at)})</p>`).join("") || "<p>No reports.</p>";
     // Site stats (owner only): a failure here must not take the
@@ -2477,6 +2491,10 @@ window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/stat
 // owner queue approves AND flags a play as a sample (or removes the
 // mark, keeping the play's current status).
 window.setSample = async (id, status, sample) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status, sample }) }); loadOwner(); loadData(); };
+/* Round 100: Celebration Spotlight — one tap in the owner queue.
+   The server clears every other play when one is set, so at most
+   one play ever carries the Best Celebration badge. */
+window.setCelebration = async (id, on) => { await api(`/api/highlights/${id}/celebration`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spotlight: !!on }) }); loadOwner(); loadData(); };
 window.deletePlay = async (id) => { if (!confirm("Delete this play permanently?")) return; await api(`/api/highlights/${id}`, { method: "DELETE" }); loadOwner(); loadData(); };
 const ownerBtnEl = $("#ownerBtn"); if (ownerBtnEl) ownerBtnEl.addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
@@ -3064,4 +3082,382 @@ function initBattles() {
     const f = input.files && input.files[0];
     if (f) analyze(f); else reset();
   });
+})();
+
+/* ---------------- Round 100 (2026-11-11): Daily Battle, Battle Run,
+   Hawks Founding Plays, owner Daily setter ----------------
+   Daily Battle: ONE matchup per ET day (the same one the day's
+   TikTok / Instagram "Which Play Wins?" post points at, deep link
+   /?view=battles&daily=1). The split is hidden until you pick; the
+   pick is locked server-side (one per voter per day). A pick on a
+   real matchup also casts a normal contest vote (server-side,
+   never a toggle-off); practice (sample) picks cast nothing.
+   Battle Run: predict the crowd winner across five FINALIZED real
+   Daily Battles you didn't play live; the end screen generates the
+   share card (story 1080x1920 + feed 1080x1350) for Instagram /
+   TikTok. Appended at the end of app.js per the sandbox-slice rule;
+   every lookup is guarded. */
+const d100 = { daily: null, dailyWatch: "A", run: null, runState: null, scrollDaily: false };
+try { d100.scrollDaily = new URLSearchParams(location.search).get("daily") === "1"; } catch { /* no deep link */ }
+function etTodayClient100() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const g = (t) => (parts.find((x) => x.type === t) || {}).value || "";
+  return `${g("year")}-${g("month")}-${g("day")}`;
+}
+function d100MiniHTML(prefix, slot, p) {
+  if (!p) return "";
+  return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
+    <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
+    <span class="btl-stamp">👑 WINNER</span>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
+  </article>`;
+}
+function d100Watch(prefix, slot, play) {
+  const player = document.getElementById(prefix + "Player");
+  if (!player || !play) return;
+  const mA = document.getElementById(prefix + "MiniA"), mB = document.getElementById(prefix + "MiniB");
+  if (mA) mA.classList.toggle("watching", slot === "A");
+  if (mB) mB.classList.toggle("watching", slot === "B");
+  if (player.getAttribute("src") !== play.media_url) { player.src = play.media_url; player.load(); }
+  const label = document.getElementById(prefix + "NowLabel");
+  if (label) label.textContent = "Now watching: " + play.title;
+  try { player.play(); } catch { /* autoplay refusal is fine */ }
+}
+function d100WireMatchup(prefix, plays, onWatch) {
+  const matchup = document.getElementById(prefix + "Matchup");
+  if (!matchup) return;
+  matchup.innerHTML = d100MiniHTML(prefix, "A", plays.A) + '<div class="btl-vs">VS</div>' + d100MiniHTML(prefix, "B", plays.B);
+  matchup.querySelectorAll(".btl-mini").forEach((el) => {
+    el.addEventListener("click", () => onWatch(el.dataset.slot));
+    if (typeof btlMiniFrame === "function") btlMiniFrame(el.querySelector("video"));
+  });
+}
+function splitHtml100(split, a, b, yourPickId) {
+  const yours = yourPickId ? (yourPickId === a.id ? a : b) : null;
+  return `<div class="split-bar"><span class="split-a" style="width:${split.aPct}%"></span></div>
+  <p class="split-line"><b>${split.aPct}%</b> ${esc(a.title)} · <b>${split.bPct}%</b> ${esc(b.title)} — ${split.total} pick${split.total === 1 ? "" : "s"}${yours ? ` · Your pick: <b>${esc(yours.title)}</b>` : ""}</p>`;
+}
+
+/* ---- Daily Battle ---- */
+async function loadDaily100() {
+  const card = document.getElementById("dailyCard");
+  if (!card) return;
+  let r = null;
+  try { r = await api(`/api/daily-battle?voterToken=${encodeURIComponent(voterToken)}`); } catch { /* card shows its empty state */ }
+  d100.daily = r;
+  const main = document.getElementById("dailyMain"), empty = document.getElementById("dailyEmpty");
+  const practice = document.getElementById("dailyPractice"), dateEl = document.getElementById("dailyDate");
+  if (!r || !r.available) { if (main) main.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
+  if (empty) empty.hidden = true;
+  if (main) main.hidden = false;
+  if (practice) practice.hidden = !r.practice;
+  if (dateEl) dateEl.textContent = r.date;
+  d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); });
+  const pickA = document.getElementById("dailyPickA"), pickB = document.getElementById("dailyPickB");
+  const split = document.getElementById("dailySplit");
+  if (r.yourPick) {
+    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Pick this play"; }
+    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Pick this play"; }
+    const pickedMini = document.getElementById("dailyMini" + (r.yourPick === r.a.id ? "A" : "B"));
+    if (pickedMini) pickedMini.classList.add("picked");
+    if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick); split.hidden = false; }
+  } else {
+    if (pickA) { pickA.disabled = false; pickA.textContent = "👑 Pick this play"; }
+    if (pickB) { pickB.disabled = false; pickB.textContent = "👑 Pick this play"; }
+    if (split) { split.hidden = true; split.innerHTML = ""; }
+  }
+  const player = document.getElementById("dailyPlayer");
+  if (player && !player.getAttribute("src")) d100Watch("daily", "A", r.a);
+  if (d100.scrollDaily) {
+    d100.scrollDaily = false;
+    card.classList.add("daily-flash");
+    setTimeout(() => card.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+  }
+}
+async function dailyPick100(slot) {
+  const r = d100.daily;
+  if (!r || !r.available || r.yourPick) return;
+  const pickId = slot === "A" ? r.a.id : r.b.id;
+  const pickA = document.getElementById("dailyPickA"), pickB = document.getElementById("dailyPickB");
+  if (pickA) pickA.disabled = true;
+  if (pickB) pickB.disabled = true;
+  try {
+    const out = await api("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken, pickId }) });
+    d100.daily = out;
+    loadDaily100();
+    if (!r.practice) { try { await loadData(); } catch { /* board refresh is a bonus */ } }
+  } catch {
+    if (pickA) pickA.disabled = false;
+    if (pickB) pickB.disabled = false;
+  }
+}
+async function dailyShare100() {
+  const url = "https://highlighthype.com/?view=battles&daily=1";
+  const text = "Which Play Wins? Vote in today's Daily Battle 👑";
+  if (navigator.share) { try { await navigator.share({ title: "HighlightHype Daily Battle", text, url }); return; } catch { /* fall through to copy */ } }
+  await copyText100(`${text} ${url}`);
+  const btn = document.getElementById("dailyShare");
+  if (btn) { const old = btn.textContent; btn.textContent = "Link copied ✓"; setTimeout(() => { btn.textContent = old; }, 2200); }
+}
+
+/* ---- Hawks Founding Plays ---- */
+function renderHawks100(hf) {
+  const card = document.getElementById("hawksCard");
+  if (!card) return;
+  if (!hf || typeof hf.count !== "number") { card.hidden = true; return; }
+  const goal = hf.goal || 10;
+  card.hidden = false;
+  const count = document.getElementById("hawksCount");
+  if (count) count.textContent = `${hf.count} of ${goal} founding plays posted`;
+  const fill = document.getElementById("hawksBarFill");
+  if (fill) fill.style.width = Math.min(100, Math.round((hf.count / goal) * 100)) + "%";
+}
+
+/* ---- Battle Run ---- */
+async function loadRun100() {
+  const locked = document.getElementById("runLocked");
+  const startRow = document.getElementById("runStartRow");
+  if (!locked) return;
+  if (d100.runState) return; // a run in progress is never re-dealt by a view switch
+  let r = null;
+  try { r = await api(`/api/battle-run?voterToken=${encodeURIComponent(voterToken)}`); } catch { /* locked text below */ }
+  d100.run = r;
+  if (!r || !r.available) {
+    const n = r && typeof r.finalizedCount === "number" ? r.finalizedCount : 0;
+    locked.textContent = `${n} of 5 finalized matchups ready — Battle Run unlocks at 5. Daily Battles finish one per day, so check back as the board fills in.`;
+    locked.hidden = false;
+    if (startRow) startRow.hidden = true;
+    return;
+  }
+  locked.textContent = "Five finished Daily Battles. Pick who the crowd picked — the result stays hidden until you choose.";
+  locked.hidden = false;
+  if (startRow) startRow.hidden = false;
+}
+function runStart100() {
+  if (!d100.run || !d100.run.available) return;
+  d100.runState = { matchups: d100.run.matchups, idx: 0, score: 0, picked: false, completed: false };
+  const locked = document.getElementById("runLocked"); if (locked) locked.hidden = true;
+  const startRow = document.getElementById("runStartRow"); if (startRow) startRow.hidden = true;
+  const end = document.getElementById("runEnd"); if (end) end.hidden = true;
+  const main = document.getElementById("runMain"); if (main) main.hidden = false;
+  runRender100();
+}
+function runRender100() {
+  const st = d100.runState;
+  if (!st) return;
+  const m = st.matchups[st.idx];
+  st.picked = false;
+  const step = document.getElementById("runStep");
+  if (step) step.textContent = `Matchup ${st.idx + 1} of ${st.matchups.length} · ${m.date} — who won the crowd?`;
+  d100WireMatchup("run", { A: m.a, B: m.b }, (slot) => d100Watch("run", slot, slot === "A" ? m.a : m.b));
+  const pA = document.getElementById("runPickA"), pB = document.getElementById("runPickB");
+  if (pA) { pA.disabled = false; pA.textContent = "👑 This one won"; }
+  if (pB) { pB.disabled = false; pB.textContent = "👑 This one won"; }
+  const reveal = document.getElementById("runReveal"); if (reveal) { reveal.hidden = true; reveal.innerHTML = ""; }
+  const next = document.getElementById("runNext"); if (next) next.classList.remove("show");
+  const player = document.getElementById("runPlayer");
+  if (player) { player.removeAttribute("src"); player.load(); d100Watch("run", "A", m.a); }
+}
+async function runPick100(slot) {
+  const st = d100.runState;
+  if (!st || st.picked) return;
+  st.picked = true;
+  const m = st.matchups[st.idx];
+  const pickId = slot === "A" ? m.a.id : m.b.id;
+  const pA = document.getElementById("runPickA"), pB = document.getElementById("runPickB");
+  if (pA) pA.disabled = true;
+  if (pB) pB.disabled = true;
+  trackEvent("battle_run_pick", m.dailyId);
+  let out = null;
+  try { out = await api("/api/battle-run/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dailyId: m.dailyId, pickId }) }); } catch { /* reveal stays hidden */ }
+  if (!out || !out.ok) return;
+  if (out.correct) st.score++;
+  const winnerSlot = out.winnerId === m.a.id ? "A" : "B";
+  const winnerMini = document.getElementById("runMini" + winnerSlot);
+  if (winnerMini) winnerMini.classList.add("winner");
+  const reveal = document.getElementById("runReveal");
+  if (reveal) {
+    reveal.innerHTML = `<p class="split-line">${out.correct ? "<b>✓ Matched the crowd</b>" : "<b>Crowd went the other way</b>"} — final split: <b>${out.split.aPct}%</b> ${esc(out.titles.a)} · <b>${out.split.bPct}%</b> ${esc(out.titles.b)}</p>`;
+    reveal.hidden = false;
+  }
+  const next = document.getElementById("runNext");
+  if (next) { next.textContent = st.idx + 1 >= st.matchups.length ? "See my score →" : "Next matchup →"; next.classList.add("show"); }
+}
+function runNext100() {
+  const st = d100.runState;
+  if (!st || !st.picked) return;
+  st.idx++;
+  if (st.idx < st.matchups.length) { runRender100(); return; }
+  // End screen.
+  st.completed = true;
+  const main = document.getElementById("runMain"); if (main) main.hidden = true;
+  const end = document.getElementById("runEnd"); if (end) end.hidden = false;
+  const score = document.getElementById("runScore");
+  if (score) score.textContent = `You matched the crowd ${st.score}/5`;
+  trackEvent("battle_run_complete", String(st.score));
+}
+function runCaptions100() {
+  const score = d100.runState ? d100.runState.score : 0;
+  const link = "https://highlighthype.com/?view=battles&daily=1";
+  return {
+    tiktok: `I matched the crowd ${score}/5 in the HighlightHype Battle Run 👑 Think you can go 5/5? Play today's Daily Battle: ${link} #YouthSports #WhichPlayWins #HighlightHype #TravelBall #SportsTikTok`,
+    insta: `I matched the crowd ${score}/5 in the HighlightHype Battle Run 👑 Think you know the crowd? Play today's Daily Battle — link in bio. @HighlightHype_Official ${link} #YouthSports #WhichPlayWins #HighlightHype #TravelBall #YouthBaseball`,
+  };
+}
+async function copyText100(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* fall through */ }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch { return false; }
+}
+function runMsg100(msg) { const el = document.getElementById("runShareMsg"); if (el) el.textContent = msg; }
+function loadImg100(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+async function drawRunCard100(w, h, score) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const x = c.getContext("2d");
+  x.fillStyle = "#0a0a0a"; x.fillRect(0, 0, w, h);
+  const lw = Math.max(6, Math.round(w * 0.012));
+  x.strokeStyle = "#f0b93e"; x.lineWidth = lw;
+  x.strokeRect(lw, lw, w - 2 * lw, h - 2 * lw);
+  // Layout runs off a cursor anchored to the DRAWN logo height: the
+  // lockup is a tall crest + wordmark image, so fixed fractions of h
+  // overlapped it (first rig pass). Logo height is capped at 26% of
+  // the card so the tighter 4:5 feed size keeps the same stack.
+  let y = h * 0.045;
+  try {
+    const img = await loadImg100("/logo-crest-lockup.png");
+    const aspect = img.height / img.width;
+    const iw = Math.min(w * 0.56, (h * 0.26) / aspect);
+    const ih = iw * aspect;
+    x.drawImage(img, (w - iw) / 2, y, iw, ih);
+    y += ih;
+  } catch { y += w * 0.18; /* the card still reads fine without the crest */ }
+  x.textAlign = "center";
+  x.fillStyle = "#f5f1e6";
+  x.font = `900 ${Math.round(w * 0.088)}px system-ui, -apple-system, sans-serif`;
+  y += w * 0.115;
+  x.fillText("I MATCHED", w / 2, y);
+  y += w * 0.105;
+  x.fillText("THE CROWD", w / 2, y);
+  x.fillStyle = "#f0b93e";
+  x.font = `900 ${Math.round(w * 0.30)}px system-ui, -apple-system, sans-serif`;
+  y += w * 0.265;
+  x.fillText(`${score}/5`, w / 2, y);
+  x.font = `800 ${Math.round(w * 0.042)}px system-ui, -apple-system, sans-serif`;
+  y += w * 0.125;
+  x.fillText("BATTLE RUN · HIGHLIGHTHYPE", w / 2, y);
+  x.fillStyle = "#e8e2d2";
+  x.font = `700 ${Math.round(w * 0.036)}px system-ui, -apple-system, sans-serif`;
+  y += w * 0.062;
+  x.fillText("YOUR MOMENT. YOUR HYPE.", w / 2, y);
+  x.fillStyle = "#9a937f";
+  x.font = `600 ${Math.round(w * 0.030)}px system-ui, -apple-system, sans-serif`;
+  const dateStr = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", month: "long", day: "numeric", year: "numeric" });
+  x.fillText(dateStr, w / 2, h * 0.895);
+  x.fillText("highlighthype.com", w / 2, h * 0.895 + w * 0.045);
+  return c;
+}
+async function shareRunCard100() {
+  const score = d100.runState ? d100.runState.score : 0;
+  const canvas = await drawRunCard100(1080, 1920, score);
+  const done = (ok) => runMsg100(ok ? "Card ready — post it anywhere." : "");
+  if (canvas.toBlob) {
+    canvas.toBlob(async (blob) => {
+      if (blob) {
+        const file = new File([blob], "highlighthype-battle-run.png", { type: "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: "HighlightHype Battle Run", text: `I matched the crowd ${score}/5 👑` }); runMsg100("Shared ✓"); return; } catch { /* fall through to download */ }
+        }
+        const a = document.createElement("a");
+        a.download = "highlighthype-battle-run-story.png";
+        a.href = URL.createObjectURL(blob);
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+        done(true);
+        return;
+      }
+      done(false);
+    }, "image/png");
+  }
+}
+async function downloadRunCard100(w, h, name) {
+  const score = d100.runState ? d100.runState.score : 0;
+  const canvas = await drawRunCard100(w, h, score);
+  const a = document.createElement("a");
+  a.download = name;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+  runMsg100("Card downloaded ✓");
+}
+
+/* ---- Owner Daily Battle setter ---- */
+function buildOwnerDaily100(queue) {
+  const selA = document.getElementById("odPlayA"), selB = document.getElementById("odPlayB");
+  if (!selA || !selB) return;
+  const approved = (queue || []).filter((h) => h.status === "approved");
+  const opts = approved.map((h) => `<option value="${h.id}">${esc(h.title)} — ${esc(cap(h.sport))}${h.isSample ? " (sample)" : ""}</option>`).join("");
+  selA.innerHTML = opts;
+  selB.innerHTML = opts;
+  if (approved.length > 1) selB.selectedIndex = 1;
+  const dateInp = document.getElementById("odDate");
+  if (dateInp && !dateInp.value) dateInp.value = etTodayClient100();
+  showTodayDaily100();
+}
+async function showTodayDaily100() {
+  const el = document.getElementById("odCurrent");
+  if (!el) return;
+  try {
+    const r = await api("/api/daily-battle");
+    el.textContent = r && r.available ? `Today (${r.date}): ${r.a.title} vs ${r.b.title}${r.practice ? " — practice" : ""}` : "No matchup for today yet.";
+  } catch { el.textContent = ""; }
+}
+async function ownerDailySave100() {
+  const msg = document.getElementById("odMsg");
+  const date = (document.getElementById("odDate") || {}).value || etTodayClient100();
+  const playAId = Number((document.getElementById("odPlayA") || {}).value);
+  const playBId = Number((document.getElementById("odPlayB") || {}).value);
+  if (!playAId || !playBId) { if (msg) msg.textContent = "Pick two approved plays first."; return; }
+  if (msg) msg.textContent = "Saving…";
+  try {
+    const r = await api("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ date, playAId, playBId }) });
+    if (msg) msg.textContent = `Saved ✓ ${r.date}: ${r.a.title} vs ${r.b.title}${r.practice ? " (practice)" : ""}`;
+    showTodayDaily100();
+    loadDaily100();
+  } catch (e) { if (msg) msg.textContent = e.message; }
+}
+
+/* Wiring: ride initBattles (called by switchView whenever Battles
+   opens) the same way Round 91 rides applyDefaultView. */
+(function round100Wire() {
+  const bind = (id, ev, fn) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn); };
+  bind("dailyPickA", "click", () => dailyPick100("A"));
+  bind("dailyPickB", "click", () => dailyPick100("B"));
+  bind("dailyShare", "click", dailyShare100);
+  bind("runStart", "click", runStart100);
+  bind("runPickA", "click", () => runPick100("A"));
+  bind("runPickB", "click", () => runPick100("B"));
+  bind("runNext", "click", runNext100);
+  bind("runShareBtn", "click", shareRunCard100);
+  bind("runDlStory", "click", () => downloadRunCard100(1080, 1920, "highlighthype-battle-run-story.png"));
+  bind("runDlFeed", "click", () => downloadRunCard100(1080, 1350, "highlighthype-battle-run-feed.png"));
+  bind("runCopyTiktok", "click", async () => { runMsg100((await copyText100(runCaptions100().tiktok)) ? "TikTok caption copied ✓" : "Copy failed — long-press to copy from a screenshot instead."); });
+  bind("runCopyInsta", "click", async () => { runMsg100((await copyText100(runCaptions100().insta)) ? "Instagram caption copied ✓" : "Copy failed — long-press to copy from a screenshot instead."); });
+  bind("runAgain", "click", () => { d100.runState = null; const end = document.getElementById("runEnd"); if (end) end.hidden = true; loadRun100().then(() => runStart100()); });
+  bind("hawksPostBtn", "click", () => { if (typeof goSubmit === "function") goSubmit(); });
+  bind("odSave", "click", ownerDailySave100);
+  if (typeof initBattles === "function") {
+    const origInit100 = initBattles;
+    initBattles = function (...args) {
+      const r = origInit100.apply(this, args);
+      loadDaily100();
+      loadRun100();
+      return r;
+    };
+  }
 })();
