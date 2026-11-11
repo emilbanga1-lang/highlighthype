@@ -455,6 +455,20 @@ try {
     assert(app100.includes("/api/daily-battle") && app100.includes("/api/battle-run/pick") && app100.includes("drawRunCard100") && app100.includes("matched the crowd") && app100.includes("renderHawks100"), "r100: app.js wires the daily, the run, the share card and the Hawks card");
     assert(home100.includes('id="dailyStrip"') && home100.includes('id="dailyStripPick"') && home100.includes('id="dailyStripSplit"') && home100.includes('id="dailyStripShare"'), "r101: a picked Daily Battle carries a collapsed result strip with the pick, split and its own share button");
     assert(app100.includes("setDailyCollapsed100") && app100.includes("pauseDailyPlayer100") && app100.includes("dailyCollapseTimer") && app100.includes("expandDaily100"), "r101: Daily Battle collapse pauses the player, is timed after a fresh pick, and can be re-expanded from the strip");
+
+    // Round 102 — Battles clarity: A/B identity, one practice
+    // label, one-pick sentence, section order, next-battle path.
+    const css102 = await (await fetch(base + "/styles.css")).text();
+    assert(home100.includes('id="dailyPickA">Pick A</button>') && home100.includes('id="dailyPickB">Pick B</button>') && home100.includes('id="btlPickL">Pick A</button>') && home100.includes('id="btlPickR">Pick B</button>'), "r102: Daily + Battles pick buttons are labeled Pick A / Pick B in the markup");
+    assert(app100.includes("btl-letter") && app100.includes("btl-watchtag") && app100.includes("btl-yourpick"), "r102: matchup minis render an A/B letter chip, a Now watching tag and a Your pick tag");
+    assert(app100.includes('textContent = "Pick A"') && app100.includes('textContent = "Pick B"'), "r102: renderers reset the pick buttons to Pick A / Pick B");
+    assert(home100.split("Practice matchup · Picks are just for fun").length - 1 === 2 && !home100.includes("Sample pool") && !home100.includes('id="btlPractice"') && !home100.includes("don't cast votes yet"), "r102: exactly one short practice label per section (Daily + Battles), no other practice copy");
+    assert(home100.includes("Which Play Wins?") && !home100.includes("hit replay"), "r102: 'Which Play Wins?' is the matchup headline in Daily, Fresh Pairs and Winner Stays");
+    assert(app100.includes("split.total === 1") && app100.includes("pick for <b>"), "r102: a one-pick daily shows a sentence instead of a percentage bar");
+    assert(app100.includes("splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice)") && app100.includes("splitHtml100(r.split, r.a, r.b, null, r.practice)"), "r102: both daily split renders (card + strip) receive the practice flag for the one-pick sentence");
+    assert(home100.includes('id="dailyAnother"') && home100.includes('id="dailyStripAnother"') && app100.includes("playAnotherBattle102"), "r102: 'Play another battle' sits in the Daily result area and on the collapsed strip");
+    assert(home100.indexOf('id="dailyCard"') < home100.indexOf('id="btlMatchup"') && home100.indexOf('id="btlMatchup"') < home100.indexOf('id="runCard"'), "r102: Battles view order is Daily Battle, Fresh Pairs / Winner Stays, Battle Run last");
+    assert(css102.includes(".btl-mini.watching{border-color:rgba(245,241,230,.8)") && css102.includes("#viewBattles{padding-bottom:120px}"), "r102: watching no longer wears the gold outline, and the Battles view reserves room for the floating Post pill");
   }
 
   // 8c. Upload Assist (Round 99): this server runs with an empty
