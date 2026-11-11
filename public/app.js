@@ -2341,6 +2341,13 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   // enforces it too (400); this check just answers in place, in the
   // same inline style as the validations above.
   if (!form.elements.guardianConsent || !form.elements.guardianConsent.checked) { msg.textContent = "Please confirm you're the parent/guardian, or have their permission, to post this video."; $(".guardian-block")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+  // Upload Assist gate (Round 99): a confident AI "not a play" holds
+  // the submit here so the guardian sees the gate note (and its
+  // override). __uaGateCheck is defined by the assist wiring at the
+  // end of this file and returns true whenever the assist is off,
+  // unsure, already overridden, or reading a different file — so
+  // without the assist this submit behaves exactly as it always has.
+  if (typeof window.__uaGateCheck === "function" && !window.__uaGateCheck(form)) return;
   if (!String(form.elements.title.value || "").trim()) form.elements.title.value = `${name}'s highlight`;
   const fd = new FormData(form);
   // Duplicate-name check: if this name already belongs to an athlete and
@@ -2429,6 +2436,7 @@ async function loadOwner() {
       ${h.guardian_consent_at ? `<br>Guardian consent ✓ ${esc(new Date(h.guardian_consent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}` : ""}
       ${h.story_consent ? `<br><span class="tagchip">⭐ Story OK — may feature as a Hype Story</span>${h.story_text ? `<br>“What made this moment matter?” ${esc(h.story_text)}` : ""}` : (h.story_text ? `<br><span style="color:var(--muted)">Story note (no story permission given):</span> ${esc(h.story_text)}` : "")}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
+      ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}</div></div>`).join("") || "<p>Queue is empty.</p>";
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${esc(r.created_at)})</p>`).join("") || "<p>No reports.</p>";
@@ -2887,3 +2895,173 @@ function initBattles() {
   applyDefaultView = function () { prevAD(); monthSub = "fame"; switchView("month"); };
 })();
 
+
+/* ---------------- Upload Assist (Round 99, 2026-11-11) ----------------
+   When a guardian picks a clip, the browser pulls ~5 frames off it
+   (offscreen <video> + <canvas>, at 10/30/50/70/90% of the runtime)
+   and asks POST /api/upload-assist for a first pass: sport / division
+   / a hype-tone title + story, prefilled as EDITABLE suggestions —
+   and a gateway verdict that keeps obvious non-plays (screen
+   recordings, random clips) out of the owner queue. A confident
+   "not_a_play" holds the submit inline, ALWAYS with an override that
+   files the play for owner review anyway — never a dead end. If the
+   assist is unconfigured, slow, or fails, the form behaves exactly as
+   it did before this round: nothing here is required, the guardian
+   consent and required fields are untouched, and every play still
+   starts pending for a human owner decision. Emil's addition: the
+   same pass doubles as the garbage gateway. */
+(function () {
+  const form = document.getElementById("uploadForm");
+  const input = document.getElementById("fileInput");
+  const wrap = document.getElementById("aiAssist");
+  const note = document.getElementById("aiAssistNote");
+  const gateBox = document.getElementById("aiGateBox");
+  const gateReason = document.getElementById("aiGateReason");
+  const overrideBtn = document.getElementById("aiGateOverride");
+  const aiField = document.getElementById("aiField");
+  if (!form || !input || !wrap || !note || !gateBox || !aiField) return;
+  const state = { fileKey: "", result: null, blocked: false, override: false, sportTouched: false, divTouched: false };
+  const fileKeyOf = (f) => (f ? f.name + "|" + f.size + "|" + f.lastModified : "");
+  const currentKey = () => fileKeyOf(input.files && input.files[0]);
+
+  if (form.elements.sport) form.elements.sport.addEventListener("change", () => { state.sportTouched = true; });
+  document.querySelectorAll("[data-div-pick]").forEach((b) => b.addEventListener("click", () => { state.divTouched = true; }));
+
+  function showNote(text) { wrap.hidden = false; note.hidden = !text; note.textContent = text || ""; }
+  function hideAll() { wrap.hidden = true; gateBox.hidden = true; note.textContent = ""; }
+  function reset() {
+    state.result = null; state.blocked = false; state.override = false;
+    state.sportTouched = false; state.divTouched = false;
+    aiField.value = ""; hideAll();
+  }
+
+  // Snapshot one still from a picked PHOTO (downscaled the same way).
+  function grabImageFrame(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const scale = Math.min(1, 512 / (img.naturalWidth || 512));
+          const c = document.createElement("canvas");
+          c.width = Math.max(2, Math.round((img.naturalWidth || 512) * scale));
+          c.height = Math.max(2, Math.round((img.naturalHeight || 288) * scale));
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          resolve([c.toDataURL("image/jpeg", 0.8)]);
+        } catch { resolve([]); }
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve([]); };
+      img.src = url;
+    });
+  }
+
+  // Pull ~5 frames off a picked VIDEO. Any failure resolves with
+  // whatever frames we got (possibly none) — the assist just skips.
+  function grabFrames(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = url;
+      const frames = [];
+      let finished = false;
+      const done = () => { if (finished) return; finished = true; try { URL.revokeObjectURL(url); } catch {} resolve(frames); };
+      setTimeout(done, 12000);
+      v.addEventListener("error", done, { once: true });
+      v.addEventListener("loadedmetadata", () => {
+        const dur = v.duration;
+        if (!dur || !isFinite(dur) || !(v.videoWidth > 0)) return done();
+        const canvas = document.createElement("canvas");
+        const scale = Math.min(1, 512 / v.videoWidth);
+        canvas.width = Math.max(2, Math.round(v.videoWidth * scale));
+        canvas.height = Math.max(2, Math.round(v.videoHeight * scale));
+        const ctx = canvas.getContext("2d");
+        const stops = [0.1, 0.3, 0.5, 0.7, 0.9].map((f) => Math.min(dur - 0.05, Math.max(0.05, dur * f)));
+        let i = 0;
+        const step = () => {
+          if (finished) return;
+          if (i >= stops.length) return done();
+          const t = stops[i++];
+          let advanced = false;
+          const advance = () => {
+            if (advanced || finished) return;
+            advanced = true;
+            if (v.readyState >= 2) {
+              try { ctx.drawImage(v, 0, 0, canvas.width, canvas.height); const d = canvas.toDataURL("image/jpeg", 0.72); if (d && d.length > 200) frames.push(d); } catch {}
+            }
+            step();
+          };
+          v.addEventListener("seeked", advance, { once: true });
+          setTimeout(advance, 3000);
+          try { v.currentTime = t; } catch { advance(); }
+        };
+        step();
+      }, { once: true });
+    });
+  }
+
+  function applyResult(res) {
+    state.result = res;
+    aiField.value = JSON.stringify(res);
+    // Prefill as a first pass the guardian checks — never stomp a
+    // field the guardian already filled in or picked themselves.
+    if (res.sport && !state.sportTouched && !String(form.elements.sport.value || "").trim()) setSportPick(res.sport);
+    if (res.division && !state.divTouched) setDivPick(res.division);
+    if (res.title && form.elements.title && !String(form.elements.title.value || "").trim()) form.elements.title.value = res.title;
+    if (res.story && form.elements.story && !String(form.elements.story.value || "").trim()) form.elements.story.value = res.story;
+    const bits = [res.sport, res.division].filter(Boolean).join(" · ");
+    if (res.gate === "not_a_play" && Number(res.confidence) >= 0.85) {
+      state.blocked = true;
+      gateReason.textContent = res.reason || "";
+      gateBox.hidden = false;
+      showNote("🤖 AI suggestion — check it" + (bits ? ": " + bits : ""));
+    } else {
+      showNote("🤖 AI suggestion — check it" + (bits ? ": " + bits : "") + ". You can change anything before posting.");
+    }
+  }
+
+  async function analyze(file) {
+    reset();
+    state.fileKey = fileKeyOf(file);
+    showNote("🔎 Reading your play…");
+    let frames = [];
+    try { frames = (file.type || "").startsWith("image/") ? await grabImageFrame(file) : await grabFrames(file); } catch { frames = []; }
+    if (state.fileKey !== currentKey()) return; // a different file was picked mid-flight
+    if (!frames.length) { hideAll(); return; }
+    try {
+      const r = await fetch("/api/upload-assist", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ frames }) });
+      const j = await r.json();
+      if (state.fileKey !== currentKey()) return;
+      if (!j || !j.configured || !j.result) { hideAll(); return; } // unconfigured or failed: form exactly as before
+      applyResult(j.result);
+    } catch { if (state.fileKey === currentKey()) hideAll(); }
+  }
+
+  // The submit handler's gate hook (defined here so the handler can
+  // guard on its existence): true = let the submit through.
+  window.__uaGateCheck = function (f) {
+    if (!state.blocked || state.override) return true;
+    const file = f && f.elements && f.elements.file && f.elements.file.files && f.elements.file.files[0];
+    if (!file || fileKeyOf(file) !== state.fileKey) return true;
+    wrap.hidden = false;
+    gateBox.hidden = false;
+    gateBox.scrollIntoView({ behavior: "smooth", block: "center" });
+    const msg = document.getElementById("uploadMsg");
+    if (msg) msg.textContent = "Our helper doesn't think this is a sports play — check the note above, or send it for owner review anyway.";
+    return false;
+  };
+
+  if (overrideBtn) overrideBtn.addEventListener("click", () => {
+    state.override = true;
+    state.blocked = false;
+    try { aiField.value = JSON.stringify(state.result ? Object.assign({}, state.result, { gate: "override" }) : { gate: "override" }); } catch {}
+    gateBox.hidden = true;
+    showNote("Got it — sending it for owner review anyway. 🤖");
+    form.requestSubmit();
+  });
+
+  input.addEventListener("change", () => {
+    const f = input.files && input.files[0];
+    if (f) analyze(f); else reset();
+  });
+})();

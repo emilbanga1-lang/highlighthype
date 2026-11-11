@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=101" />
+<link rel="stylesheet" href="styles.css?v=102" />
 </head>
 <body>
 
@@ -308,6 +308,22 @@
         <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
       </div>
 
+      <!-- Upload Assist (Round 99, 2026-11-11): an AI first pass reads
+           a few frames of the picked clip and pre-fills the sport,
+           division, title and story as suggestions the guardian
+           checks — and screens out obvious non-plays, always with an
+           override that sends the play for owner review anyway. This
+           block stays hidden unless the assist is switched on and has
+           something to say; without it the form is exactly as before. -->
+      <div id="aiAssist" hidden>
+        <p id="aiAssistNote" class="small"></p>
+        <div id="aiGateBox" class="ai-gate" hidden>
+          <p><b>This doesn't look like a sports play.</b> <span id="aiGateReason"></span></p>
+          <p class="small">Our helper can get it wrong. If this IS a play, send it anyway — the owner will take a look.</p>
+          <button type="button" class="mini-btn" id="aiGateOverride">It's a play — send it for owner review anyway</button>
+        </div>
+      </div>
+
       <label>Athlete's first name * <input type="text" name="playerName" placeholder="First name only"></label>
       <div class="quick-field">
         <span class="quick-label" id="divPickLabel">Boys or Girls *</span>
@@ -392,6 +408,7 @@
 
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
+      <input type="hidden" name="ai" id="aiField" value="">
     </form>
   </div>
 
@@ -1144,6 +1161,6 @@
   </div>
 </div>
 
-<script src="app.js?v=101"></script>
+<script src="app.js?v=102"></script>
 </body>
 </html>
