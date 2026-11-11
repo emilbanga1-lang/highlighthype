@@ -453,6 +453,8 @@ try {
     assert(home100.includes('id="dailyCard"') && home100.includes('id="runCard"') && home100.includes('id="hawksCard"') && home100.includes('id="ownerDaily"') && home100.includes('id="odSave"'), "r100: homepage carries the Daily/Run/Hawks cards + owner Daily setter");
     const app100 = await (await fetch(base + "/app.js")).text();
     assert(app100.includes("/api/daily-battle") && app100.includes("/api/battle-run/pick") && app100.includes("drawRunCard100") && app100.includes("matched the crowd") && app100.includes("renderHawks100"), "r100: app.js wires the daily, the run, the share card and the Hawks card");
+    assert(home100.includes('id="dailyStrip"') && home100.includes('id="dailyStripPick"') && home100.includes('id="dailyStripSplit"') && home100.includes('id="dailyStripShare"'), "r101: a picked Daily Battle carries a collapsed result strip with the pick, split and its own share button");
+    assert(app100.includes("setDailyCollapsed100") && app100.includes("pauseDailyPlayer100") && app100.includes("dailyCollapseTimer") && app100.includes("expandDaily100"), "r101: Daily Battle collapse pauses the player, is timed after a fresh pick, and can be re-expanded from the strip");
   }
 
   // 8c. Upload Assist (Round 99): this server runs with an empty
