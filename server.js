@@ -339,6 +339,35 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent INTEGER DEFAULT 0
 // the public allowlist, never part of approval — every play still
 // starts pending and a person still decides.
 try { db.exec("ALTER TABLE highlights ADD COLUMN ai_json TEXT DEFAULT ''"); } catch {}
+// Round 100 (2026-11-11): Best Celebration spotlight — an editorial
+// flag on ONE approved non-sample play at a time (the owner queue
+// toggle clears every other play when it sets one). Its only public
+// effect is the best_celebration badge computed in publicHighlight.
+try { db.exec("ALTER TABLE highlights ADD COLUMN celebration_spotlight INTEGER DEFAULT 0"); } catch {}
+// Round 100: Daily Battle + Battle Run. One matchup per ET day
+// (daily_battles.date is the America/New_York calendar date), one
+// pick per voter per day (the UNIQUE constraint IS the lock).
+// Picks on a REAL matchup can also cast a normal contest vote (see
+// the pick route); practice (sample) matchups never do. A row is
+// finalized lazily once its ET date has passed: winner = more picks,
+// a tie leaves winner_id NULL and never counts toward Battle Run.
+db.exec(`CREATE TABLE IF NOT EXISTS daily_battles(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  date TEXT NOT NULL UNIQUE,
+  play_a_id INTEGER NOT NULL, play_b_id INTEGER NOT NULL,
+  practice INTEGER NOT NULL DEFAULT 0,
+  finalized INTEGER NOT NULL DEFAULT 0,
+  winner_id INTEGER,
+  final_a_picks INTEGER NOT NULL DEFAULT 0,
+  final_b_picks INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS daily_battle_picks(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  daily_id INTEGER NOT NULL, voter_token TEXT NOT NULL, pick_id INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(daily_id, voter_token)
+);`);
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
@@ -695,6 +724,126 @@ function notifyHypeFrameRequest(order, play) {
     body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n\nSee the request and the print image in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
+// ---- Round 100: Daily Battle helpers ----
+// All Daily Battle dates are ET calendar dates (America/New_York),
+// never UTC — a matchup day rolls over at ET midnight.
+function etToday() {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const g = (t) => (parts.find((x) => x.type === t) || {}).value || "";
+  return `${g("year")}-${g("month")}-${g("day")}`;
+}
+function etDateMinus(dateStr, days) {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+const getPlayRow = (id) => db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+// A daily matchup is REAL only while both plays exist and neither
+// is a sample; anything else is practice (no votes, no Battle Run,
+// no Battle Tested).
+function dailyIsReal(row) {
+  if (!row) return false;
+  const a = getPlayRow(row.play_a_id), b = getPlayRow(row.play_b_id);
+  return !!(a && b && !a.is_sample && !b.is_sample);
+}
+// Lazy finalization: any unfinalized row whose ET date has passed
+// gets its pick counts frozen and its winner set (NULL on a tie).
+function finalizeDailyBattles() {
+  const today = etToday();
+  const rows = db.prepare("SELECT * FROM daily_battles WHERE finalized=0 AND date<?").all(today);
+  for (const r of rows) {
+    const a = db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=? AND pick_id=?").get(r.id, r.play_a_id).c;
+    const b = db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=? AND pick_id=?").get(r.id, r.play_b_id).c;
+    const winner = a > b ? r.play_a_id : b > a ? r.play_b_id : null;
+    db.prepare("UPDATE daily_battles SET finalized=1, final_a_picks=?, final_b_picks=?, winner_id=? WHERE id=?").run(a, b, winner, r.id);
+  }
+}
+// Today's matchup: a row the owner set wins; otherwise auto-pick
+// ONCE for the ET day and persist it, so the matchup is stable all
+// day (and matches whatever the day's social post points at).
+// Preference: (1) two approved non-sample same-sport plays not
+// paired in the last 14 days; (2) any two approved non-sample
+// plays; (3) any two samples (a PRACTICE matchup). Returns the row
+// or null when fewer than two approved plays exist at all.
+function ensureTodayDaily() {
+  finalizeDailyBattles();
+  const today = etToday();
+  let row = db.prepare("SELECT * FROM daily_battles WHERE date=?").get(today);
+  if (row) {
+    // A play under today's row was deleted — retire the row and re-pick.
+    if (getPlayRow(row.play_a_id) && getPlayRow(row.play_b_id)) return row;
+    db.prepare("DELETE FROM daily_battle_picks WHERE daily_id=?").run(row.id);
+    db.prepare("DELETE FROM daily_battles WHERE id=?").run(row.id);
+    row = null;
+  }
+  const approved = db.prepare("SELECT * FROM highlights WHERE status='approved' ORDER BY id ASC").all();
+  const real = approved.filter((r) => !r.is_sample);
+  const cutoff = etDateMinus(today, 14);
+  const recent = new Set(db.prepare("SELECT play_a_id, play_b_id FROM daily_battles WHERE date>=?").all(cutoff).map((r) => [Math.min(r.play_a_id, r.play_b_id), Math.max(r.play_a_id, r.play_b_id)].join("_")));
+  const pairsOf = (list) => { const out = []; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) out.push([list[i], list[j]]); return out; };
+  const bySport = new Map();
+  for (const r of real) { if (!bySport.has(r.sport)) bySport.set(r.sport, []); bySport.get(r.sport).push(r); }
+  let sameSport = [];
+  bySport.forEach((list) => { sameSport = sameSport.concat(pairsOf(list)); });
+  const notRecent = (pairs) => pairs.filter(([a, b]) => !recent.has([Math.min(a.id, b.id), Math.max(a.id, b.id)].join("_")));
+  const pick = notRecent(sameSport)[0] || sameSport[0] || notRecent(pairsOf(real))[0] || pairsOf(real)[0] || pairsOf(approved.filter((r) => r.is_sample))[0] || pairsOf(approved)[0];
+  if (!pick) return null;
+  const practice = (pick[0].is_sample || pick[1].is_sample) ? 1 : 0;
+  try {
+    const info = db.prepare("INSERT INTO daily_battles(date,play_a_id,play_b_id,practice) VALUES(?,?,?,?)").run(today, pick[0].id, pick[1].id, practice);
+    return db.prepare("SELECT * FROM daily_battles WHERE id=?").get(Number(info.lastInsertRowid));
+  } catch { return db.prepare("SELECT * FROM daily_battles WHERE date=?").get(today) || null; }
+}
+// The public daily payload. PRIVACY RULE (Emil's spec): pick counts
+// and the split are returned ONLY to a voter who has already picked
+// (or once the day is finalized) — never before picking, so nobody
+// can bandwagon off the crowd.
+function dailyPayload(row, voter = "") {
+  if (!row) return { ok: true, available: false, date: etToday() };
+  const a = getPlayRow(row.play_a_id), b = getPlayRow(row.play_b_id);
+  if (!a || !b) return { ok: true, available: false, date: row.date };
+  const pick = voter ? db.prepare("SELECT pick_id FROM daily_battle_picks WHERE daily_id=? AND voter_token=?").get(row.id, voter) : null;
+  const out = {
+    ok: true, available: true, id: row.id, date: row.date,
+    practice: !dailyIsReal(row), finalized: !!row.finalized,
+    a: publicHighlight(a, voter), b: publicHighlight(b, voter),
+    yourPick: pick ? pick.pick_id : null,
+  };
+  if (pick || row.finalized) {
+    const ca = row.finalized ? row.final_a_picks : db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=? AND pick_id=?").get(row.id, row.play_a_id).c;
+    const cb = row.finalized ? row.final_b_picks : db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=? AND pick_id=?").get(row.id, row.play_b_id).c;
+    const total = ca + cb;
+    out.split = { a: ca, b: cb, total, aPct: total ? Math.round((ca / total) * 100) : 0, bPct: total ? Math.round((cb / total) * 100) : 0 };
+    if (row.finalized) out.winnerId = row.winner_id;
+  }
+  return out;
+}
+// Finalized, REAL daily battles, newest first — the shared pool for
+// Battle Tested and Battle Run. Decisive-only is the caller's call
+// (Battle Run filters winner_id; Battle Tested counts ties too).
+function finalizedRealDailies() {
+  return db.prepare("SELECT * FROM daily_battles WHERE finalized=1 ORDER BY date DESC, id DESC").all().filter((r) => dailyIsReal(r));
+}
+// ---- Round 100: play badges (computed, never stored) ----
+// Samples NEVER get badges. first_hype = the athlete's earliest
+// approved non-sample play (by creation order); battle_tested = the
+// play appeared in a finalized REAL Daily Battle (win, loss or
+// tie); best_celebration = the play holds the Celebration Spotlight.
+function badgesFor(row) {
+  if (!row || row.status !== "approved" || row.is_sample) return [];
+  const out = [];
+  if (row.athlete_id) {
+    const first = db.prepare("SELECT id FROM highlights WHERE athlete_id=? AND status='approved' AND COALESCE(is_sample,0)=0 ORDER BY id ASC LIMIT 1").get(row.athlete_id);
+    if (first && first.id === row.id) out.push("first_hype");
+  }
+  const tested = db.prepare(`SELECT 1 FROM daily_battles d JOIN highlights o
+    ON o.id = CASE WHEN d.play_a_id=? THEN d.play_b_id ELSE d.play_a_id END
+    WHERE d.finalized=1 AND (d.play_a_id=? OR d.play_b_id=?) AND COALESCE(o.is_sample,0)=0 LIMIT 1`).get(row.id, row.id, row.id);
+  if (tested) out.push("battle_tested");
+  if (row.celebration_spotlight) out.push("best_celebration");
+  return out;
+}
+
 function publicHighlight(row, voterToken = "") {
   // Public shape is an explicit ALLOWLIST (hardening, 2026-11-04): only
   // the fields the client renders are returned. The old spread-minus-
@@ -747,6 +896,9 @@ function publicHighlight(row, voterToken = "") {
     // Hall of Fame ranking drops samples client-side as a second
     // layer under the server-side contest exclusions.
     isSample: !!row.is_sample,
+    // Round 100 badges (see badgesFor): computed per play, samples
+    // always []. The client renders gold chips from these keys.
+    badges: badgesFor(row),
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
@@ -1008,6 +1160,16 @@ const server = http.createServer(async (req, res) => {
         if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM highlights WHERE id=?").get(id))
           return sendJson(res, 400, { ok: false, message: "Unknown play." });
         bumpStat("battle_pick", String(id));
+      } else if (kind === "battle_run_pick") {
+        // Battle Run (Round 100): key is the finalized daily's id.
+        const id = Number(key);
+        if (!Number.isInteger(id) || id <= 0 || !db.prepare("SELECT 1 FROM daily_battles WHERE id=?").get(id))
+          return sendJson(res, 400, { ok: false, message: "Unknown daily battle." });
+        bumpStat("battle_run_pick", String(id));
+      } else if (kind === "battle_run_complete") {
+        // Battle Run (Round 100): key is the final score, "0".."5".
+        if (!/^[0-5]$/.test(key)) return sendJson(res, 400, { ok: false, message: "Unknown run score." });
+        bumpStat("battle_run_complete", key);
       } else if (kind === "story_open") {
         // Hype Stories (Round 63): key is the episode id ("ep01").
         if (!/^ep\d{2}$/.test(key)) return sendJson(res, 400, { ok: false, message: "Unknown story." });
@@ -1078,7 +1240,11 @@ const server = http.createServer(async (req, res) => {
       if (sort === "top") rows.sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
       else if (sort === "oldest") rows.sort((a, b) => a.id - b.id);
       else rows.sort((a, b) => b.id - a.id);
-      return sendJson(res, 200, { highlights: rows, totalHighlights: rows.length, totalVotes: rows.reduce((s, r) => s + r.voteCount, 0) });
+      // Round 100: the Hawks Founding Plays challenge count rides
+      // the board payload — approved, non-sample, team matches
+      // "Plainview Hawks" ignoring case and stray spaces.
+      const hawksFounding = { count: db.prepare("SELECT COUNT(*) c FROM highlights WHERE status='approved' AND COALESCE(is_sample,0)=0 AND lower(trim(team))='plainview hawks'").get().c, goal: 10 };
+      return sendJson(res, 200, { highlights: rows, totalHighlights: rows.length, totalVotes: rows.reduce((s, r) => s + r.voteCount, 0), hawksFounding });
     }
 
     // ---- Create a play: always starts PENDING (private beta lockdown) ----
@@ -1220,6 +1386,109 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
     }
 
+    // ---- Round 100: Daily Battle ----
+    if (p === "/api/daily-battle" && req.method === "GET") {
+      const voter = u.searchParams.get("voterToken") || "";
+      const row = ensureTodayDaily();
+      return sendJson(res, 200, dailyPayload(row, voter));
+    }
+    if (p === "/api/daily-battle/pick" && req.method === "POST") {
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const voter = String(body.voterToken || "").trim();
+      if (!voter) return sendJson(res, 400, { ok: false, message: "Missing voter token." });
+      const row = ensureTodayDaily();
+      if (!row) return sendJson(res, 404, { ok: false, message: "No Daily Battle today yet." });
+      const pickId = Number(body.pickId);
+      if (pickId !== row.play_a_id && pickId !== row.play_b_id)
+        return sendJson(res, 400, { ok: false, message: "That play is not in today's matchup." });
+      // One pick per voter per day, LOCKED: a repeat post (even for
+      // the other play) returns the stored pick unchanged.
+      const existing = db.prepare("SELECT pick_id FROM daily_battle_picks WHERE daily_id=? AND voter_token=?").get(row.id, voter);
+      if (!existing) {
+        try { db.prepare("INSERT INTO daily_battle_picks(daily_id,voter_token,pick_id) VALUES(?,?,?)").run(row.id, voter, pickId); } catch { /* lost a race — the stored pick stands */ }
+        // A pick on a REAL matchup also casts a normal vote for the
+        // chosen play when it is a current contest entry and the
+        // voter has not already voted for it this period. The check
+        // + insert (never a delete) is what guarantees a daily pick
+        // can NEVER toggle a vote off — the Round 91 safeguard.
+        if (dailyIsReal(row)) {
+          const period = currentPeriod();
+          const entered = db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(pickId, period);
+          const voted = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(pickId, voter, period);
+          if (entered && !voted) {
+            try { db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at,period) VALUES(?,?,datetime('now'),?)").run(pickId, voter, period); } catch { /* vote already on file */ }
+          }
+        }
+      }
+      return sendJson(res, 200, dailyPayload(row, voter));
+    }
+    // Owner setter: social posts are made in advance, so the owner
+    // can fix any date's matchup ahead of time. A date whose matchup
+    // already has picks (or is finalized) is locked — changing it
+    // would rewrite a crowd result people already played.
+    if (p === "/api/owner/daily-battle" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const date = String(body.date || etToday());
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return sendJson(res, 400, { ok: false, message: "Invalid date." });
+      const aId = Number(body.playAId), bId = Number(body.playBId);
+      if (!Number.isInteger(aId) || !Number.isInteger(bId) || aId === bId)
+        return sendJson(res, 400, { ok: false, message: "Pick two different plays." });
+      const a = getPlayRow(aId), b = getPlayRow(bId);
+      if (!a || !b || a.status !== "approved" || b.status !== "approved")
+        return sendJson(res, 400, { ok: false, message: "Both plays must be approved." });
+      finalizeDailyBattles();
+      const existing = db.prepare("SELECT * FROM daily_battles WHERE date=?").get(date);
+      const practice = (a.is_sample || b.is_sample) ? 1 : 0;
+      if (existing) {
+        if (existing.finalized) return sendJson(res, 400, { ok: false, message: "That day is finalized — its result is locked." });
+        const picks = db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=?").get(existing.id).c;
+        if (picks > 0) return sendJson(res, 400, { ok: false, message: "That matchup already has picks — it is locked." });
+        db.prepare("UPDATE daily_battles SET play_a_id=?, play_b_id=?, practice=? WHERE id=?").run(aId, bId, practice, existing.id);
+      } else {
+        db.prepare("INSERT INTO daily_battles(date,play_a_id,play_b_id,practice) VALUES(?,?,?,?)").run(date, aId, bId, practice);
+      }
+      const saved = db.prepare("SELECT * FROM daily_battles WHERE date=?").get(date);
+      return sendJson(res, 200, { ok: true, id: saved.id, date: saved.date, practice: !!saved.practice, a: publicHighlight(a), b: publicHighlight(b) });
+    }
+
+    // ---- Round 100: Battle Run ----
+    if (p === "/api/battle-run" && req.method === "GET") {
+      finalizeDailyBattles();
+      const voter = u.searchParams.get("voterToken") || "";
+      const decisive = finalizedRealDailies().filter((r) => r.winner_id != null);
+      const finalizedCount = decisive.length;
+      // Eligible for THIS voter: decisive real finals they did not
+      // play live (no pick row), so the result is unknown to them.
+      const eligible = voter
+        ? decisive.filter((r) => !db.prepare("SELECT 1 FROM daily_battle_picks WHERE daily_id=? AND voter_token=?").get(r.id, voter))
+        : decisive;
+      if (eligible.length < 5) return sendJson(res, 200, { ok: true, available: false, finalizedCount, eligibleCount: eligible.length });
+      const matchups = eligible.slice(0, 5).map((r) => ({
+        dailyId: r.id, date: r.date,
+        a: publicHighlight(getPlayRow(r.play_a_id), voter),
+        b: publicHighlight(getPlayRow(r.play_b_id), voter),
+      }));
+      return sendJson(res, 200, { ok: true, available: true, finalizedCount, matchups });
+    }
+    if (p === "/api/battle-run/pick" && req.method === "POST") {
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      finalizeDailyBattles();
+      const row = db.prepare("SELECT * FROM daily_battles WHERE id=?").get(Number(body.dailyId));
+      if (!row || !row.finalized || row.winner_id == null || !dailyIsReal(row))
+        return sendJson(res, 400, { ok: false, message: "That matchup is not a finalized Battle Run matchup." });
+      const pickId = Number(body.pickId);
+      if (pickId !== row.play_a_id && pickId !== row.play_b_id)
+        return sendJson(res, 400, { ok: false, message: "That play is not in this matchup." });
+      const total = row.final_a_picks + row.final_b_picks;
+      const a = getPlayRow(row.play_a_id), b = getPlayRow(row.play_b_id);
+      return sendJson(res, 200, {
+        ok: true, correct: pickId === row.winner_id, winnerId: row.winner_id,
+        split: { aPct: total ? Math.round((row.final_a_picks / total) * 100) : 0, bPct: total ? Math.round((row.final_b_picks / total) * 100) : 0 },
+        titles: { a: a ? a.title : "", b: b ? b.title : "" },
+      });
+    }
+
     // ---- Contest ----
     if (p === "/api/contest" && req.method === "GET") {
       const period = u.searchParams.get("period") || currentPeriod();
@@ -1358,7 +1627,7 @@ const server = http.createServer(async (req, res) => {
         // text_consent flag says whether texting is permitted at all.
         // The Upload Assist result (`ai`) rides the same owner-only
         // channel — it is a label for the queue, never public.
-        return { ...publicHighlight(r), review, ai, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
+        return { ...publicHighlight(r), review, ai, celebration_spotlight: !!r.celebration_spotlight, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -1438,6 +1707,26 @@ const server = http.createServer(async (req, res) => {
           athletes: db.prepare("SELECT COUNT(*) c FROM athletes").get().c,
         },
       });
+    }
+    // Round 100: Celebration Spotlight toggle (owner only). Setting
+    // it on one play clears every other play — a single active
+    // spotlight by construction. Approved non-sample plays only.
+    const celebMatch = p.match(/^\/api\/highlights\/(\d+)\/celebration$/);
+    if (celebMatch && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id = Number(celebMatch[1]);
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (body.spotlight) {
+        if (row.status !== "approved" || row.is_sample) return sendJson(res, 400, { ok: false, message: "Only an approved, non-sample play can hold the Celebration Spotlight." });
+        db.prepare("UPDATE highlights SET celebration_spotlight=0").run();
+        db.prepare("UPDATE highlights SET celebration_spotlight=1 WHERE id=?").run(id);
+      } else {
+        db.prepare("UPDATE highlights SET celebration_spotlight=0 WHERE id=?").run(id);
+      }
+      const current = db.prepare("SELECT id FROM highlights WHERE celebration_spotlight=1").get();
+      return sendJson(res, 200, { ok: true, spotlightId: current ? current.id : null });
     }
     const statusMatch = p.match(/^\/api\/highlights\/(\d+)\/status$/);
     if (statusMatch && req.method === "POST") {

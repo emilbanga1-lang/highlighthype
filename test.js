@@ -36,7 +36,7 @@ try {
   pub = await j("/api/highlights"); assert(pub.body.highlights.length === 1, "approved play is public");
   // 3b. Public shape is an explicit allowlist (hardening): every field the
   // client uses is present, and NO internal pre-review JSON leaks.
-  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "voteCount", "hasVoted"];
+  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "badges", "voteCount", "hasVoted"];
   const pubKeys = Object.keys(pub.body.highlights[0]);
   assert(ALLOW.every((k) => pubKeys.includes(k)), "public play carries every allowlisted field the client uses");
   assert(pubKeys.every((k) => ALLOW.includes(k)), "public play carries NOTHING outside the allowlist");
@@ -291,6 +291,170 @@ try {
     st = await j4("/api/owner/stats", { headers: { "x-owner-token": tok4 } });
     assert(st.body.views.allTime <= 5 + 300, "rate-limited events never reach the counters");
   } finally { child4.kill(); fs.rmSync(tmp4, { recursive: true, force: true }); }
+  // 8d. Round 100 — Daily Battle, play badges, Hawks Founding
+  // Plays, Celebration Spotlight, Battle Run. Runs on its OWN
+  // scratch servers so the main suite's upload budget (section 9)
+  // is untouched.
+  {
+    const startSrv100 = async (port, dir) => {
+      const ch = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(port), DATA_DIR: dir, AI_VISION_API_KEY: "" }, stdio: "pipe" });
+      for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${port}/api/health`); break; } catch { await wait(200); } }
+      return ch;
+    };
+    const mkJ100 = (port) => async (p, opts = {}) => { const r = await fetch(`http://localhost:${port}` + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+    const etDay100 = (offset) => {
+      const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+      const g = (t) => (parts.find((x) => x.type === t) || {}).value;
+      const d = new Date(`${g("year")}-${g("month")}-${g("day")}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + offset);
+      return d.toISOString().slice(0, 10);
+    };
+    const up100 = async (jj, tok, fields, sample) => {
+      const c = await jj("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true", ...fields }) });
+      assert(c.status === 201, `r100 upload: ${fields.title}`);
+      const st = await jj(`/api/highlights/${c.body.id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify(sample ? { status: "approved", sample: true } : { status: "approved" }) });
+      assert(st.body.ok, `r100 approve: ${fields.title}`);
+      return c.body.id;
+    };
+
+    // ---- Server A: practice daily, badges, Hawks, spotlight, setter ----
+    const tmpA = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r100a-"));
+    const childA = await startSrv100(3471, tmpA);
+    try {
+      const jA = mkJ100(3471);
+      const tokA = (await jA("/api/owner/claim", { method: "POST" })).body.token;
+      assert(tokA, "r100 A: owner claim");
+      const s1 = await up100(jA, tokA, { title: "Sample One", sport: "basketball", division: "boys", playerName: "Demo A" }, true);
+      const s2 = await up100(jA, tokA, { title: "Sample Two", sport: "basketball", division: "boys", playerName: "Demo B" }, true);
+      // Practice daily: only samples approved -> sample matchup.
+      let d = await jA("/api/daily-battle");
+      assert(d.body.available === true && d.body.practice === true, "r100: daily auto-picks a PRACTICE matchup from the sample pool");
+      assert(!("split" in d.body) && !d.body.yourPick, "r100: no split and no pick before picking (anonymous read)");
+      d = await jA("/api/daily-battle?voterToken=dp1");
+      assert(d.body.yourPick === null && !("split" in d.body), "r100: split stays hidden for a voter who has not picked");
+      let pk = await jA("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "dp1", pickId: s1 }) });
+      assert(pk.body.yourPick === s1 && pk.body.split && pk.body.split.total === 1 && pk.body.split.aPct + pk.body.split.bPct === 100, "r100: split reveals after picking");
+      pk = await jA("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "dp1", pickId: s2 }) });
+      assert(pk.body.yourPick === s1 && pk.body.split.total === 1, "r100: a daily pick is LOCKED — a second post cannot change it");
+      let pubA = await jA("/api/highlights");
+      assert(pubA.body.highlights.find((h) => h.id === s1).voteCount === 0, "r100: practice picks cast NO votes");
+      assert(pubA.body.highlights.every((h) => Array.isArray(h.badges) && h.badges.length === 0), "r100: sample plays never carry badges");
+      // Real plays: one athlete (Sam) x3 + a lowercase-Hawks play.
+      const sam = { playerName: "Sam", notifyEmail: "sam@example.com", team: "Plainview Hawks" };
+      const r1 = await up100(jA, tokA, { title: "Real Alpha", sport: "baseball", division: "boys", ...sam });
+      const r2 = await up100(jA, tokA, { title: "Real Beta", sport: "baseball", division: "boys", ...sam });
+      const r3 = await up100(jA, tokA, { title: "Real Gamma", sport: "soccer", division: "boys", ...sam });
+      const h2 = await up100(jA, tokA, { title: "Hawks Two", sport: "football", division: "boys", playerName: "Pat", notifyEmail: "pat@example.com", team: "plainview hawks" });
+      const pend = await jA("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Still Pending", sport: "golf", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
+      pubA = await jA("/api/highlights");
+      const byId = Object.fromEntries(pubA.body.highlights.map((h) => [h.id, h]));
+      assert(byId[r1].badges.includes("first_hype"), "r100: the athlete's earliest real play carries First Hype");
+      assert(!byId[r2].badges.includes("first_hype") && !byId[r3].badges.includes("first_hype"), "r100: later plays for the same athlete do NOT carry First Hype");
+      assert(byId[h2].badges.includes("first_hype"), "r100: a different athlete's first play carries its own First Hype");
+      assert(pubA.body.hawksFounding && pubA.body.hawksFounding.count === 4 && pubA.body.hawksFounding.goal === 10, "r100: Hawks founding count = approved non-sample Hawks plays (case-insensitive team match)");
+      // Owner setter: auth, locked day, valid set, invalid sets.
+      let os = await jA("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ date: etDay100(1), playAId: r1, playBId: r2 }) });
+      assert(os.status === 403, "r100: owner daily setter requires the owner token");
+      os = await jA("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ date: etDay100(0), playAId: r1, playBId: r2 }) });
+      assert(os.status === 400, "r100: today's matchup is locked once it has picks");
+      os = await jA("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ date: etDay100(1), playAId: r1, playBId: r2 }) });
+      assert(os.body.ok === true && os.body.practice === false, "r100: owner sets tomorrow's REAL matchup");
+      os = await jA("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ date: etDay100(2), playAId: r1, playBId: r1 }) });
+      assert(os.status === 400, "r100: owner setter refuses the same play twice");
+      os = await jA("/api/owner/daily-battle", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ date: etDay100(2), playAId: r1, playBId: pend.body.id }) });
+      assert(os.status === 400, "r100: owner setter refuses a play that is not approved");
+      // Celebration spotlight.
+      let ce = await jA(`/api/highlights/${r1}/celebration`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spotlight: true }) });
+      assert(ce.status === 403, "r100: celebration toggle requires the owner token");
+      ce = await jA(`/api/highlights/${s1}/celebration`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ spotlight: true }) });
+      assert(ce.status === 400, "r100: a sample play cannot hold the Celebration Spotlight");
+      ce = await jA(`/api/highlights/${r1}/celebration`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ spotlight: true }) });
+      assert(ce.body.ok && ce.body.spotlightId === r1, "r100: spotlight set on a real play");
+      pubA = await jA("/api/highlights");
+      assert(pubA.body.highlights.find((h) => h.id === r1).badges.includes("best_celebration"), "r100: spotlight shows as the Best Celebration badge");
+      ce = await jA(`/api/highlights/${r2}/celebration`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokA }, body: JSON.stringify({ spotlight: true }) });
+      assert(ce.body.spotlightId === r2, "r100: setting a new spotlight clears the old one");
+      pubA = await jA("/api/highlights");
+      assert(!pubA.body.highlights.find((h) => h.id === r1).badges.includes("best_celebration") && pubA.body.highlights.find((h) => h.id === r2).badges.includes("best_celebration"), "r100: exactly one play holds the spotlight");
+    } finally { childA.kill(); fs.rmSync(tmpA, { recursive: true, force: true }); }
+
+    // ---- Server B: real daily vote, finalization, Battle Run ----
+    const tmpB = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r100b-"));
+    let childB = await startSrv100(3472, tmpB);
+    const jB = mkJ100(3472);
+    const tokB = (await jB("/api/owner/claim", { method: "POST" })).body.token;
+    const pair = async (sport, t1, t2, who) => [await up100(jB, tokB, { title: t1, sport, division: "boys", playerName: who, notifyEmail: `${who.toLowerCase()}@example.com` }), await up100(jB, tokB, { title: t2, sport, division: "boys", playerName: who, notifyEmail: `${who.toLowerCase()}@example.com` })];
+    const [A1, A2] = await pair("baseball", "A One", "A Two", "Al");
+    const [B1, B2] = await pair("soccer", "B One", "B Two", "Bo");
+    const [C1, C2] = await pair("football", "C One", "C Two", "Cy");
+    const [D1, D2] = await pair("hockey", "D One", "D Two", "Di");
+    const [E1, E2] = await pair("tennis", "E One", "E Two", "Ed");
+    const [G1, G2] = await pair("lacrosse", "G One", "G Two", "Gil");
+    const solo = await up100(jB, tokB, { title: "Solo Play", sport: "golf", division: "boys", playerName: "Sol", notifyEmail: "sol@example.com" });
+    // Today's daily is the first real same-sport pair (A baseball).
+    await jB("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: A1 }) });
+    let dB = await jB("/api/daily-battle?voterToken=rb1");
+    assert(dB.body.available && dB.body.practice === false && dB.body.a.id === A1 && dB.body.b.id === A2, "r100: today's daily auto-picks the first real same-sport pair");
+    let pkB = await jB("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "rb1", pickId: A1 }) });
+    assert(pkB.body.yourPick === A1 && pkB.body.split.total === 1, "r100: real daily pick lands and reveals the split");
+    let contestB = await jB("/api/contest?voterToken=rb1");
+    const entryA1 = contestB.body.entries.find((e) => e.id === A1);
+    assert(entryA1 && entryA1.voteCount === 1 && entryA1.hasVoted === true, "r100: a real daily pick casts a normal vote for a contest entry");
+    pkB = await jB("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "rb1", pickId: A2 }) });
+    assert(pkB.body.yourPick === A1, "r100: real daily pick is locked too");
+    let run = await jB("/api/battle-run?voterToken=rb2");
+    assert(run.body.available === false && run.body.finalizedCount === 0, "r100: Battle Run locked with no finalized matchups");
+    childB.kill();
+    await wait(600);
+    // Surgery: five finalized decisive dailies + one unfinalized past
+    // daily (lazy finalization must close it on the next read).
+    const dbB = new DatabaseSync(path.join(tmpB, "highlighthype.db"));
+    dbB.exec("PRAGMA busy_timeout=5000");
+    const insD = dbB.prepare("INSERT INTO daily_battles(date,play_a_id,play_b_id,practice,finalized,winner_id,final_a_picks,final_b_picks) VALUES(?,?,?,0,?,?,?,?)");
+    const insP = dbB.prepare("INSERT INTO daily_battle_picks(daily_id,voter_token,pick_id) VALUES(?,?,?)");
+    const seed = (off, a, b, fin, winner, fa, fb, picks) => {
+      const info = insD.run(etDay100(off), a, b, fin, winner, fa, fb);
+      const did = Number(info.lastInsertRowid);
+      for (const [vt, pid] of picks) insP.run(did, vt, pid);
+      return did;
+    };
+    const dA = seed(-6, A1, A2, 1, A1, 3, 1, [["rb1", A1], ["x1", A1], ["x2", A1], ["x3", A2]]);
+    seed(-5, B1, B2, 1, B1, 2, 0, [["y1", B1], ["y2", B1]]);
+    seed(-4, C1, C2, 1, C2, 1, 4, [["z1", C1], ["z2", C2], ["z3", C2], ["z4", C2], ["z5", C2]]);
+    seed(-3, D1, D2, 1, D1, 4, 2, [["w1", D1], ["w2", D1], ["w3", D1], ["w4", D1], ["w5", D2], ["w6", D2]]);
+    const dE = seed(-2, E1, E2, 1, E2, 1, 3, [["v1", E1], ["v2", E2], ["v3", E2], ["v4", E2]]);
+    seed(-1, G1, G2, 0, null, 0, 0, [["u1", G1], ["u2", G1], ["u3", G2]]);
+    dbB.close();
+    childB = await startSrv100(3472, tmpB);
+    try {
+      run = await jB("/api/battle-run?voterToken=rb2");
+      assert(run.body.finalizedCount === 6, "r100: lazy finalization closed yesterday's daily (6 decisive finals)");
+      assert(run.body.available === true && run.body.matchups.length === 5, "r100: Battle Run available with 5 eligible matchups");
+      assert(run.body.matchups.every((m) => !("winnerId" in m) && !("split" in m)), "r100: Battle Run matchups leak NO winner or split before picking");
+      run = await jB("/api/battle-run?voterToken=rb1");
+      assert(run.body.available === true && run.body.matchups.every((m) => m.dailyId !== dA), "r100: a matchup the voter played live is excluded from their run");
+      let rp = await jB("/api/battle-run/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dailyId: dE, pickId: E1 }) });
+      assert(rp.body.correct === false && rp.body.winnerId === E2 && rp.body.split.aPct === 25 && rp.body.split.bPct === 75, "r100: run pick reveals the winner + final split (wrong pick)");
+      rp = await jB("/api/battle-run/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dailyId: dE, pickId: E2 }) });
+      assert(rp.body.correct === true, "r100: run pick scores a correct prediction");
+      const tr = async (evt) => { const r = await fetch("http://localhost:3472/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(evt) }); return r.status; };
+      assert((await tr({ kind: "battle_run_pick", key: String(dE) })) === 200, "r100: track accepts battle_run_pick");
+      assert((await tr({ kind: "battle_run_complete", key: "4" })) === 200, "r100: track accepts battle_run_complete");
+      assert((await tr({ kind: "battle_run_complete", key: "9" })) === 400, "r100: track refuses an out-of-range run score");
+      assert((await tr({ kind: "battle_run_pick", key: "999999" })) === 400, "r100: track refuses a run pick for an unknown daily");
+      const pubB = await jB("/api/highlights");
+      const byIdB = Object.fromEntries(pubB.body.highlights.map((h) => [h.id, h]));
+      assert(byIdB[A1].badges.includes("battle_tested") && byIdB[G2].badges.includes("battle_tested"), "r100: plays from finalized real dailies carry Battle Tested");
+      assert(!byIdB[solo].badges.includes("battle_tested") && byIdB[solo].badges.includes("first_hype"), "r100: a play in no daily has no Battle Tested (but keeps First Hype)");
+    } finally { childB.kill(); fs.rmSync(tmpB, { recursive: true, force: true }); }
+
+    // Client wiring for the whole round.
+    const home100 = await (await fetch(base + "/")).text();
+    assert(home100.includes('id="dailyCard"') && home100.includes('id="runCard"') && home100.includes('id="hawksCard"') && home100.includes('id="ownerDaily"') && home100.includes('id="odSave"'), "r100: homepage carries the Daily/Run/Hawks cards + owner Daily setter");
+    const app100 = await (await fetch(base + "/app.js")).text();
+    assert(app100.includes("/api/daily-battle") && app100.includes("/api/battle-run/pick") && app100.includes("drawRunCard100") && app100.includes("matched the crowd") && app100.includes("renderHawks100"), "r100: app.js wires the daily, the run, the share card and the Hawks card");
+  }
+
   // 8c. Upload Assist (Round 99): this server runs with an empty
   // AI_VISION_API_KEY, i.e. the assist is OFF — the endpoint must
   // answer {configured:false}, still validate frame shape and the
