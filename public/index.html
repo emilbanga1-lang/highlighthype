@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=97" />
+<link rel="stylesheet" href="styles.css?v=98" />
 </head>
 <body>
 
@@ -182,12 +182,11 @@
       </div>
     </div>
 
-    <div class="seg month-subseg" id="monthSubSeg" role="group" aria-label="Hype of the Month — this month or all-time" hidden>
-      <button type="button" data-msub="month" aria-pressed="true">This month</button>
-      <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
-    </div>
-
     <div id="viewMonth">
+      <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
+        <button type="button" data-msub="month" aria-pressed="true">This month</button>
+        <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
+      </div>
       <!-- Round 9 (2026-11-05): last month's winner strip — filled by
            renderMonth from the previous period's contest ONLY when a
            winner was actually crowned; stays hidden (empty) until
@@ -209,6 +208,10 @@
     </div>
 
     <div id="viewFame" hidden>
+      <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
+        <button type="button" data-msub="month" aria-pressed="true">This month</button>
+        <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
+      </div>
       <div class="fame-list" id="fameList" aria-label="Hall of Fame — Top 10, ranked by all-time votes"></div>
       <p class="board-note">The Hall of Fame is the Top 10 of all time, ranked by all-time votes. The list fills in as more plays are posted.</p>
     </div>
@@ -1141,6 +1144,6 @@
   </div>
 </div>
 
-<script src="app.js?v=97"></script>
+<script src="app.js?v=98"></script>
 </body>
 </html>

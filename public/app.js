@@ -1022,7 +1022,7 @@ function switchView(v) {
   $("#viewMonth").hidden = v !== "month" || fame;
   $("#viewFame").hidden = !fame;
   $("#viewAll").hidden = v !== "all";
-  const subSeg94 = $("#monthSubSeg"); if (subSeg94) { subSeg94.hidden = v !== "month"; $$("#monthSubSeg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.msub === monthSub))); }
+  $$(".month-subseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.msub === monthSub)));
   const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = !(v === "month" && !fame);
   const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
@@ -1034,7 +1034,7 @@ function switchView(v) {
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
-$$("#monthSubSeg button").forEach((b) => b.addEventListener("click", () => setMonthSub(b.dataset.msub)));
+$$(".month-subseg button").forEach((b) => b.addEventListener("click", () => setMonthSub(b.dataset.msub)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
    flips from display:none and its images keep loading in, which can
    cancel or strand a lone smooth scroll — the usability audit caught
@@ -2506,7 +2506,8 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
 $$("#sportPills .sp-pill").forEach((b) => {
   b.onclick = () => {
     const sp = b.dataset.sp;
-    if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
+    if (currentView === "month" && monthSub === "fame") { allSport = sp; syncFilterUI(); switchView("all"); renderAll2(); }
+    else if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
     else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
   };
 });
@@ -2861,4 +2862,18 @@ function initBattles() {
   if (typeof applyDefaultView !== "function") return;
   const prevAD = applyDefaultView;
   applyDefaultView = function () { prevAD(); monthSub = "fame"; switchView("month"); };
+})();
+
+/* Round 95 (2026-11-10): the trust strip moves below the deck on
+   narrow screens by relocating the node — Round 94's body grid made
+   Emil's phone squeeze the whole page. Desktop keeps the original
+   spot; sub-pages hide .view-home wherever it sits. */
+(function trustMove95() {
+  const trust = document.querySelector(".trust");
+  const deck = document.getElementById("deck");
+  if (!trust || !deck || !deck.parentNode) return;
+  const mq = window.matchMedia("(max-width:1023px)");
+  const place = () => { if (mq.matches) deck.after(trust); else deck.before(trust); };
+  place();
+  if (mq.addEventListener) mq.addEventListener("change", place);
 })();
