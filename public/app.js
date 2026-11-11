@@ -2558,7 +2558,7 @@ $$("#sportPills .sp-pill").forEach((b) => {
     else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
   };
 });
-window.openGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = false; };
+window.openGuidelines = () => { const m = $("#guidelinesModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeGuidelines(); });
 window.closeGuidelines = () => { const m = $("#guidelinesModal"); if (m) m.hidden = true; };
 
@@ -3097,7 +3097,7 @@ function initBattles() {
    share card (story 1080x1920 + feed 1080x1350) for Instagram /
    TikTok. Appended at the end of app.js per the sandbox-slice rule;
    every lookup is guarded. */
-const d100 = { daily: null, dailyWatch: "A", run: null, runState: null, scrollDaily: false };
+const d100 = { daily: null, dailyWatch: "A", dailyCollapsed: false, dailyJustPicked: false, dailyCollapseTimer: null, run: null, runState: null, scrollDaily: false };
 try { d100.scrollDaily = new URLSearchParams(location.search).get("daily") === "1"; } catch { /* no deep link */ }
 function etTodayClient100() {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
@@ -3139,6 +3139,28 @@ function splitHtml100(split, a, b, yourPickId) {
 }
 
 /* ---- Daily Battle ---- */
+function pauseDailyPlayer100() {
+  const player = document.getElementById("dailyPlayer");
+  if (!player) return;
+  try { player.pause(); } catch { /* an unloaded player is already stopped */ }
+}
+function setDailyCollapsed100(collapsed) {
+  const main = document.getElementById("dailyMain"), strip = document.getElementById("dailyStrip");
+  if (!main || !strip) return;
+  d100.dailyCollapsed = !!collapsed;
+  if (collapsed) pauseDailyPlayer100();
+  main.hidden = !!collapsed;
+  strip.hidden = !collapsed;
+  strip.setAttribute("aria-expanded", collapsed ? "false" : "true");
+}
+function expandDaily100() {
+  const r = d100.daily;
+  if (!r || !r.available || !r.yourPick) return;
+  if (d100.dailyCollapseTimer) { clearTimeout(d100.dailyCollapseTimer); d100.dailyCollapseTimer = null; }
+  setDailyCollapsed100(false);
+  const slot = d100.dailyWatch === "B" ? "B" : "A";
+  d100Watch("daily", slot, slot === "A" ? r.a : r.b);
+}
 async function loadDaily100() {
   const card = document.getElementById("dailyCard");
   if (!card) return;
@@ -3147,9 +3169,11 @@ async function loadDaily100() {
   d100.daily = r;
   const main = document.getElementById("dailyMain"), empty = document.getElementById("dailyEmpty");
   const practice = document.getElementById("dailyPractice"), dateEl = document.getElementById("dailyDate");
-  if (!r || !r.available) { if (main) main.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
+  const strip = document.getElementById("dailyStrip"), stripPick = document.getElementById("dailyStripPick"), stripSplit = document.getElementById("dailyStripSplit");
+  if (!r || !r.available) { d100.dailyCollapsed = false; if (main) main.hidden = true; if (strip) strip.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
   if (empty) empty.hidden = true;
   if (main) main.hidden = false;
+  if (strip) strip.hidden = true;
   if (practice) practice.hidden = !r.practice;
   if (dateEl) dateEl.textContent = r.date;
   d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); });
@@ -3161,13 +3185,21 @@ async function loadDaily100() {
     const pickedMini = document.getElementById("dailyMini" + (r.yourPick === r.a.id ? "A" : "B"));
     if (pickedMini) pickedMini.classList.add("picked");
     if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick); split.hidden = false; }
+    const pickedPlay = r.yourPick === r.a.id ? r.a : r.b;
+    if (stripPick) stripPick.textContent = pickedPlay.title;
+    if (stripSplit && r.split) stripSplit.innerHTML = splitHtml100(r.split, r.a, r.b, null);
+    setDailyCollapsed100(!d100.dailyJustPicked);
   } else {
+    d100.dailyCollapsed = false;
     if (pickA) { pickA.disabled = false; pickA.textContent = "👑 Pick this play"; }
     if (pickB) { pickB.disabled = false; pickB.textContent = "👑 Pick this play"; }
     if (split) { split.hidden = true; split.innerHTML = ""; }
+    if (stripPick) stripPick.textContent = "";
+    if (stripSplit) stripSplit.innerHTML = "";
+    if (strip) strip.hidden = true;
   }
   const player = document.getElementById("dailyPlayer");
-  if (player && !player.getAttribute("src")) d100Watch("daily", "A", r.a);
+  if (!d100.dailyCollapsed && player && !player.getAttribute("src")) d100Watch("daily", "A", r.a);
   if (d100.scrollDaily) {
     d100.scrollDaily = false;
     card.classList.add("daily-flash");
@@ -3184,7 +3216,14 @@ async function dailyPick100(slot) {
   try {
     const out = await api("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken, pickId }) });
     d100.daily = out;
-    loadDaily100();
+    d100.dailyJustPicked = true;
+    await loadDaily100();
+    d100.dailyJustPicked = false;
+    if (d100.dailyCollapseTimer) clearTimeout(d100.dailyCollapseTimer);
+    d100.dailyCollapseTimer = setTimeout(() => {
+      d100.dailyCollapseTimer = null;
+      if (d100.daily && d100.daily.yourPick) setDailyCollapsed100(true);
+    }, 1600);
     if (!r.practice) { try { await loadData(); } catch { /* board refresh is a bonus */ } }
   } catch {
     if (pickA) pickA.disabled = false;
@@ -3196,8 +3235,7 @@ async function dailyShare100() {
   const text = "Which Play Wins? Vote in today's Daily Battle 👑";
   if (navigator.share) { try { await navigator.share({ title: "HighlightHype Daily Battle", text, url }); return; } catch { /* fall through to copy */ } }
   await copyText100(`${text} ${url}`);
-  const btn = document.getElementById("dailyShare");
-  if (btn) { const old = btn.textContent; btn.textContent = "Link copied ✓"; setTimeout(() => { btn.textContent = old; }, 2200); }
+  document.querySelectorAll("#dailyShare,#dailyStripShare").forEach((btn) => { const old = btn.textContent; btn.textContent = "Link copied ✓"; setTimeout(() => { btn.textContent = old; }, 2200); });
 }
 
 /* ---- Hawks Founding Plays ---- */
@@ -3439,6 +3477,12 @@ async function ownerDailySave100() {
   bind("dailyPickA", "click", () => dailyPick100("A"));
   bind("dailyPickB", "click", () => dailyPick100("B"));
   bind("dailyShare", "click", dailyShare100);
+  bind("dailyStripShare", "click", dailyShare100);
+  const dailyStrip = document.getElementById("dailyStrip");
+  if (dailyStrip) {
+    dailyStrip.addEventListener("click", (e) => { if (!e.target.closest("button")) expandDaily100(); });
+    dailyStrip.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); expandDaily100(); } });
+  }
   bind("runStart", "click", runStart100);
   bind("runPickA", "click", () => runPick100("A"));
   bind("runPickB", "click", () => runPick100("B"));

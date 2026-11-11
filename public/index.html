@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=103" />
+<link rel="stylesheet" href="styles.css?v=104" />
 </head>
 <body>
 
@@ -234,6 +234,11 @@
           </div>
           <div class="daily-split" id="dailySplit" hidden></div>
           <p class="daily-share-row"><button type="button" class="mini-btn" id="dailyShare">🔗 Share this matchup</button></p>
+        </div>
+        <div class="daily-strip" id="dailyStrip" hidden role="button" tabindex="0" aria-expanded="false" aria-controls="dailyMain" aria-label="Show the full Daily Battle card">
+          <p class="daily-strip-pick"><span>Your pick: <b id="dailyStripPick"></b></span><span class="daily-strip-open">Tap to view</span></p>
+          <div class="daily-strip-split" id="dailyStripSplit"></div>
+          <p class="daily-strip-share"><button type="button" class="mini-btn" id="dailyStripShare">🔗 Share this matchup</button></p>
         </div>
         <p class="btl-empty" id="dailyEmpty" hidden>Today's matchup is on its way — check back in a bit.</p>
       </div>
@@ -1244,6 +1249,6 @@
   </div>
 </div>
 
-<script src="app.js?v=103"></script>
+<script src="app.js?v=104"></script>
 </body>
 </html>

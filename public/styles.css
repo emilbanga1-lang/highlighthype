@@ -2324,6 +2324,12 @@ html,body{overflow-x:hidden;overflow-x:clip}
 .split-bar .split-a{background:linear-gradient(90deg,var(--gold),#c9932b);height:100%}
 .split-line{text-align:center;color:var(--ink);font-size:13.5px;margin-top:8px;line-height:1.5}
 .daily-share-row{text-align:center;margin-top:12px}
+.daily-strip{margin-top:12px;border:1px solid rgba(240,185,62,.45);border-radius:12px;background:rgba(240,185,62,.07);padding:11px 12px;cursor:pointer}
+.daily-strip[hidden]{display:none}
+.daily-strip-pick{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;color:var(--ink);font-size:14px}
+.daily-strip-open{flex:0 0 auto;color:var(--gold);font-size:12px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.daily-strip-split .split-line{margin-top:6px}
+.daily-strip-share{text-align:center;margin:10px 0 0}
 .daily-flash{animation:dailyFlash100 1.6s ease-out}
 @keyframes dailyFlash100{0%{box-shadow:0 0 0 0 rgba(240,185,62,.55)}100%{box-shadow:0 0 0 18px rgba(240,185,62,0)}}
 .run-score{text-align:center;font-size:24px;font-weight:900;color:var(--gold);margin-top:12px}
