@@ -2864,16 +2864,3 @@ function initBattles() {
   applyDefaultView = function () { prevAD(); monthSub = "fame"; switchView("month"); };
 })();
 
-/* Round 95 (2026-11-10): the trust strip moves below the deck on
-   narrow screens by relocating the node — Round 94's body grid made
-   Emil's phone squeeze the whole page. Desktop keeps the original
-   spot; sub-pages hide .view-home wherever it sits. */
-(function trustMove95() {
-  const trust = document.querySelector(".trust");
-  const deck = document.getElementById("deck");
-  if (!trust || !deck || !deck.parentNode) return;
-  const mq = window.matchMedia("(max-width:1023px)");
-  const place = () => { if (mq.matches) deck.after(trust); else deck.before(trust); };
-  place();
-  if (mq.addEventListener) mq.addEventListener("change", place);
-})();

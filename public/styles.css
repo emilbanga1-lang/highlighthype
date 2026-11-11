@@ -2289,3 +2289,9 @@
   #allCount{display:none}
   #viewAll .board-tools{margin:2px 0 0;min-height:0}
 }
+
+/* Round 96 (2026-11-10): the document ran 42px wider than the phone
+   (the board crest's off-canvas bleed), so the page panned a little
+   sideways while scrolling. Clip horizontal overflow at the root —
+   the bleed was never visible, only scrollable. */
+html,body{overflow-x:hidden;overflow-x:clip}
