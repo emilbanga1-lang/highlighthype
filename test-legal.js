@@ -23,7 +23,7 @@ try {
 
   const terms = await get("/terms");
   assert(terms.status === 200, "/terms loads");
-  for (const marker of ["Terms of Use", "Hype of the Month", "7 days", "never for sale", "Last updated: November 2026", "hello@highlighthype.com"])
+  for (const marker of ["Terms of Use", "Hype of the Month", "7 days", "never for sale", "Last updated: November 2026", "hello@highlighthype.com", "still images taken from it", "never sell a child's imagery"])
     assert(terms.text.includes(marker), `/terms contains: ${marker}`);
   assert(!terms.text.includes("guardian_phone") && !terms.text.includes("text_consent"), "/terms contains no private field internals");
 
