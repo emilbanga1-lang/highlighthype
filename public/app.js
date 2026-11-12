@@ -2911,7 +2911,9 @@ function btlMiniHTML(slot) {
      lights the pale outline — watching no longer borrows the gold
      outline, which is reserved for the pick. Round 104: the mini's
      own Now watching tag is gone — the big player's banner is the
-     single watching marker (the testers saw it said twice). */
+     single watching marker (the testers saw it said twice).
+     Round 117: the Quick player's banner is retired too — the
+     .watching outline alone marks the clip in the big player. */
   const letter = slot === "L" ? "A" : "B";
   return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
     <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
@@ -2972,9 +2974,15 @@ function btlWatch(slot, keepPaused) {
   const miniL = document.getElementById("btlMiniL"), miniR = document.getElementById("btlMiniR");
   if (miniL) miniL.classList.toggle("watching", slot === "L");
   if (miniR) miniR.classList.toggle("watching", slot === "R");
-  if (player.getAttribute("src") !== p.media_url) { player.src = p.media_url; player.load(); }
-  const label = document.getElementById("btlNowLabel");
-  if (label) label.textContent = "Now watching: " + p.title + (typeof crownSuffix105 === "function" ? crownSuffix105(p) : "");
+  /* Round 117: if the element already carries this clip's src but
+     sits in a media error state (a failed fetch leaves error set and
+     a same-src tap would otherwise change nothing), force a fresh
+     load — a tap must always be able to recover the player. */
+  if (player.getAttribute("src") !== p.media_url || player.error) { player.src = p.media_url; player.load(); }
+  /* Round 117: the "Now watching" banner is retired on the Quick
+     player — it repeated the mini card's title a second time. The
+     tapped mini's gold .watching outline is the marker now. (The
+     Daily and Battle Run players keep their banners via d100Watch.) */
   if (!keepPaused) { try { player.play(); } catch { /* autoplay refusal is fine */ } }
 }
 function btlNewChallenger() {
