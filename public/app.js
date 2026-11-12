@@ -3355,6 +3355,11 @@ function setDailyCollapsed100(collapsed) {
   main.hidden = !!collapsed;
   strip.hidden = !collapsed;
   strip.setAttribute("aria-expanded", collapsed ? "false" : "true");
+  /* Round 112: the collapsed state now folds the WHOLE card — the
+     slim class hides the header stack + the strip's button row via
+     CSS (styles.css Round 112 block); DOM and handlers unchanged. */
+  const card = document.getElementById("dailyCard");
+  if (card) card.classList.toggle("daily-slim112", !!collapsed);
 }
 function expandDaily100() {
   const r = d100.daily;
@@ -3373,7 +3378,7 @@ async function loadDaily100() {
   const main = document.getElementById("dailyMain"), empty = document.getElementById("dailyEmpty");
   const practice = document.getElementById("dailyPractice"), dateEl = document.getElementById("dailyDate");
   const strip = document.getElementById("dailyStrip"), stripPick = document.getElementById("dailyStripPick"), stripSplit = document.getElementById("dailyStripSplit");
-  if (!r || !r.available) { d100.dailyCollapsed = false; if (main) main.hidden = true; if (strip) strip.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
+  if (!r || !r.available) { d100.dailyCollapsed = false; if (card) card.classList.remove("daily-slim112"); if (main) main.hidden = true; if (strip) strip.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
   if (empty) empty.hidden = true;
   if (main) main.hidden = false;
   if (strip) strip.hidden = true;
@@ -3396,6 +3401,7 @@ async function loadDaily100() {
     setDailyCollapsed100(!d100.dailyJustPicked);
   } else {
     d100.dailyCollapsed = false;
+    if (card) card.classList.remove("daily-slim112");
     if (pickA) { pickA.disabled = false; pickA.textContent = "Pick A"; }
     if (pickB) { pickB.disabled = false; pickB.textContent = "Pick B"; }
     if (anotherRow) anotherRow.hidden = true;
