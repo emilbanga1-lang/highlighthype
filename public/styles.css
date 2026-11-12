@@ -2810,3 +2810,26 @@ footer{padding-top:12px;padding-bottom:44px}
 .btl-player.is-vertical > video:not(.vfill){object-fit:contain;position:relative;z-index:1}
 .btl-player .vfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
 .btl-player.is-vertical .btl-now{z-index:2}
+
+/* ================================================================
+   Round 114 (2026-11-12): header brand match — Emil: "make the
+   logo the same as the bottom of the screen."
+   1. The header lockup is the footer's metallic gold master art
+      (index.html now loads /logo-header-gold.png: the crest and
+      wordmark extracted from /logo-lockup-gold.jpg by
+      black-unmultiply and recomposed horizontally at the old flat
+      lockup's 5.37:1 aspect, so every header height/width Emil has
+      approved — 30px mobile, 76px desktop — renders the same box;
+      only the art changed, flat silver -> metallic gold). The
+      footer's stacked master itself is untouched.
+   2. The hamburger loses its bordered box — Emil flagged the box
+      against the old header. The base .menu-btn rule stays (tests
+      pin its margin-left:auto push to the right edge); this block
+      only strips the paint: transparent border + background, no
+      backdrop blur. The button box is unchanged (44x44 tap target,
+      same menu behavior), and a soft text-shadow keeps the plain
+      glyph legible where the header floats over bright store film.
+      Hover keeps a faint wash so the control still answers.
+   ================================================================ */
+.menu-btn{border-color:transparent;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;text-shadow:0 1px 5px rgba(0,0,0,.55)}
+.menu-btn:hover{border-color:transparent;background:rgba(255,255,255,.09)}
