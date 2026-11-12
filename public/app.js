@@ -308,12 +308,38 @@ function fillDurPill(host) {
    an already-filled pill writes the same text, and re-renders
    build fresh elements that this pass wires again. Called at the
    end of the board renders and the detail render. */
+/* Round 107 (2026-11-12): vertical-clip treatment for the feed.
+   A portrait clip in a 16:9 thumb used to be cropped to a sliver
+   by object-fit:cover. When a thumb's own metadata says portrait,
+   the host is marked .is-vertical and a blurred clone of the same
+   clip is parked behind it as the fill — CSS centers the real
+   clip, full height, over the blur (the approved mock's
+   treatment). The fill is decorative: muted, paused, aria-hidden,
+   and it never takes taps (the tap layer rides above it). */
+function markVertical107(host) {
+  const video = host.querySelector("video");
+  if (!video) return;
+  if (!(video.videoWidth > 0) || !(video.videoHeight > video.videoWidth)) return;
+  if (!host.classList || host.classList.contains("is-vertical")) return;
+  host.classList.add("is-vertical");
+  try {
+    const fill = video.cloneNode();
+    fill.classList.add("vfill");
+    fill.removeAttribute("autoplay");
+    fill.removeAttribute("controls");
+    fill.setAttribute("aria-hidden", "true");
+    fill.setAttribute("tabindex", "-1");
+    fill.muted = true;
+    host.insertBefore(fill, video);
+    if (typeof fill.pause === "function") fill.pause();
+  } catch (e) { /* the mark alone still centers the clip via CSS */ }
+}
 function hydrateDurPills() {
   $$(".dur-host").forEach((host) => {
     const video = host.querySelector("video");
     if (!video) return;
-    if (video.readyState >= 1) fillDurPill(host);
-    video.addEventListener("loadedmetadata", () => fillDurPill(host), { once: true });
+    if (video.readyState >= 1) { fillDurPill(host); markVertical107(host); }
+    video.addEventListener("loadedmetadata", () => { fillDurPill(host); markVertical107(host); }, { once: true });
   });
 }
 function firstNameOf(h) { const label = h.athlete_label || h.player_name || ""; return label.trim().split(/\s+/)[0] || ""; }
@@ -350,21 +376,32 @@ function tileInfoHtml(h, votes, voteLabel) {
   if (age) parts.push(age);
   return `<p class="tile-meta tile-info">${parts.join(" · ")}</p>`;
 }
+/* Round 107 (2026-11-12): the hybrid feed card. The tile is now a
+   big single-column feed card in the approved redesign: 16:9 media
+   (sample tag on the thumb, duration pill at bottom-left), title
+   with the ⋮ affordance, the merged info line, badges + crowns,
+   and a gold vote-count chip. Voting itself moved to the watch
+   view (the tile's old Vote pill is gone — the count still shows
+   here, and the full vote control is one tap away on the play's
+   watch page). Kept from the compact tile: the tap layer (Round 9),
+   the play disc element (Round 45 — restyled off in the feed by
+   Round 107 CSS), and the 📸 Frame chip (Round 32), so every
+   existing entry point still works from the card. */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
-  return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the full play card" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
+  return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
+    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
     <div class="tile-body">
       <div class="tile-toprow">
         <h3 class="tile-title">${esc(h.title)}</h3>
-        ${h.isSample ? `<span class="tile-demo-tag" title="Sample play — a demo, not in the contest">Demo</span>` : `<button type="button" class="votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted — tap to remove" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted ✓" : "Vote"}</button>`}
+        <span class="tile-dots" aria-hidden="true">⋮</span>
       </div>
       ${tileInfoHtml(h, votes, voteLabel)}
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
-      ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
       <div class="tile-votes">
+        <span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
         <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
       </div>
     </div>
@@ -737,7 +774,31 @@ $("#mineFind").addEventListener("submit", async (e) => {
       </div>`).join("");
   } catch (err) { box.innerHTML = `<p class="mine-find-msg">${esc(err.message)}</p>`; }
 });
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); }
+/* Round 107 (2026-11-12): the hybrid contest strip + the Month
+   panel's sub line — both filled from the live contest payload on
+   every render, with honest states only: no entries says so, no
+   votes says so, otherwise the current leader is named. The end
+   date comes from the contest period itself (last day of the
+   month), never a hard-coded day. */
+function updateContestStrip107() {
+  const entries = CONTEST.entries || [];
+  const total = entries.reduce((s, e) => s + (e.voteCount || 0), 0);
+  const state = !entries.length
+    ? "No entries yet this month — post a play and enter it here."
+    : !total
+      ? "No votes yet — every vote counts"
+      : (() => { const lead = entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0]; return `Leader: ${lead.title} · ${lead.voteCount} vote${lead.voteCount === 1 ? "" : "s"}`; })();
+  const [y, m] = (CONTEST.period || "").split("-").map(Number);
+  const label107 = CONTEST.monthLabel || (y && m ? `${MONTHS[m - 1]} ${y}` : "");
+  const t1 = $("#stripTitle"), t2 = $("#stripState"), ends = $("#stripEnds");
+  if (t1) t1.textContent = label107 ? `Hype of the Month — ${label107}` : "Hype of the Month";
+  if (t2) t2.textContent = state;
+  const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
+  if (ends) ends.textContent = endsTxt;
+  const ms = $("#monthSub107");
+  if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play, and once it's approved and entered it competes here." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
+}
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
   // owner's direction — control, option population and the team
@@ -787,15 +848,62 @@ let detailAutoplay = true;
 const detailPlayedIds = new Set();
 let detailEndedVideo = null;
 let detailEndedHandler = null;
+/* Round 107 (2026-11-12): the watch view. The play detail is no
+   longer the full board card in an overlay — it renders the
+   approved hybrid watch layout into the same #playDetail sheet
+   (restyled as a full page under the header by Round 107 CSS):
+   player first, title, sport · division · athlete line, crowns +
+   badges, the big gold Vote button with its count for real plays
+   (samples keep the Demo treatment — no live vote button), then
+   the Round 14/15 Up next queue with its Autoplay advance,
+   unchanged. The full card's working parts all survive the move:
+   the wrapper is still a .card[data-play-id], so the enter +
+   report message slots (ENTER_MSGS / REPORT_MSGS) paint exactly
+   where they did, and Enter / Share / Save clip / Report / owner
+   Mark winner ride in one slim actions row under the vote. The
+   full cardHtml card itself is untouched — athlete pages still
+   render it. */
+function watchHtml107(h, entry) {
+  const votes = h.voteCount;
+  const voteLabel = entry ? "this month" : "all-time";
+  const label = h.athlete_label || h.player_name || "";
+  const athleteBit = label
+    ? (h.athlete_id ? `<button type="button" class="athlete-link watch-athlete" onclick="openAthlete('${esc(h.athlete_id)}')">${esc(label)}</button>` : esc(label))
+    : "";
+  return `<article class="card watch-card" data-play-id="${h.id}">
+    <div class="watch-player">${mediaHtml(h)}</div>
+    <div class="watch-meta">
+      <h2 class="watch-title">${esc(h.title)}</h2>
+      <p class="watch-line"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}${athleteBit ? ` · ${athleteBit}` : ""}</p>
+      ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof crownsHtml105 === "function" ? crownsHtml105(h, true) : ""}
+      ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span> <span class="watch-demo">Demo</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
+      ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
+      ${entry && entry.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
+    </div>
+    <div class="watch-vote">
+      ${h.isSample ? "" : `<button type="button" class="votebtn watch-votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "👑 Vote for Hype of the Month"}</button>`}
+      <p class="watch-count"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</p>
+    </div>
+    <div class="card-actions watch-actions">
+      <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
+      ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+      <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
+      ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
+      <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
+      ${ownerToken() && entry ? `<button type="button" class="mini-btn" onclick="markWinner(${h.id})">Mark winner (owner)</button>` : ""}
+    </div>
+    <div class="card-msg" data-enter-msg${ENTER_MSGS.has(h.id) ? "" : " hidden"}>${ENTER_MSGS.get(h.id) || ""}</div>
+    <div class="card-msg" data-report-msg${REPORT_MSGS.has(h.id) ? "" : " hidden"}>${REPORT_MSGS.get(h.id) || ""}</div>
+  </article>`;
+}
 function renderPlayDetail() {
   const body = $("#playDetailBody");
   if (!body || detailPlayId == null) return;
   const entry = (CONTEST.entries || []).find((p) => p.id === detailPlayId);
   const play = entry || ALL_PLAYS.find((p) => p.id === detailPlayId);
   if (!play) { hidePlayDetail(); return; }
-  body.innerHTML = (entry
-    ? cardHtml(entry, { monthVotes: entry.voteCount, inContest: true, prizeEligible: entry.prizeEligible })
-    : cardHtml(play, {})) + upNextHtml(play);
+  body.innerHTML = watchHtml107(entry || play, entry) + upNextHtml(play);
   hydrateDurPills();
   wireDetailAutoplay(play);
 }
@@ -935,7 +1043,7 @@ function hidePlayDetail() {
 window.closePlayDetail = () => {
   const was = detailPlayId;
   hidePlayDetail();
-  if (was != null && location.hash === `#play-${was}`) history.replaceState(null, "", "#top");
+  if (was != null && (location.hash === `#play-${was}` || location.hash === `#watch-${was}`)) history.replaceState(null, "", "#top");
 };
 $$("[data-detail-close]").forEach((el) => el.addEventListener("click", () => window.closePlayDetail()));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && detailPlayId != null) window.closePlayDetail(); });
@@ -949,7 +1057,10 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && detailPl
    calls idempotent: the hash is routed once, not on every refresh
    (the hashchange route resets it to force a fresh routing). */
 function highlightSharedPlay() {
-  const pm = location.hash.match(/^#play-(\d+)$/);
+  /* Round 107: #watch-<id> is the watch view's own deep link and
+     routes exactly like the original #play-<id> contract (which
+     stays live — shares already in the wild carry it). */
+  const pm = location.hash.match(/^#(?:play|watch)-(\d+)$/);
   if (!pm) { handledPlayHash = ""; return; }
   if (handledPlayHash === location.hash) return;
   handledPlayHash = location.hash;
@@ -1063,6 +1174,9 @@ function switchView(v) {
   const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
+  /* Round 107: the contest strip belongs to the Watch feed only —
+     Battles and the Month panel carry their own headers. */
+  const cs107 = $("#contestStrip"); if (cs107) cs107.hidden = v !== "all";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
@@ -2553,7 +2667,7 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   // Explicit hash targets (Round 8): any of these wins over the
   // default landing-view rule in applyDefaultView.
-  if (am || hm || /^#play-\d+$/.test(location.hash)) bootHashTarget = true;
+  if (am || hm || /^#(?:play|watch)-\d+$/.test(location.hash)) bootHashTarget = true;
   syncFilterUI();
   loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); });
   if (location.hash === "#shop") { bootHashTarget = true; showStore(); }
@@ -3965,3 +4079,18 @@ $("#btlNotifyForm")?.addEventListener("submit", async (e) => {
     }
   } catch { /* a deep link must never break the page */ }
 })();
+
+/* Round 107 (2026-11-12): hybrid header + contest strip wiring.
+   The header's Post a Play pill routes to the same goSubmit as
+   the FAB and the hero's Submit link (the upload overlay). The
+   contest strip is a shortcut to the Month board. Both are
+   guarded so a missing element can never break the page. */
+$("#postPlayBtn")?.addEventListener("click", () => goSubmit());
+$("#contestStrip")?.addEventListener("click", () => { switchView("month"); $("#contestStrip")?.blur(); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); });
+$("#contestStrip")?.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); switchView("month"); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); } });
+/* Round 107: the watch view's deep link is #watch-<id> — it
+   routes to the watch view exactly like the original #play-<id>
+   (highlightSharedPlay accepts both, and closing drops either).
+   openPlayDetail keeps writing #play-<id>: that is the share
+   contract every existing shared link carries (Round 8), and
+   both hashes land on the same watch view. */

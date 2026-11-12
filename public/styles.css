@@ -2428,3 +2428,168 @@ html,body{overflow-x:hidden;overflow-x:clip}
 .btlv-notify:disabled{opacity:.55;cursor:wait}
 .btlv-msg{font-size:13.5px;font-weight:700;margin:10px 0 0;min-height:1.25em;color:#ffb3b3}
 .btlv-msg.ok{color:var(--volt)}
+
+/* ================================================================
+   Round 107 (2026-11-12): THE HYBRID REDESIGN — Emil approved the
+   full-site hybrid mock ("Let's do it!"). This block restyles the
+   whole public surface in the hybrid language: lime (volt) =
+   action, gold = contest/glory, near-black surfaces, Archivo for
+   feed/watch type, Anton for display headers. It is an OVERRIDE
+   block by design: every earlier rule stays in the file (several
+   test suites pin exact base-rule strings), and the redesign wins
+   by specificity + order. Behavior is untouched — app.js keeps
+   every mechanic; this block only paints.
+   ================================================================ */
+
+/* ---- Header: solid sticky bar + Post a Play pill ---- */
+header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav .brand-logo{height:30px}
+.post-play-btn{margin-left:auto;flex:none;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:10px 16px;font:inherit;font-weight:900;font-size:14.5px;cursor:pointer;min-height:44px}
+.post-play-btn:active{transform:scale(.97)}
+/* Sub-pages: the bar is in-flow now, so the Round 73 clearance
+   padding under it is dead space on phones too (Round 80 already
+   removed it on desktop). */
+@media (max-width:1023px){ body.page-sub .panel{padding-top:24px} }
+
+/* ---- Home board: the old board header retires ---- */
+#plays .sec-head{display:none}
+#plays .wrap{display:block}
+@media (min-width:1024px){ #plays .wrap{display:block} }
+
+/* ---- View tabs: text tabs with a lime underline ---- */
+.viewseg{display:flex;gap:26px;background:transparent;border:0;border-radius:0;padding:0;margin:6px 0 14px;overflow-x:auto;scrollbar-width:none}
+.viewseg::-webkit-scrollbar{display:none}
+.viewseg button{flex:0 0 auto;background:transparent;border:0;border-bottom:3px solid transparent;border-radius:0;color:#8f8f86;font:inherit;font-weight:800;font-size:16.5px;padding:10px 2px;min-height:48px;cursor:pointer;white-space:nowrap}
+.viewseg button[aria-pressed="true"]{background:transparent;color:#fff;border-bottom-color:var(--volt)}
+.viewseg button .cnt{display:none}
+
+/* ---- Contest strip (gold = contest) ---- */
+.contest-strip{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#241b04,#171204);border:1px solid #6b5410;border-radius:14px;padding:13px 14px;margin:0 0 16px;cursor:pointer}
+.contest-strip[hidden]{display:none}
+.contest-strip .cs-cr{font-size:22px;line-height:1}
+.contest-strip .cs-text{flex:1;min-width:0}
+.contest-strip .cs-t1{font-weight:900;font-size:15.5px;color:#fff}
+.contest-strip .cs-t2{color:#e8cf8f;font-size:13px;font-weight:600;margin-top:1px}
+.contest-strip .cs-ends{flex:none;background:var(--gold);color:#171200;font-size:11.5px;font-weight:900;letter-spacing:.4px;padding:5px 10px;border-radius:999px;text-transform:uppercase}
+
+/* ---- Sport pills + the pinned Boys/Girls segment ---- */
+.sport-pills-row{position:relative;padding-right:158px;-webkit-mask-image:none;mask-image:none}
+.sport-pills-row .sp-divseg{position:absolute;right:0;top:50%;transform:translateY(-50%);margin:0;border-left:0;padding-left:0;background:var(--bg);box-shadow:-14px 0 16px 6px var(--bg);z-index:3}
+.sp-pill{background:#151517;border:1px solid #2b2b28;color:#e9e9e2;border-radius:999px}
+.sp-pill.active{background:var(--volt);border-color:var(--volt);color:#131a00}
+.sport-pills-row .seg{display:inline-flex;background:#151517;border:1px solid #2b2b28;border-radius:999px;padding:3px}
+.sport-pills-row .seg button{border:0;background:transparent;color:#cfcfc6;font:inherit;font-weight:800;font-size:13.5px;padding:8px 13px;border-radius:999px;cursor:pointer;min-height:38px}
+.sport-pills-row .seg button[aria-pressed="true"]{background:var(--volt);color:#131a00}
+@media (max-width:420px){ .sport-pills-row{padding-right:142px} .sport-pills-row .seg button{padding:8px 10px;font-size:12.5px} }
+
+/* ---- Feed: single column of big cards (All view) ---- */
+#viewAll .tile-grid{display:block}
+#viewAll .tile-featured-slot{display:block;margin-bottom:26px}
+#viewAll .tile-deck{display:flex;flex-direction:column;gap:26px;overflow:visible;padding:0}
+#plays .tile{background:transparent;border:0;border-radius:0;box-shadow:none;overflow:visible}
+#plays .tile-media{border-radius:14px}
+#plays .tile .tile-disc{display:none}
+#plays .tile-body{padding:10px 2px 0}
+#plays .tile-toprow{display:flex;align-items:flex-start;gap:10px;margin:0}
+#plays .tile-title{font-family:"Archivo",sans-serif;font-style:normal;font-weight:800;text-transform:none;letter-spacing:-.01em;font-size:17.5px;color:#fff;flex:1;min-width:0}
+#plays .tile-dots{color:#8f8f86;font-size:19px;line-height:1;padding:0 2px}
+#plays .tile-info{font-size:13.5px;color:#a8a8a0;margin-top:3px}
+#plays .tile-info b{color:var(--gold)}
+#plays .tile-media .dur-pill{left:10px;right:auto;background:rgba(0,0,0,.72);color:#fff}
+#plays .tile-media .dur-pill::before{content:"▶ "}
+#plays .tile-votes{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:9px}
+#plays .vote-chip{display:inline-flex;align-items:center;gap:6px;background:rgba(240,185,62,.14);border:1px solid rgba(240,185,62,.45);color:#f3d98b;font-weight:800;font-size:13.5px;padding:7px 12px;border-radius:999px}
+#plays .vote-chip b{color:var(--gold);font-size:15px}
+#plays .tile-sample-tag{position:absolute;top:10px;left:10px;background:var(--volt);color:#131a00;font-size:10.5px;font-weight:900;letter-spacing:.8px;padding:5px 9px;border-radius:6px;z-index:4}
+/* Vertical clips: centered over a blurred fill (app.js marks the
+   host and clones the fill in — see markVertical107). */
+.tile-media.is-vertical{background:#000}
+.tile-media.is-vertical > video:not(.vfill){position:relative;inset:auto;height:100%;width:auto;max-width:100%;margin:0 auto;object-fit:contain;z-index:1}
+.tile-media .vfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+
+/* ---- Month + Hall of Fame panels ---- */
+.month-title{font-family:"Archivo",sans-serif;font-weight:800;font-size:21px;color:#fff;margin:4px 0 2px}
+.month-title .lime{color:var(--volt)}
+.month-sub{color:#a8a8a0;font-size:13.5px;margin:0 0 14px}
+.month-sub:empty{display:none}
+.month-subseg button[aria-pressed="true"]{background:var(--gold);color:#171200;border-color:var(--gold)}
+#viewMonth .tile-grid{display:block}
+#viewMonth .tile-featured-slot{display:block;margin:0}
+#viewMonth .tile-deck{display:block;overflow:visible;padding:0}
+#viewMonth .tile{display:flex;gap:13px;align-items:center;padding:12px 2px;border-bottom:1px solid #232320}
+#viewMonth .tile-media{flex:0 0 118px;width:118px;aspect-ratio:16/9;border-radius:10px}
+#viewMonth .tile-body{flex:1;min-width:0;padding:0}
+#viewMonth .tile-title{font-size:15.5px}
+#viewMonth .tile-info{font-size:12.5px;white-space:normal}
+#viewMonth .tile-media .dur-pill{display:none}
+
+/* ---- Watch view: the detail sheet becomes a page ---- */
+.play-detail{background:var(--bg);display:block;padding:76px 0 48px}
+@media (min-width:761px){ .play-detail{padding-top:112px} }
+.play-detail-backdrop{display:none}
+.play-detail-panel{background:transparent;border:0;border-radius:0;box-shadow:none;max-width:820px;width:calc(100% - 32px);margin:0 auto;padding:0;max-height:none;overflow:visible}
+.play-detail-close{display:none}
+.play-detail-back{position:static;background:transparent;border:0;color:#fff;font-size:15.5px;font-weight:800;padding:10px 4px;margin:0 0 8px;min-height:44px}
+.watch-card{background:transparent;border:0;border-radius:0;box-shadow:none;padding:0;overflow:visible}
+.watch-player{border-radius:14px;overflow:hidden;background:#000}
+.watch-player video{display:block;width:100%;aspect-ratio:16/9;object-fit:contain;background:#000}
+.watch-meta{padding:14px 2px 0}
+.watch-title{font-family:"Archivo",sans-serif;font-weight:800;font-size:21px;letter-spacing:-.01em;color:#fff;margin:0}
+.watch-line{color:#a8a8a0;font-size:14.5px;margin:5px 0 0}
+.watch-line b{color:#fff}
+.watch-athlete{color:var(--volt);font-weight:800}
+.watch-demo{display:inline-block;background:var(--gold);color:#171200;font-size:10.5px;font-weight:900;letter-spacing:.8px;padding:4px 8px;border-radius:6px;vertical-align:2px}
+.watch-vote{padding:16px 2px 0}
+.watch-votebtn{width:100%;min-height:54px;font-size:17px;border-radius:14px}
+.watch-count{color:#a8a8a0;font-size:14px;margin:9px 0 0;text-align:center}
+.watch-count b{color:var(--gold);font-size:16px}
+.watch-actions{padding:14px 2px 0}
+#playDetailBody .upnext{margin-top:26px}
+#playDetailBody .upnext-thumb.is-vertical{background:#000}
+#playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:relative;inset:auto;height:100%;width:auto;max-width:100%;margin:0 auto;object-fit:contain;z-index:1}
+#playDetailBody .upnext-thumb .vfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+
+/* ---- Swag Shop ---- */
+#shop .hs-sec-title{font-family:"Anton",sans-serif;font-weight:400;letter-spacing:.5px;text-transform:uppercase}
+#shop .hs-card{border-color:#262622;border-radius:16px;background:#101010}
+#shop .hs-tile{border-radius:14px}
+#shop .hs-hf{border:1px solid #262622;border-radius:16px;background:#101010}
+#shop .hs-teaser-badge{background:var(--gold);color:#171200;border-color:var(--gold)}
+#shop .hs-view-btn{background:var(--volt);color:#131a00;border-color:var(--volt)}
+#shop .store-bar .back-link{border-color:#2b2b28;color:#fff;background:transparent}
+.hsv .hs-eyebrow{color:var(--volt)}
+.hsv #btlTitle{font-family:"Anton",sans-serif;font-weight:400;letter-spacing:.5px;text-transform:uppercase}
+.btlv-notify{background:var(--volt);color:#131a00}
+
+/* ---- Hype Frame ---- */
+#hypeframe .form-sec-title{font-family:"Archivo",sans-serif;font-weight:800;font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--volt)}
+#hypeframe .hf-payoff-line{color:#e8cf8f}
+#hypeframe .hf-film{border-radius:14px}
+
+/* ---- Athlete page ---- */
+#athlete .athlete-avatar{background:linear-gradient(135deg,#f0b93e,#8a6414)}
+#athleteBoard .card{background:transparent;border:0;border-radius:0;box-shadow:none;padding-left:0;padding-right:0}
+#athleteBoard .card-media{border-radius:14px}
+.mine-count b{font-family:"Anton",sans-serif;font-weight:400;color:var(--gold)}
+.play-numbers105 .pn-chip{background:rgba(240,185,62,.12);border:1px solid rgba(240,185,62,.4);color:#f3d98b;border-radius:999px}
+.crown-chip{background:transparent;border:1px solid rgba(240,185,62,.55);color:#f3d98b}
+
+/* ---- My Highlights ---- */
+#mine .mine-note,#mine .mine-find{background:#101010;border:1px solid #262622;border-radius:14px}
+#mine .mine-points li{background:#101010;border:1px solid #262622;border-radius:14px}
+#mine .mine-avatar{background:linear-gradient(135deg,#f0b93e,#8a6414)}
+
+/* ---- How It Works ---- */
+#how .step .num{font-family:"Anton",sans-serif;font-weight:400;color:var(--gold)}
+#how .review-note{border-left:3px solid var(--gold)}
+#how .upload-mock .field{background:#101010;border:1px solid #262622;border-radius:10px}
+#how .upload-mock .drop{border:1.5px dashed rgba(200,255,0,.5);border-radius:12px;background:#0c0e03}
+
+/* ---- Hype Stories ---- */
+#stories .story-card{background:#101010;border:1px solid #262622;border-radius:16px}
+#stories .story-ep{color:var(--volt)}
+#stories .story-play{background:var(--volt);color:#131a00;border-color:var(--volt)}
+
+/* ---- Upload form accents (the overlay itself is unchanged) ---- */
+#uploadForm .quick-label{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--volt)}
+#uploadForm .dropzone{border-color:rgba(200,255,0,.55);background:#0c0e03}
