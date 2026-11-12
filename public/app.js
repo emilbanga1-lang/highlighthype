@@ -190,6 +190,26 @@ function badgesHtml100(h) {
   if (!h || h.isSample || !Array.isArray(h.badges) || !h.badges.length) return "";
   return `<p class="play-badges">${h.badges.map((b) => `<span class="badge-chip">${BADGE_LABELS100[b] || esc(b)}</span>`).join("")}</p>`;
 }
+/* Round 105 (2026-11-11): winner crowns — the server PERSISTS the
+   records (play_crowns; samples included, they never expire), the
+   client only renders them. Compact form (tiles, battle minis):
+   the LATEST crown plus a "+N more" chip. Full form (cards — the
+   athlete page and the play detail): every crown the play holds. */
+function crownsHtml105(h, full) {
+  if (!h || !Array.isArray(h.crowns) || !h.crowns.length) return "";
+  if (full) return `<p class="play-crowns">${h.crowns.map((c) => `<span class="crown-chip">👑 ${esc(c.title)}</span>`).join("")}</p>`;
+  const more = h.crowns.length > 1 ? `<span class="crown-chip crown-more">+${h.crowns.length - 1} more</span>` : "";
+  return `<p class="play-crowns"><span class="crown-chip">👑 ${esc(h.crowns[0].title)}</span>${more}</p>`;
+}
+function crownSuffix105(h) { return h && Array.isArray(h.crowns) && h.crowns.length ? ` · 👑 ${h.crowns[0].title}` : ""; }
+/* Round 105: the My Highlights numbers line (Feature 3) — votes
+   this month, views, Daily Battle wins, straight from the payload.
+   Truthful zeros render like any other number. */
+function numbersHtml105(h) {
+  if (!h) return "";
+  const vm = h.votesMonth || 0, vw = h.views || 0, bw = h.battleWins || 0;
+  return `<p class="play-numbers105"><span><b>${vm}</b> vote${vm === 1 ? "" : "s"} this month</span><span><b>${vw}</b> view${vw === 1 ? "" : "s"}</span><span><b>${bw}</b> battle win${bw === 1 ? "" : "s"}</span></p>`;
+}
 function cardHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
@@ -201,6 +221,8 @@ function cardHtml(h, opts = {}) {
       ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
       ${athleteLine(h)}
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof crownsHtml105 === "function" ? crownsHtml105(h, true) : ""}
+      ${opts.numbers && typeof numbersHtml105 === "function" ? numbersHtml105(h) : ""}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
       ${opts.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
       <div class="votes">
@@ -340,6 +362,7 @@ function tileHtml(h, opts = {}) {
       </div>
       ${tileInfoHtml(h, votes, voteLabel)}
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
       ${h.isSample ? `<p class="tile-sample"><span class="sample-badge">⭐ SAMPLE PLAY</span></p>` : ""}
       <div class="tile-votes">
         <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
@@ -992,7 +1015,7 @@ window.openAthlete = async (athleteId) => {
     if (first?.athlete_tag) meta.push(first.athlete_tag);
     $("#athleteMeta").textContent = meta.join(" · ");
     $("#athleteCount").textContent = plays.length;
-    $("#athleteBoard").innerHTML = plays.map((h) => cardHtml(h)).join("");
+    $("#athleteBoard").innerHTML = plays.map((h) => cardHtml(h, { numbers: true })).join("");
     $("#athleteEmpty").style.display = plays.length ? "none" : "block";
   } catch (e) { $("#athleteEmpty").textContent = "Could not load this athlete's plays: " + e.message; $("#athleteEmpty").style.display = "block"; }
   document.getElementById("athlete").scrollIntoView({ behavior: "smooth" });
@@ -2756,7 +2779,7 @@ function btlMiniHTML(slot) {
     <span class="btl-letter" aria-hidden="true">${letter}</span>
     ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
   </article>`;
 }
 function btlRenderCount() {
@@ -2803,7 +2826,7 @@ function btlWatch(slot, keepPaused) {
   if (miniR) miniR.classList.toggle("watching", slot === "R");
   if (player.getAttribute("src") !== p.media_url) { player.src = p.media_url; player.load(); }
   const label = document.getElementById("btlNowLabel");
-  if (label) label.textContent = "Now watching: " + p.title;
+  if (label) label.textContent = "Now watching: " + p.title + (typeof crownSuffix105 === "function" ? crownSuffix105(p) : "");
   if (!keepPaused) { try { player.play(); } catch { /* autoplay refusal is fine */ } }
 }
 function btlNewChallenger() {
@@ -3132,7 +3155,7 @@ function d100MiniHTML(prefix, slot, p) {
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
   </article>`;
 }
 function d100Watch(prefix, slot, play) {
@@ -3143,7 +3166,7 @@ function d100Watch(prefix, slot, play) {
   if (mB) mB.classList.toggle("watching", slot === "B");
   if (player.getAttribute("src") !== play.media_url) { player.src = play.media_url; player.load(); }
   const label = document.getElementById(prefix + "NowLabel");
-  if (label) label.textContent = "Now watching: " + play.title;
+  if (label) label.textContent = "Now watching: " + play.title + (typeof crownSuffix105 === "function" ? crownSuffix105(play) : "");
   try { player.play(); } catch { /* autoplay refusal is fine */ }
 }
 function d100WireMatchup(prefix, plays, onWatch) {
@@ -3242,7 +3265,7 @@ async function loadDaily100() {
       if (wmA) wmA.classList.toggle("watching", wSlot === "A");
       if (wmB) wmB.classList.toggle("watching", wSlot === "B");
       const wLabel = document.getElementById("dailyNowLabel");
-      if (wLabel) wLabel.textContent = "Now watching: " + (wSlot === "A" ? r.a : r.b).title;
+      if (wLabel) { const wp = wSlot === "A" ? r.a : r.b; wLabel.textContent = "Now watching: " + wp.title + (typeof crownSuffix105 === "function" ? crownSuffix105(wp) : ""); }
     }
   }
   if (d100.scrollDaily) {
@@ -3686,7 +3709,7 @@ btlMiniFrame = function (v) {
 (function fabBattles104() {
   const fab = document.getElementById("floatSubmit");
   if (!fab || !("IntersectionObserver" in window)) return;
-  const ids = ["dailyMatchup", "dailyPlayer", "dailyPickA", "dailyPickB", "dailySplit", "dailyStrip", "btlMatchup", "btlPlayerBox", "btlPickL", "btlPickR", "btlNext", "btlCount", "runMatchup", "runPlayer", "runPickA", "runPickB", "runReveal"];
+  const ids = ["dailyMatchup", "dailyPlayer", "dailyPickA", "dailyPickB", "dailySplit", "dailyStrip", "dailyStreak105", "dailyTop105", "btlMatchup", "btlPlayerBox", "btlPickL", "btlPickR", "btlNext", "btlCount", "runMatchup", "runPlayer", "runPickA", "runPickB", "runReveal"];
   const targets = ids.map((id) => document.getElementById(id)).filter(Boolean);
   if (!targets.length) return;
   const zoneW = 150, zoneH = 84;
@@ -3697,4 +3720,115 @@ btlMiniFrame = function (v) {
     fab.classList.toggle("fab-btl-hidden104", seen.size > 0);
   }, { rootMargin: `-${top}px 0px 0px -${left}px`, threshold: 0 });
   targets.forEach((t) => io.observe(t));
+})();
+
+/* ---------------- Round 105 (2026-11-11): challenge links,
+   picker streak + Top Pickers display — the client half of
+   Features 2 and 4 (crowns and numbers render from the payload
+   via crownsHtml105 / numbersHtml105 near badgesHtml100).
+   Appended at the end per the sandbox-slice rule; every lookup
+   is guarded. */
+
+/* Feature 4 display: read the streak + Top Pickers off the daily
+   payload after every loadDaily100 pass (initial load and the
+   post-pick refresh alike, by riding the function itself).
+   Streak >= 2 wears the flame; exactly 1 gets a neutral line;
+   0 renders nothing. The Top Pickers block renders only when the
+   server sent at least one qualifying picker (>= 2). */
+function renderStreak105() {
+  let r = null;
+  try { r = d100.daily; } catch { r = null; }
+  const line = document.getElementById("dailyStreak105");
+  if (line) {
+    const s = r && r.streak ? r.streak : null;
+    if (s && s.current >= 2) { line.textContent = `🔥 Your streak: ${s.current} days`; line.hidden = false; }
+    else if (s && s.current === 1) { line.textContent = "You called the last Daily winner ✓ — call today's to start a streak."; line.hidden = false; }
+    else { line.hidden = true; line.textContent = ""; }
+  }
+  const block = document.getElementById("dailyTop105"), list = document.getElementById("dailyTopList");
+  if (block && list) {
+    const top = r && Array.isArray(r.topPickers) ? r.topPickers : [];
+    if (top.length) {
+      list.innerHTML = top.map((t) => `<p class="daily-top-row"><span>${esc(t.tag)}</span><b>🔥 ${t.streak}</b></p>`).join("");
+      block.hidden = false;
+    } else { block.hidden = true; list.innerHTML = ""; }
+  }
+}
+if (typeof loadDaily100 === "function") {
+  const origLoadDaily105 = loadDaily100;
+  loadDaily100 = async function (...args) {
+    const out = await origLoadDaily105.apply(this, args);
+    try { renderStreak105(); } catch { /* display only — never break the Daily */ }
+    return out;
+  };
+}
+
+/* Feature 2: challenge a friend — the share carries THIS matchup's
+   two play ids; the landing (below) rebuilds the exact pair in
+   the Fresh Pairs stage. navigator.share where the device offers
+   it, copy-link fallback with inline feedback (the dailyShare100
+   pattern). Pick rules on the landing are the stock ones: a real
+   pair (both plays are live contest entries) casts real votes via
+   btlPick; anything else is practice. */
+async function btlShare105() {
+  const L = typeof btl !== "undefined" && btl.cur ? btl.cur.L : null;
+  const R = typeof btl !== "undefined" && btl.cur ? btl.cur.R : null;
+  if (!L || !R) return;
+  const url = `https://highlighthype.com/?view=battles&challenge=${L}-${R}`;
+  const text = "I challenge you — Which Play Wins? 👑";
+  if (navigator.share) { try { await navigator.share({ title: "HighlightHype Battles", text, url }); return; } catch { /* fall through to copy */ } }
+  const ok = typeof copyText100 === "function" ? await copyText100(`${text} ${url}`) : false;
+  const msg = document.getElementById("btlShareMsg");
+  if (msg && ok) { msg.textContent = "Challenge link copied ✓"; setTimeout(() => { msg.textContent = ""; }, 2200); }
+}
+(function round105Wire() {
+  const btn = document.getElementById("btlShareChallenge");
+  if (btn) btn.addEventListener("click", btlShare105);
+  /* Challenge landing: ?view=battles&challenge=<idA>-<idB>. Rides
+     applyDefaultView — loadData calls it once the plays land —
+     exactly like the Round 91/94 deep links, so a FRESH visitor
+     (no token, no state) lands in Battles on the exact pair. If
+     either play is missing or unapproved (findPlay only searches
+     the public approved sets), the normal deal stands and a
+     one-line note says the challenge play is gone. Applies once:
+     later data refreshes never re-deal somebody's game. */
+  let challenge105 = null;
+  try {
+    const m = (new URLSearchParams(location.search).get("challenge") || "").match(/^(\d+)-(\d+)$/);
+    if (m && m[1] !== m[2]) challenge105 = { a: Number(m[1]), b: Number(m[2]) };
+  } catch { /* no challenge in the URL */ }
+  if (!challenge105 || typeof applyDefaultView !== "function") return;
+  const prevAD105 = applyDefaultView;
+  let applied105 = false;
+  applyDefaultView = function (...args) {
+    const out = prevAD105.apply(this, args);
+    if (applied105) return out;
+    applied105 = true;
+    try {
+      if (typeof switchView === "function") switchView("battles");
+      const note = document.getElementById("btlChallengeNote");
+      const pa = typeof findPlay === "function" ? findPlay(challenge105.a) : null;
+      const pb = typeof findPlay === "function" ? findPlay(challenge105.b) : null;
+      if (pa && pb && typeof btlRender === "function") {
+        btl.mode = "fresh";
+        const fBtn = document.getElementById("btlModeFresh"), sBtn = document.getElementById("btlModeStay");
+        if (fBtn) fBtn.classList.add("on");
+        if (sBtn) sBtn.classList.remove("on");
+        btl.battle = 0; btl.champ = null; btl.streak = 0; btl.lastBeaten = null;
+        btl.cur = { L: challenge105.a, R: challenge105.b };
+        btl.watching = "L";
+        const realIds = new Set((CONTEST.entries || []).filter((p) => !p.isSample).map((p) => p.id));
+        btl.pairReal = realIds.has(challenge105.a) && realIds.has(challenge105.b);
+        btl.built = true;
+        btlRender();
+        if (note) { note.textContent = "You got challenged — which play wins?"; note.hidden = false; }
+      } else if (note) {
+        note.textContent = "That challenge play is gone — here's a fresh matchup instead.";
+        note.hidden = false;
+      }
+      const playsEl = document.getElementById("plays");
+      if (playsEl) playsEl.scrollIntoView();
+    } catch { /* a challenge link must never break the page */ }
+    return out;
+  };
 })();

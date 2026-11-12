@@ -2385,3 +2385,23 @@ html,body{overflow-x:hidden;overflow-x:clip}
 .btl-yourpick{top:40px}
 #viewBattles{padding-bottom:24px}
 .float-submit.fab-btl-hidden104{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px)}
+
+/* Round 105 (2026-11-11): winner crowns (gold chips in the badge
+   family), the My Highlights numbers line, the picker streak line
+   + Top Pickers block, and the Battles challenge note/share row. */
+.play-crowns{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 2px}
+.crown-chip{font-size:10.5px;font-weight:900;letter-spacing:.05em;color:#1a1204;background:linear-gradient(180deg,var(--gold),#c9932b);border-radius:999px;padding:3px 8px}
+.crown-chip.crown-more{background:rgba(240,185,62,.16);color:#e8cf8f;border:1px solid rgba(240,185,62,.5)}
+.play-numbers105{display:flex;flex-wrap:wrap;gap:4px 16px;margin:8px 0 2px;font-size:12.5px;font-weight:600;color:#e8e2d2}
+.play-numbers105 b{color:var(--gold);font-size:14px}
+.daily-streak105{text-align:center;color:#f5f1e6;font-size:13.5px;font-weight:800;margin:10px auto 0}
+.daily-streak105[hidden]{display:none}
+.daily-top105{max-width:360px;margin:14px auto 0;border:1px solid rgba(240,185,62,.35);border-radius:12px;padding:10px 14px;background:rgba(240,185,62,.06)}
+.daily-top105[hidden]{display:none}
+.daily-top-head{text-align:center;font-weight:900;letter-spacing:.06em;color:#e8cf8f;margin:0 0 6px;font-size:12.5px}
+.daily-top-row{display:flex;justify-content:space-between;margin:4px 0;font-size:13.5px;color:#f5f1e6}
+.daily-top-row b{color:var(--gold)}
+.btl-challenge-note{margin:12px auto 0;max-width:360px;text-align:center;font-size:12.5px;font-weight:700;line-height:1.45;color:#e8cf8f;background:rgba(240,185,62,.09);border:1px solid rgba(240,185,62,.45);border-radius:10px;padding:7px 10px}
+.btl-challenge-note[hidden]{display:none}
+.btl-share-row{text-align:center;margin:12px auto 0}
+.btl-share-msg{font-size:12px;color:#e8cf8f;font-weight:700}
