@@ -911,6 +911,7 @@ function renderPlayDetail() {
   if (!play) { hidePlayDetail(); return; }
   body.innerHTML = watchHtml107(entry || play, entry) + upNextHtml(play);
   hydrateDurPills();
+  if (typeof wireWatchVertical113 === "function") wireWatchVertical113(body);
   wireDetailAutoplay(play);
 }
 /* Round 14 (2026-11-06): "Up next" in the play detail — the third
@@ -4214,7 +4215,7 @@ function btlObtainMedia111(data) {
 }
 function btlRetireMatchup111(matchup) {
   if (!matchup) return;
-  matchup.querySelectorAll(".btl-mini video").forEach((v) => {
+  matchup.querySelectorAll(".btl-mini video:not(.vfill)").forEach((v) => {
     const url = btlRegisterMedia111(v);
     if (url && v.currentTime >= 0.5 && typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
     if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { v.poster = btlPosters104[url]; } catch { /* bonus */ } }
@@ -4238,7 +4239,7 @@ function btlWireMedia111(v) {
   v.dataset.btlFrameWired111 = "1";
   v.dataset.btlFrameWiredAt111 = String(Date.now());
   if (typeof btlMiniFrame === "function") btlMiniFrame(v);
-  const mark = () => { if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; v.removeEventListener("timeupdate", mark); } };
+  const mark = () => { if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; if (typeof refreshFillPoster113 === "function") refreshFillPoster113(v); v.removeEventListener("timeupdate", mark); } };
   v.addEventListener("timeupdate", mark);
   setTimeout(() => v.removeEventListener("timeupdate", mark), 4000);
 }
@@ -4265,6 +4266,7 @@ function btlInstallMedia111(matchup, opts = {}) {
       const v = btlObtainMedia111({ url: slot.dataset.url || "", sport: slot.dataset.sport || "", title: slot.dataset.title || "" });
       slot.replaceWith(v);
       btlWireMedia111(v);
+      if (typeof btlMarkVertical113 === "function") btlMarkVertical113(v);
     };
     slot._btlInstall111 = install;
     const r = slot.getBoundingClientRect();
@@ -4294,7 +4296,7 @@ function btlWarmCandidates111() {
   return out.slice(0, 12);
 }
 function btlBattlesSettled111() {
-  const vs = [...document.querySelectorAll("#viewBattles .btl-mini video")];
+  const vs = [...document.querySelectorAll("#viewBattles .btl-mini video:not(.vfill)")];
   return vs.every((v) => v.currentTime >= 0.5 || v.readyState >= 2);
 }
 function btlScheduleWarm111() {
@@ -4314,3 +4316,111 @@ function btlWarmStep111(retries) {
   btlWireMedia111(v);
   btlWarmTimer111 = setTimeout(() => { btlWarmTimer111 = null; btlWarmStep111(0); }, 1100);
 }
+
+/* ---------------- Round 113 (2026-11-12): the vertical treatment
+   leaves the feed — watch view + Battles get the blurred fill too.
+   Trigger: the site's FIRST REAL UPLOAD (play 50, Charlotte, martial
+   arts) is a portrait clip stored landscape-coded (1214x720) with a
+   -90 degree display matrix, so it DISPLAYS at 720x1214. Engines
+   report videoWidth/videoHeight as the DISPLAY dimensions (verified
+   in Chromium with structurally identical rotated twins: 720x1214),
+   so the Round 107 metadata check itself is sound — the problem was
+   reach: only .dur-host thumbs (feed tiles + Up-next rows) were ever
+   wired to it. The watch player (.watch-player is not a .dur-host)
+   showed the clip pillarboxed on black — Emil: "it's centered right
+   now" — and the Battles minis + big players render every clip with
+   object-fit:cover and no marking path at all, so a portrait clip
+   there was cropped to its middle band. This block generalizes the
+   R107 mark (host gets .is-vertical, a blurred paused clone fills
+   the sides, the real clip stays FULL and centered — object-fit
+   contain, never cropped) to the three remaining surfaces:
+   - the watch view player (wired per detail render);
+   - Battles minis (wired at pooled-media install; the fill is a
+     plain DOM sibling, never pooled — the Round 111 retire/settled
+     selectors now skip .vfill);
+   - the Battles big players (#btlPlayer / #dailyPlayer /
+     #runPlayer share .btl-player): a persistent loadedmetadata
+     listener re-syncs the mark on every clip change, both ways, so
+     a landscape clip after a portrait one sheds the fill.
+   Display layer only: the uploaded file is never touched. */
+function vfillClone113(video, opts) {
+  const fill = video.cloneNode();
+  fill.classList.add("vfill");
+  fill.removeAttribute("id");
+  fill.removeAttribute("autoplay");
+  fill.removeAttribute("controls");
+  fill.setAttribute("aria-hidden", "true");
+  fill.setAttribute("tabindex", "-1");
+  fill.muted = true;
+  /* Battles minis re-render constantly (pair cycling) and their
+     pooled main clip already holds the data — a fetching fill
+     clone re-downloaded the clip on every cycle back (measured:
+     one full download per return). A noFetch fill never loads the
+     file at all: it paints its poster instead — the Round 104
+     captured frame once banked, the branded placeholder until
+     then (refreshFillPoster113 upgrades it at the freeze point) —
+     which under a 16px blur is the same backdrop. */
+  if (opts && opts.noFetch) { try { fill.preload = "none"; } catch (e) { /* default preload is fine too */ } }
+  if (typeof fill.pause === "function") fill.pause();
+  return fill;
+}
+function markHostVertical113(host, video, opts) {
+  if (!host || !video) return false;
+  if (!(video.videoWidth > 0) || !(video.videoHeight > video.videoWidth)) return false;
+  if (host.classList.contains("is-vertical")) return true;
+  host.classList.add("is-vertical");
+  try { host.insertBefore(vfillClone113(video, opts), video); } catch (e) { /* the mark alone still centers the clip via CSS */ }
+  return true;
+}
+function whenMeta113(video, fn) {
+  if (video.readyState >= 1) { fn(); return; }
+  video.addEventListener("loadedmetadata", fn, { once: true });
+}
+function wireWatchVertical113(body) {
+  const box = body ? body.querySelector(".watch-player") : null;
+  if (!box) return;
+  const video = box.querySelector("video:not(.vfill)");
+  if (!video) return;
+  whenMeta113(video, () => markHostVertical113(box, video));
+}
+function btlMarkVertical113(v) {
+  if (!v || v.classList.contains("vfill")) return;
+  const host = typeof v.closest === "function" ? v.closest(".btl-mini") : null;
+  if (!host) return;
+  whenMeta113(v, () => markHostVertical113(host, v, { noFetch: true }));
+}
+function refreshFillPoster113(v) {
+  try {
+    if (typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
+    if (typeof btlPosters104 === "undefined") return;
+    const url = v.dataset.btlUrl111 || v.getAttribute("src") || "";
+    const actual = url ? btlPosters104[url] : "";
+    if (!actual) return;
+    const host = typeof v.closest === "function" ? v.closest(".btl-mini") : null;
+    const fill = host ? host.querySelector("video.vfill") : null;
+    if (fill) fill.poster = actual;
+  } catch (e) { /* the poster upgrade is a bonus, never a breaker */ }
+}
+function syncBtlPlayer113(player) {
+  const box = typeof player.closest === "function" ? player.closest(".btl-player") : null;
+  if (!box) return;
+  const portrait = player.videoWidth > 0 && player.videoHeight > player.videoWidth;
+  const old = box.querySelector("video.vfill");
+  if (old) old.remove();
+  if (portrait) {
+    box.classList.add("is-vertical");
+    try { box.insertBefore(vfillClone113(player), player); } catch (e) { /* mark alone still applies contain */ }
+  } else {
+    box.classList.remove("is-vertical");
+  }
+}
+function wireBtlPlayer113(id) {
+  const player = document.getElementById(id);
+  if (!player) return;
+  player.addEventListener("loadedmetadata", () => syncBtlPlayer113(player));
+  player.addEventListener("emptied", () => syncBtlPlayer113(player));
+  if (player.readyState >= 1) syncBtlPlayer113(player);
+}
+wireBtlPlayer113("btlPlayer");
+wireBtlPlayer113("dailyPlayer");
+wireBtlPlayer113("runPlayer");
