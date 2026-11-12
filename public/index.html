@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=113" />
+<link rel="stylesheet" href="styles.css?v=114" />
 </head>
 <body>
 
@@ -268,6 +268,7 @@
            locked. Practice mode (samples) casts no votes. -->
       <div class="daily-card" id="dailyCard">
         <div class="daily-head"><span class="daily-tag">DAILY BATTLE</span><span class="daily-date" id="dailyDate"></span></div>
+        <p class="btl-section-sub" id="dailySub111">One matchup a day. Everyone picks — winner crowned tonight. Streaks count here.</p>
         <p class="btl-prompt">Which Play Wins?</p>
         <p class="daily-practice" id="dailyPractice" hidden>Practice matchup · Picks are just for fun</p>
         <!-- Round 105: the picker's own streak (Feature 4) — filled
@@ -305,8 +306,12 @@
         <button type="button" id="btlModeFresh" class="on">Fresh pairs</button>
         <button type="button" id="btlModeStay">Winner stays</button>
       </div>
-      <p class="btl-pool" id="btlPoolNote" hidden>Practice matchup · Picks are just for fun</p>
-      <p class="btl-prompt">Which Play Wins?</p>
+      <!-- Round 111 (2026-11-12): the endless pairs get their own
+           name and one plain explainer — the Round 102 practice
+           label that used to sit here is retired, so this sub-line
+           is the section's single disclaimer. -->
+      <p class="btl-prompt" id="quickTitle111">Quick Battles</p>
+      <p class="btl-section-sub" id="quickSub111">Endless matchups, just for fun. These picks don't count toward the Daily or your streak.</p>
       <p class="btl-prompt-sub">Tap either clip to watch it big. Then pick the play.</p>
       <!-- Round 105: challenge landing note (Feature 2) — set only
            when the visitor arrived on a challenge link. -->
@@ -1411,6 +1416,6 @@
   </div>
 </div>
 
-<script src="app.js?v=113"></script>
+<script src="app.js?v=114"></script>
 </body>
 </html>
