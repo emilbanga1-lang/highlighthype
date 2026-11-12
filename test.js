@@ -558,7 +558,7 @@ try {
       const home105 = await (await fetch("http://localhost:3473/")).text();
       const app105 = await (await fetch("http://localhost:3473/app.js")).text();
       const css105 = await (await fetch("http://localhost:3473/styles.css")).text();
-      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=108"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and v108 assets");
+      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=109"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v109) assets");
       assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("🔥 Your streak: "), "r105: app.js wires challenge share + landing, crown/number renderers and the streak display");
       assert(css105.includes(".crown-chip") && css105.includes(".daily-top105") && css105.includes(".play-numbers105") && css105.includes(".btl-challenge-note"), "r105: styles carry the crown chips, Top Pickers block, numbers line and challenge note");
     } finally { childC.kill(); fs.rmSync(tmpC, { recursive: true, force: true }); }
@@ -580,6 +580,39 @@ try {
   assert(homeAi.includes('id="aiAssist"') && homeAi.includes('id="aiGateOverride"') && homeAi.includes('id="aiField"'), "upload form carries the assist note, gate box and hidden ai field");
   const appAi = await (await fetch(base + "/app.js")).text();
   assert(appAi.includes("/api/upload-assist") && appAi.includes("__uaGateCheck") && appAi.includes("Reading your play"), "app.js wires the upload assist (endpoint, gate check, reading state)");
+
+  // 8e. Round 106 (2026-11-11): Bottles in the Swag Shop — the
+  // Hoodies | Bottles toggle (Hoodies is the default), six bottle
+  // cards on their front artwork, the bottle view with COMING SOON
+  // (NO price anywhere in the bottles markup) and its per-sport
+  // drop-alert form, plus the notify backend: server-side email
+  // validation, silent dedupe, and an owner-only list endpoint.
+  const home106 = await (await fetch(base + "/")).text();
+  const app106 = await (await fetch(base + "/app.js")).text();
+  const css106 = await (await fetch(base + "/styles.css")).text();
+  assert(home106.includes('data-hs-cat="hoodies" role="tab" aria-selected="true"') && home106.includes('data-hs-cat="bottles" role="tab" aria-selected="false"'), "r106: the category toggle renders with Hoodies as the default");
+  assert(home106.includes('id="hsBottlePanel" hidden') && ["baseball", "football", "basketball", "soccer", "softball", "volleyball"].every((s) => home106.includes(`data-btl-card="${s}"`) && home106.includes(`/swag/hs/bottle-${s}.jpg`)), "r106: the Bottles panel starts hidden and carries all six bottle cards on their front artwork");
+  const btlPanel106 = home106.slice(home106.indexOf('id="hsBottlePanel"'), home106.indexOf('id="hsHfFeature"'));
+  const btlView106 = home106.slice(home106.indexOf('id="btlView"'), home106.indexOf('id="sizeGuide"'));
+  assert(btlPanel106.length > 0 && btlView106.length > 0 && !btlPanel106.includes("$") && !btlView106.includes("$"), "r106: no price appears anywhere in the bottles markup (pricing is not set)");
+  assert(btlView106.includes('id="btlNotifyForm"') && btlView106.includes("Notify me when it drops") && btlView106.includes("COMING SOON") && home106.includes('id="dropNotify"'), "r106: the bottle view carries COMING SOON + the per-sport notify form, and Owner view has the notifications section");
+  assert(app106.includes("hsSetCat106") && app106.includes("/api/drop-notify") && app106.includes('q.get("cat")') && app106.includes('q.get("sport")') && app106.includes('q.get("view") !== "shop"'), "r106: app.js wires the toggle, the notify endpoint and the ?view=shop&cat=&sport= deep link");
+  assert(css106.includes(".hs-cat-toggle") && css106.includes(".hs-btl-media") && css106.includes(".btlv-notify"), "r106: styles carry the toggle, bottle media and notify button");
+  const dnBad = await j("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "not-an-email", sport: "football" }) });
+  assert(dnBad.status === 400, "r106: drop-notify rejects a malformed email (400)");
+  const dnSport = await j("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "parent@example.com", sport: "hockey" }) });
+  assert(dnSport.status === 400, "r106: drop-notify rejects a sport outside the six bottles (400)");
+  const dnAnon = await j("/api/owner/drop-notifications");
+  assert(dnAnon.status === 403, "r106: the drop-notifications list refuses anonymous reads (403)");
+  const dn1 = await j("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "Parent@Example.com", sport: "football" }) });
+  assert(dn1.status === 200 && dn1.body.ok, "r106: a valid drop signup succeeds");
+  const dn2 = await j("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: "parent@example.com", sport: "football" }) });
+  assert(dn2.status === 200 && dn2.body.ok, "r106: re-submitting the same email + sport is the same success (silent dedupe)");
+  const dnList = await j("/api/owner/drop-notifications", { headers: { "x-owner-token": tok } });
+  assert(dnList.body.signups.length === 1 && dnList.body.signups[0].email === "parent@example.com" && dnList.body.signups[0].sport === "football", "r106: the owner list holds exactly one row for the deduped signup (case-normalized)");
+  assert(dnList.body.counts.length === 6 && dnList.body.counts.find((c) => c.sport === "football").count === 1, "r106: owner counts cover all six sports with football at 1");
+  const pub106 = await j("/api/highlights");
+  assert(!JSON.stringify(pub106.body).includes("parent@example.com"), "r106: the notify email never appears in a public payload");
 
   // 9. Upload rate limit: 20 POSTs/hour/IP (2 already made above) — the
   // 21st attempt is refused with 429. Runs last; the scratch server is

@@ -60,6 +60,14 @@ const trackHitsByIp = new Map();
 const ASSIST_RATE_LIMIT = 10;             // assist calls per IP per window
 const ASSIST_RATE_WINDOW_MS = 10 * 60 * 1000;
 const assistHitsByIp = new Map();
+// Bottle drop-notify guard (Round 106, see POST /api/drop-notify):
+// a public email-capture form, so it gets the lookup-style per-IP
+// cap — far above a family's real use (a few sports, one email),
+// far below anything that could stuff the list. The IP is used
+// transiently in memory only, exactly like the limiters above.
+const NOTIFY_RATE_LIMIT = 30;             // notify signups per IP per window
+const NOTIFY_RATE_WINDOW_MS = 10 * 60 * 1000;
+const notifyHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these two
 // data subdirectories (the DB is served by its own snapshot endpoint).
 const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
@@ -385,6 +393,20 @@ db.exec(`CREATE TABLE IF NOT EXISTS play_crowns(
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(highlight_id, kind, ref)
 );`);
+// Round 106 (2026-11-11): bottle drop notifications — a parent asks
+// to be emailed when one of the six Hype Sports bottles drops. The
+// email is a first-party signup, exactly like a guardian email on a
+// play: stored here, returned ONLY on the owner-authorized list
+// endpoint, never in any public payload. UNIQUE(email, sport) is
+// the dedupe: re-submitting the same pair is a silent no-op that
+// still answers success.
+db.exec(`CREATE TABLE IF NOT EXISTS drop_notifications(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL, sport TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(email, sport)
+);`);
+const DROP_NOTIFY_SPORTS = ["baseball", "football", "basketball", "soccer", "softball", "volleyball"];
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
@@ -1084,6 +1106,16 @@ function assistRateLimited(req) {
   assistHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for the bottle drop-notify form (see constants).
+function notifyRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (notifyHitsByIp.get(ip) || []).filter((t) => now - t < NOTIFY_RATE_WINDOW_MS);
+  if (hits.length >= NOTIFY_RATE_LIMIT) { notifyHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  notifyHitsByIp.set(ip, hits);
+  return false;
+}
 // True when the data volume is below the free-space floor. Fails OPEN
 // (returns false) if the platform cannot report free space — a backup
 // guard must never take the beta down by itself.
@@ -1430,6 +1462,29 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, message: "Thanks — the owner has been notified and will review this play." });
     }
 
+    // ---- Bottle drop notifications (Round 106) ----
+    // A parent/guardian asks to be emailed when a Hype Sports
+    // bottle drops. The email is stored ONLY in drop_notifications
+    // and listed ONLY on the owner endpoint below — the response
+    // never echoes it and no public payload ever carries it. The
+    // UNIQUE(email, sport) row + INSERT OR IGNORE make a repeat
+    // signup the same success as the first (no duplicate rows, no
+    // error for an honest double-tap).
+    if (p === "/api/drop-notify" && req.method === "POST") {
+      if (notifyRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many signups from this connection right now — please try again in a little while." });
+      let body = null;
+      try { body = JSON.parse((await readBody(req, 8192)).toString("utf8") || "{}"); } catch { body = null; }
+      if (!body) return sendJson(res, 400, { ok: false, message: "That signup didn't come through — please try again." });
+      const sport = String(body.sport || "").trim().toLowerCase();
+      if (!DROP_NOTIFY_SPORTS.includes(sport))
+        return sendJson(res, 400, { ok: false, message: "Pick one of the six bottles first." });
+      const email = String(body.email || "").trim().toLowerCase();
+      if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        return sendJson(res, 400, { ok: false, message: "That email doesn't look right — check it and try again." });
+      db.prepare("INSERT OR IGNORE INTO drop_notifications(email,sport) VALUES(?,?)").run(email, sport);
+      return sendJson(res, 200, { ok: true, message: "You're on the list." });
+    }
+
     // ---- Hype Frame order requests ----
     // Creates a request ONLY for an APPROVED play (the studio button only
     // exists on approved plays, and the endpoint re-checks server-side).
@@ -1748,6 +1803,16 @@ const server = http.createServer(async (req, res) => {
       const rows = db.prepare(`SELECT o.*, h.title AS play_title FROM hype_frame_orders o
         LEFT JOIN highlights h ON h.id=o.highlight_id ORDER BY o.id DESC`).all();
       return sendJson(res, 200, { requests: rows.map((o) => ({ ...o, branding: !!o.branding, imageUrl: `/api/owner/hype-frames/${o.id}/image` })) });
+    }
+    // ---- Owner: bottle drop notifications (owner-authorized ONLY) ----
+    // The only place drop-notify emails are ever returned. Counts are
+    // grouped per sport in the fixed six-sport order so the owner
+    // panel reads like the shop grid.
+    if (p === "/api/owner/drop-notifications" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const signups = db.prepare("SELECT email, sport, created_at FROM drop_notifications ORDER BY id DESC").all();
+      const counts = DROP_NOTIFY_SPORTS.map((sport) => ({ sport, count: signups.filter((s) => s.sport === sport).length }));
+      return sendJson(res, 200, { signups, counts });
     }
     const hfImgMatch = p.match(/^\/api\/owner\/hype-frames\/(\d+)\/image$/);
     if (hfImgMatch && req.method === "GET") {
