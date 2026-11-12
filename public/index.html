@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=108" />
+<link rel="stylesheet" href="styles.css?v=109" />
 </head>
 <body>
 
@@ -858,6 +858,7 @@
       <p><input id="tokenInp" type="password" placeholder="Paste owner token" size="36"> <button type="button" class="mini-btn" id="saveTokenBtn">Save owner token</button></p>
       <h3 style="margin-top:22px">Moderation queue</h3><div id="queue"></div>
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
+      <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
       <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div>
       <h3 style="margin-top:22px">Daily Battle</h3><div id="ownerDaily">
@@ -951,6 +952,16 @@
     </div>
 
     <div class="hs-grid-wrap" id="hsGridSection">
+      <!-- Round 106 (2026-11-11, Emil): a Hoodies | Bottles toggle
+           sits directly under Shop by Sport, where the grid heading
+           region was. Hoodies is the default. The sport picked with
+           the tiles above carries across the toggle — Football
+           hoodies, flip to Bottles, the football bottle leads. -->
+      <div class="hs-cat-toggle" role="tablist" aria-label="Shop category">
+        <button type="button" class="hs-cat-btn" data-hs-cat="hoodies" role="tab" aria-selected="true">Hoodies</button>
+        <button type="button" class="hs-cat-btn" data-hs-cat="bottles" role="tab" aria-selected="false">Bottles</button>
+      </div>
+      <div id="hsHoodiePanel">
       <div class="hs-grid-head">
         <h3 class="hs-sec-title">The <span class="gold">Hoodies</span></h3>
         <p class="hs-grid-meta">Coming Soon<span class="sep">·</span>Planned price: $69.99 each</p>
@@ -1016,6 +1027,69 @@
             <span class="hs-card-chev" aria-hidden="true">›</span>
           </div>
         </article>
+      </div>
+      </div><!-- /hsHoodiePanel -->
+      <div id="hsBottlePanel" hidden>
+        <div class="hs-grid-head">
+          <h3 class="hs-sec-title">The <span class="gold">Bottles</span></h3>
+          <p class="hs-grid-meta">Coming Soon</p>
+        </div>
+        <div class="hs-grid hs-grid-bottles" id="hsBottleGrid">
+          <article class="hs-card hs-btl-card" data-btl-card="baseball" tabindex="0" role="button" aria-label="View the Baseball Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-baseball.jpg" alt="Baseball Hype Bottle, front — black bottle with a cracked baseball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Baseball Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+          <article class="hs-card hs-btl-card" data-btl-card="football" tabindex="0" role="button" aria-label="View the Football Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-football.jpg" alt="Football Hype Bottle, front — black bottle with a football, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Football Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+          <article class="hs-card hs-btl-card" data-btl-card="basketball" tabindex="0" role="button" aria-label="View the Basketball Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-basketball.jpg" alt="Basketball Hype Bottle, front — black bottle with a cracked basketball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Basketball Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+          <article class="hs-card hs-btl-card" data-btl-card="soccer" tabindex="0" role="button" aria-label="View the Soccer Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-soccer.jpg" alt="Soccer Hype Bottle, front — black bottle with a cracked soccer ball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Soccer Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+          <article class="hs-card hs-btl-card" data-btl-card="softball" tabindex="0" role="button" aria-label="View the Softball Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-softball.jpg" alt="Softball Hype Bottle, front — black bottle with a cracked yellow softball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Softball Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+          <article class="hs-card hs-btl-card" data-btl-card="volleyball" tabindex="0" role="button" aria-label="View the Volleyball Hype Bottle">
+            <div class="hs-card-media hs-btl-media">
+              <img src="/swag/hs/bottle-volleyball.jpg" alt="Volleyball Hype Bottle, front — black bottle with a cracked volleyball, a gold crown and HYPE brush letters" loading="lazy" decoding="async" />
+            </div>
+            <div class="hs-card-body">
+              <h4>Volleyball Hype Bottle</h4>
+              <span class="hs-card-chev" aria-hidden="true">›</span>
+            </div>
+          </article>
+        </div>
       </div>
     </div>
 
@@ -1176,6 +1250,38 @@
   </div>
 </div>
 
+<!-- ============ HYPE BOTTLE VIEW (Round 106, 2026-11-11) =======
+     The bottle twin of the Hype Sports product view: front + back
+     on a switch, COMING SOON (no price until Emil sets one), and
+     the per-sport drop alert — an email + "Notify me when it
+     drops", stored server-side and listed only in Owner view. -->
+<div class="hsv btlv" id="btlView" hidden role="dialog" aria-modal="true" aria-labelledby="btlTitle">
+  <div class="hsv-backdrop" data-btl-close></div>
+  <div class="hsv-panel">
+    <button type="button" class="hsv-close" data-btl-close aria-label="Close bottle view">✕</button>
+    <div class="hsv-media btlv-media">
+      <img id="btlMainImg" src="/swag/hs/bottle-baseball.jpg" alt="Baseball Hype Bottle — front" />
+      <div class="hsv-switch" role="group" aria-label="View side">
+        <button type="button" class="hsv-side-btn" data-btl-side="front" aria-pressed="true">Front</button>
+        <button type="button" class="hsv-side-btn" data-btl-side="back" aria-pressed="false">Back</button>
+      </div>
+    </div>
+    <div class="hsv-info">
+      <p class="hs-eyebrow">HYPE SPORTS / BOTTLES</p>
+      <h4 id="btlTitle">Baseball Hype Bottle</h4>
+      <p class="hsv-line" id="btlLine">Built for the diamond. Made for the hype.</p>
+      <p class="hsv-status">COMING SOON</p>
+      <p class="btlv-desc" id="btlDesc"></p>
+      <form class="btlv-form" id="btlNotifyForm" novalidate>
+        <label class="qv-colors-label" for="btlEmail">Be first when this bottle drops</label>
+        <input class="btlv-email" id="btlEmail" type="email" inputmode="email" autocomplete="email" placeholder="Parent/guardian email" />
+        <button type="submit" class="btlv-notify" id="btlNotifyBtn">Notify me when it drops</button>
+        <p class="btlv-msg" id="btlNotifyMsg" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- ============ YOUTH SIZE GUIDE (Round 27: ONE shared overlay —
      every product-view Size Guide link opens this same component;
      Round 29 removed the menu's entry, the overlay stays) ============ -->
@@ -1265,6 +1371,6 @@
   </div>
 </div>
 
-<script src="app.js?v=108"></script>
+<script src="app.js?v=109"></script>
 </body>
 </html>

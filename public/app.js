@@ -2459,7 +2459,7 @@ function statsHtml(st) {
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     $("#ownerStatus").textContent = "Owner access active on this device.";
@@ -2507,6 +2507,15 @@ async function loadOwner() {
       }
       $("#hfRequests").innerHTML = hfHtml || "<p>No Hype Frame requests yet.</p>";
     } catch { $("#hfRequests").innerHTML = "<p>Could not load Hype Frame requests.</p>"; }
+    // Bottle drop notifications (owner only, Round 106): per-sport
+    // counts plus the signup emails — the emails live ONLY in this
+    // owner surface. Own try, same pattern as stats/Hype Frames.
+    try {
+      const dn = await api("/api/owner/drop-notifications");
+      const dnCounts = (dn.counts || []).map((c) => `${esc(cap(c.sport))}: <b>${c.count}</b>`).join(" · ");
+      const dnRows = (dn.signups || []).map((s) => `<p><b>${esc(s.email)}</b> — ${esc(cap(s.sport))} bottle <span style="color:var(--muted)">(${esc(s.created_at)})</span></p>`).join("");
+      $("#dropNotify").innerHTML = `<p>${dnCounts || "No signups yet."}</p>${dnRows}`;
+    } catch { $("#dropNotify").innerHTML = "<p>Could not load drop notifications.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
 }
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
@@ -3831,4 +3840,128 @@ async function btlShare105() {
     } catch { /* a challenge link must never break the page */ }
     return out;
   };
+})();
+
+/* ===== Round 106 (2026-11-11, Emil): Bottles in the Swag Shop ====
+   A Hoodies | Bottles toggle under Shop by Sport (Hoodies default).
+   The tiles keep ONE sport selection across both categories: the
+   existing tile wiring jumps to the hoodie card; the listener below
+   records the pick, and in Bottles the same pick jumps to that
+   sport's bottle card — so Football -> flip -> football bottle.
+   Bottle cards open a bottle view (the .hsv shell): front + back
+   on a switch, COMING SOON with NO price, and a per-sport drop
+   alert (POST /api/drop-notify; the emails are owner-only, listed
+   in Owner view). The teaser deep link ?view=shop&cat=bottles
+   (&sport=football) cold-opens the shop on the Bottles tab. */
+const BTL106 = {
+  baseball: { name: "Baseball", front: "/swag/hs/bottle-baseball.jpg" },
+  football: { name: "Football", front: "/swag/hs/bottle-football.jpg" },
+  basketball: { name: "Basketball", front: "/swag/hs/bottle-basketball.jpg" },
+  soccer: { name: "Soccer", front: "/swag/hs/bottle-soccer.jpg" },
+  softball: { name: "Softball", front: "/swag/hs/bottle-softball.jpg" },
+  volleyball: { name: "Volleyball", front: "/swag/hs/bottle-volleyball.jpg" },
+};
+const BTL106_BACK = "/swag/hs/bottle-back.jpg";
+const hsCat106 = { cat: "hoodies", sport: null };
+function hsJump106(card) {
+  if (!card) return;
+  card.scrollIntoView({ behavior: "smooth", block: "center" });
+  card.classList.remove("hs-flash"); void card.offsetWidth; card.classList.add("hs-flash");
+  setTimeout(() => card.classList.remove("hs-flash"), 1300);
+}
+function hsMarkSport106() {
+  $$("[data-hs-jump]").forEach((t) => t.setAttribute("aria-pressed", String(t.dataset.hsJump === hsCat106.sport)));
+}
+function hsSetCat106(cat, jump) {
+  hsCat106.cat = cat === "bottles" ? "bottles" : "hoodies";
+  $$(".hs-cat-btn").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.hsCat === hsCat106.cat)));
+  const hp = $("#hsHoodiePanel"), bp = $("#hsBottlePanel");
+  if (hp) hp.hidden = hsCat106.cat !== "hoodies";
+  if (bp) bp.hidden = hsCat106.cat !== "bottles";
+  if (jump && hsCat106.sport) {
+    const sel = hsCat106.cat === "bottles" ? `[data-btl-card="${hsCat106.sport}"]` : `[data-hs-card="${hsCat106.sport}"]`;
+    setTimeout(() => hsJump106(document.querySelector(sel)), 60);
+  }
+}
+$$(".hs-cat-btn").forEach((b) => b.addEventListener("click", () => hsSetCat106(b.dataset.hsCat, true)));
+$$("[data-hs-jump]").forEach((el) => el.addEventListener("click", () => {
+  hsCat106.sport = el.dataset.hsJump || null;
+  hsMarkSport106();
+  if (hsCat106.cat === "bottles") hsJump106(document.querySelector(`[data-btl-card="${hsCat106.sport}"]`));
+}));
+/* Bottle view: the hoodie product view's twin, minus price/sizes —
+   a bottle is COMING SOON until Emil sets pricing, and the only
+   action is the drop alert for THIS sport. */
+const btlState106 = { sport: null, side: "front" };
+function btlSetSide106(side) {
+  const p = BTL106[btlState106.sport]; if (!p) return;
+  btlState106.side = side === "back" ? "back" : "front";
+  const img = $("#btlMainImg"); if (!img) return;
+  img.src = btlState106.side === "back" ? BTL106_BACK : p.front;
+  img.alt = btlState106.side === "back"
+    ? `${p.name} Hype Bottle — back: the gold HH crest with HIGHLIGHTHYPE and “Your moment. Your hype.” (the same back on every bottle)`
+    : `${p.name} Hype Bottle — front`;
+  $$("[data-btl-side]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.btlSide === btlState106.side)));
+}
+function openBtlView106(sport) {
+  const p = BTL106[sport]; if (!p) return;
+  const view = $("#btlView"); if (!view) return;
+  btlState106.sport = sport;
+  $("#btlTitle").textContent = `${p.name} Hype Bottle`;
+  const hp = HS_PRODUCTS[sport];
+  $("#btlLine").textContent = hp ? hp.line : "";
+  $("#btlDesc").textContent = `The ${p.name} Hype Bottle from Hype Sports — a black 32oz bottle with the giant ${p.name.toLowerCase()} graphic, gold crown and HYPE brush letters on the front, and the gold HH crest on the back. Bottles drop after the hoodies: leave an email and we'll tell you the moment this one goes live.`;
+  const msg = $("#btlNotifyMsg"); if (msg) { msg.textContent = ""; msg.classList.remove("ok"); }
+  btlSetSide106("front");
+  view.hidden = false;
+  document.body.classList.add("hsv-open");
+  view.querySelector(".hsv-close")?.focus();
+}
+function closeBtlView106() {
+  const view = $("#btlView"); if (!view) return;
+  view.hidden = true;
+  document.body.classList.remove("hsv-open");
+}
+$$(".hs-btl-card").forEach((card) => {
+  card.addEventListener("click", () => openBtlView106(card.dataset.btlCard));
+  card.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openBtlView106(card.dataset.btlCard); } });
+});
+$$("[data-btl-close]").forEach((el) => el.addEventListener("click", closeBtlView106));
+$$("[data-btl-side]").forEach((b) => b.addEventListener("click", () => btlSetSide106(b.dataset.btlSide)));
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeBtlView106(); });
+$("#btlNotifyForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const sport = btlState106.sport; if (!sport) return;
+  const input = $("#btlEmail"), btn = $("#btlNotifyBtn"), msg = $("#btlNotifyMsg");
+  const email = (input?.value || "").trim();
+  const say = (text, ok) => { if (msg) { msg.textContent = text; msg.classList.toggle("ok", !!ok); } };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That email doesn't look right — check it and try again.", false); input?.focus(); return; }
+  if (btn) btn.disabled = true;
+  try {
+    await api("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, sport }) });
+    say(`You're on the list ✓ — we'll email you when the ${BTL106[sport].name} bottle drops.`, true);
+  } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
+  if (btn) btn.disabled = false;
+});
+/* Teaser deep link: ?view=shop&cat=bottles opens the store on the
+   Bottles tab; &sport=football also carries the sport pick across,
+   so a parent arriving from the football bottle post lands on the
+   football bottle. The /store path accepts the same params. Runs
+   once at script end (boot has already opened /store itself); a
+   bad link must never break the page. */
+(function round106DeepLink() {
+  try {
+    const q = new URLSearchParams(location.search);
+    const onStorePath = (location.pathname.replace(/\/+$/, "") || "/") === "/store";
+    if (q.get("view") !== "shop" && !onStorePath) return;
+    const cat = q.get("cat"), sport = q.get("sport");
+    if (cat !== "bottles" && !BTL106[sport]) return;
+    if (!document.body.classList.contains("store-open")) showStore();
+    if (BTL106[sport]) { hsCat106.sport = sport; hsMarkSport106(); }
+    if (cat === "bottles") hsSetCat106("bottles", false);
+    if (hsCat106.sport) {
+      const sel = hsCat106.cat === "bottles" ? `[data-btl-card="${hsCat106.sport}"]` : `[data-hs-card="${hsCat106.sport}"]`;
+      setTimeout(() => hsJump106(document.querySelector(sel)), 350);
+    }
+  } catch { /* a deep link must never break the page */ }
 })();
