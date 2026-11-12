@@ -558,7 +558,7 @@ try {
       const home105 = await (await fetch("http://localhost:3473/")).text();
       const app105 = await (await fetch("http://localhost:3473/app.js")).text();
       const css105 = await (await fetch("http://localhost:3473/styles.css")).text();
-      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=119"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v119) assets");
+      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=120"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v120) assets");
       assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("🔥 Your streak: "), "r105: app.js wires challenge share + landing, crown/number renderers and the streak display");
       assert(css105.includes(".crown-chip") && css105.includes(".daily-top105") && css105.includes(".play-numbers105") && css105.includes(".btl-challenge-note"), "r105: styles carry the crown chips, Top Pickers block, numbers line and challenge note");
     } finally { childC.kill(); fs.rmSync(tmpC, { recursive: true, force: true }); }
