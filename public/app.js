@@ -4734,7 +4734,7 @@ function btlPlayBig118(player, force) {
       started on black. This block is the per-play start-offset
       mechanism for the Battles big players ONLY (the Watch view
       and the feed never consult it):
-      - btlStartOffset119 maps play id → seconds (50 → 1.0). Add
+      - btlStartOffset119 maps play id → seconds (50 → 1.5). Add
         a future play by adding a line here.
       - btlSelNote118 stamps the offset on the player with the
         selection; btlWatch / d100Watch then call
@@ -4750,7 +4750,7 @@ function btlPlayBig118(player, force) {
         retire points, so the banked poster is the first real
         frame instead of the black intro.
       Clips with no map entry behave exactly as before. */
-const btlStartOffset119 = { 50: 1.0 };
+const btlStartOffset119 = { 50: 1.5 };
 function btlOffsetFor119(play) {
   if (!play) return 0;
   const off = btlStartOffset119[play.id];
