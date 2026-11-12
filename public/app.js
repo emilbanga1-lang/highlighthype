@@ -791,14 +791,14 @@ function updateContestStrip107() {
   const entries = CONTEST.entries || [];
   const total = entries.reduce((s, e) => s + (e.voteCount || 0), 0);
   const state = !entries.length
-    ? "No entries yet this month — post a play and enter it here."
+    ? "No entries yet — post a play to enter"
     : !total
       ? "No votes yet — every vote counts"
       : (() => { const lead = entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0]; return `Leader: ${lead.title} · ${lead.voteCount} vote${lead.voteCount === 1 ? "" : "s"}`; })();
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
   const label107 = CONTEST.monthLabel || (y && m ? `${MONTHS[m - 1]} ${y}` : "");
   const t1 = $("#stripTitle"), t2 = $("#stripState"), ends = $("#stripEnds");
-  if (t1) t1.textContent = label107 ? `Hype of the Month — ${label107}` : "Hype of the Month";
+  if (t1) t1.textContent = label107 ? `Hype of the Month · ${label107}` : "Hype of the Month";
   if (t2) t2.textContent = state;
   const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
   if (ends) ends.textContent = endsTxt;
