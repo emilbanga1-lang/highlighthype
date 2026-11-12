@@ -2678,3 +2678,66 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 /* ---- 2. Watch view tucks up to the top of the viewport ---- */
 .play-detail{padding:calc(env(safe-area-inset-top, 0px) + 10px) 0 48px}
 @media (min-width:761px){ .play-detail{padding-top:calc(env(safe-area-inset-top, 0px) + 10px)} }
+
+/* ================================================================
+   Round 110 (2026-11-12): Emil's phone review of the live Round
+   109 build — "where the wording and buttons are can be tightened
+   up; remove spacing so there's less scroll," extended by Emil to
+   the homepage as well as the watch view ("Tighten it all").
+   A spacing-only pass in the same override-block convention: no
+   color, copy, layout-structure or behavior changes; no media or
+   type sizes shrink; control boxes keep their heights (view tabs
+   stay 48px, the gold vote button 54px, pills/chips/minis keep
+   their padding) — every saved pixel comes from margins, gaps
+   and container padding between blocks. Biggest single find: on
+   sample plays the watch view's vote band sat empty (the sample
+   note's paragraph bottom margin + the vote box's top padding +
+   the count's top margin stacked to a ~39px dead band where a
+   real play's vote button would be). Rig-measured before/after
+   at 390x844 — see the Round 110 rig report.
+   ================================================================ */
+
+/* ---- Header + board lead-in (homepage) ---- */
+@media (max-width:760px){ .nav .wrap{padding-top:8px;padding-bottom:8px} }
+.deck{padding-top:12px}
+@media (max-width:700px){ .deck{padding-top:10px} }
+#plays{padding-top:12px;padding-bottom:16px}
+.viewseg{margin:2px 0 10px}
+
+/* ---- Contest strip -> filters -> first tile ---- */
+.contest-strip{margin-bottom:10px}
+.sport-pills{margin:6px 0 0}
+.divseg-row .seg{margin-top:6px}
+.month-sub{margin-bottom:10px}
+
+/* ---- Feed tiles: tighter body rhythm + deck gaps ---- */
+#viewAll .tile-featured-slot{margin-bottom:18px}
+#viewAll .tile-deck{gap:18px}
+#viewAll .tile-body{padding-top:8px}
+#plays .tile-info{margin-top:2px}
+#plays .tile-votes{margin-top:7px}
+#plays .tile .play-badges,#plays .tile .play-crowns{margin-top:4px;margin-bottom:0}
+#viewMonth .tile{padding-top:10px;padding-bottom:10px}
+
+/* ---- Below the board: Hype Frame teaser + closing bands ---- */
+#hfExamplesHome{margin-top:18px;padding-top:20px}
+#hfExamplesHome .hf-hero-fig{margin-top:10px}
+#hfExamplesHome .hf-steps{margin-top:12px;margin-bottom:2px}
+#hfExamplesHome .hf-create-row{margin-top:12px}
+.final{padding-top:20px;padding-bottom:26px}
+footer{padding-top:12px;padding-bottom:44px}
+
+/* ---- Watch view: close the dead bands ---- */
+.play-detail{padding-bottom:32px}
+.play-detail-back{margin-bottom:6px}
+.watch-meta{padding-top:10px}
+.watch-line{margin-top:4px}
+.watch-meta .play-badges,.watch-meta .play-crowns{margin-top:4px;margin-bottom:0}
+.watch-card .sample-line{margin-top:3px}
+.watch-card .sample-note{margin-bottom:0}
+.watch-vote{padding-top:8px}
+.watch-count{margin-top:6px}
+.watch-actions{padding-top:8px;margin-top:6px}
+#playDetailBody .upnext{margin-top:16px}
+#playDetailBody .upnext-head{margin-bottom:4px}
+#playDetailBody .upnext-row{padding-top:7px;padding-bottom:7px}
