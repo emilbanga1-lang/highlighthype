@@ -339,11 +339,11 @@ try {
      removed, its two useful lines folded into How it works;
      (17) Share uses the native sheet + deep links that land on the
      play from any view; (9) board videos autoplay. */
-  assert(home.includes('href="/logo-crest-header-sm.png"'), "logo preload points at the crest header lockup (Round 19; Round 97: right-sized copy)");
-  assert((home.split('src="/logo-crest-header-sm.png"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19; Round 97: right-sized copy)");
+  assert(home.includes('href="/logo-header-gold.png"'), "logo preload points at the crest header lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art)");
+  assert((home.split('src="/logo-header-gold.png"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art)");
   assert(home.includes('src="/logo-lockup-gold.jpg"'), "footer uses the full lockup with tagline (Round 19; Round 65: Emil's metallic gold master)");
   assert(home.includes('href="/favicon.ico"') && home.includes('href="/favicon.png"'), "favicon is the gold crest badge (Round 19)");
-  const logoRes = await fetch(`${base}/logo-crest-header-sm.png`);
+  const logoRes = await fetch(`${base}/logo-header-gold.png`);
   const logoBuf = Buffer.from(await logoRes.arrayBuffer());
   assert(logoRes.status === 200 && logoBuf.subarray(1, 4).toString() === "PNG" && logoBuf.byteLength > 5000, `crest header lockup serves as a real PNG (${logoBuf.byteLength} bytes)`);
   assert(!css.includes("mix-blend-mode:screen"), "the screen-blend workaround is gone (real transparency now)");
