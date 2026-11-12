@@ -2986,6 +2986,11 @@ function btlWatch(slot, keepPaused) {
      a same-src tap would otherwise change nothing), force a fresh
      load — a tap must always be able to recover the player. */
   if (player.getAttribute("src") !== p.media_url || player.error) { player.src = p.media_url; player.load(); }
+  /* Round 119: a black-intro clip (offset map) starts at its
+     offset, not on black — the seek lands as soon as metadata
+     allows, BEFORE first playback, so the resting frame (this
+     keepPaused open state included) is past the black too. */
+  if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
   /* Round 117: the "Now watching" banner is retired on the Quick
      player — it repeated the mini card's title a second time. The
      tapped mini's gold .watching outline is the marker now. (The
@@ -3334,6 +3339,8 @@ function d100Watch(prefix, slot, play) {
   if (typeof btlSelNote118 === "function") btlSelNote118(player, play);
   if (typeof btlBigPoster118 === "function") btlBigPoster118(player, play);
   if (player.getAttribute("src") !== play.media_url || player.error) { player.src = play.media_url; player.load(); }
+  /* Round 119: same black-intro offset seek as btlWatch. */
+  if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
   const label = document.getElementById(prefix + "NowLabel");
   if (label) label.textContent = "Now watching: " + play.title + (typeof crownSuffix105 === "function" ? crownSuffix105(play) : "");
   if (typeof btlPlayBig118 === "function") btlPlayBig118(player, false); else { try { player.play(); } catch { /* autoplay refusal is fine */ } }
@@ -3833,7 +3840,15 @@ btlMiniFrame = function (v) {
   if (key && btlPosters104[key]) { try { v.poster = btlPosters104[key]; } catch { /* the poster is a bonus */ } }
   btlMiniFrame91(v);
   if (!key) return;
-  const cap = () => { if (v.currentTime >= 0.5) { btlCapturePoster104(v); v.removeEventListener("timeupdate", cap); } };
+  /* Round 119: a black-intro clip (offset map) freezes AT its
+     offset, not at 0.5s — a poster banked from inside the black
+     intro would be a black frame (and btlCapturePoster104's own
+     black-frame rejection would keep refusing the capture,
+     leaving the clip to fall back on the placeholder forever).
+     Non-offset clips keep the stock 0.5 / 0.6 freeze points. */
+  const fzAt104 = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(key) : 0.5;
+  const fzTo104 = fzAt104 > 0.5 ? fzAt104 + 0.05 : 0.6;
+  const cap = () => { if (v.currentTime >= fzAt104) { btlCapturePoster104(v); v.removeEventListener("timeupdate", cap); } };
   v.addEventListener("timeupdate", cap);
   setTimeout(() => v.removeEventListener("timeupdate", cap), 3200);
   /* A slow clip can stall before the freeze point (the real
@@ -3851,10 +3866,10 @@ btlMiniFrame = function (v) {
     if (seekTried104) return;
     seekTried104 = true;
     try {
-      if (!v.isConnected || v.currentTime >= 0.5) return;
+      if (!v.isConnected || v.currentTime >= fzAt104) return;
       const onSeek = () => { btlCapturePoster104(v); v.removeEventListener("seeked", onSeek); };
       v.addEventListener("seeked", onSeek);
-      v.currentTime = 0.6;
+      v.currentTime = fzTo104;
       setTimeout(() => v.removeEventListener("seeked", onSeek), 4000);
     } catch { /* seeking is best-effort */ }
   };
@@ -3864,14 +3879,14 @@ btlMiniFrame = function (v) {
      window to cover the poster. The loadeddata / stall retries
      below still run if this early seek didn't take. */
   try {
-    if (v.currentTime < 0.5) {
+    if (v.currentTime < fzAt104) {
       const onEarlySeek = () => { btlCapturePoster104(v); v.removeEventListener("seeked", onEarlySeek); };
       v.addEventListener("seeked", onEarlySeek);
       setTimeout(() => v.removeEventListener("seeked", onEarlySeek), 4000);
-      v.currentTime = 0.6;
+      v.currentTime = fzTo104;
     }
   } catch { /* best-effort */ }
-  if (v.readyState >= 2 && v.currentTime < 0.5) seekFreeze104();
+  if (v.readyState >= 2 && v.currentTime < fzAt104) seekFreeze104();
   else v.addEventListener("loadeddata", seekFreeze104, { once: true });
   setTimeout(seekFreeze104, 1200);
 };
@@ -4244,7 +4259,10 @@ function btlRetireMatchup111(matchup) {
   if (!matchup) return;
   matchup.querySelectorAll(".btl-mini video:not(.vfill)").forEach((v) => {
     const url = btlRegisterMedia111(v);
-    if (url && v.currentTime >= 0.5 && typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
+    /* Round 119: the retire-capture threshold follows the same
+       freeze point as the wiring (offset clips bank at the offset). */
+    const fzRet111 = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(url) : 0.5;
+    if (url && v.currentTime >= fzRet111 && typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
     if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { v.poster = btlPosters104[url]; } catch { /* bonus */ } }
     try { v.pause(); } catch { /* already stopped */ }
     try { btlWarmBox111().appendChild(v); } catch { /* parking is best-effort */ }
@@ -4255,7 +4273,11 @@ function btlWireMedia111(v) {
   const url = v.dataset.btlUrl111 || v.getAttribute("src") || "";
   const actual = (typeof btlPosters104 !== "undefined" && url) ? btlPosters104[url] : "";
   if (actual) { try { v.poster = actual; } catch { /* bonus */ } }
-  if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; try { v.pause(); } catch { /* fine */ } return; }
+  /* Round 119: "frame ready" for an offset clip means parked AT
+     the offset (a frame inside its black intro is not a frame
+     worth settling on); other clips keep the 0.5s point. */
+  const fzWire111 = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(url) : 0.5;
+  if (v.currentTime >= fzWire111) { v.dataset.btlFrameReady111 = "1"; try { v.pause(); } catch { /* fine */ } return; }
   const wiredAt = Number(v.dataset.btlFrameWiredAt111 || 0);
   if (v.dataset.btlFrameWired111 === "1" && Date.now() - wiredAt < 3500) {
     /* Still inside the first wiring's freeze window — the earlier
@@ -4266,7 +4288,7 @@ function btlWireMedia111(v) {
   v.dataset.btlFrameWired111 = "1";
   v.dataset.btlFrameWiredAt111 = String(Date.now());
   if (typeof btlMiniFrame === "function") btlMiniFrame(v);
-  const mark = () => { if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; if (typeof refreshFillPoster113 === "function") refreshFillPoster113(v); v.removeEventListener("timeupdate", mark); } };
+  const mark = () => { if (v.currentTime >= fzWire111) { v.dataset.btlFrameReady111 = "1"; if (typeof refreshFillPoster113 === "function") refreshFillPoster113(v); v.removeEventListener("timeupdate", mark); } };
   v.addEventListener("timeupdate", mark);
   setTimeout(() => v.removeEventListener("timeupdate", mark), 4000);
 }
@@ -4530,6 +4552,11 @@ wireBtlPlayer113("runPlayer");
       in Emil's screenshot is iOS's own button over a poster-less
       element. This handler makes the page's own mechanics back
       that tap up instead of depending on the element's state.)
+      (Round 119 correction: the handler no longer reads
+      player.paused at click time — on iOS the native toggle lands
+      BEFORE the click reaches page handlers, so a pause tap
+      arrived already-paused and got played again. Intent is now
+      captured at pointerdown; see the wiring below.)
    4. A media error on a big player earns ONE silent reload for
       that URL; a second error for the same URL raises the retry
       overlay. canplay / playing clears the slate.
@@ -4547,6 +4574,10 @@ function btlSelNote118(player, play) {
     player.dataset.btlSelUrl118 = play.media_url || "";
     player.dataset.btlSelSport118 = play.sport || "";
     player.dataset.btlSelTitle118 = play.title || "";
+    /* Round 119: stamp the clip's start offset (the black-intro
+       map, btlStartOffset119) with the selection, so the seek
+       helper and the play path's reloads can land past the black. */
+    player.dataset.btlSelOffset119 = (typeof btlOffsetFor119 === "function") ? String(btlOffsetFor119(play) || "") : "";
   } catch (e) { /* the note is best-effort */ }
 }
 function btlBigPoster118(player, play) {
@@ -4598,6 +4629,9 @@ function btlPlayBig118(player, force) {
   const reload = () => {
     if (url && player.getAttribute("src") !== url) { try { player.src = url; } catch (e) { /* best-effort */ } }
     try { player.load(); } catch (e) { /* best-effort */ }
+    /* Round 119: load() lands back at 0 — a black-intro clip must
+       not restart on its black frames after a recovery reload. */
+    if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
   };
   /* A broken element gets a fresh load BEFORE any play attempt:
      a media error, NETWORK_EMPTY (0) / NETWORK_NO_SOURCE (3), or
@@ -4619,12 +4653,44 @@ function btlPlayBig118(player, force) {
 ["btlPlayer", "dailyPlayer", "runPlayer"].forEach((id) => {
   const player = document.getElementById(id);
   if (!player) return;
-  /* Direct tap on the big player: play the clip THIS element has
-     loaded (its noted selection) through the hardened path — the
-     mini-tap-first sequence is no longer required. A tap while
-     already playing is left to the native controls alone. */
+  /* Round 119: the tap contract, made ordering-safe. Round 118's
+     handler read player.paused AT CLICK TIME — but the native
+     controls toggle play/pause BEFORE the click event reaches
+     page handlers (the toggle is the media element's own internal
+     handling, upstream of the host element's listeners). A tap on
+     a PLAYING clip therefore arrived already-paused, and the
+     handler "helpfully" played it again: pause could never hold,
+     while play (toggled first, seen as playing) appeared to work.
+     Intent is now judged from the state captured at POINTERDOWN,
+     which precedes any native toggle:
+       - playing at pointerdown → the tap means pause: the site
+         does nothing, and the native pause stands;
+       - paused at pointerdown → the tap means play: the hardened
+         path runs (a duplicate native play() is harmless, and
+         this path is the recovery when the element is in a state
+         the native toggle cannot drive);
+       - pointerdown in the native control bar (the bottom strip)
+         → the native controls own the click entirely;
+       - no pointerdown at all (keyboard / synthetic click) →
+         left to the native controls alone.
+     A user pause is thus never mistaken for a play request or an
+     error, and the Round 118 retry overlay is untouched. */
+  let btlTap119 = null;
+  player.addEventListener("pointerdown", (ev) => {
+    if (!ev || ev.isPrimary === false || (typeof ev.button === "number" && ev.button !== 0)) { btlTap119 = null; return; }
+    let ctrl = false;
+    try {
+      const r = player.getBoundingClientRect();
+      if (r && r.height > 0 && typeof ev.clientY === "number") ctrl = (ev.clientY - r.top) > (r.height - 52);
+    } catch (e) { /* geometry is best-effort */ }
+    btlTap119 = { playing: !player.paused, ctrl, t: Date.now() };
+  });
+  player.addEventListener("pointercancel", () => { btlTap119 = null; });
   player.addEventListener("click", () => {
-    if (!player.paused) return;
+    const tap = btlTap119; btlTap119 = null;
+    if (!tap) return;
+    if (Date.now() - tap.t > 1000) return;
+    if (tap.ctrl || tap.playing) return;
     if (!player.dataset.btlSelUrl118) return;
     btlPlayBig118(player, false);
   });
@@ -4637,9 +4703,93 @@ function btlPlayBig118(player, force) {
     if (player.dataset.btlErrUrl118 === url) { btlShowRetry118(player, true); return; }
     player.dataset.btlErrUrl118 = url;
     try { player.load(); } catch (e) { /* best-effort */ }
+    /* Round 119: the silent reload lands at 0 like any load() —
+       re-apply the noted offset so an offset clip recovers past
+       its black intro, not on it. */
+    if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
   });
   ["canplay", "playing"].forEach((ev) => player.addEventListener(ev, () => {
     delete player.dataset.btlErrUrl118;
     btlShowRetry118(player, false);
   }));
 });
+
+/* ---------------- Round 119 (2026-11-12): Battles — pause must
+   hold, and black-intro clips start past the black. Two fixes on
+   the live v120 build, both from Emil's phone:
+
+   1. PAUSE. Once Charlotte's clip started in the big player, no
+      tap would pause it. The cause was Round 118's own surface
+      handler: it read player.paused at click time, but the native
+      controls toggle BEFORE the click reaches page handlers, so a
+      pause tap arrived already-paused and the handler played the
+      clip again (play only *appeared* fine — toggled first, seen
+      as playing, handler stood down). The wiring above is
+      corrected in place: intent is captured at pointerdown, and
+      control-bar taps and pointer-less clicks belong to the
+      native controls alone.
+
+   2. BLACK INTRO. Charlotte's clip (play 50) opens with ~1s of
+      black frames: the big player rested on black and playback
+      started on black. This block is the per-play start-offset
+      mechanism for the Battles big players ONLY (the Watch view
+      and the feed never consult it):
+      - btlStartOffset119 maps play id → seconds (50 → 1.0). Add
+        a future play by adding a line here.
+      - btlSelNote118 stamps the offset on the player with the
+        selection; btlWatch / d100Watch then call
+        btlSeekOffset119, which seeks as soon as metadata allows
+        and BEFORE first playback — the resting frame and the
+        first played frame both sit at the offset.
+      - Every load() path re-applies it (btlPlayBig118's recovery
+        reload and the error listener's silent reload), because a
+        load() otherwise lands back at 0, on the black.
+      - The poster pipeline freezes offset clips AT the offset:
+        btlFreezeAt119(url) drives the Round 104 capture
+        threshold / seek targets and the Round 111 frame-ready /
+        retire points, so the banked poster is the first real
+        frame instead of the black intro.
+      Clips with no map entry behave exactly as before. */
+const btlStartOffset119 = { 50: 1.0 };
+function btlOffsetFor119(play) {
+  if (!play) return 0;
+  const off = btlStartOffset119[play.id];
+  return (typeof off === "number" && off > 0) ? off : 0;
+}
+function btlOffsetForUrl119(url) {
+  if (!url) return 0;
+  try {
+    const lists = [ALL_PLAYS, (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || []];
+    for (const list of lists) {
+      for (const p of list) { if (p && p.media_url === url) { const o = btlOffsetFor119(p); if (o) return o; } }
+    }
+  } catch (e) { /* the lookup is best-effort */ }
+  return 0;
+}
+/* The freeze point for a clip's poster pipeline: the offset for
+   mapped clips (freeze on the first real frame), the stock 0.5s
+   for everything else. */
+function btlFreezeAt119(url) {
+  const o = btlOffsetForUrl119(url);
+  return o > 0 ? o : 0.5;
+}
+/* Seek a big player to its noted selection offset. Reads the
+   CURRENT note at fire time, so a stale registration from an
+   earlier selection can never seek a newer clip to an old offset;
+   registers a one-time metadata listener when the data isn't in
+   yet, which is what puts the seek before first playback. */
+function btlSeekOffset119(player) {
+  if (!player) return;
+  const doSeek = () => {
+    const off = parseFloat((player.dataset && player.dataset.btlSelOffset119) || "0") || 0;
+    if (!off) return;
+    if (player.readyState >= 1 && player.currentTime < off - 0.05) {
+      try { player.currentTime = off; } catch (e) { /* seeking is best-effort */ }
+    }
+  };
+  if (player.readyState >= 1) doSeek();
+  player.addEventListener("loadedmetadata", function btlOffMeta119() {
+    player.removeEventListener("loadedmetadata", btlOffMeta119);
+    doSeek();
+  });
+}
