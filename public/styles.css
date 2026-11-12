@@ -2593,3 +2593,53 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 /* ---- Upload form accents (the overlay itself is unchanged) ---- */
 #uploadForm .quick-label{font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--volt)}
 #uploadForm .dropzone{border-color:rgba(200,255,0,.55);background:#0c0e03}
+
+/* ================================================================
+   Round 108 (2026-11-12): Emil's phone review of the live Round
+   107 redesign (his screenshot, not the test rig). Five fixes,
+   same override-block convention: earlier rules stay, this block
+   wins by specificity + order.
+   1. The header Post a Play pill was oversized next to the 44px
+      hamburger — it shrinks to a compact 40px pill.
+   2. The Round 107 pinned Boys/Girls segment sat ON TOP of the
+      scrolling sport pills (his "Baseb…" buried mid-scroll).
+      The segment now rides its own block row under the pills:
+      two stacked rows, no absolute positioning anywhere in the
+      filter area, so overlap is structurally impossible.
+   3. Voting returns to the tile: the gold chip is a button again
+      (Round 107's display-only chip reversed — see tileHtml).
+   4. Hype Stories is a menu page now; the panel keeps its
+      homepage paint (the #stories rules above still match).
+   5. The Hawks Founding Plays card is gone (markup + renderer
+      removed); its base .hawks-* rules stay dormant in the file.
+   ================================================================ */
+
+/* ---- 1. Compact header pill (40px, matched to the 44px hamburger) ---- */
+.post-play-btn{height:40px;min-height:0;padding:0 13px;font-size:13px;font-weight:800;display:inline-flex;align-items:center;line-height:1;white-space:nowrap}
+
+/* ---- 2. Two-row filters: pills row, then division row ---- */
+.sport-pills-row{position:static;padding-right:0}
+@media (max-width:420px){ .sport-pills-row{padding-right:0} }
+.sport-pills-row .sp-divseg{position:static;transform:none;box-shadow:none}
+/* The segment no longer lives inside the pill row at all (moved to
+   .divseg-row in index.html); these rules paint it there, in the
+   Round 107 volt style, and keep it from overlapping anything. */
+.divseg-row{display:flex;justify-content:flex-start}
+.divseg-row .seg{display:inline-flex;background:#151517;border:1px solid #2b2b28;border-radius:999px;padding:3px;margin-top:8px}
+/* The [hidden] guard, explicitly: an author display rule beats the
+   hidden attribute on a specificity tie, and switchView relies on
+   hidden to show ONE seg per view — in the two-row layout an
+   unguarded display:flex left the off-view seg visible beside the
+   live one (Round 107's absolute stack had masked this). */
+.divseg-row .seg[hidden]{display:none}
+.divseg-row .seg button{border:0;background:transparent;color:#cfcfc6;font:inherit;font-weight:800;font-size:13.5px;padding:8px 13px;border-radius:999px;cursor:pointer;min-height:38px}
+.divseg-row .seg button[aria-pressed="true"]{background:var(--volt);color:#131a00}
+@media (max-width:420px){ .divseg-row .seg button{padding:8px 10px;font-size:12.5px} }
+
+/* ---- 3. The tile vote chip is a button again ---- */
+#plays button.vote-chip{font:inherit;cursor:pointer;text-align:left}
+#plays button.vote-chip:active{transform:scale(.97)}
+#plays .vote-chip.voted{background:var(--gold);border-color:var(--gold);color:#171200}
+#plays .vote-chip.voted b{color:#171200}
+#plays .vote-chip.vote-pending{opacity:.6;cursor:progress}
+#plays .vote-chip.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}

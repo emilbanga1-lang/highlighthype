@@ -114,7 +114,9 @@ async function loadData() {
     api(`/api/contest?voterToken=${voterToken}`),
   ]);
   ALL_PLAYS = h.highlights || [];
-  if (typeof renderHawks100 === "function") renderHawks100(h.hawksFounding);
+  /* Round 108: the payload's hawksFounding count is still served
+     (owner/API data), but the public Founding Plays card it fed
+     is removed — no renderer consumes it on the homepage now. */
   CONTEST = c;
   /* Round 9: fetch the PREVIOUS month's contest too — the server
      already records each period's winner (contest_winners), and
@@ -380,13 +382,17 @@ function tileInfoHtml(h, votes, voteLabel) {
    big single-column feed card in the approved redesign: 16:9 media
    (sample tag on the thumb, duration pill at bottom-left), title
    with the ⋮ affordance, the merged info line, badges + crowns,
-   and a gold vote-count chip. Voting itself moved to the watch
-   view (the tile's old Vote pill is gone — the count still shows
-   here, and the full vote control is one tap away on the play's
-   watch page). Kept from the compact tile: the tap layer (Round 9),
-   the play disc element (Round 45 — restyled off in the feed by
-   Round 107 CSS), and the 📸 Frame chip (Round 32), so every
-   existing entry point still works from the card. */
+   and a gold vote-count chip. Kept from the compact tile: the tap
+   layer (Round 9), the play disc element (Round 45 — restyled off
+   in the feed by Round 107 CSS), and the 📸 Frame chip (Round 32),
+   so every existing entry point still works from the card.
+   Round 108 (2026-11-12, Emil — "How do they vote now?"): voting
+   RETURNS to the tile. Round 107 had moved it to the watch view
+   only; the gold chip is a real vote button again for real plays
+   ("👑 Vote · N" / "👑 Voted · N"), wired to the same toggleVote
+   as the watch view (identical server semantics), its click
+   stopped so it can never also open the watch view. Samples keep
+   the display-only chip — no vote affordance, as ever. */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
@@ -401,7 +407,7 @@ function tileHtml(h, opts = {}) {
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
       <div class="tile-votes">
-        <span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
+        ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "👑 Voted" : "👑 Vote"} · <b>${votes}</b></button>`}
         <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
       </div>
     </div>
@@ -1290,6 +1296,8 @@ $$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));
 window.addEventListener("hashchange", () => {
   if (location.hash === "#post") goSubmit();
   if (location.hash === "#shop") showStore();
+  /* Round 108: same-page #stories navigation opens the panel. */
+  if (location.hash === "#stories") { showHome(); closeMenu(false); showPanel("stories"); window.scrollTo(0, 0); }
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") showStore(location.hash.slice(1));
   const hm = location.hash.match(/^#hype-frame-(\d+)$/);
   if (hm) openHypeFrame(Number(hm[1]));
@@ -2660,6 +2668,9 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   let bootPathTarget = false;
   if (bootPath === "/my-highlights") { document.body.classList.add("page-sub"); showPanel("mine"); bootPathTarget = true; }
   else if (bootPath === "/how-it-works") { document.body.classList.add("page-sub"); showPanel("how"); bootPathTarget = true; }
+  /* Round 108 (2026-11-12, Emil): Hype Stories is a menu page now
+     (/stories), booting exactly like How It Works. */
+  else if (bootPath === "/stories") { document.body.classList.add("page-sub"); showPanel("stories"); bootPathTarget = true; }
   else if (bootPath === "/store") { showStore(); bootPathTarget = true; }
   if (bootPathTarget) bootHashTarget = true;
   if (bootPath === "/" && new URLSearchParams(location.search).get("view") === "all") { switchView("all"); bootHashTarget = true; /* Round 82 (2026-11-09, Emil's pick): Watch Highlights opens at the TOP like the homepage — hero playing as normal, All Hypes preselected below. The Round 77 board jump and Round 80 hero pause are retired at his direction. */ }
@@ -2671,6 +2682,10 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   syncFilterUI();
   loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); });
   if (location.hash === "#shop") { bootHashTarget = true; showStore(); }
+  /* Round 108: the pre-108 homepage anchor #stories (shared links,
+     old bookmarks) lands on the Stories panel now that the section
+     has left the homepage flow. */
+  if (location.hash === "#stories") { bootHashTarget = true; showPanel("stories"); window.scrollTo(0, 0); }
   if (location.hash === "#hype-girls" || location.hash === "#hype-boys") { bootHashTarget = true; showStore(location.hash.slice(1)); }
   if (location.hash === "#owner") { bootHashTarget = true; $("#ownerPanel").classList.remove("hidden"); loadOwner(); }
   // Round 24: #post is the upload form heading's id — the target
@@ -2685,7 +2700,7 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   // shared #play-, an athlete, the owner panel) starts on the home
   // boards, so it counts "home" here.
   trackReferrer();
-  if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post"].includes(location.hash)) trackEvent("view", "home");
+  if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post", "#stories"].includes(location.hash)) trackEvent("view", "home");
 })();
 
 /* ---------------- Rounds 62 + 67: board controls ----------------
@@ -3429,18 +3444,11 @@ async function dailyShare100() {
   document.querySelectorAll("#dailyShare,#dailyStripShare").forEach((btn) => { const old = btn.textContent; btn.textContent = "Link copied ✓"; setTimeout(() => { btn.textContent = old; }, 2200); });
 }
 
-/* ---- Hawks Founding Plays ---- */
-function renderHawks100(hf) {
-  const card = document.getElementById("hawksCard");
-  if (!card) return;
-  if (!hf || typeof hf.count !== "number") { card.hidden = true; return; }
-  const goal = hf.goal || 10;
-  card.hidden = false;
-  const count = document.getElementById("hawksCount");
-  if (count) count.textContent = `${hf.count} of ${goal} founding plays posted`;
-  const fill = document.getElementById("hawksBarFill");
-  if (fill) fill.style.width = Math.min(100, Math.round((hf.count / goal) * 100)) + "%";
-}
+/* ---- Hawks Founding Plays ----
+   Round 108 (2026-11-12, Emil): the public card and its renderer
+   are removed with the homepage section. The /api/highlights
+   payload still carries hawksFounding (owner/API data) — nothing
+   on the public surface renders it now. */
 
 /* ---- Battle Run ---- */
 async function loadRun100() {
@@ -3684,7 +3692,6 @@ async function ownerDailySave100() {
   bind("runCopyTiktok", "click", async () => { runMsg100((await copyText100(runCaptions100().tiktok)) ? "TikTok caption copied ✓" : "Copy failed — long-press to copy from a screenshot instead."); });
   bind("runCopyInsta", "click", async () => { runMsg100((await copyText100(runCaptions100().insta)) ? "Instagram caption copied ✓" : "Copy failed — long-press to copy from a screenshot instead."); });
   bind("runAgain", "click", () => { d100.runState = null; const end = document.getElementById("runEnd"); if (end) end.hidden = true; loadRun100().then(() => runStart100()); });
-  bind("hawksPostBtn", "click", () => { if (typeof goSubmit === "function") goSubmit(); });
   bind("odSave", "click", ownerDailySave100);
   if (typeof initBattles === "function") {
     const origInit100 = initBattles;

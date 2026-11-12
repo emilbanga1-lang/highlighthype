@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=110" />
+<link rel="stylesheet" href="styles.css?v=111" />
 </head>
 <body>
 
@@ -56,6 +56,11 @@
       <a href="/?view=all" id="menuAllHypes">All Hypes</a>
       <a href="/my-highlights">My Highlights</a>
       <a href="/how-it-works">How it works</a>
+      <!-- Round 108 (2026-11-12, Emil): Hype Stories leaves the
+           homepage and joins the menu as a real page (/stories) —
+           the menu goes to five items at his explicit direction,
+           breaking the Round 29 four-item rule for this one. -->
+      <a href="/stories">Hype Stories</a>
       <a class="nav-swag" href="/store">Swag Shop — Rep The Hype</a>
     </nav>
   </div>
@@ -163,15 +168,26 @@
         <button type="button" class="sp-pill" data-sp="track">Track &amp; Field</button>
         <button type="button" class="sp-pill" data-sp="volleyball">Volleyball</button>
         <button type="button" class="sp-pill" data-sp="wrestling">Wrestling</button>
-        <div class="seg sp-divseg" role="group" aria-label="Division" id="monthDivSeg">
-          <button type="button" data-div="boys" aria-pressed="true">Boys</button>
-          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
-        </div>
-        <div class="seg sp-divseg" role="group" aria-label="Board" id="allDivSeg" hidden>
-          <button type="button" data-div="all" aria-pressed="true">All boards</button>
-          <button type="button" data-div="boys" aria-pressed="false">Boys</button>
-          <button type="button" data-div="girls" aria-pressed="false">Girls</button>
-        </div>
+      </div>
+    </div>
+
+    <!-- Round 108 (2026-11-12, Emil's phone screenshot): the
+         division segment rides its OWN row under the pill row.
+         Round 107 pinned it over the scrolling pills (absolute,
+         right) and on his iPhone it buried "Baseb…" mid-scroll.
+         Two stacked block rows make that overlap structurally
+         impossible; the segs keep their ids, state writers
+         (monthDiv / allDiv via syncFilterUI) and visibility
+         rules (switchView) — only the layout moved. -->
+    <div class="divseg-row">
+      <div class="seg sp-divseg" role="group" aria-label="Division" id="monthDivSeg">
+        <button type="button" data-div="boys" aria-pressed="true">Boys</button>
+        <button type="button" data-div="girls" aria-pressed="false">Girls</button>
+      </div>
+      <div class="seg sp-divseg" role="group" aria-label="Board" id="allDivSeg" hidden>
+        <button type="button" data-div="all" aria-pressed="true">All boards</button>
+        <button type="button" data-div="boys" aria-pressed="false">Boys</button>
+        <button type="button" data-div="girls" aria-pressed="false">Girls</button>
       </div>
     </div>
 
@@ -522,40 +538,6 @@
     </form>
   </div>
 
-<!-- ============ HYPE STORIES (homepage) ============
-     Round 63 (2026-11-08, Emil's concept): HYPE STORIES is the
-     shelf, THAT'S HYPE is the show — a weekly featured athlete
-     story. One episode at launch; "View all stories" arrives
-     once there are 4-5 episodes. Placement per Emil: below the
-     board, above Hype Frame; on mobile the cover is a still
-     with a play button so it never competes with the hero film. -->
-<section class="stories" id="stories">
-  <div class="wrap">
-    <span class="sec-tag gold">The weekly feature</span>
-    <h2 class="stories-title">Hype Stories</h2>
-    <p class="stories-sub">The stories behind the plays.</p>
-    <article class="story-card">
-      <div class="story-media">
-        <video id="storyVideo" src="/hype-story-ep1.mp4" poster="/hype-story-ep1-wide.jpg" preload="none" playsinline controls hidden></video>
-        <button type="button" class="story-cover" id="storyCover" aria-label="Watch story: Future Yankee">
-          <img src="/hype-story-ep1-wide.jpg" alt="Nicholas mid-delivery on the field at Yankee Stadium" />
-          <span class="story-play" aria-hidden="true">&#9654;</span>
-          <span class="story-dur">0:16</span>
-        </button>
-        <button type="button" class="story-close" id="storyClose" aria-label="Close story" hidden>&times;</button>
-      </div>
-      <div class="story-meta">
-        <p class="story-ep">Ep. 01 / Baseball</p>
-        <h3 class="story-name">Future Yankee</h3>
-        <p class="story-line">A young pitcher gets his reps in at Yankee Stadium.</p>
-        <div class="story-actions">
-          <a class="story-submit" href="#post" data-submit-link>Submit a moment &rarr;</a>
-        </div>
-      </div>
-    </article>
-  </div>
-</section>
-
 <!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
 <div class="wrap">
   <div class="hf-examples" id="hfExamplesHome">
@@ -606,6 +588,43 @@
   </div>
 </div>
 </section>
+
+<!-- ============ HYPE STORIES ============
+     Round 63 (2026-11-08, Emil's concept): HYPE STORIES is the
+     shelf, THAT'S HYPE is the show — a weekly featured athlete
+     story. One episode at launch; "View all stories" arrives
+     once there are 4-5 episodes.
+     Round 108 (2026-11-12, Emil): the shelf leaves the homepage
+     and becomes its own page-mode panel (menu -> /stories),
+     like How It Works. Episode content + player wiring are
+     unchanged; the old #stories anchor routes here too. -->
+<section class="stories panel" id="stories" data-panel="stories">
+  <div class="wrap">
+    <span class="sec-tag gold">The weekly feature</span>
+    <h2 class="stories-title">Hype Stories</h2>
+    <p class="stories-sub">The stories behind the plays.</p>
+    <article class="story-card">
+      <div class="story-media">
+        <video id="storyVideo" src="/hype-story-ep1.mp4" poster="/hype-story-ep1-wide.jpg" preload="none" playsinline controls hidden></video>
+        <button type="button" class="story-cover" id="storyCover" aria-label="Watch story: Future Yankee">
+          <img src="/hype-story-ep1-wide.jpg" alt="Nicholas mid-delivery on the field at Yankee Stadium" />
+          <span class="story-play" aria-hidden="true">&#9654;</span>
+          <span class="story-dur">0:16</span>
+        </button>
+        <button type="button" class="story-close" id="storyClose" aria-label="Close story" hidden>&times;</button>
+      </div>
+      <div class="story-meta">
+        <p class="story-ep">Ep. 01 / Baseball</p>
+        <h3 class="story-name">Future Yankee</h3>
+        <p class="story-line">A young pitcher gets his reps in at Yankee Stadium.</p>
+        <div class="story-actions">
+          <a class="story-submit" href="#post" data-submit-link>Submit a moment &rarr;</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
 
 <!-- ============ MY HIGHLIGHTS ============ -->
 <section class="panel" id="mine" data-panel="mine">
@@ -857,22 +876,11 @@
   </div>
 </section>
 
-<!-- Round 100 (2026-11-11): Plainview Hawks Founding Plays — one
-     slim challenge card under the board. The count comes from the
-     board payload (approved, non-sample, Hawks-tagged plays only);
-     hidden until the first payload lands. -->
-<div class="view-home hawks-band" id="hawksCard" hidden>
-  <div class="wrap">
-    <div class="hawks-inner">
-      <div class="hawks-copy">
-        <span class="hawks-tag">PLAINVIEW HAWKS — FOUNDING PLAYS</span>
-        <div class="hawks-bar"><span id="hawksBarFill"></span></div>
-        <p class="hawks-count" id="hawksCount">0 of 10 founding plays posted</p>
-      </div>
-      <button type="button" class="btn btn-gold hawks-btn" id="hawksPostBtn">Post a Hawks play</button>
-    </div>
-  </div>
-</div>
+<!-- Round 108 (2026-11-12, Emil): the Plainview Hawks Founding
+     Plays card (Round 100) is gone from the homepage — no
+     replacement section. The board payload still carries the
+     hawksFounding count for the owner/API side; only the public
+     card and its renderer were taken out. -->
 
 </div><!-- /deck -->
 
@@ -1400,6 +1408,6 @@
   </div>
 </div>
 
-<script src="app.js?v=110"></script>
+<script src="app.js?v=111"></script>
 </body>
 </html>
