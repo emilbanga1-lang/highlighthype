@@ -2764,3 +2764,26 @@ footer{padding-top:12px;padding-bottom:44px}
 #btlMain .btl-pick:disabled{opacity:.45}
 #btlMatchup .btl-mini.winner{border-color:var(--volt);box-shadow:0 0 0 5px rgba(200,255,0,.14)}
 #btlMatchup .btl-stamp{background:var(--volt);color:#131a00}
+
+/* ================================================================
+   Round 112 (2026-11-12): a picked Daily Battle folds ALL the way.
+   Round 105 collapsed only the matchup, leaving the header stack
+   (sub-line, "Which Play Wins?", practice label, streak line) and
+   the strip's own Share / Play another row on screen — ~442px of
+   section for a done decision. In the collapsed state the slim
+   class hides that stack and the strip's button row (display only:
+   DOM, handlers and the expand path are untouched), tightens the
+   card/strip spacing, and leaves the DAILY BATTLE chip + date as
+   the strip's header over two lines: the pick, then the split.
+   Everything returns the moment the strip is tapped open.
+   ================================================================ */
+#dailyCard.daily-slim112{padding-top:12px;padding-bottom:12px}
+#dailyCard.daily-slim112 #dailySub111,
+#dailyCard.daily-slim112>.btl-prompt,
+#dailyCard.daily-slim112 #dailyPractice,
+#dailyCard.daily-slim112 #dailyStreak105,
+#dailyCard.daily-slim112 .daily-strip-share{display:none}
+#dailyCard.daily-slim112 .daily-strip{margin-top:8px;padding-top:9px;padding-bottom:9px}
+#dailyCard.daily-slim112 .daily-strip-split .split-line{margin-top:4px}
+#dailyCard.daily-slim112 .daily-strip-split .split-bar{height:8px}
+#dailyCard.daily-slim112 .daily-strip-split .split-line{font-size:12.5px;line-height:1.4}
