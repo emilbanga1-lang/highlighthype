@@ -2879,7 +2879,7 @@ $$('a[href="/?view=all"]').forEach((a) => a.addEventListener("click", (e) => {
    vote OFF). Every pick also fires a battle_pick stat. Appended at
    the end of app.js per the sandbox-slice rule; every element
    lookup is guarded. */
-const btl = { mode: "fresh", battle: 0, pairIdx: 0, flip: false, cur: { L: null, R: null }, watching: "L", champ: null, streak: 0, lastBeaten: null, picked: false, pairReal: false, built: false };
+const btl = { mode: "fresh", battle: 0, pairIdx: 0, flip: false, cur: { L: null, R: null }, watching: "L", champ: null, streak: 0, lastBeaten: null, picked: false, pairReal: false, built: false, deferMedia111: false };
 function btlPairs() {
   const bySport = (list) => { const m = new Map(); list.forEach((p) => { if (!m.has(p.sport)) m.set(p.sport, []); m.get(p.sport).push(p.id); }); return m; };
   const pairsOf = (m) => { const out = []; m.forEach((ids) => { for (let i = 0; i + 1 < ids.length; i += 2) out.push([ids[i], ids[i + 1]]); }); return out; };
@@ -2913,7 +2913,7 @@ function btlMiniHTML(slot) {
      single watching marker (the testers saw it said twice). */
   const letter = slot === "L" ? "A" : "B";
   return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
-    <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
+    <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${letter}</span>
     ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
@@ -2936,8 +2936,17 @@ function btlRender() {
   btl.picked = false;
   const matchup = document.getElementById("btlMatchup");
   if (matchup) {
+    /* Round 111: retire the outgoing minis' <video> elements into
+       the session pool BEFORE the re-render discards them, then let
+       the installer fill the new slots — pooled elements keep their
+       downloaded data and frozen frame. The very first Battles
+       render defers the (below-fold) Quick media so it cannot
+       compete with the Daily pair for bandwidth. */
+    if (typeof btlRetireMatchup111 === "function") btlRetireMatchup111(matchup);
     matchup.innerHTML = btlMiniHTML("L") + '<div class="btl-vs">VS</div>' + btlMiniHTML("R");
-    matchup.querySelectorAll(".btl-mini").forEach((el) => { el.addEventListener("click", () => btlWatch(el.dataset.slot)); btlMiniFrame(el.querySelector("video")); });
+    if (typeof btlInstallMedia111 === "function") btlInstallMedia111(matchup, { eager: !btl.deferMedia111 });
+    btl.deferMedia111 = false;
+    matchup.querySelectorAll(".btl-mini").forEach((el) => { el.addEventListener("click", () => btlWatch(el.dataset.slot)); });
   }
   const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
   if (pickL) { pickL.disabled = false; pickL.style.display = ""; pickL.textContent = "Pick A"; }
@@ -3051,7 +3060,7 @@ function btlSetMode(m) {
   btlRender();
 }
 function initBattles() {
-  if (!btl.built) { btl.built = true; btlDealFresh(); }
+  if (!btl.built) { btl.built = true; btl.deferMedia111 = true; btlDealFresh(); }
   btlRender();
 }
 (function battlesWire91() {
@@ -3289,7 +3298,7 @@ function d100MiniHTML(prefix, slot, p) {
      reveals. Round 104: no Now watching tag on the mini — the big
      player's banner is the single watching marker. */
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
-    <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
+    <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
@@ -3310,10 +3319,14 @@ function d100Watch(prefix, slot, play) {
 function d100WireMatchup(prefix, plays, onWatch) {
   const matchup = document.getElementById(prefix + "Matchup");
   if (!matchup) return;
+  /* Round 111: same pooled-media path as the Quick Battles render
+     (Daily + Battle Run media is always eager — it is either the
+     top card or a run the visitor just started). */
+  if (typeof btlRetireMatchup111 === "function") btlRetireMatchup111(matchup);
   matchup.innerHTML = d100MiniHTML(prefix, "A", plays.A) + '<div class="btl-vs">VS</div>' + d100MiniHTML(prefix, "B", plays.B);
+  if (typeof btlInstallMedia111 === "function") btlInstallMedia111(matchup, { eager: true });
   matchup.querySelectorAll(".btl-mini").forEach((el) => {
     el.addEventListener("click", () => onWatch(el.dataset.slot));
-    if (typeof btlMiniFrame === "function") btlMiniFrame(el.querySelector("video"));
   });
 }
 function splitHtml100(split, a, b, yourPickId, practice) {
@@ -4101,3 +4114,197 @@ $("#contestStrip")?.addEventListener("keydown", (e) => { if (e.key === "Enter" |
    openPlayDetail keeps writing #play-<id>: that is the share
    contract every existing shared link carries (Round 8), and
    both hashes land on the same watch view. */
+
+/* ---------------- Round 111 (2026-11-12): Battles load-delay fix —
+   pooled mini media, instant posters, deferred offscreen media,
+   idle warm-up of the coming pairs. Emil's phone report: tapping
+   into Battles / cycling pairs sat on black boxes while clips
+   loaded. The mechanics he hit: every render built brand-new
+   <video preload="auto"> elements (Round 91/100), the sample clips
+   are 5–14 MB MP4s whose moov atom sits at the END of the file, and
+   Round 104's captured posters only exist after a clip has already
+   frozen once in the session — a first-time pair had no poster at
+   all, and a re-render threw away the loaded elements entirely.
+   Now the renderers emit media slots (btlMiniHTML / d100MiniHTML)
+   and this block fills them:
+   - a slot always paints immediately: the slot itself is a branded
+     frame, and the installed <video> carries a poster from the
+     moment it exists (the Round 104 captured frame when one is
+     banked, otherwise a generated branded sport poster);
+   - <video> elements are pooled by clip URL for the whole session
+     and parked in an offscreen box instead of being discarded, so
+     cycling pairs, switching modes, or leaving and returning to
+     Battles reuses the SAME element — no re-download, no re-decode;
+   - the first Battles render defers the below-fold Quick Battles
+     media until it nears the viewport, so it cannot compete with
+     the Daily pair for bandwidth;
+   - once the on-screen pairs settle, the coming Fresh pairs are
+     warmed one clip at a time in the pool (next pair first), so a
+     Next tap usually swaps in an element that already holds its
+     frozen frame.
+   Appended at the end per the sandbox-slice rule; the renderers
+   reach these helpers through typeof guards. */
+const btlMediaByUrl111 = new Map();
+const btlWarmAttempted111 = new Set();
+let btlWarmTimer111 = null;
+
+function btlPlaceholderPoster111(sport, title) {
+  const s = String(sport || "Hype").toUpperCase().slice(0, 24);
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360' viewBox='0 0 640 360'>`
+    + `<defs><radialGradient id='g' cx='50%' cy='0%' r='130%'><stop offset='0%' stop-color='#26220f'/><stop offset='55%' stop-color='#131315'/><stop offset='100%' stop-color='#0a0a0a'/></radialGradient></defs>`
+    + `<rect width='640' height='360' fill='url(#g)'/>`
+    + `<circle cx='320' cy='158' r='46' fill='none' stroke='#f0b93e' stroke-width='3' opacity='0.9'/>`
+    + `<path d='M306 132 L348 158 L306 184 Z' fill='#f0b93e'/>`
+    + `<text x='320' y='66' text-anchor='middle' font-family='Arial, sans-serif' font-size='17' font-weight='700' letter-spacing='4' fill='#e8e2d2'>HIGHLIGHTHYPE</text>`
+    + `<text x='24' y='330' font-family='Arial, sans-serif' font-size='19' font-weight='800' letter-spacing='2' fill='#f5f1e6'>${s.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</text>`
+    + `</svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+function btlWarmBox111() {
+  let box = document.getElementById("btlWarmBox111");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "btlWarmBox111";
+    box.setAttribute("aria-hidden", "true");
+    box.style.cssText = "position:fixed;left:-9999px;top:0;width:160px;height:90px;overflow:hidden;opacity:.01;pointer-events:none";
+    document.body.appendChild(box);
+  }
+  return box;
+}
+function btlRegisterMedia111(v) {
+  const url = (v && (v.dataset.btlUrl111 || v.getAttribute("src"))) || "";
+  if (!url) return "";
+  v.dataset.btlUrl111 = url;
+  let set = btlMediaByUrl111.get(url);
+  if (!set) { set = new Set(); btlMediaByUrl111.set(url, set); }
+  set.add(v);
+  return url;
+}
+function btlConfigureMedia111(v, data) {
+  v.muted = true;
+  v.playsInline = true;
+  v.preload = "metadata";
+  const url = data.url || v.dataset.btlUrl111 || "";
+  const actual = (typeof btlPosters104 !== "undefined" && url) ? btlPosters104[url] : "";
+  try {
+    if (actual) v.poster = actual;
+    else if (!v.poster) v.poster = btlPlaceholderPoster111(data.sport, data.title);
+  } catch { /* the poster is a bonus, never a breaker */ }
+}
+function btlObtainMedia111(data) {
+  const url = data.url || "";
+  const set = btlMediaByUrl111.get(url);
+  if (set) {
+    for (const v of set) {
+      if (!v.closest(".btl-mini")) { btlConfigureMedia111(v, data); return v; }
+    }
+  }
+  const v = document.createElement("video");
+  v.src = url;
+  v.dataset.btlUrl111 = url;
+  btlRegisterMedia111(v);
+  btlConfigureMedia111(v, data);
+  return v;
+}
+function btlRetireMatchup111(matchup) {
+  if (!matchup) return;
+  matchup.querySelectorAll(".btl-mini video").forEach((v) => {
+    const url = btlRegisterMedia111(v);
+    if (url && v.currentTime >= 0.5 && typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
+    if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { v.poster = btlPosters104[url]; } catch { /* bonus */ } }
+    try { v.pause(); } catch { /* already stopped */ }
+    try { btlWarmBox111().appendChild(v); } catch { /* parking is best-effort */ }
+  });
+}
+function btlWireMedia111(v) {
+  if (!v) return;
+  const url = v.dataset.btlUrl111 || v.getAttribute("src") || "";
+  const actual = (typeof btlPosters104 !== "undefined" && url) ? btlPosters104[url] : "";
+  if (actual) { try { v.poster = actual; } catch { /* bonus */ } }
+  if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; try { v.pause(); } catch { /* fine */ } return; }
+  const wiredAt = Number(v.dataset.btlFrameWiredAt111 || 0);
+  if (v.dataset.btlFrameWired111 === "1" && Date.now() - wiredAt < 3500) {
+    /* Still inside the first wiring's freeze window — the earlier
+       handlers own the seek; just resume playback toward it. */
+    try { const p = v.play(); if (p && p.catch) p.catch(() => {}); } catch { /* fine */ }
+    return;
+  }
+  v.dataset.btlFrameWired111 = "1";
+  v.dataset.btlFrameWiredAt111 = String(Date.now());
+  if (typeof btlMiniFrame === "function") btlMiniFrame(v);
+  const mark = () => { if (v.currentTime >= 0.5) { v.dataset.btlFrameReady111 = "1"; v.removeEventListener("timeupdate", mark); } };
+  v.addEventListener("timeupdate", mark);
+  setTimeout(() => v.removeEventListener("timeupdate", mark), 4000);
+}
+const btlMediaObserver111 = (() => {
+  try {
+    if (!("IntersectionObserver" in window)) return null;
+    return new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        const slot = e.target;
+        btlMediaObserver111.unobserve(slot);
+        setTimeout(() => { if (slot._btlInstall111) slot._btlInstall111(); }, 600);
+      });
+    }, { rootMargin: "600px 0px" });
+  } catch { return null; }
+})();
+function btlInstallMedia111(matchup, opts = {}) {
+  if (!matchup) return;
+  matchup.querySelectorAll("[data-btl-media111]").forEach((slot) => {
+    if (slot.dataset.btlInstalled111 === "1") return;
+    const install = () => {
+      if (slot.dataset.btlInstalled111 === "1" || !slot.isConnected) return;
+      slot.dataset.btlInstalled111 = "1";
+      const v = btlObtainMedia111({ url: slot.dataset.url || "", sport: slot.dataset.sport || "", title: slot.dataset.title || "" });
+      slot.replaceWith(v);
+      btlWireMedia111(v);
+    };
+    slot._btlInstall111 = install;
+    const r = slot.getBoundingClientRect();
+    const near = r.top < window.innerHeight && r.bottom > 0;
+    if (opts.eager || near || !btlMediaObserver111) install();
+    else btlMediaObserver111.observe(slot);
+  });
+  btlScheduleWarm111();
+}
+function btlWarmCandidates111() {
+  const out = [];
+  const seen = new Set();
+  const push = (p) => {
+    if (!p || !p.media_url || seen.has(p.media_url)) return;
+    if (p.media_kind && p.media_kind !== "file" && p.media_kind !== "link_video") return;
+    seen.add(p.media_url);
+    out.push(p);
+  };
+  try {
+    const { pairs } = btlPairs();
+    if (pairs && pairs.length) {
+      const start = (btl.pairIdx + 1) % pairs.length;
+      for (let k = 0; k < pairs.length; k++) (pairs[(start + k) % pairs.length] || []).forEach((id) => push(findPlay(id)));
+    }
+  } catch { /* no pair list yet */ }
+  try { if (typeof d100 !== "undefined" && d100.daily && d100.daily.available) { push(d100.daily.a); push(d100.daily.b); } } catch { /* daily not loaded */ }
+  return out.slice(0, 12);
+}
+function btlBattlesSettled111() {
+  const vs = [...document.querySelectorAll("#viewBattles .btl-mini video")];
+  return vs.every((v) => v.currentTime >= 0.5 || v.readyState >= 2);
+}
+function btlScheduleWarm111() {
+  if (btlWarmTimer111) return;
+  btlWarmTimer111 = setTimeout(() => { btlWarmTimer111 = null; btlWarmStep111(0); }, 3000);
+}
+function btlWarmStep111(retries) {
+  if (!btlBattlesSettled111() && retries < 8) {
+    btlWarmTimer111 = setTimeout(() => { btlWarmTimer111 = null; btlWarmStep111(retries + 1); }, 1000);
+    return;
+  }
+  const next = btlWarmCandidates111().find((p) => !btlWarmAttempted111.has(p.media_url) && !(btlMediaByUrl111.get(p.media_url) && btlMediaByUrl111.get(p.media_url).size));
+  if (!next) return;
+  btlWarmAttempted111.add(next.media_url);
+  const v = btlObtainMedia111({ url: next.media_url, sport: cap(next.sport), title: next.title });
+  try { btlWarmBox111().appendChild(v); } catch { /* warming is best-effort */ }
+  btlWireMedia111(v);
+  btlWarmTimer111 = setTimeout(() => { btlWarmTimer111 = null; btlWarmStep111(0); }, 1100);
+}
