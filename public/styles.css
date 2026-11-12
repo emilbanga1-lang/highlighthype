@@ -2787,3 +2787,26 @@ footer{padding-top:12px;padding-bottom:44px}
 #dailyCard.daily-slim112 .daily-strip-split .split-line{margin-top:4px}
 #dailyCard.daily-slim112 .daily-strip-split .split-bar{height:8px}
 #dailyCard.daily-slim112 .daily-strip-split .split-line{font-size:12.5px;line-height:1.4}
+
+/* ================================================================
+   Round 113 (2026-11-12): vertical treatment for the watch view
+   and Battles. Same recipe as the feed's Round 107 rules (which
+   stay untouched above): when app.js marks a host .is-vertical, a
+   blurred clone of the same clip (.vfill, inserted by JS) fills
+   the 16:9 box and the real clip sits over it FULL and centered —
+   object-fit:contain, never cropped. Watch: the player box is
+   exactly the media box, so the fill is inset:0. Battles minis:
+   the fill covers only the media band (the top 16:9 of the card;
+   the title body below stays clean) and the winner stamp keeps
+   its layer above the now-positioned real video. Big players:
+   fill inset:0; the Now watching label keeps its layer.
+   ================================================================ */
+.watch-player.is-vertical{position:relative}
+.watch-player.is-vertical > video:not(.vfill){position:relative;z-index:1}
+.watch-player .vfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+.btl-mini.is-vertical > video:not(.vfill){object-fit:contain;position:relative;z-index:1}
+.btl-mini .vfill{position:absolute;top:0;left:0;width:100%;aspect-ratio:16/9;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+.btl-mini.is-vertical .btl-stamp{z-index:2}
+.btl-player.is-vertical > video:not(.vfill){object-fit:contain;position:relative;z-index:1}
+.btl-player .vfill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+.btl-player.is-vertical .btl-now{z-index:2}
