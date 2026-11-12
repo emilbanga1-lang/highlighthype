@@ -1184,10 +1184,10 @@ try {
     assert(t1.includes('class="tile"') && t1.includes('data-tile-id="101"') && t1.includes("openPlayDetail(101)"), "Round 8: a tile opens the play's detail on tap");
     assert(t1.includes("<video") && t1.includes('muted loop playsinline') && t1.includes('preload="metadata"'), "Round 8: a video tile's thumbnail plays in place (fameThumbHtml treatment)");
     assert(t1.includes("Big Play") && t1.includes("Baseball") && t1.includes("Boys") && t1.includes("Jayden"), "Round 8: a tile shows title, sport · division and the athlete's name");
-    assert(t1.includes("toggleVote(101, this)") && t1.includes('aria-pressed="false"') && t1.includes("<b>5</b>"), "Round 8: the tile Vote button is wired to toggleVote with the un-voted state and count");
+    assert(t1.includes('class="vote-chip"') && t1.includes("<b>5</b>") && !t1.includes("toggleVote("), "Round 8/107: the tile carries the gold vote-count chip — voting itself moved to the watch view in the Round 107 hybrid redesign (the tile's Vote pill retired; the count still shows)");
     assert(!t1.includes("enterContest("), "Round 8: tiles carry no Enter affordance (Enter lives on the full card in the detail)");
     const t2 = r8("tileHtml(ALL_PLAYS[1])");
-    assert(t2.includes("<img") && t2.includes('aria-pressed="true"') && t2.includes("Voted ✓") && t2.includes('aria-label="You voted — tap to remove"'), "Round 8/45: an image tile shows the photo and the voted state (compact pill label since Round 45; the long label is the accessible name)");
+    assert(t2.includes("<img") && t2.includes('class="vote-chip"') && t2.includes("<b>9</b>") && !t2.includes("toggleVote("), "Round 8/45/107: an image tile shows the photo and its vote count in the gold chip (the voted state itself lives on the watch view since Round 107)");
     const t3 = r8("tileHtml(ALL_PLAYS[2])");
     assert(t3.includes("⭐ SAMPLE PLAY") && !t3.includes("enterContest("), "Round 8: a sample tile carries the SAMPLE badge and no Enter affordance");
     const t4 = r8("tileHtml(CONTEST.entries[0], { monthVotes: 7 })");
@@ -1774,7 +1774,7 @@ try {
     assert(pillRule14.includes("pointer-events:none") && pillRule14.includes("background:rgba(0,0,0,.82)") && pillRule14.includes("color:#fff"), "Round 14: the pill is a black YouTube-style chip and pointer-events:none — visual only, the tile tap is untouched");
     assert(css14.includes(".dur-pill[hidden]{display:none}"), "Round 14: an unfilled pill stays display:none until its video's metadata lands");
     assert(tileBlock14.includes('class="tile-media dur-host"') && tileBlock14.indexOf("${durPillHtml(h)}") > tileBlock14.indexOf("ranktag"), "Round 14: the pill renders inside the tile media, after the badge/rank slots");
-    assert(tileBlock14.indexOf("${durPillHtml(h)}") < tileBlock14.indexOf('class="tile-body"') && tileBlock14.indexOf("sample-badge") > tileBlock14.indexOf('class="tile-body"'), "Round 14: pill (media, bottom-right) and SAMPLE badge (tile body) can never collide — they live in different boxes");
+    assert(tileBlock14.indexOf("${durPillHtml(h)}") < tileBlock14.indexOf('class="tile-body"') && tileBlock14.indexOf("tile-sample-tag") > -1 && tileBlock14.indexOf("tile-sample-tag") < tileBlock14.indexOf('class="tile-body"'), "Round 14/107: pill and SAMPLE tag can never collide — Round 107 puts the tag on the media's top-left and the pill at its bottom-left (opposite corners; Round 14 kept them in different boxes)");
     assert(!appJs.includes("viewCount") && !appJs.includes("onended"), "Round 14/15: no view-count field is read or invented anywhere, and autoplay-advance (Round 15) listens via addEventListener — no inline onended attribute exists");
     assert(detailBlock14.includes("upNextHtml(play)") && detailBlock14.includes("hydrateDurPills()"), "Round 14: the detail render appends Up next and hydrates duration pills");
     const monthBlock14 = appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml"));
