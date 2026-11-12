@@ -1957,9 +1957,22 @@ const server = http.createServer(async (req, res) => {
       const ifRange = req.headers["if-range"];
       if (range && (!ifRange || ifRange === upEtag || ifRange === upLastMod)) {
         const m = /bytes=(\d*)-(\d*)/.exec(range);
-        const start = m && m[1] ? Number(m[1]) : 0;
-        const end = m && m[2] ? Number(m[2]) : size - 1;
-        if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
+        /* Round 117: two RFC 9110 corrections — Emil's iPhone
+           reported Battles videos "did not load." (1) An end past
+           EOF is satisfiable by clamping to the last byte, never a
+           416 (media stacks probe with oversized ends). (2) A
+           suffix range (bytes=-N) asks for the LAST N bytes — the
+           tail fetch a player makes to find the moov index, which
+           sits at the END of most battle clips; the old code handed
+           back the file's HEAD labeled as that range, so the index
+           never arrived and the player sat black. */
+        let start, end;
+        if (m && !m[1] && m[2]) { start = Math.max(0, size - Number(m[2])); end = size - 1; }
+        else {
+          start = m && m[1] ? Number(m[1]) : 0;
+          end = m && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+        }
+        if (start >= size || start > end) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
         res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1, ...upCache });
         return fs.createReadStream(file, { start, end }).pipe(res);
       }
@@ -1987,9 +2000,15 @@ const server = http.createServer(async (req, res) => {
     const range = req.headers.range;
     if (range) {
       const m = /bytes=(\d*)-(\d*)/.exec(range);
-      const start = m && m[1] ? Number(m[1]) : 0;
-      const end = m && m[2] ? Number(m[2]) : size - 1;
-      if (start >= size || end >= size) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
+      /* Round 117: same RFC 9110 corrections as the uploads
+         handler — clamp an oversized end, honor suffix ranges. */
+      let start, end;
+      if (m && !m[1] && m[2]) { start = Math.max(0, size - Number(m[2])); end = size - 1; }
+      else {
+        start = m && m[1] ? Number(m[1]) : 0;
+        end = m && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
+      }
+      if (start >= size || start > end) { res.writeHead(416, { "content-range": `bytes */${size}` }); return res.end(); }
       res.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${size}`, "content-length": end - start + 1, "cache-control": cacheControl });
       return fs.createReadStream(filePath, { start, end }).pipe(res);
     }
