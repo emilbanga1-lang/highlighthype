@@ -450,9 +450,9 @@ try {
 
     // Client wiring for the whole round.
     const home100 = await (await fetch(base + "/")).text();
-    assert(home100.includes('id="dailyCard"') && home100.includes('id="runCard"') && home100.includes('id="hawksCard"') && home100.includes('id="ownerDaily"') && home100.includes('id="odSave"'), "r100: homepage carries the Daily/Run/Hawks cards + owner Daily setter");
+    assert(home100.includes('id="dailyCard"') && home100.includes('id="runCard"') && home100.includes('id="ownerDaily"') && home100.includes('id="odSave"') && !home100.includes('id="hawksCard"'), "r100/108: homepage carries the Daily/Run cards + owner Daily setter — the Hawks Founding card was removed from the homepage in Round 108 (its count stays in the API payload, asserted above)");
     const app100 = await (await fetch(base + "/app.js")).text();
-    assert(app100.includes("/api/daily-battle") && app100.includes("/api/battle-run/pick") && app100.includes("drawRunCard100") && app100.includes("matched the crowd") && app100.includes("renderHawks100"), "r100: app.js wires the daily, the run, the share card and the Hawks card");
+    assert(app100.includes("/api/daily-battle") && app100.includes("/api/battle-run/pick") && app100.includes("drawRunCard100") && app100.includes("matched the crowd") && !app100.includes("renderHawks100"), "r100/108: app.js wires the daily, the run and the share card — the Hawks card renderer was removed in Round 108");
     assert(home100.includes('id="dailyStrip"') && home100.includes('id="dailyStripPick"') && home100.includes('id="dailyStripSplit"') && home100.includes('id="dailyStripShare"'), "r101: a picked Daily Battle carries a collapsed result strip with the pick, split and its own share button");
     assert(app100.includes("setDailyCollapsed100") && app100.includes("pauseDailyPlayer100") && app100.includes("dailyCollapseTimer") && app100.includes("expandDaily100"), "r101: Daily Battle collapse pauses the player, is timed after a fresh pick, and can be re-expanded from the strip");
 
@@ -558,7 +558,7 @@ try {
       const home105 = await (await fetch("http://localhost:3473/")).text();
       const app105 = await (await fetch("http://localhost:3473/app.js")).text();
       const css105 = await (await fetch("http://localhost:3473/styles.css")).text();
-      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=110"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v110) assets");
+      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=111"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v111) assets");
       assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("🔥 Your streak: "), "r105: app.js wires challenge share + landing, crown/number renderers and the streak display");
       assert(css105.includes(".crown-chip") && css105.includes(".daily-top105") && css105.includes(".play-numbers105") && css105.includes(".btl-challenge-note"), "r105: styles carry the crown chips, Top Pickers block, numbers line and challenge note");
     } finally { childC.kill(); fs.rmSync(tmpC, { recursive: true, force: true }); }

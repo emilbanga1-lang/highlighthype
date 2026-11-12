@@ -1184,12 +1184,12 @@ try {
     assert(t1.includes('class="tile"') && t1.includes('data-tile-id="101"') && t1.includes("openPlayDetail(101)"), "Round 8: a tile opens the play's detail on tap");
     assert(t1.includes("<video") && t1.includes('muted loop playsinline') && t1.includes('preload="metadata"'), "Round 8: a video tile's thumbnail plays in place (fameThumbHtml treatment)");
     assert(t1.includes("Big Play") && t1.includes("Baseball") && t1.includes("Boys") && t1.includes("Jayden"), "Round 8: a tile shows title, sport · division and the athlete's name");
-    assert(t1.includes('class="vote-chip"') && t1.includes("<b>5</b>") && !t1.includes("toggleVote("), "Round 8/107: the tile carries the gold vote-count chip — voting itself moved to the watch view in the Round 107 hybrid redesign (the tile's Vote pill retired; the count still shows)");
+    assert(t1.includes('class="vote-chip vote-chip-btn"') && t1.includes("👑 Vote · <b>5</b>") && t1.includes('onclick="event.stopPropagation();toggleVote(101, this)"') && t1.includes('aria-pressed="false"'), "Round 8/108: the tile's gold chip is a REAL vote button again — Round 107's watch-view-only voting is reversed at Emil's direction ('How do they vote now?'); the chip votes in place via the same toggleVote as the watch view, its click stopped so it never also opens the watch view");
     assert(!t1.includes("enterContest("), "Round 8: tiles carry no Enter affordance (Enter lives on the full card in the detail)");
     const t2 = r8("tileHtml(ALL_PLAYS[1])");
-    assert(t2.includes("<img") && t2.includes('class="vote-chip"') && t2.includes("<b>9</b>") && !t2.includes("toggleVote("), "Round 8/45/107: an image tile shows the photo and its vote count in the gold chip (the voted state itself lives on the watch view since Round 107)");
+    assert(t2.includes("<img") && t2.includes('class="vote-chip vote-chip-btn voted"') && t2.includes("👑 Voted · <b>9</b>") && t2.includes('aria-pressed="true"') && t2.includes("toggleVote(102"), "Round 8/45/108: an image tile shows the photo, and its chip renders the VOTED state on the tile itself (tap removes the vote — the same toggle)");
     const t3 = r8("tileHtml(ALL_PLAYS[2])");
-    assert(t3.includes("⭐ SAMPLE PLAY") && !t3.includes("enterContest("), "Round 8: a sample tile carries the SAMPLE badge and no Enter affordance");
+    assert(t3.includes("⭐ SAMPLE PLAY") && !t3.includes("enterContest(") && !t3.includes("toggleVote(") && t3.includes('class="vote-chip"'), "Round 8/108: a sample tile carries the SAMPLE badge, no Enter affordance, and the display-only count chip — samples never get a vote control");
     const t4 = r8("tileHtml(CONTEST.entries[0], { monthVotes: 7 })");
     assert(t4.includes("<b>7</b>") && t4.includes("this month"), "Round 8: a Month-board tile shows the month vote count");
 
@@ -2550,13 +2550,16 @@ try {
      and every product view's Size Guide link are untouched — only
      the menu entry went away. All absence checks below are scoped
      to the nav block: both removed labels legitimately live on
-     elsewhere (the store hero button, the product views). ---- */
+     elsewhere (the store hero button, the product views).
+     Round 108 (2026-11-12, Emil): Hype Stories joins the menu as
+     a FIFTH real page link (/stories) at his explicit direction —
+     the four-item rule is broken for this one, deliberately. ---- */
   const menu38 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
-  const kept38 = ['id="menuAllHypes"', 'href="/my-highlights"', 'href="/how-it-works"', "Swag Shop — Rep The Hype"];
+  const kept38 = ['id="menuAllHypes"', 'href="/my-highlights"', 'href="/how-it-works"', 'href="/stories"', "Swag Shop — Rep The Hype"];
   const keptIdx38 = kept38.map((m) => menu38.indexOf(m));
-  assert(keptIdx38.every((v) => v > -1), "Round 29: the menu keeps All Hypes, My Highlights, How It Works and Swag Shop — Rep The Hype");
-  assert(keptIdx38.every((v, i) => i === 0 || v > keptIdx38[i - 1]), "Round 29: the four kept menu items appear in the approved order");
-  assert((menu38.match(/<a /g) || []).length === 4 && !menu38.includes("<button"), "Round 51: the menu contains EXACTLY four entries — all real page links now, no buttons");
+  assert(keptIdx38.every((v) => v > -1), "Round 29/108: the menu keeps All Hypes, My Highlights, How It Works, Hype Stories and Swag Shop — Rep The Hype");
+  assert(keptIdx38.every((v, i) => i === 0 || v > keptIdx38[i - 1]), "Round 29/108: the five kept menu items appear in the approved order");
+  assert((menu38.match(/<a /g) || []).length === 5 && !menu38.includes("<button"), "Round 51/108: the menu contains EXACTLY five entries — all real page links, no buttons (Round 108 added /stories to the Round 51 four)");
   assert(!menu38.includes('data-panel-btn="plays"') && !menu38.includes(">Plays</button>"), "Round 29: the 'Plays' header row is gone from the menu (the panels' Back-to-the-board buttons sit outside the menu and stay)");
   assert(!menu38.includes('id="menuHsBtn"') && !menu38.includes("menu-group") && (menu38.match(/data-hs-menu="/g) || []).length === 0 && !menu38.includes("Shop Hype Sports"), "Round 29: no Shop Hype Sports group markup remains inside the menu (the label still names the store's hero button, outside the menu)");
   assert(!appJs.includes("menuHsBtn") && !appJs.includes("menuHsList") && !appJs.includes("dataset.hsMenu"), "Round 29: the menu-group-only wiring is gone from app.js (store tiles/cards still open views via data-hs-open / openHsView)");
