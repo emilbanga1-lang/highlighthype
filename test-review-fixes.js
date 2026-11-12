@@ -339,11 +339,11 @@ try {
      removed, its two useful lines folded into How it works;
      (17) Share uses the native sheet + deep links that land on the
      play from any view; (9) board videos autoplay. */
-  assert(home.includes('href="/logo-header-gold.png"'), "logo preload points at the crest header lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art)");
-  assert((home.split('src="/logo-header-gold.png"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art)");
+  assert(home.includes('href="/logo-header-gold.png?v=118"'), "logo preload points at the crest header lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art; Round 115: full-color rebuild, cache-busted ?v=118)");
+  assert((home.split('src="/logo-header-gold.png?v=118"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art; Round 115: full-color rebuild, cache-busted ?v=118)");
   assert(home.includes('src="/logo-lockup-gold.jpg"'), "footer uses the full lockup with tagline (Round 19; Round 65: Emil's metallic gold master)");
   assert(home.includes('href="/favicon.ico"') && home.includes('href="/favicon.png"'), "favicon is the gold crest badge (Round 19)");
-  const logoRes = await fetch(`${base}/logo-header-gold.png`);
+  const logoRes = await fetch(`${base}/logo-header-gold.png?v=118`);
   const logoBuf = Buffer.from(await logoRes.arrayBuffer());
   assert(logoRes.status === 200 && logoBuf.subarray(1, 4).toString() === "PNG" && logoBuf.byteLength > 5000, `crest header lockup serves as a real PNG (${logoBuf.byteLength} bytes)`);
   assert(!css.includes("mix-blend-mode:screen"), "the screen-blend workaround is gone (real transparency now)");
@@ -2052,7 +2052,7 @@ try {
   assert((home.split('name="guardianConsent"').length - 1) === 1, "Round 21: the upload form carries exactly one guardianConsent checkbox");
   const gbAt31 = home.indexOf('class="quick-field guardian-block"');
   assert(gbAt31 > -1 && home.indexOf('name="guardianConsent"') > gbAt31 && home.indexOf('name="guardianConsent"') < moreAt, "Round 21: the attestation checkbox lives inside the guardian block, in the MAIN form before Add more");
-  assert(home.includes("I'm this athlete's parent/guardian, or I have their permission to post this video."), "Round 21: the attestation label is the exact approved copy");
+  assert(home.includes("I'm this athlete's parent/guardian, or I have their permission to post this video — and I understand HighlightHype may share this clip and still images from it on its website and social channels."), "Round 21: the attestation label is the exact approved copy (Round 116: social + stills sharing named in the label)");
   assert(!/name="guardianConsent"[^>]*checked/.test(home), "Round 21: the attestation checkbox starts unchecked");
   assert(appJs.includes("form.elements.guardianConsent") && appJs.includes("Please confirm you're the parent/guardian, or have their permission, to post this video."), "Round 21: an unticked submit is blocked client-side with the inline confirmation message");
   const db31 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
