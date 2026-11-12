@@ -2833,3 +2833,14 @@ footer{padding-top:12px;padding-bottom:44px}
    ================================================================ */
 .menu-btn{border-color:transparent;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;text-shadow:0 1px 5px rgba(0,0,0,.55)}
 .menu-btn:hover{border-color:transparent;background:rgba(255,255,255,.09)}
+
+/* ================================================================
+   Round 117 (2026-11-12, Emil): Quick Battles compact — "too much
+   scrolling." Mini-card titles in the Quick matchup clamp to two
+   lines (the full title still shows on the play's own surfaces);
+   a five-line title no longer stretches both cards and strands
+   dead space under the shorter card's meta. Scoped to #btlMatchup
+   only — the Daily and Battle Run minis share .btl-mtitle but keep
+   their full titles, and the feed tiles are untouched.
+   ================================================================ */
+#btlMatchup .btl-mtitle{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
