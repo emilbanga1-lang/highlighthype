@@ -2844,3 +2844,23 @@ footer{padding-top:12px;padding-bottom:44px}
    their full titles, and the feed tiles are untouched.
    ================================================================ */
 #btlMatchup .btl-mtitle{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* ================================================================
+   Round 118 (2026-11-12): (1) the Battles big-player retry overlay
+   — the visible failure state btlPlayBig118 raises after a failed
+   retry, centered over the player; it exists only when JS creates
+   it, hidden by default, and [hidden] must beat the display below.
+   (2) The hero sound toggle shrinks from the labeled pill (Round
+   107: icon + "Sound", ~118px wide over the film) to a compact
+   icon-only disc, and moves snug into the hero's top-right corner
+   (12px insets, off its old 76px-down floating spot) — Emil: "make
+   sound button home page smaller" + move it to the corner. Same
+   toggle + icon swap (the .is-muted slash/waves rules above still
+   drive it), 40px tap target, still inside the hero below the
+   header bar.
+   ================================================================ */
+.btl-retry118{position:absolute;inset:0;margin:auto;width:max-content;height:max-content;max-width:86%;z-index:3;background:rgba(10,10,10,.85);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:999px;padding:11px 18px;font:inherit;font-size:13.5px;font-weight:800;cursor:pointer;backdrop-filter:blur(4px)}
+.btl-retry118[hidden]{display:none}
+.hero-mute{width:40px;height:40px;border-radius:50%;padding:0;gap:0;top:12px;right:12px}
+.hero-mute span{display:none}
+.hero-mute svg{width:18px;height:18px}
