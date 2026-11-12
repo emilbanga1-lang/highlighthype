@@ -2643,3 +2643,38 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 #plays .vote-chip.voted b{color:#171200}
 #plays .vote-chip.vote-pending{opacity:.6;cursor:progress}
 #plays .vote-chip.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}
+
+/* ================================================================
+   Round 109 (2026-11-12): Emil's phone review of the live Round
+   108 build. Two fixes, same override-block convention.
+   1. The contest strip was ~5 lines tall: the title wrapped
+      ("Hype of the Month — / November 2026") and the state wrapped
+      under it. The strip is now two tight lines: row 1 = crown +
+      title + ENDS chip on ONE row; row 2 = the state, one line.
+      The title moves to Anton, the site's display face — measured
+      on the rig, Archivo 900 (synthesized past its 800 max) needs
+      ~224px for the September title at 12px and cannot share a
+      360px row with the crown and chip at any readable size;
+      Anton carries the same string in ~180px at 12px. Sizes step
+      down at 760/420 so the longest month (September) keeps the
+      full month name on one line at 360px — no ellipsis, ever.
+   2. The watch view opened under a dead black band: the detail
+      sheet carried padding-top:76px (112px on desktop) from its
+      overlay days. The sheet is a page now — it starts at the top
+      of the viewport with just the safe-area margin.
+   ================================================================ */
+
+/* ---- 1. Contest strip: two tight lines ---- */
+.contest-strip{flex-direction:column;align-items:stretch;gap:0;padding:10px 12px}
+.contest-strip .cs-row1{display:flex;align-items:center;gap:7px}
+.contest-strip .cs-cr{font-size:16px}
+.contest-strip .cs-t1{font-family:"Anton",sans-serif;font-weight:400;font-size:16px;letter-spacing:.3px;color:#fff;white-space:nowrap;flex:1;min-width:0}
+.contest-strip .cs-ends{font-size:10px;padding:4px 7px;letter-spacing:.3px;margin-left:auto}
+.contest-strip .cs-t2{margin-top:3px;font-size:13px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:760px){ .contest-strip .cs-t1{font-size:13.5px;letter-spacing:.1px} }
+@media (max-width:420px){ .contest-strip{padding:10px} .contest-strip .cs-cr{font-size:15px} .contest-strip .cs-t1{font-size:11.5px;letter-spacing:-.3px} .contest-strip .cs-t2{font-size:12.5px} }
+@media (max-width:340px){ .contest-strip .cs-t1{font-size:10.5px} .contest-strip .cs-ends{font-size:9.5px;padding:4px 6px} }
+
+/* ---- 2. Watch view tucks up to the top of the viewport ---- */
+.play-detail{padding:calc(env(safe-area-inset-top, 0px) + 10px) 0 48px}
+@media (min-width:761px){ .play-detail{padding-top:calc(env(safe-area-inset-top, 0px) + 10px)} }
