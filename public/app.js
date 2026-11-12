@@ -2745,16 +2745,18 @@ function btlMiniHTML(slot) {
   const isChamp = btl.mode === "stay" && btl.champ === p.id;
   const showStreak = isChamp && btl.streak >= 2;
   /* Round 102: every mini carries its A/B letter (L = A, R = B,
-     matching the Pick A / Pick B buttons) and a Now watching tag
-     that lights up via the .watching class — watching no longer
-     borrows the gold outline, which is reserved for the pick. */
+     matching the Pick A / Pick B buttons); the .watching class
+     lights the pale outline — watching no longer borrows the gold
+     outline, which is reserved for the pick. Round 104: the mini's
+     own Now watching tag is gone — the big player's banner is the
+     single watching marker (the testers saw it said twice). */
   const letter = slot === "L" ? "A" : "B";
   return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
     <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
     <span class="btl-letter" aria-hidden="true">${letter}</span>
     ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p><span class="btl-watchtag" aria-hidden="true">▶ Now watching</span></div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p></div>
   </article>`;
 }
 function btlRenderCount() {
@@ -2777,8 +2779,8 @@ function btlRender() {
     matchup.querySelectorAll(".btl-mini").forEach((el) => { el.addEventListener("click", () => btlWatch(el.dataset.slot)); btlMiniFrame(el.querySelector("video")); });
   }
   const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
-  if (pickL) { pickL.disabled = false; pickL.textContent = "Pick A"; }
-  if (pickR) { pickR.disabled = false; pickR.textContent = "Pick B"; }
+  if (pickL) { pickL.disabled = false; pickL.style.display = ""; pickL.textContent = "Pick A"; }
+  if (pickR) { pickR.disabled = false; pickR.style.display = ""; pickR.textContent = "Pick B"; }
   const next = document.getElementById("btlNext"); if (next) next.classList.remove("show");
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "";
   btlRenderCount();
@@ -2837,9 +2839,19 @@ async function btlPick(slot) {
   const player = document.getElementById("btlPlayer"); if (player) player.pause();
   const mini = document.getElementById("btlMini" + slot); if (mini) mini.classList.add("winner");
   const pickL = document.getElementById("btlPickL"), pickR = document.getElementById("btlPickR");
-  if (pickL) pickL.disabled = true;
-  if (pickR) pickR.disabled = true;
-  const loserBtn = document.getElementById("btlPick" + loserSlot); if (loserBtn) loserBtn.textContent = "Not this time";
+  /* Round 104: in Winner Stays the pick buttons leave with the
+     pick — the WINNER stamp, the count line and Next battle carry
+     the result (the testers stared at the dim dead pair and the
+     "Not this time" wording). Fresh pairs keeps the disabled
+     pair exactly as before. */
+  if (btl.mode === "stay") {
+    if (pickL) pickL.style.display = "none";
+    if (pickR) pickR.style.display = "none";
+  } else {
+    if (pickL) pickL.disabled = true;
+    if (pickR) pickR.disabled = true;
+    const loserBtn = document.getElementById("btlPick" + loserSlot); if (loserBtn) loserBtn.textContent = "Not this time";
+  }
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "none";
   const next = document.getElementById("btlNext"); if (next) next.classList.add("show");
   trackEvent("battle_pick", winnerId);
@@ -3111,15 +3123,16 @@ function etTodayClient100() {
 }
 function d100MiniHTML(prefix, slot, p) {
   if (!p) return "";
-  /* Round 102: A/B letter chip (slot IS the letter here), the Now
-     watching tag (lit by .watching), and a Your pick tag that only
-     the Daily card's .picked class reveals. */
+  /* Round 102: A/B letter chip (slot IS the letter here) and a
+     Your pick tag that only the Daily card's .picked class
+     reveals. Round 104: no Now watching tag on the mini — the big
+     player's banner is the single watching marker. */
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
     <video src="${esc(p.media_url)}" preload="auto" muted playsinline></video>
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p><span class="btl-watchtag" aria-hidden="true">▶ Now watching</span>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}</div>
   </article>`;
 }
 function d100Watch(prefix, slot, play) {
@@ -3572,3 +3585,116 @@ document.addEventListener("click", (e) => {
   const a = e.target && e.target.closest ? e.target.closest("[data-hf-start]") : null;
   if (a) { e.preventDefault(); openHfChoice(); }
 });
+
+/* ---------------- Round 104 (2026-11-11): youth Battles fixes —
+   frozen-frame posters for re-rendered minis, and a Battles-only
+   Post-pill yield. Appended at the end per the sandbox-slice rule;
+   every lookup is guarded. */
+
+/* Fix 1: a pick rebuilds the matchup (the Daily re-renders through
+   loadDaily100; the Battles panel through btlRender), discarding
+   the mini <video> elements that had frozen on a real frame — the
+   fresh elements sit black until they reload and re-freeze
+   (measured 70-95% black pixels at +600ms post-pick). Capture each
+   mini's frozen frame as a poster, cache it by clip URL, and hand
+   it to any later-created mini for the same clip, so re-renders
+   paint a real frame instantly in every state. */
+const btlPosters104 = {};
+function btlCapturePoster104(v) {
+  try {
+    const key = v.getAttribute("src") || "";
+    if (!key || btlPosters104[key]) return;
+    const w = v.videoWidth, h = v.videoHeight;
+    if (!w || !h) return;
+    const cw = 320, ch = Math.max(1, Math.round((cw * h) / w));
+    const c = document.createElement("canvas");
+    c.width = cw; c.height = ch;
+    const ctx = c.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, cw, ch);
+    /* Never bank a black frame: during a stall a capture can draw
+       the clip's black first frame even at the freeze point (the
+       slow upload's first banked poster measured 100% black). A
+       rejected capture simply retries on a later pass. */
+    try {
+      const px = ctx.getImageData(0, 0, cw, ch).data;
+      let black = 0, total = 0;
+      for (let i = 0; i < px.length; i += 16) { total++; if (px[i] < 14 && px[i + 1] < 14 && px[i + 2] < 14) black++; }
+      if (total && black / total >= 0.85) return;
+    } catch { /* if the readback is unavailable, keep the poster */ }
+    const url = c.toDataURL("image/jpeg", 0.72);
+    if (url && url.length > 100) btlPosters104[key] = url;
+  } catch { /* a clip that refuses capture keeps the old behavior */ }
+}
+const btlMiniFrame91 = btlMiniFrame;
+btlMiniFrame = function (v) {
+  if (!v) return;
+  const key = v.getAttribute("src") || "";
+  if (key && btlPosters104[key]) { try { v.poster = btlPosters104[key]; } catch { /* the poster is a bonus */ } }
+  btlMiniFrame91(v);
+  if (!key) return;
+  const cap = () => { if (v.currentTime >= 0.5) { btlCapturePoster104(v); v.removeEventListener("timeupdate", cap); } };
+  v.addEventListener("timeupdate", cap);
+  setTimeout(() => v.removeEventListener("timeupdate", cap), 3200);
+  /* A slow clip can stall before the freeze point (the real
+     upload did: still at 0.04s seconds after creation, first
+     frame black, nothing captured — and every re-render restarts
+     the stall). And once a re-created video gets its first frame,
+     the browser paints THAT instead of the poster — for clips
+     whose first frame is black, the poster window can close
+     before the freeze. So seek the mini to the freeze point as
+     soon as its first frame lands (or after a short stall): the
+     seeked frame paints even while the download catches up, and
+     the capture banks it as the poster for the next re-render. */
+  let seekTried104 = false;
+  const seekFreeze104 = () => {
+    if (seekTried104) return;
+    seekTried104 = true;
+    try {
+      if (!v.isConnected || v.currentTime >= 0.5) return;
+      const onSeek = () => { btlCapturePoster104(v); v.removeEventListener("seeked", onSeek); };
+      v.addEventListener("seeked", onSeek);
+      v.currentTime = 0.6;
+      setTimeout(() => v.removeEventListener("seeked", onSeek), 4000);
+    } catch { /* seeking is best-effort */ }
+  };
+  /* Queue the freeze seek immediately: a seek requested before
+     the first frame arrives means the first frame PAINTED is the
+     freeze frame — the clip's black first frame never gets a
+     window to cover the poster. The loadeddata / stall retries
+     below still run if this early seek didn't take. */
+  try {
+    if (v.currentTime < 0.5) {
+      const onEarlySeek = () => { btlCapturePoster104(v); v.removeEventListener("seeked", onEarlySeek); };
+      v.addEventListener("seeked", onEarlySeek);
+      setTimeout(() => v.removeEventListener("seeked", onEarlySeek), 4000);
+      v.currentTime = 0.6;
+    }
+  } catch { /* best-effort */ }
+  if (v.readyState >= 2 && v.currentTime < 0.5) seekFreeze104();
+  else v.addEventListener("loadeddata", seekFreeze104, { once: true });
+  setTimeout(seekFreeze104, 1200);
+};
+
+/* Fix 4: in the Battles view the floating Post pill yields whenever
+   a battle stage element (matchup, player, pick buttons, result
+   lines) enters the pill's bottom-right corner zone — it fades out
+   instead of sitting on a clip, and returns everywhere else. It
+   toggles its own class, so the Round 69 submit-link auto-hide
+   never fights it; the observed elements live only in the Battles
+   view, so other tabs keep the pill's stock behavior. */
+(function fabBattles104() {
+  const fab = document.getElementById("floatSubmit");
+  if (!fab || !("IntersectionObserver" in window)) return;
+  const ids = ["dailyMatchup", "dailyPlayer", "dailyPickA", "dailyPickB", "dailySplit", "dailyStrip", "btlMatchup", "btlPlayerBox", "btlPickL", "btlPickR", "btlNext", "btlCount", "runMatchup", "runPlayer", "runPickA", "runPickB", "runReveal"];
+  const targets = ids.map((id) => document.getElementById(id)).filter(Boolean);
+  if (!targets.length) return;
+  const zoneW = 150, zoneH = 84;
+  const left = Math.max(0, window.innerWidth - zoneW), top = Math.max(0, window.innerHeight - zoneH);
+  const seen = new Set();
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
+    fab.classList.toggle("fab-btl-hidden104", seen.size > 0);
+  }, { rootMargin: `-${top}px 0px 0px -${left}px`, threshold: 0 });
+  targets.forEach((t) => io.observe(t));
+})();

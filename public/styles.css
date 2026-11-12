@@ -2374,3 +2374,14 @@ html,body{overflow-x:hidden;overflow-x:clip}
 .daily-another-row[hidden]{display:none}
 .daily-another{border:0;border-radius:12px;padding:13px 26px;font:inherit;font-size:15px;font-weight:900;cursor:pointer;background:linear-gradient(180deg,var(--gold),#c9932b);color:#1a1204}
 #viewBattles{padding-bottom:120px}
+
+/* Round 104 (2026-11-11): youth Battles fixes — Next battle wears
+   the gold button family, the pick pills sit below the A/B chip
+   row instead of on it, the Battles view flows into what follows
+   (the 120px Post-pill void is gone — the pill now yields via
+   fabBattles104), and the pill's Battles yield state. */
+.btl-next{background:linear-gradient(180deg,var(--gold),#c9932b);color:#1a1204}
+.btl-stamp{top:40px}
+.btl-yourpick{top:40px}
+#viewBattles{padding-bottom:24px}
+.float-submit.fab-btl-hidden104{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(8px)}
