@@ -2974,6 +2974,13 @@ function btlWatch(slot, keepPaused) {
   const miniL = document.getElementById("btlMiniL"), miniR = document.getElementById("btlMiniR");
   if (miniL) miniL.classList.toggle("watching", slot === "L");
   if (miniR) miniR.classList.toggle("watching", slot === "R");
+  /* Round 118: note the selection and paint its poster BEFORE any
+     load — on Battles open (this keepPaused call) the big player
+     must present side A as a loaded, watchable clip (poster up),
+     never a black void whose only affordance is a native play
+     button over nothing. */
+  if (typeof btlSelNote118 === "function") btlSelNote118(player, p);
+  if (typeof btlBigPoster118 === "function") btlBigPoster118(player, p);
   /* Round 117: if the element already carries this clip's src but
      sits in a media error state (a failed fetch leaves error set and
      a same-src tap would otherwise change nothing), force a fresh
@@ -2983,7 +2990,7 @@ function btlWatch(slot, keepPaused) {
      player — it repeated the mini card's title a second time. The
      tapped mini's gold .watching outline is the marker now. (The
      Daily and Battle Run players keep their banners via d100Watch.) */
-  if (!keepPaused) { try { player.play(); } catch { /* autoplay refusal is fine */ } }
+  if (!keepPaused) { if (typeof btlPlayBig118 === "function") btlPlayBig118(player, false); else { try { player.play(); } catch { /* autoplay refusal is fine */ } } }
 }
 function btlNewChallenger() {
   const src = btl.pairReal ? (CONTEST.entries || []).filter((p) => !p.isSample) : ALL_PLAYS;
@@ -3320,10 +3327,16 @@ function d100Watch(prefix, slot, play) {
   const mA = document.getElementById(prefix + "MiniA"), mB = document.getElementById(prefix + "MiniB");
   if (mA) mA.classList.toggle("watching", slot === "A");
   if (mB) mB.classList.toggle("watching", slot === "B");
-  if (player.getAttribute("src") !== play.media_url) { player.src = play.media_url; player.load(); }
+  /* Round 118: selection note + poster, same as the Quick player —
+     the Daily / Battle Run big players never sit black either, and
+     a stale error state now forces a reload here too (the Round 117
+     btlWatch rule, extended). */
+  if (typeof btlSelNote118 === "function") btlSelNote118(player, play);
+  if (typeof btlBigPoster118 === "function") btlBigPoster118(player, play);
+  if (player.getAttribute("src") !== play.media_url || player.error) { player.src = play.media_url; player.load(); }
   const label = document.getElementById(prefix + "NowLabel");
   if (label) label.textContent = "Now watching: " + play.title + (typeof crownSuffix105 === "function" ? crownSuffix105(play) : "");
-  try { player.play(); } catch { /* autoplay refusal is fine */ }
+  if (typeof btlPlayBig118 === "function") btlPlayBig118(player, false); else { try { player.play(); } catch { /* autoplay refusal is fine */ } }
 }
 function d100WireMatchup(prefix, plays, onWatch) {
   const matchup = document.getElementById(prefix + "Matchup");
@@ -3804,7 +3817,13 @@ function btlCapturePoster104(v) {
       if (total && black / total >= 0.85) return;
     } catch { /* if the readback is unavailable, keep the poster */ }
     const url = c.toDataURL("image/jpeg", 0.72);
-    if (url && url.length > 100) btlPosters104[key] = url;
+    if (url && url.length > 100) {
+      btlPosters104[key] = url;
+      /* Round 118: a big player (or its blurred fill) showing this
+         clip may still carry the branded placeholder poster — swap
+         in the real frame the moment it banks. */
+      if (typeof btlUpgradeBigPoster118 === "function") btlUpgradeBigPoster118(key);
+    }
   } catch { /* a clip that refuses capture keeps the old behavior */ }
 }
 const btlMiniFrame91 = btlMiniFrame;
@@ -4360,15 +4379,23 @@ function vfillClone113(video, opts) {
   fill.setAttribute("aria-hidden", "true");
   fill.setAttribute("tabindex", "-1");
   fill.muted = true;
-  /* Battles minis re-render constantly (pair cycling) and their
-     pooled main clip already holds the data — a fetching fill
-     clone re-downloaded the clip on every cycle back (measured:
-     one full download per return). A noFetch fill never loads the
-     file at all: it paints its poster instead — the Round 104
-     captured frame once banked, the branded placeholder until
-     then (refreshFillPoster113 upgrades it at the freeze point) —
-     which under a 16px blur is the same backdrop. */
-  if (opts && opts.noFetch) { try { fill.preload = "none"; } catch (e) { /* default preload is fine too */ } }
+  /* Round 118: EVERY fill is inert now, not just the minis'. Before,
+     only the Battles-mini call site passed noFetch — the big-player
+     fill (syncBtlPlayer113) and the watch-view fill were full
+     clones carrying the same src and preload, inserted live: a
+     second element fetching the same file alongside the real
+     player (for a portrait clip in the big player, a second 11 MB
+     HEVC download racing the player on iOS's strict media budget).
+     A fill's whole job is a blurred backdrop, and under a 16px blur
+     the banked poster frame IS that backdrop — so every fill is now
+     poster-only: preload "none", src removed outright (no resource
+     selection can ever run), load() never called on it. It keeps
+     the source's poster (cloneNode carries the attribute) and the
+     poster refresh paths upgrade it when the real frame banks.
+     CSS already gives every .vfill pointer-events:none, so a fill
+     can never intercept a tap meant for the player either. */
+  try { fill.preload = "none"; } catch (e) { /* default preload is fine too */ }
+  fill.removeAttribute("src");
   if (typeof fill.pause === "function") fill.pause();
   return fill;
 }
@@ -4389,7 +4416,27 @@ function wireWatchVertical113(body) {
   if (!box) return;
   const video = box.querySelector("video:not(.vfill)");
   if (!video) return;
-  whenMeta113(video, () => markHostVertical113(box, video));
+  whenMeta113(video, () => {
+    if (!markHostVertical113(box, video)) return;
+    /* Round 118: the fill no longer fetches the clip — it paints a
+       poster. Hand it this clip's banked frame if one exists, and
+       bank the frame at the usual freeze point if it doesn't (the
+       watch video autoplays, so the freeze point arrives on its
+       own); the fill upgrades the moment the capture lands. */
+    const fill = box.querySelector("video.vfill");
+    if (!fill) return;
+    const url = video.getAttribute("src") || "";
+    if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { fill.poster = btlPosters104[url]; } catch (e) { /* bonus */ } return; }
+    const cap = () => {
+      if (video.currentTime >= 0.5) {
+        if (typeof btlCapturePoster104 === "function") btlCapturePoster104(video);
+        if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { fill.poster = btlPosters104[url]; } catch (e) { /* bonus */ } }
+        video.removeEventListener("timeupdate", cap);
+      }
+    };
+    video.addEventListener("timeupdate", cap);
+    setTimeout(() => video.removeEventListener("timeupdate", cap), 5000);
+  });
 }
 function btlMarkVertical113(v) {
   if (!v || v.classList.contains("vfill")) return;
@@ -4417,7 +4464,17 @@ function syncBtlPlayer113(player) {
   if (old) old.remove();
   if (portrait) {
     box.classList.add("is-vertical");
-    try { box.insertBefore(vfillClone113(player), player); } catch (e) { /* mark alone still applies contain */ }
+    try {
+      box.insertBefore(vfillClone113(player), player);
+      /* Round 118: the fill is poster-only now — make sure it wears
+         the selected clip's poster even when the clone was taken
+         before the player's own poster was set. */
+      const fill = box.querySelector("video.vfill");
+      if (fill && typeof btlPosterFor118 === "function") {
+        const fp = btlPosterFor118(player.getAttribute("src") || "", player.dataset.btlSelSport118 || "", player.dataset.btlSelTitle118 || "");
+        if (fp) { try { fill.poster = fp; } catch (e) { /* the poster is a bonus */ } }
+      }
+    } catch (e) { /* mark alone still applies contain */ }
   } else {
     box.classList.remove("is-vertical");
   }
@@ -4432,3 +4489,157 @@ function wireBtlPlayer113(id) {
 wireBtlPlayer113("btlPlayer");
 wireBtlPlayer113("dailyPlayer");
 wireBtlPlayer113("runPlayer");
+
+/* ---------------- Round 118 (2026-11-12): Battles big-player
+   hardening. After Round 117's server Range fixes (verified live),
+   Emil's iPhone STILL showed the Quick Battles big player as a
+   black void. His follow-up evidence is decisive about where the
+   fault is NOT: both clips play fine once he taps a mini FIRST and
+   then taps play on the big player — so the files, the server, and
+   basic playback are all sound. What fails is the big player's
+   DEFAULT state and interaction order:
+   - it carried NO poster, so on Battles open it presented as a
+     black rectangle with iOS's native play disc floating over
+     nothing — indistinguishable from "didn't load";
+   - nothing on the page guaranteed that activating the player
+     directly (no mini tap first) ran a clean load+play of the clip
+     btlWatch had loaded paused — the play() calls in btlWatch /
+     d100Watch swallowed every rejection silently, and an element
+     left in an error / no-source state by an interrupted first
+     fetch had no recovery path short of the mini-tap sequence
+     that happened to re-drive it;
+   - for a portrait pick, Round 113's big-player fill was a second
+     full <video> for the same src (see vfillClone113 — now
+     poster-only everywhere).
+   This block is the client-side answer, in four parts:
+   1. Posters: btlWatch / d100Watch note the selection and paint
+      the big player's poster (Round 104 banked frame when one
+      exists, the branded placeholder otherwise) BEFORE loading, so
+      a selected clip never sits as a pure black void; when the
+      real frame banks later, btlUpgradeBigPoster118 swaps it in.
+   2. btlPlayBig118 is the one hardened play path: a broken element
+      (media error, NETWORK_NO_SOURCE / NETWORK_EMPTY, or no data)
+      gets a fresh src + load() first; a rejected play() retries
+      exactly once after re-assigning src + load(); a second failure
+      shows the visible retry overlay instead of silent black.
+   3. Each big player answers a tap on ITSELF: a click on the
+      player surface while it is paused runs btlPlayBig118 for the
+      clip IT has loaded (its own noted selection) — opening Battles
+      and tapping the big player directly plays side A, no mini tap
+      required. (The battles players use native controls; the disc
+      in Emil's screenshot is iOS's own button over a poster-less
+      element. This handler makes the page's own mechanics back
+      that tap up instead of depending on the element's state.)
+   4. A media error on a big player earns ONE silent reload for
+      that URL; a second error for the same URL raises the retry
+      overlay. canplay / playing clears the slate.
+   Appended at the end per the sandbox-slice rule; the watch
+   functions reach these helpers through typeof guards, and the
+   wiring below is guarded per element. */
+function btlPosterFor118(url, sport, title) {
+  if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) return btlPosters104[url];
+  if (typeof btlPlaceholderPoster111 === "function") return btlPlaceholderPoster111(cap(sport || ""), title || "");
+  return "";
+}
+function btlSelNote118(player, play) {
+  if (!player || !play) return;
+  try {
+    player.dataset.btlSelUrl118 = play.media_url || "";
+    player.dataset.btlSelSport118 = play.sport || "";
+    player.dataset.btlSelTitle118 = play.title || "";
+  } catch (e) { /* the note is best-effort */ }
+}
+function btlBigPoster118(player, play) {
+  if (!player || !play) return;
+  const poster = btlPosterFor118(play.media_url || "", play.sport || "", play.title || "");
+  if (!poster) return;
+  try { player.poster = poster; } catch (e) { /* the poster is a bonus */ }
+  const box = typeof player.closest === "function" ? player.closest(".btl-player") : null;
+  const fill = box ? box.querySelector("video.vfill") : null;
+  if (fill) { try { fill.poster = poster; } catch (e) { /* bonus */ } }
+}
+function btlUpgradeBigPoster118(url) {
+  if (!url || typeof btlPosters104 === "undefined") return;
+  const actual = btlPosters104[url];
+  if (!actual) return;
+  ["btlPlayer", "dailyPlayer", "runPlayer"].forEach((id) => {
+    const p = document.getElementById(id);
+    if (!p || p.getAttribute("src") !== url) return;
+    try { p.poster = actual; } catch (e) { /* bonus */ }
+    const box = typeof p.closest === "function" ? p.closest(".btl-player") : null;
+    const fill = box ? box.querySelector("video.vfill") : null;
+    if (fill) { try { fill.poster = actual; } catch (e) { /* bonus */ } }
+  });
+}
+function btlRetryBtn118(player) {
+  const box = player && typeof player.closest === "function" ? player.closest(".btl-player") : null;
+  if (!box) return null;
+  let btn = box.querySelector(".btl-retry118");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btl-retry118";
+    btn.textContent = "Couldn't load — tap to retry";
+    btn.hidden = true;
+    btn.setAttribute("aria-label", "Couldn't load this clip — tap to retry");
+    btn.addEventListener("click", (ev) => { ev.preventDefault(); ev.stopPropagation(); btlPlayBig118(player, true); });
+    box.appendChild(btn);
+  }
+  return btn;
+}
+function btlShowRetry118(player, show) {
+  const btn = btlRetryBtn118(player);
+  if (btn) btn.hidden = !show;
+}
+function btlPlayBig118(player, force) {
+  if (!player) return;
+  btlShowRetry118(player, false);
+  const url = player.dataset.btlSelUrl118 || "";
+  const reload = () => {
+    if (url && player.getAttribute("src") !== url) { try { player.src = url; } catch (e) { /* best-effort */ } }
+    try { player.load(); } catch (e) { /* best-effort */ }
+  };
+  /* A broken element gets a fresh load BEFORE any play attempt:
+     a media error, NETWORK_EMPTY (0) / NETWORK_NO_SOURCE (3), or
+     readyState 0 with nothing loaded all mean play() alone would
+     go nowhere. A forced call (the retry button) always reloads. */
+  if (force || player.error || player.networkState === 0 || player.networkState === 3 || (player.readyState === 0 && !player.currentSrc)) reload();
+  const go = (retried) => {
+    let pr = null;
+    try { pr = player.play(); } catch (e) { pr = Promise.reject(e); }
+    if (pr && typeof pr.catch === "function") {
+      pr.catch(() => {
+        if (!retried) { reload(); go(true); }
+        else btlShowRetry118(player, true);
+      });
+    }
+  };
+  go(false);
+}
+["btlPlayer", "dailyPlayer", "runPlayer"].forEach((id) => {
+  const player = document.getElementById(id);
+  if (!player) return;
+  /* Direct tap on the big player: play the clip THIS element has
+     loaded (its noted selection) through the hardened path — the
+     mini-tap-first sequence is no longer required. A tap while
+     already playing is left to the native controls alone. */
+  player.addEventListener("click", () => {
+    if (!player.paused) return;
+    if (!player.dataset.btlSelUrl118) return;
+    btlPlayBig118(player, false);
+  });
+  /* One silent reload per failing URL; the second failure for the
+     same URL surfaces the retry overlay. Errors from a torn-down
+     previous selection (src already moved on) are ignored. */
+  player.addEventListener("error", () => {
+    const url = player.dataset.btlSelUrl118 || "";
+    if (!url || player.getAttribute("src") !== url) return;
+    if (player.dataset.btlErrUrl118 === url) { btlShowRetry118(player, true); return; }
+    player.dataset.btlErrUrl118 = url;
+    try { player.load(); } catch (e) { /* best-effort */ }
+  });
+  ["canplay", "playing"].forEach((ev) => player.addEventListener(ev, () => {
+    delete player.dataset.btlErrUrl118;
+    btlShowRetry118(player, false);
+  }));
+});
