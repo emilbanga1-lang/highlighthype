@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=111" />
+<link rel="stylesheet" href="styles.css?v=112" />
 </head>
 <body>
 
@@ -131,14 +131,17 @@
          date) rides between the view tabs and the filters on the
          Watch feed. switchView shows it on the All view only;
          app.js fills it from the contest payload on every render,
-         and tapping it opens the Month board. -->
+         and tapping it opens the Month board.
+         Round 109 (2026-11-12): the strip compresses to two tight
+         lines — row 1 is crown + one-line title + ENDS chip, row 2
+         is the one-line state (see the Round 109 CSS block). -->
     <div class="contest-strip" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
-      <span class="cs-cr" aria-hidden="true">👑</span>
-      <div class="cs-text">
-        <div class="cs-t1" id="stripTitle">Hype of the Month</div>
-        <div class="cs-t2" id="stripState"></div>
+      <div class="cs-row1">
+        <span class="cs-cr" aria-hidden="true">👑</span>
+        <span class="cs-t1" id="stripTitle">Hype of the Month</span>
+        <span class="cs-ends" id="stripEnds"></span>
       </div>
-      <span class="cs-ends" id="stripEnds"></span>
+      <div class="cs-t2" id="stripState"></div>
     </div>
 
     <!-- Round 67 (2026-11-09, Emil): the pill bar is ONE sideways-
@@ -1408,6 +1411,6 @@
   </div>
 </div>
 
-<script src="app.js?v=111"></script>
+<script src="app.js?v=112"></script>
 </body>
 </html>
