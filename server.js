@@ -368,6 +368,23 @@ CREATE TABLE IF NOT EXISTS daily_battle_picks(
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(daily_id, voter_token)
 );`);
+// Round 105 (2026-11-11): winner crowns — the PERSISTED record
+// behind "a trophy that stays on the play". A row is written at the
+// moment a winner is decided (Daily Battle lazy finalization, Hype
+// of the Month crowning) and never expires. kind 'daily' refs the
+// matchup's ET date, kind 'monthly' the contest period; the display
+// title is frozen into the row at award time. The UNIQUE triple
+// makes re-finalization / re-crowning idempotent. Winners decided
+// before this table existed are NOT backfilled.
+db.exec(`CREATE TABLE IF NOT EXISTS play_crowns(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  highlight_id INTEGER NOT NULL,
+  kind TEXT NOT NULL,
+  ref TEXT NOT NULL,
+  title TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(highlight_id, kind, ref)
+);`);
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
@@ -746,6 +763,73 @@ function dailyIsReal(row) {
   const a = getPlayRow(row.play_a_id), b = getPlayRow(row.play_b_id);
   return !!(a && b && !a.is_sample && !b.is_sample);
 }
+// ---- Round 105: winner crowns + My Highlights numbers + picker streaks ----
+// Crown titles are written in the site's voice at award time:
+// "Daily Winner · Nov 11" for a daily (ref = its ET date) and
+// "Hype of the Month · November 2026" for a monthly (ref = period).
+const MONTH_SHORT105 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH_LONG105 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function crownTitle105(kind, ref) {
+  const parts = String(ref || "").split("-").map(Number);
+  if (kind === "monthly") return `Hype of the Month · ${MONTH_LONG105[(parts[1] || 1) - 1]} ${parts[0] || ""}`.trim();
+  return `Daily Winner · ${MONTH_SHORT105[(parts[1] || 1) - 1]} ${parts[2] || ""}`.trim();
+}
+function awardCrown105(highlightId, kind, ref) {
+  if (!highlightId || !ref) return;
+  try { db.prepare("INSERT OR IGNORE INTO play_crowns(highlight_id,kind,ref,title) VALUES(?,?,?,?)").run(highlightId, kind, ref, crownTitle105(kind, ref)); } catch { /* a crown must never break finalization */ }
+}
+function crownsFor105(id) {
+  try { return db.prepare("SELECT kind,title FROM play_crowns WHERE highlight_id=? ORDER BY id DESC").all(id).map((c) => ({ kind: c.kind, title: c.title })); } catch { return []; }
+}
+// Per-play numbers for My Highlights (Feature 3): votes in the
+// current contest period, all-time views, finalized Daily wins.
+// Views are NOT a new counter: they sum the stat_events 'play_open'
+// rows the site already keeps (the stats system is aggregate-only —
+// the per-play key is a highlight id, never anything about a
+// visitor). Battle wins count ONLY what the battle system persists:
+// finalized Daily Battle victories (daily_battles.winner_id). Fresh
+// Pairs / Winner Stays results are session play — nothing about them
+// is persisted per play, so they count nothing here.
+function playViews105(id) { return db.prepare("SELECT COALESCE(SUM(count),0) c FROM stat_events WHERE kind='play_open' AND key=?").get(String(id)).c; }
+function battleWins105(id) { return db.prepare("SELECT COUNT(*) c FROM daily_battles WHERE finalized=1 AND winner_id=?").get(id).c; }
+// Picker streaks (Feature 4). Identity is the existing voter token;
+// picks are the daily_battle_picks rows the pick route already
+// stores for EVERY daily — practice days included — in their own
+// table, never in votes (practice picks cast none; that invariant
+// is untouched). THE RULE: walk the finalized dailies newest ->
+// oldest; a day EXTENDS the streak when the token's pick equals the
+// day's winner; anything else — picked the loser, no pick that day,
+// or a tie (winner_id NULL) — ENDS the walk. The current streak is
+// the unbroken run of winning picks ending at the MOST RECENT
+// finalized day (0 when that day was not a winning pick for the
+// token). Best is the longest such run anywhere in the token's
+// history. A calendar day with no Daily Battle row at all never
+// enters the sequence, so it can neither extend nor break a streak.
+function fanTag105(token) { return "Fan #" + sha(String(token)).slice(0, 4).toUpperCase(); }
+function pickerStreaks105() {
+  const rows = db.prepare("SELECT id, winner_id FROM daily_battles WHERE finalized=1 ORDER BY date ASC, id ASC").all();
+  const byToken = new Map();
+  const top = [];
+  if (rows.length) {
+    const picks = db.prepare("SELECT p.daily_id, p.voter_token, p.pick_id, p.created_at FROM daily_battle_picks p JOIN daily_battles d ON d.id=p.daily_id WHERE d.finalized=1").all();
+    const per = new Map();
+    for (const pk of picks) { if (!per.has(pk.voter_token)) per.set(pk.voter_token, new Map()); per.get(pk.voter_token).set(pk.daily_id, pk); }
+    for (const [token, mine] of per) {
+      let run = 0, best = 0;
+      for (const r of rows) { const pk = mine.get(r.id); if (pk && r.winner_id != null && pk.pick_id === r.winner_id) { run++; if (run > best) best = run; } else run = 0; }
+      let current = 0, reachedAt = "";
+      for (let i = rows.length - 1; i >= 0; i--) { const pk = mine.get(rows[i].id); if (pk && rows[i].winner_id != null && pk.pick_id === rows[i].winner_id) { current++; reachedAt = pk.created_at || ""; } else break; }
+      byToken.set(token, { current, best });
+      // Top Pickers order: streak desc, then who REACHED it first —
+      // proxied by the pick time on the OLDEST day of the current
+      // run (the pick that started the run), then tag so the order
+      // is deterministic.
+      if (current >= 2) top.push({ tag: fanTag105(token), streak: current, reachedAt });
+    }
+    top.sort((a, b) => b.streak - a.streak || String(a.reachedAt).localeCompare(String(b.reachedAt)) || a.tag.localeCompare(b.tag));
+  }
+  return { byToken, top: top.slice(0, 5).map(({ tag, streak }) => ({ tag, streak })) };
+}
 // Lazy finalization: any unfinalized row whose ET date has passed
 // gets its pick counts frozen and its winner set (NULL on a tie).
 function finalizeDailyBattles() {
@@ -756,6 +840,7 @@ function finalizeDailyBattles() {
     const b = db.prepare("SELECT COUNT(*) c FROM daily_battle_picks WHERE daily_id=? AND pick_id=?").get(r.id, r.play_b_id).c;
     const winner = a > b ? r.play_a_id : b > a ? r.play_b_id : null;
     db.prepare("UPDATE daily_battles SET finalized=1, final_a_picks=?, final_b_picks=?, winner_id=? WHERE id=?").run(a, b, winner, r.id);
+    if (winner != null) awardCrown105(winner, "daily", r.date);
   }
 }
 // Today's matchup: a row the owner set wins; otherwise auto-pick
@@ -816,6 +901,13 @@ function dailyPayload(row, voter = "") {
     out.split = { a: ca, b: cb, total, aPct: total ? Math.round((ca / total) * 100) : 0, bPct: total ? Math.round((cb / total) * 100) : 0 };
     if (row.finalized) out.winnerId = row.winner_id;
   }
+  // Round 105 (Feature 4): picker streaks ride the daily payload —
+  // the caller's own streak (only for an identified voter) plus the
+  // public Top Pickers aggregate: anonymous fan tags derived by
+  // one-way hash from tokens, streak counts, nothing else.
+  const streaks105 = pickerStreaks105();
+  out.topPickers = streaks105.top;
+  if (voter) { const s105 = streaks105.byToken.get(voter); out.streak = { current: s105 ? s105.current : 0, best: s105 ? s105.best : 0 }; }
   return out;
 }
 // Finalized, REAL daily battles, newest first — the shared pool for
@@ -899,6 +991,16 @@ function publicHighlight(row, voterToken = "") {
     // Round 100 badges (see badgesFor): computed per play, samples
     // always []. The client renders gold chips from these keys.
     badges: badgesFor(row),
+    // Round 105 crowns (Feature 5): PERSISTED winner records,
+    // newest first — unlike badges these include samples (a sample
+    // can win a practice Daily) and never expire. The client shows
+    // the latest everywhere and the full list on cards.
+    crowns: crownsFor105(row.id),
+    // Round 105 numbers (Feature 3): rendered on My Highlights
+    // cards — this month's votes, all-time views, Daily wins.
+    votesMonth: monthlyVoteCount(row.id, currentPeriod()),
+    views: playViews105(row.id),
+    battleWins: battleWins105(row.id),
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
   };
@@ -1532,6 +1634,11 @@ const server = http.createServer(async (req, res) => {
       // entry row somehow existed for it.
       if (wrowPre && wrowPre.is_sample) return sendJson(res, 400, { ok: false, message: "Sample plays can't enter Hype of the Month." });
       db.prepare("INSERT INTO contest_winners(period,highlight_id) VALUES(?,?) ON CONFLICT(period) DO UPDATE SET highlight_id=excluded.highlight_id").run(period, id);
+      // Round 105 (Feature 5): the crown follows the winner record —
+      // re-crowning a different play for the same period MOVES the
+      // monthly crown (the old winner's row for this period goes).
+      db.prepare("DELETE FROM play_crowns WHERE kind='monthly' AND ref=?").run(period);
+      awardCrown105(id, "monthly", period);
       const wrow = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       // If the guardian opted into texts, send the claim text — inert
       // (log line only) until Emil activates Twilio; see sendText.

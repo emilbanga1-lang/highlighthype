@@ -36,7 +36,7 @@ try {
   pub = await j("/api/highlights"); assert(pub.body.highlights.length === 1, "approved play is public");
   // 3b. Public shape is an explicit allowlist (hardening): every field the
   // client uses is present, and NO internal pre-review JSON leaks.
-  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "badges", "voteCount", "hasVoted"];
+  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "badges", "voteCount", "hasVoted", "crowns", "votesMonth", "views", "battleWins"];
   const pubKeys = Object.keys(pub.body.highlights[0]);
   assert(ALLOW.every((k) => pubKeys.includes(k)), "public play carries every allowlisted field the client uses");
   assert(pubKeys.every((k) => ALLOW.includes(k)), "public play carries NOTHING outside the allowlist");
@@ -475,6 +475,93 @@ try {
     // marker, Post-pill yield, gold Next, pill/chip clearance.
     assert(app100.includes("btlPosters104") && app100.includes("btlCapturePoster104") && app100.includes("fabBattles104") && app100.includes('pickL.style.display = "none"'), "r104: minis cache frozen-frame posters across re-renders, the Post pill yields inside Battles, and Winner Stays removes its pick buttons after a pick");
     assert(css102.includes(".btl-next{background:linear-gradient(180deg,var(--gold),#c9932b)") && css102.includes(".btl-stamp{top:40px}") && css102.includes(".btl-yourpick{top:40px}") && css102.includes(".fab-btl-hidden104"), "r104: Next battle wears the gold family, the pick pills sit below the A/B chip row, and the pill yield state is styled");
+
+    // ---- Server C: Round 105 — challenge payload shape, My
+    // Highlights numbers, winner crowns, picker streaks ----
+    const tmpC = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r105c-"));
+    let childC = await startSrv100(3473, tmpC);
+    const jC = mkJ100(3473);
+    const LONG105 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const SHORT105 = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const dailyTitle105 = (dateStr) => { const [, m, d] = dateStr.split("-").map(Number); return `Daily Winner · ${SHORT105[m - 1]} ${d}`; };
+    try {
+      const tokC = (await jC("/api/owner/claim", { method: "POST" })).body.token;
+      assert(tokC, "r105 C: owner claim");
+      const cs1 = await up100(jC, tokC, { title: "C Sample One", sport: "basketball", division: "boys", playerName: "Demo A" }, true);
+      const cs2 = await up100(jC, tokC, { title: "C Sample Two", sport: "basketball", division: "boys", playerName: "Demo B" }, true);
+      const cr1 = await up100(jC, tokC, { title: "C Real One", sport: "baseball", division: "boys", playerName: "Cam", notifyEmail: "cam@example.com" });
+      const cr2 = await up100(jC, tokC, { title: "C Real Two", sport: "baseball", division: "boys", playerName: "Cam", notifyEmail: "cam@example.com" });
+      // Feature 3 numbers: 3 play opens + 1 vote for cr1.
+      for (let i = 0; i < 3; i++) { const tr = await fetch("http://localhost:3473/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ kind: "play_open", key: String(cr1) }) }); assert(tr.status === 200, "r105: play_open tracked"); }
+      const vt = await jC(`/api/highlights/${cr1}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "n1" }) });
+      assert(vt.body.ok && vt.body.voteCount === 1, "r105: vote lands for the numbers test");
+      let pubC = await jC("/api/highlights");
+      let byIdC = Object.fromEntries(pubC.body.highlights.map((h) => [h.id, h]));
+      assert(byIdC[cr1].views === 3 && byIdC[cr1].votesMonth === 1 && byIdC[cr1].battleWins === 0, "r105: numbers payload — views from play_open stats, this month's votes, zero battle wins");
+      assert(Array.isArray(byIdC[cr1].crowns) && byIdC[cr1].crowns.length === 0, "r105: crowns payload shape — an empty array before any win");
+      assert(byIdC[cs1].views === 0 && byIdC[cs1].votesMonth === 0 && byIdC[cs1].battleWins === 0, "r105: truthful zeros for an untouched play");
+      // Surgery: three PRE-finalized days (streak math + no-backfill
+      // evidence) and two UNfinalized days the new code must close
+      // (a real daily and a PRACTICE daily).
+      childC.kill();
+      await wait(600);
+      const dbC = new DatabaseSync(path.join(tmpC, "highlighthype.db"));
+      dbC.exec("PRAGMA busy_timeout=5000");
+      const insDC = dbC.prepare("INSERT INTO daily_battles(date,play_a_id,play_b_id,practice,finalized,winner_id,final_a_picks,final_b_picks) VALUES(?,?,?,?,?,?,?,?)");
+      const insPC = dbC.prepare("INSERT INTO daily_battle_picks(daily_id,voter_token,pick_id) VALUES(?,?,?)");
+      const seedC = (off, a, b, practice, fin, winner, fa, fb, picks) => { const info = insDC.run(etDay100(off), a, b, practice, fin, winner, fa, fb); const did = Number(info.lastInsertRowid); for (const [vtk, pid] of picks) insPC.run(did, vtk, pid); return did; };
+      seedC(-3, cs1, cs2, 1, 1, cs1, 3, 0, [["win3", cs1], ["broken", cs1], ["loser1", cs1]]);
+      seedC(-2, cs1, cs2, 1, 1, cs1, 3, 0, [["win3", cs1], ["late2", cs1], ["loser1", cs1]]);
+      seedC(-1, cs1, cs2, 1, 1, cs2, 1, 3, [["win3", cs2], ["late2", cs2], ["broken", cs2], ["loser1", cs1]]);
+      seedC(-4, cr1, cr2, 0, 0, null, 0, 0, [["c1", cr1], ["c2", cr1], ["c3", cr2]]);
+      seedC(-5, cs1, cs2, 1, 0, null, 0, 0, [["p1", cs1], ["p2", cs1], ["p3", cs2]]);
+      dbC.close();
+      childC = await startSrv100(3473, tmpC);
+      // Feature 4: the first daily read lazily finalizes days -4/-5.
+      let dWin = await jC("/api/daily-battle?voterToken=win3");
+      assert(dWin.body.streak && dWin.body.streak.current === 3 && dWin.body.streak.best === 3, "r105: streak — three straight winning picks ending at the latest final = 3");
+      assert(Array.isArray(dWin.body.topPickers) && dWin.body.topPickers.length === 2 && dWin.body.topPickers[0].streak === 3 && dWin.body.topPickers.some((t) => t.streak === 2), "r105: Top Pickers — the two streaks >= 2, longest first");
+      assert(dWin.body.topPickers.every((t) => /^Fan #[0-9A-F]{4}$/.test(t.tag)) && dWin.body.topPickers[0].tag !== dWin.body.topPickers[1].tag, "r105: Top Pickers rows are distinct anonymous fan tags");
+      let dLose = await jC("/api/daily-battle?voterToken=loser1");
+      assert(dLose.body.streak.current === 0 && dLose.body.streak.best === 2, "r105: streak — picking the loser on the latest final resets current to 0, best keeps 2");
+      let dBroken = await jC("/api/daily-battle?voterToken=broken");
+      assert(dBroken.body.streak.current === 1 && dBroken.body.streak.best === 1, "r105: streak — a missed finalized day breaks the chain (win, miss, win = 1)");
+      let dAnon = await jC("/api/daily-battle");
+      assert(!("streak" in dAnon.body) && Array.isArray(dAnon.body.topPickers), "r105: anonymous reads get Top Pickers but no personal streak");
+      // Feature 5: crowns landed at finalization — and ONLY there.
+      pubC = await jC("/api/highlights");
+      byIdC = Object.fromEntries(pubC.body.highlights.map((h) => [h.id, h]));
+      assert(byIdC[cr1].crowns.length === 1 && byIdC[cr1].crowns[0].kind === "daily" && byIdC[cr1].crowns[0].title === dailyTitle105(etDay100(-4)), "r105: lazy finalization crowned the real Daily winner with its dated title");
+      assert(byIdC[cr1].battleWins === 1 && byIdC[cr2].crowns.length === 0, "r105: battle wins count the finalized victory; the loser wears no crown");
+      assert(byIdC[cs1].crowns.some((c) => c.title === dailyTitle105(etDay100(-5))), "r105: a PRACTICE daily crowns its sample winner too (samples included)");
+      assert(!byIdC[cs1].crowns.some((c) => c.title === dailyTitle105(etDay100(-3))) && !byIdC[cs2].crowns.some((c) => c.title === dailyTitle105(etDay100(-1))), "r105: NO backfill — winners finalized before the crown table existed stay uncrowned");
+      assert(byIdC[cs1].battleWins === 3 && byIdC[cs2].battleWins === 1, "r105: battle wins count every persisted finalized victory (crowned or not)");
+      assert(byIdC[cs1].voteCount === 0 && byIdC[cs1].votesMonth === 0, "r105: practice picks cast NO votes — before, during or after finalization");
+      // Monthly crown: awarded at crowning, MOVES on a re-crown.
+      const period105 = new Date().toISOString().slice(0, 7);
+      const monthlyTitle105 = `Hype of the Month · ${LONG105[Number(period105.slice(5, 7)) - 1]} ${period105.slice(0, 4)}`;
+      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr1 }) });
+      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr2 }) });
+      let win = await jC("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokC }, body: JSON.stringify({ highlightId: cr2, period: period105 }) });
+      assert(win.body.ok, "r105: owner crowns the month winner");
+      pubC = await jC("/api/highlights");
+      byIdC = Object.fromEntries(pubC.body.highlights.map((h) => [h.id, h]));
+      assert(byIdC[cr2].crowns.some((c) => c.kind === "monthly" && c.title === monthlyTitle105), "r105: the monthly crown lands with its month title");
+      assert(!byIdC[cr1].crowns.some((c) => c.kind === "monthly"), "r105: the runner-up holds no monthly crown");
+      win = await jC("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokC }, body: JSON.stringify({ highlightId: cr1, period: period105 }) });
+      assert(win.body.ok, "r105: re-crown accepted");
+      pubC = await jC("/api/highlights");
+      byIdC = Object.fromEntries(pubC.body.highlights.map((h) => [h.id, h]));
+      assert(byIdC[cr1].crowns.some((c) => c.kind === "monthly" && c.title === monthlyTitle105) && !byIdC[cr2].crowns.some((c) => c.kind === "monthly"), "r105: a re-crown MOVES the monthly crown to the new winner");
+      assert(byIdC[cr1].crowns.filter((c) => c.kind === "daily").length === 1, "r105: the daily crown survives the monthly moves (crowns accumulate per kind)");
+      // Client wiring for the round.
+      const home105 = await (await fetch("http://localhost:3473/")).text();
+      const app105 = await (await fetch("http://localhost:3473/app.js")).text();
+      const css105 = await (await fetch("http://localhost:3473/styles.css")).text();
+      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=108"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and v108 assets");
+      assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("🔥 Your streak: "), "r105: app.js wires challenge share + landing, crown/number renderers and the streak display");
+      assert(css105.includes(".crown-chip") && css105.includes(".daily-top105") && css105.includes(".play-numbers105") && css105.includes(".btl-challenge-note"), "r105: styles carry the crown chips, Top Pickers block, numbers line and challenge note");
+    } finally { childC.kill(); fs.rmSync(tmpC, { recursive: true, force: true }); }
   }
 
   // 8c. Upload Assist (Round 99): this server runs with an empty

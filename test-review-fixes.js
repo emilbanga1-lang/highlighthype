@@ -1099,7 +1099,7 @@ try {
     const allBlock8 = appJs.slice(appJs.indexOf("function renderAll2"), appJs.indexOf("let detailPlayId"));
     assert(allBlock8.includes("tileHtml(h, { rank: i + 1 })") && !allBlock8.includes("cardHtml(h"), "Round 8: All Hypes renders tiles");
     const athleteBlock8 = appJs.slice(appJs.indexOf("window.openAthlete = async"), appJs.indexOf("/* ---------------- panels / menu / store"));
-    assert(athleteBlock8.includes("cardHtml(h)") && !athleteBlock8.includes("tileHtml"), "Round 8: athlete pages still render FULL cards (no tiles)");
+    assert(athleteBlock8.includes("cardHtml(h, { numbers: true })") && !athleteBlock8.includes("tileHtml"), "Round 8: athlete pages still render FULL cards (no tiles) — Round 105 passes the My Highlights numbers opt into the same full card");
     const loadBlock8 = appJs.slice(appJs.indexOf("async function loadData"), appJs.indexOf("function applyDefaultView"));
     assert(loadBlock8.includes("applyDefaultView();") && loadBlock8.indexOf("applyDefaultView();") < loadBlock8.indexOf("renderAll();"), "Round 8: loadData decides the default view BEFORE the first board render (no visible flash)");
     const panelBlock8 = appJs.slice(appJs.indexOf("function showPanel"), appJs.indexOf("function showStore"));
