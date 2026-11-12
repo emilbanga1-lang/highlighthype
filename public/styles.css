@@ -2741,3 +2741,26 @@ footer{padding-top:12px;padding-bottom:44px}
 #playDetailBody .upnext{margin-top:16px}
 #playDetailBody .upnext-head{margin-bottom:4px}
 #playDetailBody .upnext-row{padding-top:7px;padding-bottom:7px}
+
+/* ================================================================
+   Round 111 (2026-11-12): Battles clarity + load-delay paint.
+   1. One plain sub-line under each Battles section header — the
+      Daily says what counts, Quick Battles says what doesn't.
+   2. The media slot a battle mini renders before its pooled
+      <video> is installed: a branded frame in the video's exact
+      box, never a black rectangle.
+   3. Quick Battles de-golded: its Pick buttons go plain, and the
+      winner outline/stamp trade gold for volt — the gold "your
+      pick" treatment and crowns stay exclusive to the Daily
+      Battle (the Daily's own .btl-pick / .picked rules above are
+      untouched, as is Battle Run's).
+   ================================================================ */
+.btl-section-sub{text-align:center;color:var(--muted);font-size:13px;line-height:1.45;margin:8px auto 0;max-width:460px}
+.daily-card .btl-section-sub{margin-top:10px}
+.btl-video-slot111{display:block;width:100%;aspect-ratio:16/9;background:radial-gradient(120% 120% at 50% 0%,#26220f 0%,#131315 55%,#0a0a0a 100%);position:relative}
+.btl-video-slot111::before{content:"▶";position:absolute;inset:0;display:grid;place-items:center;color:rgba(240,185,62,.85);font-size:26px}
+.btl-video-slot111::after{content:attr(data-sport);position:absolute;left:10px;bottom:8px;color:#e8e2d2;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+#btlMain .btl-pick{background:#17181c;border:1px solid var(--line2);color:var(--ink)}
+#btlMain .btl-pick:disabled{opacity:.45}
+#btlMatchup .btl-mini.winner{border-color:var(--volt);box-shadow:0 0 0 5px rgba(200,255,0,.14)}
+#btlMatchup .btl-stamp{background:var(--volt);color:#131a00}
