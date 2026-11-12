@@ -3556,3 +3556,19 @@ function playAnotherBattle102() {
   bind("dailyAnother", "click", playAnotherBattle102);
   bind("dailyStripAnother", "click", playAnotherBattle102);
 })();
+
+/* Round 103 (2026-11-11, Emil): the Store hero "CREATE A HYPE FRAME"
+   tap did nothing on his iPhone, though the Round 86 per-element
+   binding (line ~2689) checks out in Chromium — those three anchors
+   were the only modal entry points depending on a one-time
+   addEventListener pass, while every other modal on the site opens
+   through parse-time inline handlers. Two extra layers now cover the
+   tap: the anchors carry inline onclick="openHfChoice();return false"
+   (index.html), and this document-level delegation opens the choice
+   card for ANY [data-hf-start] tap that reaches the document —
+   present or future CTAs, cloned or re-rendered nodes included.
+   openHfChoice is idempotent, so layers firing together are a no-op. */
+document.addEventListener("click", (e) => {
+  const a = e.target && e.target.closest ? e.target.closest("[data-hf-start]") : null;
+  if (a) { e.preventDefault(); openHfChoice(); }
+});

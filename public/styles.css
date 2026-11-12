@@ -2222,6 +2222,11 @@
   .hs-hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
   .hs-hero-btn-hf{background:transparent;border:2px solid var(--hf-purple-soft);color:#fff;text-decoration:none}
   .hs-hero-btn-hf:hover{background:rgba(139,61,255,.18)}
+  /* Round 103 (2026-11-11): the hero buttons keep their own layer
+     above the hero art/gradient in every engine, and Hype Frame CTAs
+     take the manipulation gesture path (no double-tap hesitation). */
+  .hs-hero-btns{position:relative;z-index:3}
+  [data-hf-start]{touch-action:manipulation}
 
   .board-crest{position:absolute;top:-26px;right:-42px;width:264px;opacity:.22;pointer-events:none;z-index:0}
   @media (min-width:1024px){.board-crest{width:340px;top:-40px;right:-24px;opacity:.16}}
