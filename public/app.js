@@ -930,9 +930,19 @@ function updateContestStrip107() {
    entry (openHfChoice). Emil: the banner was "too big and
    doesn't look like what we had before — bring that back but
    make it take less space." NO price — teasers tease; prices
-   live inside the Store only. */
+   live inside the Store only.
+   Round 129 (2026-11-13, Emil's phone review of the strip:
+   "The video is really small in hype frame section"): the
+   layout inverts — the film leaves its small left box and
+   takes the FULL CARD WIDTH at 16:9 across the TOP of the
+   card, and the copy stacks below it (lockup, steps, Create
+   row). The numbered mini-row steps retire here: the arrow
+   line is the steps presentation at every width now. Slot,
+   cover, one-tap swap and the Create action are unchanged;
+   the stacked layout lives in the Round 129 styles.css block
+   (the 126 classes stay). */
 function hypeFrameStrip126() {
-  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-steps126"><span><b>1</b> Your hype video</span><span><b>2</b> Pick your frame</span><span><b>3</b> Photo — or avatar</span><span><b>4</b> We take care of the rest</span></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
+  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -3226,7 +3236,10 @@ function playHfStoreFilm() {
 
 /* Round 126 (2026-11-13): the Watch feed's compact Hype Frame
    strip runs the same film with the same cover swap as the
-   pre-125 homepage section and the store feature above. */
+   pre-125 homepage section and the store feature above.
+   Round 129 restacked the strip around the film (full-width
+   on top); this swap is untouched — one tap, cover out, film
+   in, playing. */
 function playHfFeedFilm126() {
   const cover = $("#hfFilmCoverFeed126"), vid = $("#hfFeedFilm126");
   if (!vid) return;
