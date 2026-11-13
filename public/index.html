@@ -11,23 +11,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=124" />
+<link rel="stylesheet" href="styles.css?v=125" />
 </head>
 <body>
-<!-- Round 123 (2026-11-12, Emil approved the outside-review
-     mapping): action posters on every play surface (board tiles,
-     the Watch player, athlete cards — the Round 118 banking
-     pipeline extended, with the Round 119 start offset applied
-     in Watch too), the contest strip moved into the Month tab
-     with a one-line state line in its place on Watch, desktop
-     filters on one row, and ONE upload label — "Post a Play".
-     (Rounds 121 + 122 shipped just before: the posting chain —
-     post-success screen with the athlete tag, My Highlights →
-     My Plays with per-play status, one contest story + the prize
-     stated, guardian-gated contest entry — and orientation:
-     board tabs scroll to the board, the Daily streak is always
-     visible, "✓ Your pick" states, the floating Post pill can
-     never trap a card under it.) -->
+<!-- Round 124 (2026-11-12, Emil: "Build the conversion fix"):
+     the server owns media compatibility — uploads are probed and
+     transcoded to H.264/yuv420p/faststart when they are not
+     already, every video play gets a server-generated poster
+     (poster_url, first-choice on every surface), the one-time
+     migration converted play 50's HEVC clip in place, and the
+     Hype Frame studio opens on the play's poster and explains
+     itself when a clip's frames can't be pulled.
+     (Round 123 shipped just before: action posters on every play
+     surface, the contest strip moved into the Month tab with a
+     one-line state line on Watch, desktop filters on one row, and
+     ONE upload label — "Post a Play". Rounds 121 + 122 before
+     that: the posting chain — post-success screen with the
+     athlete tag, My Highlights → My Plays with per-play status,
+     one contest story + the prize stated, guardian-gated contest
+     entry — and orientation: board tabs scroll to the board, the
+     Daily streak is always visible, "✓ Your pick" states, the
+     floating Post pill can never trap a card under it.) -->
 
 <header class="nav">
   <div class="wrap">
@@ -1482,6 +1486,6 @@
   </div>
 </div>
 
-<script src="app.js?v=124"></script>
+<script src="app.js?v=125"></script>
 </body>
 </html>
