@@ -816,8 +816,27 @@ function guardianPlaysHtml121(plays) {
     <div class="queue-item mine-play-row" style="display:flex;gap:14px;align-items:center">
       <div style="flex:1"><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.athlete_label || "")}${p.athlete_tag ? ` · <span class="tagchip">${esc(p.athlete_tag)}</span>` : ""} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}${when(p.created_at) ? ` · posted ${esc(when(p.created_at))}` : ""}</span><br>${chip(p)}</div>
       ${p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : ""}
+      ${p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : ""}
     </div>`).join("");
 }
+/* Round 130 (2026-11-13): withdraw from Hype of the Month, right
+   where the guardian sees the entered chip. The email they just
+   looked up with rides along — the server matches it against the
+   email used to post the play (the Round 121 rule, mirrored at
+   /api/contest/withdraw) — and the list re-renders from a fresh
+   lookup so the chip and button reflect reality. An error keeps
+   the button and says why, in place. */
+window.withdrawContest130 = async (id, btn) => {
+  const email = ($("#mineEmail")?.value || "").trim();
+  if (btn) { btn.disabled = true; btn.textContent = "Withdrawing…"; }
+  try {
+    await api("/api/contest/withdraw", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id, email }) });
+    const findForm = $("#mineFind");
+    if (findForm) findForm.requestSubmit();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = "Withdraw from contest"; btn.insertAdjacentHTML("afterend", `<p class="mine-find-msg">${esc(e.message)}</p>`); }
+  }
+};
 $("#mineFind").addEventListener("submit", async (e) => {
   e.preventDefault();
   const box = $("#mineFindResults");
@@ -868,7 +887,7 @@ function updateContestStrip107() {
   const lead125 = entries.length ? entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0] : null;
   const leadName125 = lead125 ? (firstNameOf(lead125) || lead125.title || "A play") : "";
   const state = !entries.length
-    ? "No entries yet — post a play; once it's approved, the parent who posted it can enter it"
+    ? "No entries yet — post a play with the contest box checked (it's on by default) and it's in once approved"
     : !total
       ? "No votes yet — every vote counts"
       : `${leadName125} leads with ${lead125.voteCount} vote${lead125.voteCount === 1 ? "" : "s"}`;
@@ -880,7 +899,7 @@ function updateContestStrip107() {
   const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
   if (ends) ends.textContent = endsTxt;
   const ms = $("#monthSub107");
-  if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play, and once it's approved the parent/guardian who posted it can enter it here." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
+  if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play with the contest box checked (it's on by default), and once it's approved it's in." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
   /* Round 123: the Watch view's slim contest line — the same live
      state in one line: month name, the honest entries count, and
      the tail that fits the state (enter while it's empty, vote
@@ -1323,7 +1342,7 @@ function switchView(v) {
      the elements ever come back — guarded, never required. */
   const bt125 = $("#boardTitle"); if (bt125) bt125.innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  const bi125 = $("#boardIntro"); if (bi125) bi125.textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play — once it's approved, the parent who posted it can enter it. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
+  const bi125 = $("#boardIntro"); if (bi125) bi125.textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play with the contest box checked — it's in once approved. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => { switchView(b.dataset.view); scrollBoardIntoView122(); }));
@@ -2890,6 +2909,12 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   try {
     const fdSend125 = new FormData(form);
     fdSend125.set("playerName", fullName125);
+    /* Round 130: the contest box's state goes EXPLICITLY — "1" or
+       "0" — never left to FormData's checkbox omission, so the
+       server can tell "guardian unchecked it" from "old client
+       that never had the box" (a missing field is legacy and is
+       never auto-entered; see server.js contest_optin note). */
+    fdSend125.set("contestOptin", form.elements.contestOptin && form.elements.contestOptin.checked ? "1" : "0");
     const r = await fetch("/api/highlights", { method: "POST", body: fdSend125 });
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || "Upload failed");
