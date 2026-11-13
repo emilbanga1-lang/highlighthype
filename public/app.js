@@ -233,7 +233,7 @@ function cardHtml(h, opts = {}) {
       </div>
       <div class="card-actions">
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-        ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+        ${h.isSample || (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -492,7 +492,19 @@ function showVoteFailure(btn) {
    twice and saw nothing). All enter feedback is now INLINE on the
    card: a per-card message slot in cardHtml, fed from ENTER_MSGS so
    a board re-render can neither duplicate the slot nor drop a
-   message mid-flow. The API contract is unchanged. */
+   message mid-flow.
+   Round 121 (2026-11-12): WHAT entering means changed. The one-tap
+   button let any visitor enter anyone's play (the youth-agent test
+   entered Charlotte's play as a total stranger). Entering is now
+   the POSTING GUARDIAN's call: the button opens an inline confirm —
+   "type the email you posted this play with" — and the server
+   matches it against the play's guardian email on file (403 with a
+   plain-words reason on mismatch). The owner enters directly (api()
+   rides the owner token; the server accepts it as the override).
+   Plays with NO guardian email on file don't render the button at
+   all (cardHtml / watchHtml107 gate on hasGuardianEmail); if this
+   flow is somehow reached for one, it explains instead of posting.
+   The old "Enter anyway" door is closed — that was the hole. */
 const ENTER_MSGS = new Map();
 function setEnterMsg(id, html) {
   if (html) ENTER_MSGS.set(id, html); else ENTER_MSGS.delete(id);
@@ -510,28 +522,38 @@ window.enterContest = (id) => {
     setEnterMsg(id, `<p class="card-msg-text">Sample plays can't enter Hype of the Month.</p>`);
     return;
   }
-  if (play && !play.hasGuardianEmail && !play.hasGuardianPhone) {
-    setEnterMsg(id, `<p class="card-msg-text">This play can't be featured yet — it needs a parent/guardian email or mobile number on file so we can reach the winner. It can still collect votes.</p>
-      <div class="card-msg-btns">
-        <button type="button" class="mini-btn" onclick="enterContestAnyway(${id})">Enter anyway</button>
-        <button type="button" class="mini-btn" onclick="enterContestDismiss(${id})">Not now</button>
-      </div>`);
+  // Owner override: no form — api() sends the owner token and the
+  // server enters on it.
+  if (typeof ownerToken === "function" && ownerToken()) return submitContestEntry(id);
+  if (play && !play.hasGuardianEmail) {
+    setEnterMsg(id, `<p class="card-msg-text">This play can't be entered online — no guardian email is on file for it. The owner can enter it for you.</p>`);
     return;
   }
-  return submitContestEntry(id);
+  setEnterMsg(id, `<form class="enter-form" onsubmit="submitContestEntry(${id}, this); return false">
+    <p class="card-msg-text">Parents/guardians: enter the email you posted this play with to enter it.</p>
+    <input type="email" name="guardianEmail" required placeholder="Email used to post this play" autocomplete="email" aria-label="Email used to post this play">
+    <div class="card-msg-btns">
+      <button type="submit" class="mini-btn">🏆 Enter this play</button>
+      <button type="button" class="mini-btn" onclick="enterContestDismiss(${id})">Not now</button>
+    </div>
+  </form>`);
 };
-window.enterContestAnyway = (id) => submitContestEntry(id);
 window.enterContestDismiss = (id) => setEnterMsg(id, "");
-async function submitContestEntry(id) {
+async function submitContestEntry(id, formEl) {
+  const email = formEl && formEl.guardianEmail ? String(formEl.guardianEmail.value || "").trim() : "";
   setEnterMsg(id, `<p class="card-msg-text">Entering…</p>`);
   try {
-    const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) });
+    const payload = { highlightId: id };
+    if (email) payload.email = email;
+    const r = await api("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
     setEnterMsg(id, `<p class="card-msg-text ok">${esc(r.message)}</p>`);
     await loadData();
   } catch (e) {
     setEnterMsg(id, `<p class="card-msg-text err">${esc(e.message)}</p>`);
   }
+  return false;
 }
+window.submitContestEntry = submitContestEntry;
 /* Report feedback (Round 6, 2026-11-05): reporting used to run
    through the browser's built-in prompt and alert dialogs, which
    in-app browsers can swallow entirely — the button read as
@@ -749,16 +771,35 @@ function renderMine() {
       <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.id)}')">See all plays →</button>
     </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
 }
-/* My Highlights lookup (light, no accounts): the panel's form asks
-   the server which athletes sit behind a guardian email or an HH tag
-   (GET /api/athletes/lookup). One match opens that athlete's existing
-   public collection (openAthlete — approved plays only, same as
-   everywhere else). More than one match — one guardian email behind
-   several athletes — renders a pick list; athletes are never merged.
-   Every server no-match looks identical, and the message below is
-   deliberately the same for an unknown email, an unknown tag and an
-   athlete whose plays are all still in review. If both fields are
-   filled, the tag wins — it's the more specific of the two. */
+/* My Plays lookup (light, no accounts): the panel's form asks the
+   server who/what sits behind a guardian email or an HH tag
+   (GET /api/athletes/lookup).
+   Round 121 (2026-11-12) split the two paths by what they may show:
+   - TAG: the athlete's PUBLIC collection — approved plays only,
+     opened through openAthlete exactly as before (one match opens
+     it, several matches render the pick list; athletes are never
+     merged).
+   - EMAIL: the guardian's OWN plays — every status, pending
+     included — rendered right here with a status chip each. This
+     is the "where did my play go?" answer the youth-agent test
+     couldn't find. The server only returns a play when the email
+     matches that play's guardian contact on file, and never
+     returns the address itself.
+   If both fields are filled, the tag wins — it's the more
+   specific of the two. */
+function guardianPlaysHtml121(plays) {
+  const chip = (p) => {
+    if (p.status === "approved") return `<span class="status-chip chip-live">✅ Live on the board</span>` + (p.inContest ? ` <span class="status-chip chip-contest">🏆 Entered in Hype of the Month</span>` : "");
+    if (p.status === "pending") return `<span class="status-chip chip-review">⏳ In review</span>`;
+    return `<span class="status-chip chip-off">Not on the board</span>`;
+  };
+  const when = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
+  return `<p class="mine-find-msg" style="margin-top:0">Your plays — every play posted with that email:</p>` + plays.map((p) => `
+    <div class="queue-item mine-play-row" style="display:flex;gap:14px;align-items:center">
+      <div style="flex:1"><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.athlete_label || "")}${p.athlete_tag ? ` · <span class="tagchip">${esc(p.athlete_tag)}</span>` : ""} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}${when(p.created_at) ? ` · posted ${esc(when(p.created_at))}` : ""}</span><br>${chip(p)}</div>
+      ${p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : ""}
+    </div>`).join("");
+}
 $("#mineFind").addEventListener("submit", async (e) => {
   e.preventDefault();
   const box = $("#mineFindResults");
@@ -769,10 +810,16 @@ $("#mineFind").addEventListener("submit", async (e) => {
   try {
     const q = tag ? `tag=${encodeURIComponent(tag)}` : `email=${encodeURIComponent(email)}`;
     const d = await api(`/api/athletes/lookup?${q}`);
+    if (!tag) {
+      const plays = d.plays || [];
+      if (plays.length) { box.innerHTML = guardianPlaysHtml121(plays); return; }
+      box.innerHTML = `<p class="mine-find-msg">No plays found for that email yet. Double-check it's the email used to post the play — or try the athlete's HH tag to see their public plays.</p>`;
+      return;
+    }
     const list = d.athletes || [];
-    if (!list.length) { box.innerHTML = `<p class="mine-find-msg">No approved highlights found for that yet. Plays appear here once the owner approves them — if you just posted, check back soon. Double-check the email is the one from the upload, or try the athlete's HH tag.</p>`; return; }
+    if (!list.length) { box.innerHTML = `<p class="mine-find-msg">No approved plays found for that tag yet. Plays appear once the owner approves them — if you just posted, check back soon, or look the play up with the guardian email instead.</p>`; return; }
     if (list.length === 1) { box.innerHTML = ""; openAthlete(list[0].athlete_id); return; }
-    box.innerHTML = `<p class="mine-find-msg" style="margin-top:0">More than one athlete is attached to that guardian email — pick yours:</p>` + list.map((a) => `
+    box.innerHTML = `<p class="mine-find-msg" style="margin-top:0">More than one athlete matches — pick yours:</p>` + list.map((a) => `
       <div class="queue-item" style="display:flex;gap:14px;align-items:center">
         <div class="athlete-avatar" aria-hidden="true">${esc((a.name || "?")[0].toUpperCase())}</div>
         <div style="flex:1"><b>${esc(a.name)}</b>${a.team ? ` · ${esc(a.team)}` : ""}${a.tag ? ` · <span class="tagchip">${esc(a.tag)}</span>` : ""}<br><span style="color:var(--muted)">${a.playCount} public play${a.playCount === 1 ? "" : "s"}</span></div>
@@ -790,8 +837,12 @@ function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2()
 function updateContestStrip107() {
   const entries = CONTEST.entries || [];
   const total = entries.reduce((s, e) => s + (e.voteCount || 0), 0);
+  /* Round 121: the empty state tells the ONE entry story — post a
+     play; once it's approved, the parent/guardian who posted it
+     can enter it. (The youth-agent test found three different
+     stories in three places.) */
   const state = !entries.length
-    ? "No entries yet — post a play to enter"
+    ? "No entries yet — post a play; once it's approved, the parent who posted it can enter it"
     : !total
       ? "No votes yet — every vote counts"
       : (() => { const lead = entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0]; return `Leader: ${lead.title} · ${lead.voteCount} vote${lead.voteCount === 1 ? "" : "s"}`; })();
@@ -803,7 +854,7 @@ function updateContestStrip107() {
   const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
   if (ends) ends.textContent = endsTxt;
   const ms = $("#monthSub107");
-  if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play, and once it's approved and entered it competes here." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
+  if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play, and once it's approved the parent/guardian who posted it can enter it here." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -893,7 +944,7 @@ function watchHtml107(h, entry) {
     </div>
     <div class="card-actions watch-actions">
       <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-      ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+      ${h.isSample || (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
       <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
       ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
       <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -1187,10 +1238,29 @@ function switchView(v) {
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Athletes post their plays. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
+  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play — once it's approved, the parent who posted it can enter it. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
-$$(".viewseg button").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
+$$(".viewseg button").forEach((b) => b.addEventListener("click", () => { switchView(b.dataset.view); scrollBoardIntoView122(); }));
+/* Round 122 (2026-11-12): a board tab tap takes you TO the board.
+   The youth-agent test tapped Battles, watched the hero sit still
+   (the panels swap far below it), and concluded nothing happened.
+   Skip only when the board is already PARKED at its scroll-margin
+   position — "somewhere on screen" isn't enough, because the
+   panels render well below the section top and can still sit
+   under the fold. (The rig's first pass caught exactly that.) */
+function scrollBoardIntoView122() {
+  const el = document.getElementById("plays");
+  if (!el || typeof el.getBoundingClientRect !== "function") return;
+  const go = () => {
+    const r = el.getBoundingClientRect();
+    let parked = 76;
+    try { parked = parseFloat(getComputedStyle(el).scrollMarginTop) || 76; } catch { /* keep the default */ }
+    if (Math.abs(r.top - parked) <= 12) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(go); else go();
+}
 $$(".month-subseg button").forEach((b) => b.addEventListener("click", () => setMonthSub(b.dataset.msub)));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
    flips from display:none and its images keep loading in, which can
@@ -2545,14 +2615,57 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     const r = await fetch("/api/highlights", { method: "POST", body: new FormData(form) });
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || "Upload failed");
-    msg.textContent = j.message;
+    // Round 121: capture the posting email BEFORE the reset wipes
+    // it — the success screen's My Plays jump pre-fills it.
+    const postedEmail121 = String(form.elements.notifyEmail ? form.elements.notifyEmail.value : "").trim();
     form.reset();
     if (window.resetDropzone) window.resetDropzone();
     if (window.syncQuickPicks) window.syncQuickPicks();
     form.elements.athleteChoice.value = ""; form.elements.athleteKey.value = "";
     athleteCheckDoneFor = "";
     $("#athletePrompt").hidden = true;
+    showUploadSuccess121(j.athlete_tag || "", postedEmail121);
   } catch (err) { msg.textContent = "Error: " + err.message; }
+});
+
+/* Round 121 (2026-11-12): the post-success screen. The form body
+   swaps for the #uploadSuccess panel (.upload-done hides every
+   other form child in CSS): what happens next, the athlete's HH
+   tag big enough to screenshot, and a jump straight into My Plays
+   pre-filled with the email just posted with. "Post another play"
+   hands the (already reset) form back. */
+let lastPostedEmail121 = "";
+function showUploadSuccess121(tag, email) {
+  const form = $("#uploadForm");
+  const panel = $("#uploadSuccess");
+  if (!form || !panel) { const m = $("#uploadMsg"); if (m) m.textContent = "Thanks! Your play is in review and will appear once the owner approves it."; return; }
+  lastPostedEmail121 = email || "";
+  const tagEl = $("#uploadSuccessTag"), tagline = $("#uploadSuccessTagline");
+  if (tagEl) tagEl.textContent = tag || "";
+  if (tagline) tagline.hidden = !tag;
+  const msg = $("#uploadMsg"); if (msg) msg.textContent = "";
+  form.classList.add("upload-done");
+  panel.hidden = false;
+  form.scrollTop = 0;
+  if (typeof form.scrollIntoView === "function") form.scrollIntoView({ block: "start" });
+}
+$("#uploadSuccessAnother")?.addEventListener("click", () => {
+  const form = $("#uploadForm"), panel = $("#uploadSuccess");
+  if (panel) panel.hidden = true;
+  if (form) { form.classList.remove("upload-done"); form.scrollTop = 0; }
+});
+$("#uploadSuccessPlays")?.addEventListener("click", () => {
+  const form = $("#uploadForm"), panel = $("#uploadSuccess");
+  if (panel) panel.hidden = true;
+  if (form) form.classList.remove("upload-done");
+  closeUploadOverlay();
+  showPanel("mine");
+  document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" });
+  if (lastPostedEmail121) {
+    const emailEl = $("#mineEmail"), findForm = $("#mineFind");
+    if (emailEl) emailEl.value = lastPostedEmail121;
+    if (findForm) setTimeout(() => findForm.requestSubmit(), 350);
+  }
 });
 
 /* ---------------- owner ---------------- */
@@ -3042,6 +3155,9 @@ async function btlPick(slot) {
     if (pickL) pickL.disabled = true;
     if (pickR) pickR.disabled = true;
     const loserBtn = document.getElementById("btlPick" + loserSlot); if (loserBtn) loserBtn.textContent = "Not this time";
+    /* Round 122: the CHOSEN side says so — a still-"Pick B"-looking
+       button on the winner read as tappable in the youth test. */
+    const chosenBtn = document.getElementById("btlPick" + slot); if (chosenBtn) chosenBtn.textContent = "✓ Your pick";
   }
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "none";
   const next = document.getElementById("btlNext"); if (next) next.classList.add("show");
@@ -3552,6 +3668,8 @@ async function runPick100(slot) {
   const pA = document.getElementById("runPickA"), pB = document.getElementById("runPickB");
   if (pA) pA.disabled = true;
   if (pB) pB.disabled = true;
+  /* Round 122: same chosen-state label as Quick Battles. */
+  const chosenRun = document.getElementById(slot === "A" ? "runPickA" : "runPickB"); if (chosenRun) chosenRun.textContent = "✓ Your pick";
   trackEvent("battle_run_pick", m.dailyId);
   let out = null;
   try { out = await api("/api/battle-run/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dailyId: m.dailyId, pickId }) }); } catch { /* reveal stays hidden */ }
@@ -3924,19 +4042,30 @@ btlMiniFrame = function (v) {
 /* Feature 4 display: read the streak + Top Pickers off the daily
    payload after every loadDaily100 pass (initial load and the
    post-pick refresh alike, by riding the function itself).
-   Streak >= 2 wears the flame; exactly 1 gets a neutral line;
-   0 renders nothing. The Top Pickers block renders only when the
-   server sent at least one qualifying picker (>= 2). */
+   The Top Pickers block renders only when the server sent at
+   least one qualifying picker (>= 2).
+   Round 122 (2026-11-12): the streak line is ALWAYS on the Daily
+   card now — Round 105 hid it at 0 and showed nothing before a
+   first pick, so the youth-agent tester picked, looked for the
+   promised streak ("Streaks count here"), and found air. States:
+   real + no pick yet invites; real + picked shows the count from
+   the same server streak store Top Pickers ranks (today's pick
+   joins it when the day finalizes); practice explains itself.
+   The collapsed strip (Round 112) carries the count too. */
 function renderStreak105() {
   let r = null;
   try { r = d100.daily; } catch { r = null; }
   const line = document.getElementById("dailyStreak105");
   if (line) {
-    const s = r && r.streak ? r.streak : null;
-    if (s && s.current >= 2) { line.textContent = `🔥 Your streak: ${s.current} days`; line.hidden = false; }
-    else if (s && s.current === 1) { line.textContent = "You called the last Daily winner ✓ — call today's to start a streak."; line.hidden = false; }
-    else { line.hidden = true; line.textContent = ""; }
+    const n = r && r.streak ? (r.streak.current || 0) : 0;
+    if (!r || !r.available) { line.hidden = true; line.textContent = ""; }
+    else if (r.practice && r.yourPick) { line.textContent = "Practice pick — streaks start with the first real Daily Battle."; line.hidden = false; }
+    else if (r.practice) { line.textContent = "Practice matchup — streaks start with the first real Daily Battle."; line.hidden = false; }
+    else if (r.yourPick) { line.textContent = `Your streak: ${n} 🔥 — pick tomorrow's winner to keep it going`; line.hidden = false; }
+    else { line.textContent = "Pick today's winner to start your streak 🔥"; line.hidden = false; }
   }
+  const stripStreak = document.getElementById("dailyStripStreak");
+  if (stripStreak) stripStreak.textContent = r && r.available && !r.practice && r.yourPick ? ` · 🔥 ${r.streak ? (r.streak.current || 0) : 0}` : "";
   const block = document.getElementById("dailyTop105"), list = document.getElementById("dailyTopList");
   if (block && list) {
     const top = r && Array.isArray(r.topPickers) ? r.topPickers : [];
