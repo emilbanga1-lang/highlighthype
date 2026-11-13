@@ -2901,3 +2901,24 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 /* Guardian enter form (inside the per-card message slot) */
 .enter-form input[type="email"]{display:block;width:100%;box-sizing:border-box;margin:8px 0 10px;background:#141414;border:1px solid var(--line);border-radius:10px;color:#fff;font:inherit;padding:10px 12px}
 .enter-form input[type="email"]:focus{outline:2px solid var(--volt);outline-offset:1px}
+
+/* ===== Round 123 (2026-11-12): the slim contest line on Watch +
+   desktop one-row filters. The strip's own rules above are
+   untouched — it renders inside the Month panel now. ===== */
+/* One line tall at phone widths: the text is a single nowrap span
+   with an ellipsis, inside a fixed single-row button. */
+.contest-slim123{display:flex;align-items:center;width:100%;box-sizing:border-box;background:linear-gradient(135deg,#241b04,#171204);border:1px solid #6b5410;border-radius:10px;padding:8px 12px;margin:0 0 10px;cursor:pointer;font:inherit;text-align:left}
+.contest-slim123[hidden]{display:none}
+.contest-slim123 .cs123-text{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;font-weight:700;color:#e8cf8f;line-height:1.25}
+/* Desktop (the site's 1024px board breakpoint): the sport pills
+   and the division seg share ONE row — the pills keep their
+   internal sideways scroll in the flexible slot, the seg rides
+   fixed at the right, vertically centered with the pills. Below
+   the breakpoint the wrapper is a plain block and the Round 108
+   two-row stack applies exactly as before. */
+@media (min-width:1024px){
+  .filters-bar123{display:flex;align-items:center;gap:16px}
+  .filters-bar123 .sport-pills{flex:1 1 auto;min-width:0}
+  .filters-bar123 .divseg-row{flex:0 0 auto}
+  .filters-bar123 .divseg-row .seg{margin-top:0}
+}
