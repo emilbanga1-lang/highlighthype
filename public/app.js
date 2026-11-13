@@ -2101,9 +2101,8 @@ window.openHypeFrame = (id) => {
   showHome(); closeMenu(false); showPanel("hypeframe");
   history.replaceState(null, "", `#hype-frame-${id}`);
   initHfStudio(play);
-  // Round 4 fix (2026-11-05): the studio film lives in .view-home, so a
-  // store visit leaves it paused (see showHome) — start it explicitly.
-  const hfFilm = document.querySelector("#hypeframe .hf-film video"); if (hfFilm) { const p = hfFilm.play(); if (p && p.catch) p.catch(() => {}); }
+  // Round 127: the studio film that used to be restarted here is
+  // gone with the payoff stack — the studio opens at the tool.
   document.getElementById("hypeframe").scrollIntoView({ behavior: "smooth" });
 };
 function initHfStudio(play) {
@@ -2146,6 +2145,11 @@ function initHfStudio(play) {
     v.hidden = true; photo.hidden = true; scrubRow.style.display = "none";
     linkNote.hidden = false; freezeBtn.disabled = true;
   }
+  // Round 127: the video wrap (player + overlay chrome) follows
+  // the video's own visibility, and the player chrome resets —
+  // a fresh play starts behind the first-play overlay again.
+  const vWrap127 = $("#hfVideoWrap127"); if (vWrap127) vWrap127.hidden = v.hidden;
+  hfResetPlayer127();
   hfBuildStrip();
   hfSyncFrozenThumb(); // new play: no print yet — confirmation hidden, Freeze label restored
 }
@@ -2155,7 +2159,9 @@ function initHfStudio(play) {
    seeks the studio video to that moment and pauses — the kid then
    hits Freeze, or nudges with the ±1s buttons. Captures run on a
    detached video element so the studio player is never disturbed;
-   plays are same-origin files, so the canvas is not tainted. */
+   plays are same-origin files, so the canvas is not tainted.
+   Round 127 (2026-11-13): the tap now also PICKS the frame — see
+   hfJumpToFrame; the Freeze button remains for scrub-and-freeze. */
 let hfStripToken = 0;
 /* Round 124: when a clip's frames can't be captured at all —
    the pre-conversion HEVC dead end (a browser that can't decode
@@ -2221,39 +2227,104 @@ function hfBuildStrip() {
     cap.removeAttribute("src"); cap.load();
   });
 }
+/* Round 127 (2026-11-13, Emil: "when you click on the frames you
+   have to hit it twice"): ONE tap now picks the frame. Verified
+   diagnosis: no handler was eating the first tap — the thumbnail
+   carries a plain click listener, touch-action:manipulation and
+   no hover rule. hfJumpToFrame simply never set the selection:
+   a tap sought + paused + lit the thumb, but hfState.frozen was
+   only ever set by the separate Freeze button, so choosing a
+   frame always took a second hit. Now the tap seeks, and when
+   the seek lands the frame is captured + composed through the
+   same choke point as Freeze (hfCapturePrint). The tap token
+   keeps rapid successive taps from composing a stale frame —
+   only the latest tap's seek captures. */
+let hfTapToken127 = 0;
 function hfJumpToFrame(t, btn) {
   const v = $("#hfVideo"); if (!v) return;
   v.pause();
-  if (v.duration) v.currentTime = Math.min(Math.max(0, t), v.duration);
-  const scrub = $("#hfScrub"); if (scrub) scrub.value = v.currentTime || t;
+  const target = v.duration ? Math.min(Math.max(0, t), v.duration) : Math.max(0, t);
+  const scrub = $("#hfScrub"); if (scrub) scrub.value = target;
   hfUpdateTime();
   $$("#hfStrip .hf-thumb").forEach((el) => el.classList.toggle("active", el === btn));
+  if (hfState.mediaType !== "video") return;
+  const token = ++hfTapToken127;
+  const select = () => { if (token === hfTapToken127) hfCapturePrint(); };
+  if (v.readyState >= 2 && v.videoWidth && Math.abs((v.currentTime || 0) - target) < 0.05) { select(); return; }
+  const onSeeked = () => { v.removeEventListener("seeked", onSeeked); select(); };
+  v.addEventListener("seeked", onSeeked);
+  if (v.duration) { try { v.currentTime = target; } catch { onSeeked(); } }
 }
 function hfFmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function hfUpdateTime() {
   const v = $("#hfVideo");
   $("#hfTime").textContent = `${hfFmtTime(v.currentTime)} / ${hfFmtTime(v.duration)}`;
 }
-function freezeHfFrame() {
-  if (!hfState.play) { alert("Pick a play on the board first."); return; }
+/* The capture half of a freeze, shared by the Freeze button and
+   the Round 127 one-tap filmstrip pick: draw the CURRENT frame
+   (video or photo) into the print canvas and compose it. Returns
+   false when there is nothing capturable yet. */
+function hfCapturePrint() {
   const c = $("#hfCanvas"), x = c.getContext("2d");
   if (hfState.mediaType === "video") {
     const v = $("#hfVideo");
-    if (!v.videoWidth || v.readyState < 2) { alert("Give the video a moment to load, then freeze again."); return; }
-    v.pause(); // freeze works mid-play: stop on this exact frame first
+    if (!v.videoWidth || v.readyState < 2) return false;
     c.width = v.videoWidth; c.height = v.videoHeight;
     x.drawImage(v, 0, 0, c.width, c.height);
   } else if (hfState.mediaType === "image") {
     const im = $("#hfPhoto");
-    if (!im.naturalWidth) { alert("Give the photo a moment to load, then freeze again."); return; }
+    if (!im.naturalWidth) return false;
     c.width = im.naturalWidth; c.height = im.naturalHeight;
     x.drawImage(im, 0, 0, c.width, c.height);
   } else {
-    alert("This play was posted as a link, so a frame can't be frozen from it here.");
-    return;
+    return false;
   }
   hfState.frozen = true;
   composeHfPrint();
+  return true;
+}
+function freezeHfFrame() {
+  if (!hfState.play) { alert("Pick a play on the board first."); return; }
+  if (hfState.mediaType === "video") $("#hfVideo").pause(); // freeze works mid-play: stop on this exact frame first
+  if (hfCapturePrint()) return;
+  if (hfState.mediaType === "video") alert("Give the video a moment to load, then freeze again.");
+  else if (hfState.mediaType === "image") alert("Give the photo a moment to load, then freeze again.");
+  else alert("This play was posted as a link, so a frame can't be frozen from it here.");
+}
+/* Round 127 studio player chrome: #hfVideo carries NO native
+   controls (iOS's big center play button sat on the paused frame
+   Emil was trying to judge). The custom overlay (#hfBigPlay127)
+   starts the FIRST play only; once playback has started it never
+   covers the picture again. Tapping the video surface toggles
+   play/pause with a brief corner flash (#hfTapFlash127) as the
+   only feedback; the persistent play/pause lives in the scrub
+   row (#hfPlayBtn127). A paused frame is completely clean. */
+let hfPlayed127 = false;
+let hfFlashTimer127 = 0;
+function hfSyncPlayBtn127() {
+  const v = $("#hfVideo"), b = $("#hfPlayBtn127");
+  if (!v || !b) return;
+  const playing = !v.paused && !v.ended;
+  b.textContent = playing ? "❚❚" : "▶";
+  b.setAttribute("aria-label", playing ? "Pause" : "Play");
+}
+function hfFlash127(playing) {
+  const f = $("#hfTapFlash127"); if (!f) return;
+  f.textContent = playing ? "▶" : "❚❚";
+  f.classList.add("show127");
+  clearTimeout(hfFlashTimer127);
+  hfFlashTimer127 = setTimeout(() => f.classList.remove("show127"), 650);
+}
+function hfTogglePlay127(fromSurface) {
+  const v = $("#hfVideo"); if (!v) return;
+  if (v.paused || v.ended) { const p = v.play(); if (p && p.catch) p.catch(() => {}); if (fromSurface) hfFlash127(true); }
+  else { v.pause(); if (fromSurface) hfFlash127(false); }
+}
+function hfResetPlayer127() {
+  hfPlayed127 = false;
+  const big = $("#hfBigPlay127"); if (big) big.hidden = false;
+  const f = $("#hfTapFlash127"); if (f) f.classList.remove("show127");
+  hfSyncPlayBtn127();
 }
 // Print tone for the Hype Frame frame + lockup: bone on dark garments,
 // ink on light ones, derived from the selected colorway's hex.
@@ -2473,6 +2544,16 @@ function hfBuildColorButtons() {
   if (!v) return;
   v.addEventListener("loadedmetadata", () => { $("#hfScrub").max = v.duration || 0; hfUpdateTime(); });
   v.addEventListener("timeupdate", () => { $("#hfScrub").value = v.currentTime || 0; hfUpdateTime(); });
+  /* Round 127: custom player chrome — overlay starts the first
+     play, the surface toggles after that, the scrub-row button
+     is the persistent control (see hfTogglePlay127). */
+  const bigPlay127 = $("#hfBigPlay127"), playBtn127 = $("#hfPlayBtn127");
+  if (bigPlay127) bigPlay127.addEventListener("click", () => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
+  if (playBtn127) playBtn127.addEventListener("click", () => hfTogglePlay127(false));
+  v.addEventListener("click", () => { if (hfPlayed127) hfTogglePlay127(true); });
+  v.addEventListener("play", () => { hfPlayed127 = true; const big = $("#hfBigPlay127"); if (big) big.hidden = true; hfSyncPlayBtn127(); });
+  v.addEventListener("pause", hfSyncPlayBtn127);
+  v.addEventListener("ended", hfSyncPlayBtn127);
   $("#hfScrub").addEventListener("input", (e) => { if (v.duration) { v.currentTime = Number(e.target.value); hfUpdateTime(); } });
   $("#hfFreeze").addEventListener("click", freezeHfFrame);
   // Step buttons nudge the playhead ±1s (paused) so the exact moment is
