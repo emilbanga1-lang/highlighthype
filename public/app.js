@@ -164,12 +164,19 @@ function applyDefaultView() {
 
 /* ---------------- media + cards ---------------- */
 function mediaHtml(h) {
+  /* Round 123: every video this renders carries the Round 118
+     poster pattern from FIRST paint (banked action frame when one
+     exists, else the branded placeholder; the attribute set is
+     computed by posterAttr123 in the Round 123 block, reached
+     through a typeof guard so sandbox slices without it render
+     exactly as before). */
+  const poster123 = (typeof posterAttr123 === "function") ? posterAttr123(h) : "";
   if (h.media_kind === "file") {
     if ((h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
-    return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="auto" autoplay></video>`;
+    return `<video src="${esc(h.media_url)}"${poster123} controls playsinline muted loop preload="auto" autoplay></video>`;
   }
   if (h.media_kind === "link_embed") return `<iframe src="${esc(h.embed_url)}" allowfullscreen title="Embedded play"></iframe>`;
-  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}" controls playsinline muted loop preload="auto" autoplay></video>`;
+  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${poster123} controls playsinline muted loop preload="auto" autoplay></video>`;
   return `<a class="watch-link" href="${esc(h.media_url)}" target="_blank" rel="noopener">▶ Watch on ${esc(h.host_label || "link")} ↗</a>`;
 }
 function athleteLine(h) {
@@ -342,6 +349,14 @@ function hydrateDurPills() {
     if (!video) return;
     if (video.readyState >= 1) { fillDurPill(host); markVertical107(host); }
     video.addEventListener("loadedmetadata", () => { fillDurPill(host); markVertical107(host); }, { once: true });
+    /* Round 123: board media feeds the frame bank too — a tile
+       playing past its freeze point banks the frame that every
+       other surface's poster then upgrades from (the bank used
+       to fill only from Battles and the watch view, so a play
+       browsed board-only kept the placeholder forever). */
+    if (typeof bankSurfaceFrame123 === "function") {
+      try { bankSurfaceFrame123(host.querySelector("video:not(.vfill)") || video); } catch (e) { /* banking is a bonus */ }
+    }
   });
 }
 function firstNameOf(h) { const label = h.athlete_label || h.player_name || ""; return label.trim().split(/\s+/)[0] || ""; }
@@ -735,7 +750,10 @@ function renderMonth() {
    Anything else (embeds, watch-links) keeps the sport-name fallback. */
 function fameThumbHtml(h) {
   if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
-  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}" muted loop playsinline autoplay preload="metadata"></video>`;
+  /* Round 123: board tiles wear the Round 118 poster pattern from
+     first paint too (see mediaHtml) — a tile never sits black while
+     its clip loads. */
+  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline autoplay preload="metadata"></video>`;
   return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
 }
 function renderFame() {
@@ -855,6 +873,17 @@ function updateContestStrip107() {
   if (ends) ends.textContent = endsTxt;
   const ms = $("#monthSub107");
   if (ms) ms.textContent = `${label107 ? `${label107} · ` : ""}${!entries.length ? "No entries yet — post a play, and once it's approved the parent/guardian who posted it can enter it here." : !total ? "No votes yet — every play is tied at 0. The first vote takes the lead." : "Every vote counts."}${endsTxt ? ` Voting ends ${endsTxt.replace("Ends ", "")}.` : ""}`;
+  /* Round 123: the Watch view's slim contest line — the same live
+     state in one line: month name, the honest entries count, and
+     the tail that fits the state (enter while it's empty, vote
+     once there's a board). */
+  const slim123 = $("#contestSlimText123");
+  if (slim123) {
+    const monthName123 = m ? MONTHS[m - 1] : "";
+    slim123.textContent = !entries.length
+      ? `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: no entries yet · Post a play to enter →`
+      : `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: ${entries.length} entr${entries.length === 1 ? "y" : "ies"} · Vote now →`;
+  }
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -963,6 +992,12 @@ function renderPlayDetail() {
   body.innerHTML = watchHtml107(entry || play, entry) + upNextHtml(play);
   hydrateDurPills();
   if (typeof wireWatchVertical113 === "function") wireWatchVertical113(body);
+  /* Round 123: the watch player joins the Round 118/119 pattern —
+     poster confirmed at open and the per-play start offset (the
+     SAME btlStartOffset119 map Battles reads) applied before
+     playback settles, so a black-intro clip opens on its action
+     in Watch too. Guarded like the wiring above it. */
+  if (typeof wireWatch123 === "function") wireWatch123(body, play);
   wireDetailAutoplay(play);
 }
 /* Round 14 (2026-11-06): "Up next" in the play detail — the third
@@ -1233,8 +1268,13 @@ function switchView(v) {
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   $("#chipMonth").style.display = v === "month" ? "" : "none";
   /* Round 107: the contest strip belongs to the Watch feed only —
-     Battles and the Month panel carry their own headers. */
-  const cs107 = $("#contestStrip"); if (cs107) cs107.hidden = v !== "all";
+     Battles and the Month panel carry their own headers.
+     Round 123: the strip MOVED into the Month panel — it now
+     shows on the Month view (the fame sub-view hides the whole
+     panel, strip included), and the slim one-line replacement
+     (#contestSlim123) takes the old Watch-only rule. */
+  const cs107 = $("#contestStrip"); if (cs107) cs107.hidden = v !== "month";
+  const csSlim123 = $("#contestSlim123"); if (csSlim123) csSlim123.hidden = v !== "all";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
@@ -2935,7 +2975,8 @@ function playHfStoreFilm() {
 /* Round 85 (2026-11-09, youth tester rerun): once the visitor scrolls
    past the hero, the floating Submit pill collapses to a compact
    round button so it stops parking on top of board tiles mid-browse;
-   near the top it keeps its full "Submit a Hype" label. The Round 69
+   near the top it keeps its full label ("Post a Play" since the
+   Round 123 one-label sweep). The Round 69
    auto-hide near in-page Submit links is unchanged. */
 (function fabCompact85() {
   const fab = document.getElementById("floatSubmit");
@@ -3948,6 +3989,9 @@ function btlCapturePoster104(v) {
          clip may still carry the branded placeholder poster — swap
          in the real frame the moment it banks. */
       if (typeof btlUpgradeBigPoster118 === "function") btlUpgradeBigPoster118(key);
+      /* Round 123: the same swap for the board tiles, the watch
+         player and athlete-page cards wearing this clip. */
+      if (typeof upgradeSurfacePosters123 === "function") upgradeSurfacePosters123(key);
     }
   } catch { /* a clip that refuses capture keeps the old behavior */ }
 }
@@ -4578,8 +4622,12 @@ function wireWatchVertical113(body) {
     if (!fill) return;
     const url = video.getAttribute("src") || "";
     if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { fill.poster = btlPosters104[url]; } catch (e) { /* bonus */ } return; }
+    /* Round 123: the freeze point follows the clip's start offset
+       (btlFreezeAt119) — banking an offset clip at the stock 0.5s
+       could freeze its transition frame as the poster. */
+    const fz113 = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(url) : 0.5;
     const cap = () => {
-      if (video.currentTime >= 0.5) {
+      if (video.currentTime >= fz113) {
         if (typeof btlCapturePoster104 === "function") btlCapturePoster104(video);
         if (url && typeof btlPosters104 !== "undefined" && btlPosters104[url]) { try { fill.poster = btlPosters104[url]; } catch (e) { /* bonus */ } }
         video.removeEventListener("timeupdate", cap);
@@ -4922,3 +4970,110 @@ function btlSeekOffset119(player) {
     doSeek();
   });
 }
+
+/* ---------------- Round 123 (2026-11-12): posters on every
+   surface, the contest strip's move, one upload label. From the
+   outside review Emil approved: (1) clicking Watch Highlights
+   could land on a big black preview — Battles got posters in
+   Round 118, the board/watch/athlete surfaces never did; (2) the
+   Watch feed should lead with plays, the contest banner belongs
+   inside its own tab; (3) every upload CTA should read the same
+   words — "Post a Play" (the label sweep itself is markup, in
+   index.html). Appended at the end per the sandbox-slice rule;
+   the renderers reach these helpers through typeof guards. */
+
+/* The poster attribute set for a play's <video>: the Round 104
+   banked frame when one exists, else the Round 111 branded
+   placeholder — plus the data hook the upgrade pass matches on.
+   Non-video plays get nothing. Any failure degrades to no
+   attribute (the pre-123 behavior), never a broken render. */
+function posterAttr123(h) {
+  try {
+    if (!h) return "";
+    const isVid = h.media_kind === "link_video" || (h.media_kind === "file" && !(h.mime || "").startsWith("image/"));
+    if (!isVid || !h.media_url) return "";
+    if (typeof btlPosterFor118 !== "function") return "";
+    const p = btlPosterFor118(h.media_url, h.sport || "", h.title || "");
+    if (!p) return "";
+    return ` poster="${p}" data-poster123="${esc(h.media_url)}"`;
+  } catch (e) { return ""; }
+}
+/* When a frame banks (btlCapturePoster104 calls this next to the
+   Round 118 big-player upgrade), every surface video wearing
+   that clip — board tiles, the watch player, athlete cards, and
+   any vfill clone (cloneNode carries the data hook) — swaps its
+   placeholder for the real frame. */
+function upgradeSurfacePosters123(url) {
+  try {
+    if (!url || typeof btlPosters104 === "undefined") return;
+    const actual = btlPosters104[url];
+    if (!actual) return;
+    document.querySelectorAll("video[data-poster123]").forEach((v) => {
+      if (v.getAttribute("data-poster123") === url) { try { v.poster = actual; } catch (e) { /* bonus */ } }
+    });
+  } catch (e) { /* the upgrade is a bonus, never a breaker */ }
+}
+/* Board banking (wired from hydrateDurPills): a tile video that
+   plays past its freeze point — the offset for mapped clips, the
+   stock 0.5s otherwise — banks its frame into btlPosters104 via
+   the same capture the Battles wiring uses (black frames are
+   rejected inside the capture itself). One wiring per element;
+   a banked URL is never re-wired. */
+function bankSurfaceFrame123(v) {
+  try {
+    if (!v || typeof v.addEventListener !== "function" || !v.dataset || v.dataset.bankWired123 === "1") return;
+    const url = v.getAttribute("src") || "";
+    if (!url) return;
+    if (typeof btlPosters104 !== "undefined" && btlPosters104[url]) return;
+    v.dataset.bankWired123 = "1";
+    const fz = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(url) : 0.5;
+    const cap = () => {
+      if (v.currentTime >= fz) {
+        if (typeof btlCapturePoster104 === "function") btlCapturePoster104(v);
+        try { v.removeEventListener("timeupdate", cap); } catch (e) { /* fine */ }
+      }
+    };
+    v.addEventListener("timeupdate", cap);
+    if (typeof setTimeout === "function") setTimeout(() => { try { v.removeEventListener("timeupdate", cap); } catch (e) { /* fine */ } }, 12000);
+  } catch (e) { /* banking from the board is a bonus */ }
+}
+/* Watch-detail wiring (called from renderPlayDetail): confirm the
+   player's poster at open, stamp the play's start offset from
+   the SINGLE map (btlStartOffset119, read through btlOffsetFor119)
+   and seek with the Round 119 helper before playback settles —
+   then bank the clip's frame at its freeze point as it plays, so
+   the poster upgrades from placeholder to the action frame (at
+   the offset for mapped clips) in place. */
+function wireWatch123(body, play) {
+  try {
+    if (!body || !play || typeof body.querySelector !== "function") return;
+    const box = body.querySelector(".watch-player");
+    if (!box) return;
+    const video = box.querySelector("video:not(.vfill)");
+    if (!video) return;
+    if (typeof btlPosterFor118 === "function") {
+      const p = btlPosterFor118(play.media_url || "", play.sport || "", play.title || "");
+      if (p) { try { video.poster = p; } catch (e) { /* bonus */ } }
+    }
+    const off = (typeof btlOffsetFor119 === "function") ? btlOffsetFor119(play) : 0;
+    if (off > 0) {
+      try { video.dataset.btlSelOffset119 = String(off); } catch (e) { /* best-effort */ }
+      if (typeof btlSeekOffset119 === "function") btlSeekOffset119(video);
+    }
+    const url = play.media_url || video.getAttribute("src") || "";
+    if (!url || typeof video.addEventListener !== "function") return;
+    if (typeof btlPosters104 !== "undefined" && btlPosters104[url]) return;
+    const fz = (typeof btlFreezeAt119 === "function") ? btlFreezeAt119(url) : 0.5;
+    const cap = () => {
+      if (video.currentTime >= fz) {
+        if (typeof btlCapturePoster104 === "function") btlCapturePoster104(video);
+        try { video.removeEventListener("timeupdate", cap); } catch (e) { /* fine */ }
+      }
+    };
+    video.addEventListener("timeupdate", cap);
+    if (typeof setTimeout === "function") setTimeout(() => { try { video.removeEventListener("timeupdate", cap); } catch (e) { /* fine */ } }, 8000);
+  } catch (e) { /* the wiring is a bonus, never a breaker */ }
+}
+/* The slim contest line on Watch: a tap opens the Month board,
+   with the Round 122 scroll so the tap visibly lands somewhere. */
+$("#contestSlim123")?.addEventListener("click", () => { switchView("month"); scrollBoardIntoView122(); $("#contestSlim123")?.blur(); });
