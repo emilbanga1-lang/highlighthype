@@ -343,23 +343,60 @@ function markVertical107(host) {
     if (typeof fill.pause === "function") fill.pause();
   } catch (e) { /* the mark alone still centers the clip via CSS */ }
 }
+/* Round 134 (2026-11-13): the Month FEATURED preview's portrait
+   treatment. Same geometry as markVertical107 — the host is
+   marked .is-vertical so the settled CSS centers the sharp clip
+   at full frame height — but the blurred fill behind it is a
+   copy of the play's POSTER IMAGE (an <img>, styled by the
+   .pfill134 rule), never a second <video>: the Month preview
+   rests on its poster (Round 133) and a video clone would be a
+   playing surface in waiting. No poster on file (the degraded
+   path) still gets the mark — the clip centers over black.
+   The poster is read from the element's own poster attribute,
+   which posterAttr123 resolved per play (server poster first,
+   then the URL-keyed banked frame) — the fill is always the
+   play's OWN frame (§43's pairing invariant). */
+function markPosterFill134(host) {
+  const video = host.querySelector("video:not(.vfill)");
+  if (!video) return;
+  if (!(video.videoWidth > 0) || !(video.videoHeight > video.videoWidth)) return;
+  if (!host.classList || host.classList.contains("is-vertical")) return;
+  host.classList.add("is-vertical");
+  let poster = "";
+  try { poster = video.getAttribute("poster") || ""; } catch (e) { poster = ""; }
+  if (!poster) return;
+  try {
+    const fill = document.createElement("img");
+    fill.className = "pfill134";
+    fill.src = poster;
+    fill.alt = "";
+    fill.setAttribute("aria-hidden", "true");
+    host.insertBefore(fill, video);
+  } catch (e) { /* the mark alone still centers the clip via CSS */ }
+}
 function hydrateDurPills() {
   $$(".dur-host").forEach((host) => {
     const video = host.querySelector("video");
     if (!video) return;
     /* Round 133 (2026-11-13): a Month host is never marked
-       vertical and never gains a .vfill clone — the fill is
-       preview dressing for a playing clip, and Month tiles
-       rest on their poster (see renderMonth). The duration
+       vertical THE PREVIEW WAY and never gains a .vfill clone —
+       the fill is preview dressing for a playing clip, and Month
+       tiles rest on their poster (see renderMonth). The duration
        pill and the frame bank wire exactly as before on every
        host; Watch, Battles, detail and athlete hosts mark
        exactly as before. The closest() probe is guarded the
        same way the Round 113 wiring guards it — sandbox hosts
-       without it simply mark as they always did. */
+       without it simply mark as they always did.
+       Round 134 (2026-11-13): the Month view's only media host
+       is now the FEATURED preview, and it DOES take a fill —
+       markPosterFill134, the poster-IMAGE fill (an <img>, not
+       a video clone). The Round 133 invariant stands untouched:
+       no Month video ever autoplays, drifts, or gains a .vfill
+       clone; the fill is a still of the play's own poster. */
     let monthHost133 = false;
     try { monthHost133 = typeof host.closest === "function" && !!host.closest("#viewMonth"); } catch (e) { monthHost133 = false; }
-    if (video.readyState >= 1) { fillDurPill(host); if (!monthHost133) markVertical107(host); }
-    video.addEventListener("loadedmetadata", () => { fillDurPill(host); if (!monthHost133) markVertical107(host); }, { once: true });
+    if (video.readyState >= 1) { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); }
+    video.addEventListener("loadedmetadata", () => { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); }, { once: true });
     /* Round 123: board media feeds the frame bank too — a tile
        playing past its freeze point banks the frame that every
        other surface's poster then upgrades from (the bank used
@@ -709,17 +746,74 @@ function divMatch(h, div) {
   const d = h.division || "coed";
   return d === div || d === "coed"; // older coed plays show on both boards
 }
+/* Round 134 (2026-11-13, Emil): SHORT TITLES for the contest
+   surfaces — the featured card, the Month leaderboard rows and
+   the Hall of Fame rows show a play's FIRST SENTENCE only: the
+   title up to the first sentence-ending punctuation (. ! ?)
+   that is followed by more text (the punctuation itself drops
+   with the cut). No such point — single-sentence titles — keeps
+   the whole title (a trailing "!" or "?" is part of the title's
+   energy and stays; a lone trailing "." is trimmed). Display
+   only: the stored title is never modified, and the play view
+   keeps the FULL title.
+   "Gold and silver in both Kata and Kumite. These are the
+    highlights" → "Gold and silver in both Kata and Kumite"
+   "Caught stealing home!" → "Caught stealing home!" */
+function shortTitle(title) {
+  const t = String(title || "").trim();
+  const m = t.match(/[.!?]/);
+  if (m && t.slice(m.index + 1).trim()) return t.slice(0, m.index).trim();
+  return t.replace(/\.$/, "").trim();
+}
+/* Round 134: the FEATURED card — Emil's mockup, one card for
+   the current #1 entry. The preview is the play's own media
+   via fameThumbHtml with the Round 133 rest opt (poster-rest,
+   no autoplay); portrait clips take the poster-image fill via
+   hydrateDurPills' Month branch. The tap layer opens the play
+   exactly like a board tile's. The vote button is the tile
+   vote action (toggleVote) in the mockup's full-width gold
+   form — label left-of-center, the live count at the right
+   end; the voted state re-renders from hasVoted after every
+   refresh, like the tile chip. */
+function featCardHtml134(h) {
+  const votes = h.voteCount;
+  const name = firstNameOf(h);
+  return `<article class="feat-card134" data-feat-id="${h.id}">
+    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="feat-body134">
+      <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
+      <p class="feat-sub134">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
+      ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
+    </div>
+  </article>`;
+}
+/* Round 134: one compact leaderboard row — rank chip, the
+   athlete-led short title over the sport, and the month vote
+   count with its chevron at the right. The whole row opens
+   the play, like the podium rows never could. */
+function lbRowHtml134(h, i) {
+  const name = firstNameOf(h);
+  return `<div class="lb-row134" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
+    <span class="lb-rank134">${i + 1}</span>
+    <span class="lb-main134"><span class="lb-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</span><span class="lb-sub134">${esc(cap(h.sport))}</span></span>
+    <span class="lb-votes134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} <span class="lb-chev134" aria-hidden="true">›</span></span>
+  </div>`;
+}
 function renderMonth() {
   const entries = CONTEST.entries || [];
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
   const btTag125 = $("#boardTag"); if (btTag125 && y && m) { btTag125.textContent = `The board · ${MONTHS[m - 1]}`; }
-  // Podium: top 3 contest entries by this month's votes, medals beside rank.
-  const top = entries.slice(0, 3);
-  $("#podium").innerHTML = top.length ? top.map((h, i) => `
-    <div class="pod${i === 0 ? " first" : ""}">${i === 0 ? `<span class="lead">Leading · Hype of the Month</span>` : ""}
-      <div class="pod-main"><div class="rank-row"><div class="rank">${i + 1}</div>${medalSvg(i + 1)}</div>
-      <div class="pod-text"><div class="who">${esc(h.title)}</div><div class="what">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"} · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} this month</div></div></div>
-    </div>`).join("") : `<div class="pod"><div class="pod-text"><div class="who">No entries yet this month</div><div class="what">Enter an approved play to start the board.</div></div></div>`;
+  /* Round 134 (2026-11-13, Emil's mockup): the podium and the
+     Month tile deck retire. The tab is now: banner card (in
+     markup) → the FEATURED card for the current #1 → the
+     Leaderboard heading + sport dropdown + text tabs (markup)
+     → compact rows for every entry. The featured play is the
+     contest's #1 in the payload's own order — the same leader
+     the banner used to name — and is NOT narrowed by the sport
+     filter (the spotlight is the contest leader; the rows
+     below carry the filter). */
+  const feat134 = entries.length ? entries[0] : null;
+  $("#monthFeat").innerHTML = feat134 ? featCardHtml134(feat134) : "";
   /* Round 132 (2026-11-13): the contest is ONE combined board —
      the entry list ignores the Boys/Girls division entirely
      (the seg is hidden on this tab, and whatever division state
@@ -727,18 +821,7 @@ function renderMonth() {
      filter keeps its current behavior. Watch keeps its own
      division filtering in renderAll2, untouched. */
   const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
-  // Round 54: first tile into .tile-featured-slot, the rest into
-  // .tile-deck (display:contents on desktop, stacked + swipe deck
-  // on phones — see styles.css). Inlined at both render sites: the
-  // test suites slice these functions separately.
-  /* Round 133 (2026-11-13): Month entry tiles rest on their
-     poster frame — rest133 drops the tile video's autoplay in
-     fameThumbHtml (the clip plays in the detail view on tap).
-     Emil's Charlotte catch: her montage reel ENDS in podium
-     photos, and the autoplaying tile kept landing on them,
-     reading as the wrong video on her card. */
-  const monthTiles = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount, rest133: true }));
-  $("#board").innerHTML = monthTiles.length ? `<div class="tile-featured-slot">${monthTiles[0]}</div>` + (monthTiles.length > 1 ? `<div class="tile-deck">${monthTiles.slice(1).join("")}</div>` : "") : "";
+  $("#monthRows").innerHTML = filtered.map((h, i) => lbRowHtml134(h, i)).join("");
   hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): when the month has NO entries at all, the
@@ -785,20 +868,54 @@ function fameThumbHtml(h, opts) {
   if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline${opts && opts.rest133 ? "" : " autoplay"} preload="metadata"></video>`;
   return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
 }
+/* Round 134 (2026-11-13): the poster URL for a play, as a raw
+   string — the same resolution posterAttr123 performs for the
+   attribute (server poster_url first, then the URL-keyed
+   banked/branded frame). Image plays wear their own file.
+   Used by the Hall of Fame's poster thumbnails. */
+function posterUrlFor134(h) {
+  try {
+    if (!h) return "";
+    if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return h.media_url || "";
+    if (h.poster_url) return h.poster_url;
+    if (typeof btlPosterFor118 === "function") return btlPosterFor118(h.media_url || "", h.sport || "", h.title || "") || "";
+  } catch (e) { /* fall through to empty */ }
+  return "";
+}
+/* Round 134: one Hall of Fame row — rank, a POSTER thumbnail
+   with the play icon on it (no autoplaying video thumb: the
+   old video thumb + the wide votes column squeezed the
+   caption to five lines on phones), the athlete-led SHORT
+   title, the sport, and the all-time count as a compact pill
+   at the right. The whole row still opens the play's card
+   (goToPlayCard), as before. An empty team shows NOTHING —
+   the "No team tagged" placeholder is gone. */
+function fameRowHtml134(h, i) {
+  const name = firstNameOf(h);
+  const poster = posterUrlFor134(h);
+  const thumb = poster
+    ? `<img src="${esc(poster)}" alt="" loading="lazy"><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>`
+    : `<span class="fame-thumb-fallback134">${esc(cap(h.sport))}</span>`;
+  return `<div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
+      <span class="fame-rank">${i + 1}</span>
+      <span class="fame-thumb fame-thumb134">${thumb}</span>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}</p></div>
+      <span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span>
+    </div>`;
+}
 function renderFame() {
   // Hall of Fame (Round 7): sample plays are demos — their votes are
   // real demo votes, but a sample must never take a Hall of Fame slot.
   // This ranking is computed here (from ALL_PLAYS) and nowhere else,
   // so the filter lives at the computation point; contest exclusion
   // is additionally enforced server-side.
-  const ranked = [...ALL_PLAYS].filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
-  $("#fameList").innerHTML = ranked.length ? ranked.map((h, i) => `
-    <div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
-      <span class="fame-rank">${i + 1}</span>
-      <span class="fame-thumb">${fameThumbHtml(h)}</span>
-      <div class="fame-info"><h4>${esc(h.title)}</h4><p>${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"}${h.team ? ` · ${esc(h.team)}` : " · No team tagged"}${h.athlete_label ? ` · ${esc(h.athlete_label)}` : ""}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}</p></div>
-      <div class="fame-votes"><b>${h.voteCount}</b><span>All-time votes</span></div>
-    </div>`).join("") : `<p style="color:var(--muted)">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
+  /* Round 134 (2026-11-13): the Fame sport dropdown rides the
+     SAME shared contest sport state as the Month board
+     (monthSport) and filters this all-time list by sport —
+     ranking preserved, up to 10 shown. */
+  const rankedAll = [...ALL_PLAYS].filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
+  const ranked = rankedAll.filter((h) => monthSport === "all" || h.sport === monthSport).slice(0, 10);
+  $("#fameList").innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p style="color:var(--muted)">${rankedAll.length ? "No plays in this sport yet — try All Sports." : "No plays yet — the Hall of Fame fills in as plays are posted and voted on."}</p>`;
 }
 function renderMine() {
   const byAthlete = new Map();
@@ -923,7 +1040,14 @@ function updateContestStrip107() {
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
   const label107 = CONTEST.monthLabel || (y && m ? `${MONTHS[m - 1]} ${y}` : "");
   const t1 = $("#stripTitle"), t2 = $("#stripState"), ends = $("#stripEnds");
-  if (t1) t1.textContent = label107 ? `Hype of the Month · ${label107}` : "Hype of the Month";
+  /* Round 134 (2026-11-13): the banner is a card now — #stripTitle
+     is its gold EYEBROW and carries the contest period alone
+     ("November 2026", uppercased by CSS); the big title is static
+     markup under it, and the dynamic leader line no longer paints
+     in the banner at all (the #stripState element retired — the
+     guarded t2 write below simply no-ops on the Month tab; the
+     Watch slim line further down still carries the live state). */
+  if (t1) t1.textContent = label107 || "Hype of the Month";
   if (t2) t2.textContent = state;
   const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
   if (ends) ends.textContent = endsTxt;
@@ -1391,6 +1515,15 @@ function switchView(v) {
      Fame sub-view is covered; Watch and Battles restore the
      backdrop exactly as before. */
   const bb133 = $(".board-bg"); if (bb133) bb133.style.display = v === "month" ? "none" : "";
+  /* Round 134 (2026-11-13): the shared header sport dropdown
+     leaves the top of the Month tab — the Leaderboard heading
+     row carries the Month board's own dropdown now (Emil's
+     mockup: "the clip appears sooner"). It hides for the whole
+     Month view (the Hall of Fame sub-view included — its own
+     heading carries a dropdown on the same shared state) and
+     restores exactly as before on Watch and Battles, whose
+     filtering still runs through it. */
+  const dd134 = $(".sport-dd125"); if (dd134) dd134.style.display = v === "month" ? "none" : "";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   /* Round 125: the board's heading band is gone (Dyanna: the
      page IS the board), so the title/intro writes land only if
@@ -1651,6 +1784,11 @@ function syncFilterUI() {
   const allSports = sportsInData(ALL_PLAYS.filter((h) => divMatch(h, allDiv)));
   if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
   renderSportSelect($("#monthSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
+  /* Round 134: the Hall of Fame's dropdown is the SAME shared
+     contest sport state (monthSport, the same contest-derived
+     option list) — picking a sport in either contest surface
+     filters both, and the Fame list re-renders on the change. */
+  renderSportSelect($("#fameSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderFame(); });
   renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
@@ -5416,6 +5554,12 @@ function upgradeSurfacePosters123(url) {
     if (!actual) return;
     document.querySelectorAll("video[data-poster123]").forEach((v) => {
       if (v.getAttribute("data-poster123") === url) { try { v.poster = actual; } catch (e) { /* bonus */ } }
+      /* Round 134: a Month featured preview's poster-IMAGE fill
+         (img.pfill134, markPosterFill134) wears the same frame —
+         when the bank upgrades the video's poster, the fill
+         upgrades with it, so the blur behind the clip is never
+         a stale placeholder. */
+      if (v.getAttribute("data-poster123") === url) { try { const f = v.parentElement ? v.parentElement.querySelector("img.pfill134") : null; if (f) f.src = actual; } catch (e) { /* bonus */ } }
     });
   } catch (e) { /* the upgrade is a bonus, never a breaker */ }
 }
