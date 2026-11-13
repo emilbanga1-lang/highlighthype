@@ -1557,7 +1557,18 @@ function scrollBoardIntoView122() {
   };
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(go); else go();
 }
-$$(".month-subseg button").forEach((b) => b.addEventListener("click", () => setMonthSub(b.dataset.msub)));
+/* Round 137 (2026-11-13): an msub tap re-parks the board,
+   exactly like a board tab tap (Round 122 wiring, above).
+   The sub-view switch alone never scrolled: Emil, down at
+   the Month tab's text tabs, tapped Hall of Fame and landed
+   mid-list — the tall Month content above the tabs (banner +
+   featured card) left the layout, the page shrank, and the
+   browser kept/clamped his scroll depth inside the shorter
+   Fame panel, past its heading block. switchView is
+   synchronous and scrollBoardIntoView122 measures on the
+   next frame, so the parked landing is measured against the
+   final layout in both directions. */
+$$(".month-subseg button").forEach((b) => b.addEventListener("click", () => { setMonthSub(b.dataset.msub); scrollBoardIntoView122(); }));
 /* Round 35 (2026-11-07): two-stage store-entry scroll. The store
    flips from display:none and its images keep loading in, which can
    cancel or strand a lone smooth scroll — the usability audit caught
