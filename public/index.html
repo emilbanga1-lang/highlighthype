@@ -11,10 +11,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=129" />
+<link rel="stylesheet" href="styles.css?v=130" />
 </head>
 <body>
-<!-- Round 128 (2026-11-13, Emil): in the Hype Frame studio,
+<!-- Round 130 (2026-11-13, Emil): posting a play now defaults
+     INTO Hype of the Month — the upload form's contest box is
+     pre-checked, an opted-in play enters automatically when the
+     owner approves it (samples never enter), and the guardian
+     can withdraw anytime from My Plays. Plays posted before
+     this round keep the Round 121 tap-to-enter path; ids 50
+     (Charlotte) and 51 (Janine) were retro-entered into the
+     November 2026 contest by Emil's direction (server-side
+     one-time migration r130_enter_50_51_v1).
+     (Round 128 shipped just before, Emil): in the Hype Frame studio,
      tapping the composed print opens it BIG — a full-screen
      lightbox (✕ / backdrop tap / Esc to close) that always
      reads the CURRENT composition, so a name/placement change
@@ -308,7 +317,7 @@
       <!-- Round 121 (2026-11-12): ONE entry story + the prize,
            stated on the tab itself — the youth-agent test found
            three contradictory entry stories and no prize anywhere. -->
-      <p class="month-how">How a play gets in: post a play → once it's approved, the parent/guardian who posted it can enter it here.</p>
+      <p class="month-how">How a play gets in: post a play with the contest box checked (it's on by default) → once it's approved, it's in. Guardians can withdraw anytime in My Plays.</p>
       <p class="month-prize">🏆 Winner gets featured on the homepage + a shoutout on our socials. Bragging rights only — no prizes, just glory.</p>
       <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
         <button type="button" data-msub="month" aria-pressed="true">This month</button>
@@ -634,6 +643,12 @@
              rejects it too (400). The guardian CONTACT above stays
              optional for posting; this confirmation does not. -->
         <label class="checkline"><input type="checkbox" name="guardianConsent"> I'm this athlete's parent/guardian, or I have their permission to post this video — and I understand HighlightHype may share this clip and still images from it on its website and social channels.</label>
+        <!-- Contest opt-in (Round 130, 2026-11-13): PRE-CHECKED —
+             posting defaults INTO Hype of the Month. The submit
+             handler sends the state explicitly (contestOptin=1/0);
+             approval enters an opted-in play automatically, and
+             the guardian can withdraw anytime in My Plays. -->
+        <label class="checkline"><input type="checkbox" name="contestOptin" checked> 🏆 Enter this play in Hype of the Month — the monthly most-votes contest. It joins automatically once the play is approved; you can withdraw it anytime in My Plays.</label>
       </div>
 
       <!-- Hype Stories (Round 63, 2026-11-08): Emil's one extra
@@ -674,7 +689,7 @@
         <ol class="us-steps">
           <li>The owner reviews it.</li>
           <li>Once approved, it's live on the board.</li>
-          <li>Then you can enter it in Hype of the Month.</li>
+          <li>If you left the contest box checked, it's in Hype of the Month once approved.</li>
         </ol>
         <p class="us-tagline" id="uploadSuccessTagline">Your athlete tag: <span class="us-tag" id="uploadSuccessTag"></span> — save it!</p>
         <p class="us-note">Check your play's status anytime in <b>My Plays</b> with the email you posted with.</p>
@@ -1544,6 +1559,6 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=129"></script>
+<script src="app.js?v=130"></script>
 </body>
 </html>
