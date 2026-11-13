@@ -458,6 +458,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS athletes(
 try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_id TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_tag TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN athlete_group TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email_hash TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN division TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
@@ -547,6 +548,16 @@ function athleteCollision(group) {
 const sha = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
+// Round 121 (2026-11-12): the My Plays email lookup serves a
+// guardian their OWN plays — pending ones included — matched by a
+// per-play hash of the guardian email given at upload (the address
+// itself is never queried or returned). Backfill the hash column
+// for rows that predate it; the upload insert maintains it.
+try {
+  const stale121 = db.prepare("SELECT id, notify_email FROM highlights WHERE notify_email<>'' AND COALESCE(notify_email_hash,'')=''").all();
+  const upd121 = db.prepare("UPDATE highlights SET notify_email_hash=? WHERE id=?");
+  for (const r of stale121) upd121.run(sha(normIdentity(r.notify_email)), r.id);
+} catch { /* fresh DB: nothing to backfill */ }
 
 function ownerAuthorized(req) {
   const token = req.headers["x-owner-token"];
@@ -1233,6 +1244,15 @@ const server = http.createServer(async (req, res) => {
     //  - Athletes are returned as a LIST and are never merged: two
     //    athletes behind one guardian email (or sharing a name) stay
     //    two entries, and the visitor picks theirs.
+    // Round 121 (2026-11-12): an EMAIL lookup ALSO returns `plays` —
+    // the guardian's OWN plays in every status (pending included),
+    // matched by the per-play guardian-email hash (notify_email_hash),
+    // so a family can finally SEE the play they just posted and its
+    // status. A play only ever appears when the query email hashes to
+    // THAT play's guardian contact on file — the tag path never
+    // returns plays, and no response field carries the address, a
+    // phone, or any private column name. The athletes list above
+    // keeps its approved-only semantics unchanged.
     if (p === "/api/athletes/lookup" && req.method === "GET") {
       if (lookupRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many lookups from this connection right now — please try again in a little while." });
       const tagQ = String(u.searchParams.get("tag") || "").trim();
@@ -1254,7 +1274,26 @@ const server = http.createServer(async (req, res) => {
         const team = db.prepare("SELECT team FROM highlights WHERE athlete_id=? AND status='approved' AND team<>'' LIMIT 1").get(a.athlete_key)?.team || "";
         athletes.push({ athlete_id: a.athlete_key, tag: a.tag, name: a.display_name, team, playCount });
       }
-      return sendJson(res, 200, { ok: true, athletes });
+      // Round 121: the guardian's own plays (email lookups only).
+      let plays = [];
+      if (emailQ && !tagQ) {
+        const period = currentPeriod();
+        const rows = db.prepare("SELECT * FROM highlights WHERE notify_email_hash=? AND notify_email_hash<>'' ORDER BY id DESC LIMIT 50").all(sha(normIdentity(emailQ)));
+        plays = rows.map((r) => ({
+          id: r.id,
+          title: r.title,
+          sport: r.sport,
+          division: r.division,
+          athlete_label: r.player_name ? athleteDisplayName(r.player_name) : "",
+          athlete_id: r.athlete_id || "",
+          athlete_tag: r.athlete_tag || "",
+          team: r.team || "",
+          status: r.status,
+          inContest: r.status === "approved" ? !!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, period) : false,
+          created_at: r.created_at,
+        }));
+      }
+      return sendJson(res, 200, { ok: true, athletes, plays });
     }
 
     // ---- Site stats: count an event (aggregate only) ----
@@ -1430,10 +1469,13 @@ const server = http.createServer(async (req, res) => {
       // Upload Assist (Round 99): the browser's AI result rides along
       // as an untrusted label (see sanitizeAiField) — display only.
       const aiJson = sanitizeAiField(fields.ai);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson);
       notifyPending(title, sport, Number(info.lastInsertRowid), review);
-      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", message: "Thanks! Your play is in review and will appear once the owner approves it." });
+      // Round 121: the response carries the athlete's HH tag so the
+      // client can show it on the post-success screen ("save it!") —
+      // the tag is a public identifier, safe to hand back.
+      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", athlete_tag: athlete.athlete_tag || "", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
     // ---- Vote toggle ----
@@ -1672,10 +1714,26 @@ const server = http.createServer(async (req, res) => {
       // Sample plays are demos (Round 7): they can collect votes but
       // can never take a contest slot or a prize.
       if (row.is_sample) return sendJson(res, 400, { ok: false, message: "Sample plays can't enter Hype of the Month." });
+      // Round 121 (2026-11-12): entering is the POSTING GUARDIAN's
+      // call — the old one-tap button let any visitor enter anyone's
+      // play (the youth-agent test entered Charlotte's play as a
+      // stranger). The caller must prove the guardian link with the
+      // email used to post the play (trimmed, case-insensitive, the
+      // same normalization as identity matching). The owner token is
+      // the override path. A play with NO guardian email on file can
+      // only be entered by the owner — the public control for it is
+      // not rendered at all.
+      if (!ownerAuthorized(req)) {
+        if (!row.notify_email)
+          return sendJson(res, 403, { ok: false, message: "This play can't be entered online — no guardian email is on file for it. The owner can enter it for you." });
+        const given = normIdentity(body.email || "");
+        if (!given || given !== normIdentity(row.notify_email))
+          return sendJson(res, 403, { ok: false, message: "That email doesn't match the one used to post this play — try the one you posted with." });
+      }
       const dup = db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period);
       if (dup) return sendJson(res, 200, { ok: false, alreadyEntered: true, message: "This play is already entered in Hype of the Month." });
       const info = db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
-      return sendJson(res, 201, { ok: true, entryId: Number(info.lastInsertRowid), period, message: "Entered in Hype of the Month!" });
+      return sendJson(res, 201, { ok: true, entryId: Number(info.lastInsertRowid), period, message: "🏆 Entered! Good luck." });
     }
     if (p === "/api/contest/winner" && req.method === "POST") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
