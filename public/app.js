@@ -42,7 +42,7 @@ const api = async (path, opts = {}) => {
   return j;
 };
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "martialarts") return "Martial Arts"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
+const cap = (s) => { if (s === "fieldhockey") return "Field Hockey"; if (s === "hockey") return "Ice Hockey"; if (s === "martialarts") return "Martial Arts"; if (s === "track") return "Track & Field"; const t = String(s || ""); return t ? t.charAt(0).toUpperCase() + t.slice(1) : t; };
 const slugify = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 /* ---------------- site stats (first-party, aggregate only) ------
    The server keeps DAILY COUNTERS only (POST /api/track): how many
@@ -701,7 +701,7 @@ function divMatch(h, div) {
 function renderMonth() {
   const entries = CONTEST.entries || [];
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
-  if (y && m) { $("#boardTag").textContent = `The board · ${MONTHS[m - 1]}`; }
+  const btTag125 = $("#boardTag"); if (btTag125 && y && m) { btTag125.textContent = `The board · ${MONTHS[m - 1]}`; }
   // Podium: top 3 contest entries by this month's votes, medals beside rank.
   const top = entries.slice(0, 3);
   $("#podium").innerHTML = top.length ? top.map((h, i) => `
@@ -859,11 +859,19 @@ function updateContestStrip107() {
      play; once it's approved, the parent/guardian who posted it
      can enter it. (The youth-agent test found three different
      stories in three places.) */
+  /* Round 125 (2026-11-13, Dyanna): with entries, the state line
+     names the leading ATHLETE and their vote count — "Charlotte
+     leads with 12 votes" — on both the Month strip and the Watch
+     slim line. renderAll re-runs this after every data refresh,
+     so a vote cast or an entry added in-session updates it in
+     real time. The zero-entries invite text is unchanged. */
+  const lead125 = entries.length ? entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0] : null;
+  const leadName125 = lead125 ? (firstNameOf(lead125) || lead125.title || "A play") : "";
   const state = !entries.length
     ? "No entries yet — post a play; once it's approved, the parent who posted it can enter it"
     : !total
       ? "No votes yet — every vote counts"
-      : (() => { const lead = entries.slice().sort((a, b) => (b.voteCount || 0) - (a.voteCount || 0))[0]; return `Leader: ${lead.title} · ${lead.voteCount} vote${lead.voteCount === 1 ? "" : "s"}`; })();
+      : `${leadName125} leads with ${lead125.voteCount} vote${lead125.voteCount === 1 ? "" : "s"}`;
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
   const label107 = CONTEST.monthLabel || (y && m ? `${MONTHS[m - 1]} ${y}` : "");
   const t1 = $("#stripTitle"), t2 = $("#stripState"), ends = $("#stripEnds");
@@ -882,8 +890,31 @@ function updateContestStrip107() {
     const monthName123 = m ? MONTHS[m - 1] : "";
     slim123.textContent = !entries.length
       ? `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: no entries yet · Post a play to enter →`
-      : `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: ${entries.length} entr${entries.length === 1 ? "y" : "ies"} · Vote now →`;
+      : !total
+        ? `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: ${entries.length} entr${entries.length === 1 ? "y" : "ies"} · No votes yet — cast the first vote →`
+        : `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: ${leadName125} leads with ${lead125.voteCount} vote${lead125.voteCount === 1 ? "" : "s"} · Vote now →`;
   }
+}
+/* Round 125 (2026-11-13, Dyanna + Emil): the mid-feed Hype Frame
+   banner — the homepage's old full Hype Frame section distilled
+   to one feed slot. It renders INSIDE the Watch deck after the
+   third tile of the CURRENT filtered list (so it follows the
+   filters like a tile does; with fewer than 3 matching plays it
+   doesn't render at all, and it never appears on the Month or
+   Battles views — renderAll2 is the Watch feed only). The visual
+   is the feed's lead play's own frame on a hoodie silhouette —
+   the concept itself: a real moment, printed — when that play
+   has a server poster; without one it falls back to the finished
+   softball example photo. The button opens the same choice card
+   as every other generic Hype Frame entry (openHfChoice), and
+   each play's own Hype Frame button is untouched. NO price —
+   teasers tease; prices live inside the Store only. */
+function hypeFrameBanner125(play) {
+  const poster = play && play.poster_url ? play.poster_url : "";
+  const visual = poster
+    ? `<svg class="hf-banner-svg125" viewBox="0 0 200 210" role="img" aria-label="Youth hoodie with this play's frame printed on the front"><defs><clipPath id="hfBannerClip125"><rect x="66" y="82" width="68" height="62" rx="3"/></clipPath></defs><path d="M70 34 C70 18 84 8 100 8 C116 8 130 18 130 34 L152 44 L178 108 L152 118 L146 92 L146 196 C146 202 142 205 136 205 L64 205 C58 205 54 202 54 196 L54 92 L48 118 L22 108 L48 44 Z" fill="#232323" stroke="#3d3d3d" stroke-width="2"/><path d="M78 30 C84 44 92 50 100 50 C108 50 116 44 122 30 C116 20 108 16 100 16 C92 16 84 20 78 30 Z" fill="#171717" stroke="#3d3d3d" stroke-width="2"/><rect x="72" y="168" width="56" height="26" rx="4" fill="#1b1b1b" stroke="#3d3d3d" stroke-width="1.5"/><rect x="62" y="78" width="76" height="78" rx="4" fill="#0d0d0d" stroke="#c8f31d" stroke-width="2.5" stroke-dasharray="5 3"/><image href="${esc(poster)}" x="66" y="82" width="68" height="62" preserveAspectRatio="xMidYMid slice" clip-path="url(#hfBannerClip125)"/><text x="100" y="150" text-anchor="middle" fill="#c8f31d" font-family="Archivo, sans-serif" font-weight="800" font-size="10" letter-spacing="1">HYPE FRAME</text></svg>`
+    : `<img class="hf-banner-img125" src="/swag/hf-hoodie-softball.jpg" alt="A finished Hype Frame hoodie: a player's frozen moment printed on the back" loading="lazy" decoding="async">`;
+  return `<div class="hf-banner125"><div class="hf-banner-visual125">${visual}</div><div class="hf-banner-copy125"><p class="hf-banner-eyebrow125">📸 Hype Frame · Printed from a real play</p><h3>Your moment on a hoodie</h3><p>That freeze-frame you just watched, printed on a premium youth hoodie. Pick the exact frame from any play, add a name and number, and a parent approves the order.</p><p class="hf-banner-cta125"><button type="button" class="hf-banner-btn125" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-banner-note125">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -901,7 +932,13 @@ function renderAll2() { /* All Hypes view */
   const emptyEl = $("#allEmpty");
   emptyEl.textContent = "No plays match — try a different board, sport, or search.";
   const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
-  $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${allTiles.slice(1).join("")}</div>` : "") : "";
+  /* Round 125: the mid-feed Hype Frame banner splices into the
+     deck after the third tile of the filtered list (deck index 2
+     = overall tile #3, the featured slot holding #1); fewer than
+     3 tiles, no banner. See hypeFrameBanner125 above. */
+  const deckTiles125 = allTiles.slice(1);
+  if (allTiles.length >= 3) deckTiles125.splice(2, 0, hypeFrameBanner125(filtered[0]));
+  $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${deckTiles125.join("")}</div>` : "") : "";
   hydrateDurPills();
   emptyEl.style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): while every play on the board is a sample,
@@ -1231,6 +1268,10 @@ function closeMenu(focusBack = true) { navMenu.hidden = true; menuBtn.setAttribu
 menuBtn.addEventListener("click", () => { const open = navMenu.hidden; navMenu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); });
 document.addEventListener("click", (e) => { if (!navMenu.hidden && !e.target.closest(".nav")) closeMenu(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !navMenu.hidden) closeMenu(); });
+/* Round 125 (2026-11-13): the ☰ menu's Hype Frame entry — the
+   studio's generic front door since Round 86 (sample clip into
+   the studio, or your own video into the form). */
+$("#menuHf125")?.addEventListener("click", () => { closeMenu(false); openHfChoice(); });
 function showPanel(name) {
   // Any panel navigation leaves the play detail behind (Round 8):
   // the overlay belongs to the boards, and panels (athlete, studio,
@@ -1266,7 +1307,7 @@ function switchView(v) {
   const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = !(v === "month" && !fame);
   const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
-  $("#chipMonth").style.display = v === "month" ? "" : "none";
+  const chip125 = $("#chipMonth"); if (chip125) chip125.style.display = v === "month" ? "" : "none";
   /* Round 107: the contest strip belongs to the Watch feed only —
      Battles and the Month panel carry their own headers.
      Round 123: the strip MOVED into the Month panel — it now
@@ -1276,9 +1317,12 @@ function switchView(v) {
   const cs107 = $("#contestStrip"); if (cs107) cs107.hidden = v !== "month";
   const csSlim123 = $("#contestSlim123"); if (csSlim123) csSlim123.hidden = v !== "all";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
-  $("#boardTitle").innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
+  /* Round 125: the board's heading band is gone (Dyanna: the
+     page IS the board), so the title/intro writes land only if
+     the elements ever come back — guarded, never required. */
+  const bt125 = $("#boardTitle"); if (bt125) bt125.innerHTML = v === "month" ? (fame ? `Hall of <span class="lime">Fame</span>` : `Hype of the Month`) : v === "battles" ? `Hype <span class="lime">Battles</span>` : `All <span class="lime">Hypes</span>`;
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
-  $("#boardIntro").textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play — once it's approved, the parent who posted it can enter it. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
+  const bi125 = $("#boardIntro"); if (bi125) bi125.textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play — once it's approved, the parent who posted it can enter it. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => { switchView(b.dataset.view); scrollBoardIntoView122(); }));
@@ -1348,11 +1392,17 @@ function showHome() {
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
   if (location.hash === "#shop") history.replaceState(null, "", "#top");
-  /* Round 98 (2026-11-11): returning home restarts the hero MUTED
-     even if the visitor had tapped its sound on before entering the
-     Store — sound is per-visit and only the speaker icon turns it
-     on. (The hero's volumechange listener re-syncs the icon.) */
-  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = true; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  /* Round 125 (2026-11-13, Dyanna): returning home restarts the
+     hero at the visitor's standing sound preference — music ON
+     unless they muted it themselves (hh_music, kept by the
+     Round 2 storage helper). Round 98's always-muted restart is
+     retired: by the time a visitor comes back from the Store
+     they have interacted with the page, so an unmuted start is
+     allowed, and a rejection just leaves it muted until the
+     next tap. The typeof guard keeps this block runnable in
+     isolation (the Round 26 behavioral suite drives showHome
+     in a vm without the storage helper in scope). */
+  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
   /* Round 48 (2026-11-08): the old homepage-film resume is retired —
      the homepage Hype Frame film is click-to-play now (Emil: no
      autoplay competing with the hero), so returning home must NOT
@@ -1362,16 +1412,12 @@ function showHome() {
   // sport strips froze on their posters for the rest of the session.
   $$(".montage video").forEach((v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
 }
-/* Round 48 (2026-11-08): the homepage Hype Frame film is
-   click-to-play — the cream-hoodie cover swaps out and the film
-   plays inline in the same frame. Nothing starts it but the tap. */
-function playHfHomeFilm() {
-  const cover = $("#hfFilmCover"), vid = $("#hfHomeFilm");
-  if (!vid) return;
-  if (cover) cover.hidden = true;
-  vid.hidden = false;
-  const p = vid.play(); if (p && p.catch) p.catch(() => {});
-}
+/* Round 48 (2026-11-08): the homepage Hype Frame film was
+   click-to-play — playHfHomeFilm swapped its cover for the
+   film. Round 125 (2026-11-13): the homepage Hype Frame
+   section is gone (see index.html), so the function left
+   with it; the studio's own film wiring is separate and
+   untouched. */
 /* Round 11 (2026-11-05): the montage clips keep themselves honest —
    play while at least ~25% of a strip is on screen, pause when it
    scrolls away. A clip whose autoplay stalled (or that a Store visit
@@ -1520,11 +1566,14 @@ function syncFilterUI() {
   renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
-  // Round 62 (2026-11-08): the shared sport pill bar mirrors the
+  // Round 62 (2026-11-08): the shared sport control mirrors the
   // current view's sport (Month reads monthSport, the other views
   // allSport) — the fallbacks above have already run by here.
+  // Round 125 (2026-11-13): the control is the #boardSportSelect
+  // dropdown now, not the pill bar — same mirror, one value write.
   const spCurrent = (typeof currentView !== "undefined" && currentView === "month") ? monthSport : allSport;
-  $$("#sportPills .sp-pill").forEach((b) => b.classList.toggle("active", b.dataset.sp === spCurrent));
+  const boardSel125 = $("#boardSportSelect");
+  if (boardSel125) boardSel125.value = spCurrent;
 }
 /* Round 47 (2026-11-08): the search box is retired from the board
    (Emil: "we can always add that again later") — allSearch stays ""
@@ -2493,15 +2542,21 @@ $$("[data-hf-swipe]").forEach((root) => {
 // Round 30 (Emil + Dyanna, 2026-11-07): the hero film is now the B15
 // commercial. The old playback chrome (progress bar, seconds timer,
 // "Tap for sound" pill) is GONE.
-// Round 98 (2026-11-11, Emil bug report): the Round 30 "try unmuted
-// first, fall back to muted" start is RETIRED. On a first visit the
-// unmuted attempt was rejected and the fallback muted it — but once
-// the tab had any clicks (e.g. Swag Shop, then Home), the browser
-// granted activation and the unmuted play SUCCEEDED, so the music
-// turned itself on when arriving back at the homepage. The rule now:
-// the film ALWAYS starts muted on every home arrival, and the only
-// unmute path is the visitor tapping the speaker icon during that
-// visit.
+// Round 125 (2026-11-13, Dyanna): the hero music is ON by
+// default — the speaker icon is a MUTE choice now, not an
+// unmute chore, and the Round 98 always-muted rule is retired.
+// Browser autoplay policy still applies: an audible start is
+// attempted first, and where the browser requires an
+// interaction first, the film starts muted and the FIRST
+// pointer/key interaction turns the sound on automatically
+// (unless the visitor muted it themselves). A visitor's own
+// mute is remembered through the Round 2 storage helper under
+// hh_music ("off" = muted; anything else, including no stored
+// value, = ON) — across the session and across visits, the
+// same pattern as hh_voter / hh_owner_token. This is the
+// film's master music bed only; per-moment sound effects stay
+// rejected, exactly as before.
+function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
 (function () {
   const v = $("#heroVideo"), mute = $("#heroMute");
   if (!v) return;
@@ -2517,18 +2572,51 @@ $$("[data-hf-swipe]").forEach((root) => {
      only here, on the home route, right before playback. */
   if (v.dataset && v.dataset.src && !v.getAttribute("src")) v.src = v.dataset.src;
   const setIcon = () => { if (!mute) return; mute.classList.toggle("is-muted", v.muted); mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
-  /* Round 98: keep the icon synced with ANY later muted change
-     (showHome's reset-to-muted on a store return, the icon tap). */
+  /* Round 125: keep the icon synced with ANY later muted change
+     (showHome's preference restart, the icon tap, the first-tap
+     unmute below). */
   v.addEventListener("volumechange", setIcon);
-  /* A back/forward-cache restore reruns no scripts — if the visitor
-     left with the sound on, a restored page must still arrive
-     muted, so re-mute on a persisted pageshow. */
-  window.addEventListener("pageshow", (e) => { if (e.persisted) { v.muted = true; setIcon(); } });
-  v.muted = true;
-  const p = v.play();
-  if (p && p.catch) p.catch(() => {});
-  setIcon();
-  mute?.addEventListener("click", () => { v.muted = !v.muted; if (!v.muted) { const q = v.play(); if (q && q.catch) q.catch(() => {}); } setIcon(); });
+  let armFirstTap125 = () => {};
+  const startHero125 = () => {
+    if (!heroMusicWanted125()) { v.muted = true; const p = v.play(); if (p && p.catch) p.catch(() => {}); setIcon(); return; }
+    v.muted = false;
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {
+      /* Autoplay policy said no: run muted for now and let the
+         first interaction turn the sound on. The icon stays
+         truthful throughout — it shows the muted state until
+         the sound is actually on. */
+      v.muted = true; setIcon(); armFirstTap125();
+    });
+    setIcon();
+  };
+  armFirstTap125 = () => {
+    const onTap = (e) => {
+      /* A tap ON the speaker icon is the toggle's business —
+         its own click handler below reads the same tap as the
+         visitor's explicit choice. */
+      if (e.target && e.target.closest && e.target.closest("#heroMute")) return;
+      window.removeEventListener("pointerdown", onTap);
+      window.removeEventListener("keydown", onTap);
+      if (!heroMusicWanted125() || !v.muted) return;
+      v.muted = false;
+      const q = v.play(); if (q && q.catch) q.catch(() => {});
+      setIcon();
+    };
+    window.addEventListener("pointerdown", onTap);
+    window.addEventListener("keydown", onTap);
+  };
+  /* A back/forward-cache restore reruns no scripts — re-apply
+     the standing preference (Round 98's blanket re-mute is
+     retired with the always-muted rule). */
+  window.addEventListener("pageshow", (e) => { if (e.persisted) startHero125(); });
+  startHero125();
+  mute?.addEventListener("click", () => {
+    v.muted = !v.muted;
+    hhStorageSet("hh_music", v.muted ? "off" : "on");
+    if (!v.muted) { const q = v.play(); if (q && q.catch) q.catch(() => {}); }
+    setIcon();
+  });
 })();
 
 /* ---------------- countdown ---------------- */
@@ -2630,6 +2718,15 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   if (!fileEl || !fileEl.files || !fileEl.files.length) { msg.textContent = "Add your clip first — tap the box at the top to pick it from your camera roll."; $("#dropzone")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   const name = String(form.elements.playerName.value || "").trim();
   if (!name) { msg.textContent = "Add the athlete's first name — every hype needs its athlete."; form.elements.playerName.focus(); return; }
+  /* Round 125 (2026-11-13, Dyanna): the last initial is its own
+     OPTIONAL field now. The payload's playerName is composed
+     here — "First" alone, or "First L" with the initial — so
+     the server, the display-name derivation ("First L."), the
+     athlete group/tag logic and My Plays all see exactly the
+     name shape they always have. No initial, no problem: the
+     single-name path is the one Charlotte posted under. */
+  const lastInitial125 = (String(form.elements.lastInitial ? form.elements.lastInitial.value : "") || "").replace(/[^A-Za-z]/g, "").slice(0, 1).toUpperCase();
+  const fullName125 = lastInitial125 ? `${name} ${lastInitial125}` : name;
   if (!String(form.elements.sport.value || "").trim()) { msg.textContent = "Tap the sport — one tap is all it takes."; $("#sportSelect")?.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   // Guardian attestation (Round 21, 2026-11-06): the one required
   // checkbox — the poster confirms they are the athlete's
@@ -2649,13 +2746,13 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   // Duplicate-name check: if this name already belongs to an athlete and
   // the uploader hasn't answered the prompt for this exact name yet, ask
   // "same athlete or a different athlete with the same name?" first.
-  if (name && athleteCheckDoneFor !== name.toLowerCase()) {
+  if (fullName125 && athleteCheckDoneFor !== fullName125.toLowerCase()) {
     try {
-      const chk = await api(`/api/athletes/check?name=${encodeURIComponent(name)}`);
+      const chk = await api(`/api/athletes/check?name=${encodeURIComponent(fullName125)}`);
       if (chk.matches && chk.matches.length) {
         const box = $("#athletePrompt");
         box.innerHTML = `<h4>Is this the same athlete?</h4>
-          <p>We already have ${chk.matches.length === 1 ? "an athlete" : "athletes"} named <b>${esc(name)}</b>. Pick the right one — or tell us this is a different athlete with the same name. We never merge two athletes just because the name matches.</p>
+          <p>We already have ${chk.matches.length === 1 ? "an athlete" : "athletes"} named <b>${esc(fullName125)}</b>. Pick the right one — or tell us this is a different athlete with the same name. We never merge two athletes just because the name matches.</p>
           ${chk.matches.map((a) => `<label><input type="radio" name="athletePick" value="${esc(a.athleteKey)}"> Same athlete — ${esc(a.displayName)}${a.team ? ` · ${esc(a.team)}` : ""} <span class="tagchip">${esc(a.tag)}</span> · ${a.playCount} play${a.playCount === 1 ? "" : "s"} so far</label>`).join("")}
           <label><input type="radio" name="athletePick" value="__new"> A different athlete with the same name</label>
           <p style="margin-top:10px"><button type="button" class="mini-btn" id="athleteContinue">Continue →</button></p>`;
@@ -2669,7 +2766,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
           if (!pick) { alert("Pick one so we file this play under the right athlete."); return; }
           if (pick.value === "__new") { form.elements.athleteChoice.value = "new"; form.elements.athleteKey.value = ""; }
           else { form.elements.athleteChoice.value = "same"; form.elements.athleteKey.value = pick.value; }
-          athleteCheckDoneFor = name.toLowerCase();
+          athleteCheckDoneFor = fullName125.toLowerCase();
           box.hidden = true;
           form.requestSubmit();
         };
@@ -2679,7 +2776,9 @@ $("#uploadForm").addEventListener("submit", async (e) => {
   }
   msg.textContent = "Uploading…";
   try {
-    const r = await fetch("/api/highlights", { method: "POST", body: new FormData(form) });
+    const fdSend125 = new FormData(form);
+    fdSend125.set("playerName", fullName125);
+    const r = await fetch("/api/highlights", { method: "POST", body: fdSend125 });
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || "Upload failed");
     // Round 121: capture the posting email BEFORE the reset wipes
@@ -2884,21 +2983,26 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post", "#stories"].includes(location.hash)) trackEvent("view", "home");
 })();
 
-/* ---------------- Rounds 62 + 67: board controls ----------------
-   The sport pill bar filters the visible board in place (Month
+/* ===== Rounds 62 + 67: board controls =====
+   The sport pill bar filtered the visible board in place (Month
    writes monthSport; Fame jumps to All Hypes like the old browse
    row did; All writes allSport). Round 67 (2026-11-09, Emil): the
    bar is one sideways-scrolling row (no More button), and each
    view's division seg sits visible in its board-tools row - the
    Filter popover is retired. The sport <select> stays in the DOM,
-   CSS-hidden, because renderSportSelect/syncFilterUI run on it. */
-$$("#sportPills .sp-pill").forEach((b) => {
-  b.onclick = () => {
-    const sp = b.dataset.sp;
-    if (currentView === "month" && monthSub === "fame") { allSport = sp; syncFilterUI(); switchView("all"); renderAll2(); }
-    else if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
-    else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
-  };
+   CSS-hidden, because renderSportSelect/syncFilterUI run on it.
+   Round 125 (2026-11-13, Dyanna): the pill bar is ONE dropdown
+   (#boardSportSelect, the full sport list in static markup). The
+   change handler below is the pill tap, verbatim in effect:
+   same state writes, same renders, same syncFilterUI fallbacks
+   (a sport with no plays in the current data lands back on All
+   Sports, exactly as a pill tap on it did). */
+const boardSportSel125 = $("#boardSportSelect");
+if (boardSportSel125) boardSportSel125.addEventListener("change", () => {
+  const sp = boardSportSel125.value;
+  if (currentView === "month" && monthSub === "fame") { allSport = sp; syncFilterUI(); switchView("all"); renderAll2(); }
+  else if (currentView === "month") { monthSport = sp; syncFilterUI(); renderMonth(); }
+  else { allSport = sp; syncFilterUI(); if (currentView !== "all") switchView("all"); renderAll2(); }
 });
 window.openGuidelines = () => { const m = $("#guidelinesModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") window.closeGuidelines(); });
@@ -4323,6 +4427,23 @@ $("#btlNotifyForm")?.addEventListener("submit", async (e) => {
   try {
     await api("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, sport }) });
     say(`You're on the list ✓ — we'll email you when the ${BTL106[sport].name} bottle drops.`, true);
+  } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
+  if (btn) btn.disabled = false;
+});
+/* Round 125 (2026-11-13): the homepage merch teaser's notify
+   form — the same per-sport drop alert as the bottle view's
+   above (POST /api/drop-notify; the sport picker offers the
+   six Hype Sports, the endpoint's own list). */
+$("#merchNotifyForm125")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("#merchNotifyEmail125"), sportEl = $("#merchNotifySport125"), btn = $("#merchNotifyBtn125"), msg = $("#merchNotifyMsg125");
+  const email = (input?.value || "").trim();
+  const say = (text, ok) => { if (msg) { msg.textContent = text; msg.classList.toggle("ok", !!ok); } };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That email doesn't look right — check it and try again.", false); input?.focus(); return; }
+  if (btn) btn.disabled = true;
+  try {
+    await api("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, sport: sportEl ? sportEl.value : "baseball" }) });
+    say("You're on the list ✓ — we'll email you when it drops.", true);
   } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
   if (btn) btn.disabled = false;
 });
