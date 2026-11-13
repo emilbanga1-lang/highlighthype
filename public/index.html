@@ -11,16 +11,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=123" />
+<link rel="stylesheet" href="styles.css?v=124" />
 </head>
 <body>
-<!-- Round 121 + 122 (2026-11-12, Emil "Correct" on the youth-agent
-     test findings): the posting chain (post-success screen with the
-     athlete tag, My Highlights → My Plays with per-play status,
-     one contest story + the prize stated, guardian-gated contest
-     entry) and orientation (board tabs scroll to the board, the
-     Daily streak is always visible, "✓ Your pick" states, the
-     floating Post pill can never trap a card under it). -->
+<!-- Round 123 (2026-11-12, Emil approved the outside-review
+     mapping): action posters on every play surface (board tiles,
+     the Watch player, athlete cards — the Round 118 banking
+     pipeline extended, with the Round 119 start offset applied
+     in Watch too), the contest strip moved into the Month tab
+     with a one-line state line in its place on Watch, desktop
+     filters on one row, and ONE upload label — "Post a Play".
+     (Rounds 121 + 122 shipped just before: the posting chain —
+     post-success screen with the athlete tag, My Highlights →
+     My Plays with per-play status, one contest story + the prize
+     stated, guardian-gated contest entry — and orientation:
+     board tabs scroll to the board, the Daily streak is always
+     visible, "✓ Your pick" states, the floating Post pill can
+     never trap a card under it.) -->
 
 <header class="nav">
   <div class="wrap">
@@ -82,7 +89,7 @@
      FAB (icon only — the label span is hidden ≤760px in styles.css)
      and tapping it opens the upload form as a full-screen overlay
      instead of scrolling the long page. Desktop keeps the pill. -->
-<button type="button" class="float-submit" id="floatSubmit" aria-label="Submit a Hype — go to the upload form"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span class="float-submit-label">Submit a Hype</span><span class="float-submit-short">Post</span></button>
+<button type="button" class="float-submit" id="floatSubmit" aria-label="Post a Play — go to the upload form"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span class="float-submit-label">Post a Play</span><span class="float-submit-short">Post a Play</span></button>
 
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
@@ -95,7 +102,7 @@
     <p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>
     <div class="hero-ctas">
       <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
-      <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Submit a Hype</a>
+      <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Post a Play</a>
     </div>
   </div>
   <button type="button" class="hero-mute is-muted" id="heroMute" aria-label="Unmute the film"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path class="hm-waves" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="hm-waves" d="M18.4 5.8a9.2 9.2 0 0 1 0 12.4"/><line class="hm-slash" x1="3" y1="3" x2="21" y2="21"/></svg><span>Sound</span></button>
@@ -138,29 +145,27 @@
       <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
     </div>
 
-    <!-- Round 107 (2026-11-12): the hybrid contest strip — the
-         Month contest's live state (title, honest votes state, end
-         date) rides between the view tabs and the filters on the
-         Watch feed. switchView shows it on the All view only;
-         app.js fills it from the contest payload on every render,
-         and tapping it opens the Month board.
-         Round 109 (2026-11-12): the strip compresses to two tight
-         lines — row 1 is crown + one-line title + ENDS chip, row 2
-         is the one-line state (see the Round 109 CSS block). -->
-    <div class="contest-strip" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
-      <div class="cs-row1">
-        <span class="cs-cr" aria-hidden="true">👑</span>
-        <span class="cs-t1" id="stripTitle">Hype of the Month</span>
-        <span class="cs-ends" id="stripEnds"></span>
-      </div>
-      <div class="cs-t2" id="stripState"></div>
-    </div>
+    <!-- Round 123 (2026-11-12): the gold contest strip moved INTO
+         the Month panel (top of #viewMonth, below) at the outside
+         reviewer's direction — the Watch feed's first screen now
+         leads with plays. In its place rides ONE slim line, filled
+         by updateContestStrip107 from the live contest state;
+         switchView shows it on the All (Watch) view only, and
+         tapping it opens the Month board (Round 122 scroll). -->
+    <button type="button" class="contest-slim123" id="contestSlim123" aria-label="Hype of the Month — open the contest board" hidden>
+      <span class="cs123-text" id="contestSlimText123">🏆 Hype of the Month</span>
+    </button>
 
     <!-- Round 67 (2026-11-09, Emil): the pill bar is ONE sideways-
          scrolling row (no More button), and each view's Boys/Girls
          seg sits visible in its board-tools row - the Filter popover
          is retired. The hidden .filters divs remain as machinery
          (the sport selects renderSportSelect/syncFilterUI run on). -->
+    <!-- Round 123 (2026-11-12): the pills + division-seg wrapper.
+         At the desktop breakpoint the two sit on ONE row (flex, see
+         the Round 123 CSS block); below it the wrapper is a plain
+         block and the Round 108 two-row stack is exactly as was. -->
+    <div class="filters-bar123">
     <div class="sport-pills" id="sportPills">
       <div class="sport-pills-row" role="group" aria-label="Filter plays by sport">
         <button type="button" class="sp-pill" data-sp="all">All Sports</button>
@@ -205,8 +210,24 @@
         <button type="button" data-div="girls" aria-pressed="false">Girls</button>
       </div>
     </div>
+    </div><!-- /.filters-bar123 -->
 
     <div id="viewMonth">
+      <!-- Round 123 (2026-11-12): the Round 107/109 contest strip
+           lives HERE now, at the top of the Month panel, intact —
+           crown + one-line title + ENDS chip on row 1, the live
+           state on row 2, filled by updateContestStrip107 from the
+           contest payload on every render. switchView shows it on
+           the Month view (its old All-view rule retired with the
+           move). -->
+      <div class="contest-strip" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
+        <div class="cs-row1">
+          <span class="cs-cr" aria-hidden="true">👑</span>
+          <span class="cs-t1" id="stripTitle">Hype of the Month</span>
+          <span class="cs-ends" id="stripEnds"></span>
+        </div>
+        <div class="cs-t2" id="stripState"></div>
+      </div>
       <!-- Round 107 (2026-11-12): the hybrid Month panel carries its
            own title + honest-state sub (the board sec-head is
            retired in the redesign); app.js fills the sub from the
@@ -558,7 +579,7 @@
       </details>
 
       <div id="athletePrompt" class="athlete-prompt" hidden></div>
-      <button type="submit" class="btn btn-lime submit-btn">Post my hype</button>
+      <button type="submit" class="btn btn-lime submit-btn">Post a Play</button>
       <p id="uploadMsg"></p>
 
       <!-- Round 121 (2026-11-12): the post-success screen. A
@@ -666,7 +687,7 @@
         <h3 class="story-name">Future Yankee</h3>
         <p class="story-line">A young pitcher gets his reps in at Yankee Stadium.</p>
         <div class="story-actions">
-          <a class="story-submit" href="#post" data-submit-link>Submit a moment &rarr;</a>
+          <a class="story-submit" href="#post" data-submit-link>Post a Play &rarr;</a>
         </div>
       </div>
     </article>
@@ -923,7 +944,7 @@
         <div class="field">Board — <b>Boys / Girls</b></div>
         <div class="field">Team <span>(optional)</span></div>
         <div class="field">Play title — <b>yours</b></div>
-        <a class="btn btn-lime" href="#post" data-submit-link>Submit a Hype</a>
+        <a class="btn btn-lime" href="#post" data-submit-link>Post a Play</a>
       </aside>
     </div>
   </div>
@@ -1404,7 +1425,7 @@
 <div class="final view-home">
   <div class="wrap">
     <h2>Have a play to share?</h2>
-    <a class="btn btn-lime btn-final" href="#post" data-submit-link>Submit a Hype</a>
+    <a class="btn btn-lime btn-final" href="#post" data-submit-link>Post a Play</a>
   </div>
 </div>
 
@@ -1461,6 +1482,6 @@
   </div>
 </div>
 
-<script src="app.js?v=123"></script>
+<script src="app.js?v=124"></script>
 </body>
 </html>
