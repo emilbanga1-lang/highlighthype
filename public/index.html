@@ -11,9 +11,39 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=133" />
+<link rel="stylesheet" href="styles.css?v=134" />
 </head>
 <body>
+<!-- Round 134 (2026-11-13, Emil's own mockup — "Like this?"):
+     the Month tab is rebuilt to his layout. (1) The banner is
+     a CARD: gold eyebrow (the contest period, e.g. NOVEMBER
+     2026), big white "Hype of the Month", the ENDS pill, and
+     the prize line INSIDE the card — the dynamic leader line
+     no longer paints here (app.js updateContestStrip107 still
+     fills the Watch slim line; its strip writes are guarded).
+     (2) A FEATURED CARD spotlights the current #1 entry: a
+     full-width 16:9 preview resting on the play's poster
+     (portrait clips sit centered over a blurred copy of the
+     SAME poster image — never a video clone, never autoplay:
+     the Round 133 rest rules hold), a "👑 Currently #1"
+     badge, a big play disc, then Name · Short Title, a
+     Sport · Division line, and a full-width gold vote button
+     with the count at its right end. (3) A "Leaderboard"
+     heading carries the sport dropdown on its row — the
+     shared header dropdown now hides while the Month view is
+     active (app.js switchView) — and This Month / Hall of
+     Fame switch as TEXT TABS under it. (4) The leaderboard is
+     compact rows (rank chip · Name · Short Title · sport ·
+     "N votes ›"); the podium and the Month tile deck retire.
+     (5) Titles on the featured card, the Month rows and the
+     Hall of Fame rows are shortened by app.js shortTitle
+     (first sentence only; the full title lives on in the
+     play view). The Hall of Fame keeps its name, gains the
+     same heading block (its own sport dropdown on the shared
+     contest sport state + the "Top 10 plays ranked by
+     all-time votes." line under the heading), and its rows
+     are rebuilt compact: rank · poster thumb with play icon ·
+     short title · votes pill. -->
 <!-- Round 133 (2026-11-13, Emil's Month-tab screenshots):
      (1) Month entry cards REST ON THEIR POSTER — Charlotte's
      card was caught displaying the medal-podium photos at the
@@ -336,44 +366,54 @@
     </div><!-- /.filters-bar123 -->
 
     <div id="viewMonth">
-      <!-- Round 123 (2026-11-12): the Round 107/109 contest strip
-           lives HERE now, at the top of the Month panel, intact —
-           crown + one-line title + ENDS chip on row 1, the live
-           state on row 2, filled by updateContestStrip107 from the
-           contest payload on every render. switchView shows it on
-           the Month view (its old All-view rule retired with the
-           move). -->
-      <div class="contest-strip" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
-        <div class="cs-row1">
-          <span class="cs-cr" aria-hidden="true">👑</span>
-          <span class="cs-t1" id="stripTitle">Hype of the Month</span>
+      <!-- Round 134 (2026-11-13): the banner is a CARD in
+           Emil's mockup — gold eyebrow (the contest period,
+           filled by updateContestStrip107 into #stripTitle),
+           the big white title, the ENDS pill, and the prize
+           line inside the card. The dynamic leader line no
+           longer paints here (its element retired; the
+           writer's guarded write no-ops, and the Watch slim
+           line still carries the live state). The strip's
+           click-to-board behavior is unchanged. -->
+      <div class="contest-strip banner134" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
+        <div class="cs-row1 banner-top134">
+          <span class="banner-eyebrow134" id="stripTitle">Hype of the Month</span>
           <span class="cs-ends" id="stripEnds"></span>
         </div>
-        <div class="cs-t2" id="stripState"></div>
+        <div class="banner-title134">Hype of the Month</div>
+        <div class="banner-prize134">Win a homepage feature and a social shoutout.</div>
       </div>
-      <!-- Round 132 (2026-11-13): ONE slim prize line under the
-           strip — the duplicate heading, the date/every-vote
-           sub and the long how-entry paragraph that used to
-           stack here are removed (see the Round 132 note at the
-           top of this file). updateContestStrip107's guarded
-           write to the retired #monthSub107 simply no-ops. -->
-      <p class="month-prize">🏆 Winner gets featured on the homepage + a shoutout on our socials — bragging rights only, just glory.</p>
-      <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
-        <button type="button" data-msub="month" aria-pressed="true">This month</button>
-        <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
+      <!-- Round 134: the featured clip — the current #1 entry,
+           rendered by renderMonth (featCardHtml134) as one card:
+           poster-rest 16:9 preview, "👑 Currently #1" badge,
+           Name · Short Title, Sport · Division, gold vote
+           button. Empty when the month has no entries. -->
+      <div id="monthFeat"></div>
+      <!-- Round 134: the Leaderboard heading row — the sport
+           dropdown lives HERE now (the shared header dropdown
+           hides while the Month view is active; filtering is
+           the same monthSport machinery as ever), and the
+           This Month / Hall of Fame switch rides under it as
+           text tabs. -->
+      <div class="lb-head134">
+        <h3 class="lb-title134">Leaderboard</h3>
+        <div class="lb-filter134" id="boardFilters">
+          <select class="sport-select lb-select134" id="monthSportSelect" aria-label="Sport — this month's board"></select>
+        </div>
+      </div>
+      <div class="seg month-subseg mtabs134" role="group" aria-label="Hype of the Month — this month or the Hall of Fame">
+        <button type="button" data-msub="month" aria-pressed="true">This Month</button>
+        <button type="button" data-msub="fame" aria-pressed="false">Hall of Fame</button>
       </div>
       <!-- Round 9 (2026-11-05): last month's winner strip — filled by
            renderMonth from the previous period's contest ONLY when a
            winner was actually crowned; stays hidden (empty) until
            then. No placeholder, no fake winner. -->
       <div class="last-winner" id="lastWinner" hidden></div>
-      <div class="podium" id="podium" aria-label="Top 3 podium — Hype of the Month"></div>
-      <div class="tools-anchor">
-        <div class="filters" id="boardFilters" hidden>
-        <select class="sport-select" id="monthSportSelect" aria-label="Sport — this month's board"></select>
-        </div>
-      </div>
-      <div class="tile-grid" id="board"></div>
+      <!-- Round 134: the compact leaderboard — one row per
+           entry, rendered by renderMonth (lbRowHtml134). The
+           podium and the Month tile deck retire here. -->
+      <div class="month-rows134" id="monthRows"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
       <!-- Round 9 (2026-11-05): Nicholas worried a play "deletes"
            when the month ends — it never does. This line shows
@@ -383,15 +423,27 @@
     </div>
 
     <div id="viewFame" hidden>
-      <!-- Round 107 (2026-11-12): the Hall of Fame gets the same
-           in-panel title treatment as the Month board. -->
-      <h3 class="month-title">Hall of <span class="lime">Fame</span></h3>
-      <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
-        <button type="button" data-msub="month" aria-pressed="true">This month</button>
-        <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
+      <!-- Round 134 (2026-11-13): the Hall of Fame keeps its
+           name and gains the Month leaderboard's heading block:
+           the heading, its own All Sports dropdown (the SAME
+           shared contest sport state — monthSport — filtering
+           the all-time list by sport, ranking preserved), and
+           the explainer line directly beneath. The old
+           bottom-of-list note that explained the Fame retires;
+           the line lives here now. The sub-view switch rides
+           as the same text tabs as the Month panel. -->
+      <div class="lb-head134">
+        <h3 class="lb-title134">Hall of Fame</h3>
+        <div class="lb-filter134">
+          <select class="sport-select lb-select134" id="fameSportSelect" aria-label="Sport — Hall of Fame"></select>
+        </div>
+      </div>
+      <p class="fame-explainer134">Top 10 plays ranked by all-time votes.</p>
+      <div class="seg month-subseg mtabs134" role="group" aria-label="Hype of the Month — this month or the Hall of Fame">
+        <button type="button" data-msub="month" aria-pressed="true">This Month</button>
+        <button type="button" data-msub="fame" aria-pressed="false">Hall of Fame</button>
       </div>
       <div class="fame-list" id="fameList" aria-label="Hall of Fame — Top 10, ranked by all-time votes"></div>
-      <p class="board-note">The Hall of Fame is the Top 10 of all time, ranked by all-time votes. The list fills in as more plays are posted.</p>
     </div>
 
     <div id="viewAll" hidden>
@@ -1598,6 +1650,6 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=133"></script>
+<script src="app.js?v=134"></script>
 </body>
 </html>
