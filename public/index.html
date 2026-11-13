@@ -11,9 +11,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=122" />
+<link rel="stylesheet" href="styles.css?v=123" />
 </head>
 <body>
+<!-- Round 121 + 122 (2026-11-12, Emil "Correct" on the youth-agent
+     test findings): the posting chain (post-success screen with the
+     athlete tag, My Highlights → My Plays with per-play status,
+     one contest story + the prize stated, guardian-gated contest
+     entry) and orientation (board tabs scroll to the board, the
+     Daily streak is always visible, "✓ Your pick" states, the
+     floating Post pill can never trap a card under it). -->
 
 <header class="nav">
   <div class="wrap">
@@ -31,7 +38,7 @@
     <div class="desk-nav" role="navigation" aria-label="Primary">
       <a href="/?view=all">Watch Highlights</a>
       <a href="/store">Swag Shop</a>
-      <a href="/my-highlights">My Highlights</a>
+      <a href="/my-highlights">My Plays</a>
       <a href="/how-it-works">How It Works</a>
     </div>
     <!-- Round 107 (2026-11-12): the hybrid header carries the
@@ -59,7 +66,7 @@
            Back-to-the-board buttons keep their data-panel-btn
            wiring; only the menu went full-page. -->
       <a href="/?view=all" id="menuAllHypes">All Hypes</a>
-      <a href="/my-highlights">My Highlights</a>
+      <a href="/my-highlights">My Plays</a>
       <a href="/how-it-works">How it works</a>
       <!-- Round 108 (2026-11-12, Emil): Hype Stories leaves the
            homepage and joins the menu as a real page (/stories) —
@@ -206,6 +213,11 @@
            contest payload on every render. -->
       <h3 class="month-title">👑 Hype of the Month</h3>
       <p class="month-sub" id="monthSub107"></p>
+      <!-- Round 121 (2026-11-12): ONE entry story + the prize,
+           stated on the tab itself — the youth-agent test found
+           three contradictory entry stories and no prize anywhere. -->
+      <p class="month-how">How a play gets in: post a play → once it's approved, the parent/guardian who posted it can enter it here.</p>
+      <p class="month-prize">🏆 Winner gets featured on the homepage + a shoutout on our socials. Bragging rights only — no prizes, just glory.</p>
       <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
         <button type="button" data-msub="month" aria-pressed="true">This month</button>
         <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
@@ -294,7 +306,7 @@
           <p class="daily-another-row" id="dailyAnotherRow" hidden><button type="button" class="daily-another" id="dailyAnother">Play another battle →</button></p>
         </div>
         <div class="daily-strip" id="dailyStrip" hidden role="button" tabindex="0" aria-expanded="false" aria-controls="dailyMain" aria-label="Show the full Daily Battle card">
-          <p class="daily-strip-pick"><span>👑 Your pick: <b id="dailyStripPick"></b></span><span class="daily-strip-open">Tap to view</span></p>
+          <p class="daily-strip-pick"><span>👑 Your pick: <b id="dailyStripPick"></b><span id="dailyStripStreak"></span></span><span class="daily-strip-open">Tap to view</span></p>
           <div class="daily-strip-split" id="dailyStripSplit"></div>
           <p class="daily-strip-share"><button type="button" class="mini-btn" id="dailyStripShare">🔗 Share this matchup</button> <button type="button" class="mini-btn" id="dailyStripAnother">Play another battle →</button></p>
         </div>
@@ -549,6 +561,25 @@
       <button type="submit" class="btn btn-lime submit-btn">Post my hype</button>
       <p id="uploadMsg"></p>
 
+      <!-- Round 121 (2026-11-12): the post-success screen. A
+           successful post swaps the form body for this panel (the
+           .upload-done CSS hides every other form child) — what
+           happens next, the athlete's HH tag to save, and the way
+           back to check the play's status. The youth-agent test's
+           #1 blocker was the old dead end: a wiped form and one
+           line of text at the bottom. -->
+      <div id="uploadSuccess" class="upload-success" hidden>
+        <p class="us-check">🎉 Your play is in!</p>
+        <ol class="us-steps">
+          <li>The owner reviews it.</li>
+          <li>Once approved, it's live on the board.</li>
+          <li>Then you can enter it in Hype of the Month.</li>
+        </ol>
+        <p class="us-tagline" id="uploadSuccessTagline">Your athlete tag: <span class="us-tag" id="uploadSuccessTag"></span> — save it!</p>
+        <p class="us-note">Check your play's status anytime in <b>My Plays</b> with the email you posted with.</p>
+        <p class="us-btns"><button type="button" class="btn btn-lime" id="uploadSuccessPlays">See my plays →</button> <button type="button" class="mini-btn" id="uploadSuccessAnother">Post another play</button></p>
+      </div>
+
       <input type="hidden" name="athleteChoice" value="">
       <input type="hidden" name="athleteKey" value="">
       <input type="hidden" name="ai" id="aiField" value="">
@@ -643,21 +674,26 @@
 </section>
 
 
-<!-- ============ MY HIGHLIGHTS ============ -->
+<!-- ============ MY PLAYS ============ -->
 <section class="panel" id="mine" data-panel="mine">
   <div class="wrap">
     <div class="sec-head">
-      <span class="sec-tag">My Highlights · Private</span>
+      <span class="sec-tag">My Plays · Private</span>
       <h2>Every moment, <span class="lime">kept</span></h2>
       <p>A private, lasting home for your athlete's videos — managed by a parent or guardian, and separate from the public board. The monthly contest moves on; these stay.</p>
     </div>
 
-    <p class="mine-note"><b>Find your athlete's highlights:</b> enter the guardian email from the upload — or the athlete's HH tag — and we'll pull up their collection: <b>all of their approved plays in one place</b>. Plays still in review don't show until they're approved. No account, no password. (You can also tap the player's name on any play card.) A truly private archive — pending clips, originals, invited-only viewing — still needs parent/guardian sign-in; that's a future build, and it is not faked here.</p>
+    <!-- Round 121 (2026-11-12): the note says plainly what the
+         lookup does NOW — an email lookup lists every play posted
+         with that email, in-review ones included, each with its
+         status. The old "future build / not faked here" roadmap
+         text is gone. -->
+    <p class="mine-note"><b>Find your plays:</b> enter the guardian email from the upload and you'll see <b>every play posted with it — including ones still in review</b> — each with its status. Or use the athlete's HH tag to open their public collection (approved plays only). No account, no password. (You can also tap the player's name on any play card.)</p>
 
     <form id="mineFind" class="mine-find">
       <label>Guardian email <input type="email" id="mineEmail" placeholder="The email from the upload" autocomplete="email"></label>
       <label>Athlete tag <input type="text" id="mineTag" placeholder="HH-1234" autocomplete="off"></label>
-      <button type="submit" class="btn btn-lime">Find my athlete's highlights</button>
+      <button type="submit" class="btn btn-lime">Find my plays</button>
     </form>
     <div id="mineFindResults" aria-live="polite"></div>
 
@@ -1425,6 +1461,6 @@
   </div>
 </div>
 
-<script src="app.js?v=122"></script>
+<script src="app.js?v=123"></script>
 </body>
 </html>
