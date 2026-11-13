@@ -2076,7 +2076,7 @@ function initHfStudio(play) {
   hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
   hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
-  v.pause(); v.removeAttribute("src"); v.load();
+  v.pause(); v.removeAttribute("src"); v.removeAttribute("poster"); v.load();
   photo.removeAttribute("src");
   if (play.media_kind === "file" && (play.mime || "").startsWith("image/")) {
     hfState.mediaType = "image";
@@ -2085,6 +2085,11 @@ function initHfStudio(play) {
   } else if (play.media_kind === "file") {
     hfState.mediaType = "video";
     v.src = play.media_url; v.hidden = false;
+    // Round 124: the studio player never opens on a black box —
+    // it wears the play's poster (the server's poster_url first,
+    // else the banked frame / branded placeholder) while the
+    // clip loads and before the first frame is frozen.
+    try { const hp = play.poster_url || (typeof btlPosterFor118 === "function" ? btlPosterFor118(play.media_url || "", play.sport || "", play.title || "") : ""); if (hp) v.poster = hp; } catch (e) { /* the poster is a bonus */ }
     photo.hidden = true; scrubRow.style.display = ""; linkNote.hidden = true; freezeBtn.disabled = false;
   } else {
     hfState.mediaType = "link";
@@ -2102,6 +2107,18 @@ function initHfStudio(play) {
    detached video element so the studio player is never disturbed;
    plays are same-origin files, so the canvas is not tainted. */
 let hfStripToken = 0;
+/* Round 124: when a clip's frames can't be captured at all —
+   the pre-conversion HEVC dead end (a browser that can't decode
+   the file gets a black studio video and an empty strip) — the
+   strip says so out loud instead of sitting silently empty. */
+function hfStripNote124() {
+  const strip = $("#hfStrip");
+  if (!strip || strip.querySelector(".hf-strip-note")) return;
+  const p = document.createElement("p");
+  p.className = "hf-strip-note";
+  p.textContent = "Couldn't pull frames from this clip — try a different play, or post it again so we can convert it.";
+  strip.appendChild(p);
+}
 function hfBuildStrip() {
   const wrap = $("#hfStripWrap"), strip = $("#hfStrip");
   if (!wrap || !strip) return;
@@ -2112,10 +2129,17 @@ function hfBuildStrip() {
   const cap = document.createElement("video");
   cap.muted = true; cap.playsInline = true; cap.preload = "auto";
   cap.src = hfState.play.media_url;
+  // If the capture video never even reaches metadata (an
+  // undecodable file can stall there), the note still lands.
+  const slowTimer = setTimeout(() => {
+    if (token === hfStripToken && !wrap.hidden && strip.querySelectorAll(".hf-thumb").length === 0) hfStripNote124();
+  }, 6000);
   const cvs = document.createElement("canvas");
   cap.addEventListener("loadedmetadata", async () => {
+    clearTimeout(slowTimer);
     const dur = cap.duration || 0;
-    if (!dur || token !== hfStripToken) return;
+    if (token !== hfStripToken) return;
+    if (!dur) { hfStripNote124(); return; }
     const step = dur > 30 ? Math.ceil(dur / 30) : 1;
     const x = cvs.getContext("2d");
     for (let t = 0; t < dur; t += step) {
@@ -2141,6 +2165,9 @@ function hfBuildStrip() {
       b.addEventListener("click", () => hfJumpToFrame(t, b));
       strip.appendChild(b);
     }
+    // Round 124: the capture ran to completion and produced
+    // NOTHING (every seek came back frameless) — say so.
+    if (token === hfStripToken && strip.querySelectorAll(".hf-thumb").length === 0) hfStripNote124();
     cap.removeAttribute("src"); cap.load();
   });
 }
@@ -4759,8 +4786,14 @@ function btlSelNote118(player, play) {
 }
 function btlBigPoster118(player, play) {
   if (!player || !play) return;
-  const poster = btlPosterFor118(play.media_url || "", play.sport || "", play.title || "");
+  // Round 124: the server poster (poster_url) is the first choice
+  // on Battles surfaces too, and it is final — the player is
+  // marked so the banking upgrade below never replaces it. The
+  // banked frame / branded placeholder remains the fallback.
+  const serverPoster = play.poster_url || "";
+  const poster = serverPoster || btlPosterFor118(play.media_url || "", play.sport || "", play.title || "");
   if (!poster) return;
+  try { player.dataset.posterServer124 = serverPoster ? "1" : ""; } catch (e) { /* best-effort */ }
   try { player.poster = poster; } catch (e) { /* the poster is a bonus */ }
   const box = typeof player.closest === "function" ? player.closest(".btl-player") : null;
   const fill = box ? box.querySelector("video.vfill") : null;
@@ -4773,6 +4806,7 @@ function btlUpgradeBigPoster118(url) {
   ["btlPlayer", "dailyPlayer", "runPlayer"].forEach((id) => {
     const p = document.getElementById(id);
     if (!p || p.getAttribute("src") !== url) return;
+    if (p.dataset && p.dataset.posterServer124 === "1") return; // Round 124: a server poster is final
     try { p.poster = actual; } catch (e) { /* bonus */ }
     const box = typeof p.closest === "function" ? p.closest(".btl-player") : null;
     const fill = box ? box.querySelector("video.vfill") : null;
@@ -4982,16 +5016,21 @@ function btlSeekOffset119(player) {
    index.html). Appended at the end per the sandbox-slice rule;
    the renderers reach these helpers through typeof guards. */
 
-/* The poster attribute set for a play's <video>: the Round 104
-   banked frame when one exists, else the Round 111 branded
-   placeholder — plus the data hook the upgrade pass matches on.
-   Non-video plays get nothing. Any failure degrades to no
-   attribute (the pre-123 behavior), never a broken render. */
+/* The poster attribute set for a play's <video>: Round 124's
+   server-generated poster (poster_url) is the FIRST choice — it
+   is the play's freeze-point frame, extracted server-side, and
+   it is final (no data hook: the banking upgrade never replaces
+   it). Without one, the Round 104 banked frame when one exists,
+   else the Round 111 branded placeholder — plus the data hook
+   the upgrade pass matches on. Non-video plays get nothing. Any
+   failure degrades to no attribute (the pre-123 behavior),
+   never a broken render. */
 function posterAttr123(h) {
   try {
     if (!h) return "";
     const isVid = h.media_kind === "link_video" || (h.media_kind === "file" && !(h.mime || "").startsWith("image/"));
     if (!isVid || !h.media_url) return "";
+    if (h.poster_url) return ` poster="${esc(h.poster_url)}"`;
     if (typeof btlPosterFor118 !== "function") return "";
     const p = btlPosterFor118(h.media_url, h.sport || "", h.title || "");
     if (!p) return "";
@@ -5051,10 +5090,10 @@ function wireWatch123(body, play) {
     if (!box) return;
     const video = box.querySelector("video:not(.vfill)");
     if (!video) return;
-    if (typeof btlPosterFor118 === "function") {
-      const p = btlPosterFor118(play.media_url || "", play.sport || "", play.title || "");
-      if (p) { try { video.poster = p; } catch (e) { /* bonus */ } }
-    }
+    // Round 124: the server poster wins at open too; the banked
+    // frame / placeholder is the fallback for plays without one.
+    const p = play.poster_url || (typeof btlPosterFor118 === "function" ? btlPosterFor118(play.media_url || "", play.sport || "", play.title || "") : "");
+    if (p) { try { video.poster = p; } catch (e) { /* bonus */ } }
     const off = (typeof btlOffsetFor119 === "function") ? btlOffsetFor119(play) : 0;
     if (off > 0) {
       try { video.dataset.btlSelOffset119 = String(off); } catch (e) { /* best-effort */ }
