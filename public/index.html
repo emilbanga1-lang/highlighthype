@@ -11,13 +11,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=126" />
+<link rel="stylesheet" href="styles.css?v=127" />
 </head>
 <body>
-<!-- Round 125 (2026-11-13, Dyanna's board-first direction, Emil
-     approved after mock review; the pre-125 homepage is preserved
-     in .bak-r125-pre125 and this round is built to revert
-     cleanly): the hero music is ON by default with a mute choice
+<!-- Round 126 (2026-11-13, Emil's phone review of Round 125):
+     the mid-feed Hype Frame banner (441px tall at 390px wide —
+     "too big, and it doesn't look like what we had before") is
+     now a COMPACT strip in the pre-125 treatment — the Hype
+     Frame film under its finished-hoodie cover, the lockup,
+     the four steps compressed to one mini row — in the same
+     feed slot; the merch teaser's sweatshirts default to their
+     BACK view with the Swag Shop's Front/Back switch on the
+     card; the teaser's per-sport drop-notify form is GONE
+     (the Store's own notify stays); and the teaser products
+     render in two switchable layouts (?teaser=A: hoodies row
+     with the bottle in its own row underneath; ?teaser=B: one
+     hoodie + the bottle) until Emil picks one.
+     (Round 125 shipped just before — Dyanna's board-first
+     direction, Emil approved after mock review; the pre-125
+     homepage is preserved in .bak-r125-pre125 and this round is
+     built to revert cleanly): the hero music is ON by default with a mute choice
      (browser policy still gates the first audible start); the
      hero sub-line is "SHOW US YOURS"; the board's big heading
      band (the old .sec-head) is gone — the board IS the page;
@@ -654,9 +667,10 @@
 <!-- ============ HYPE FRAME ON THE HOMEPAGE (Round 125) ============
      Round 125 (2026-11-13, Dyanna): the full homepage Hype Frame
      section (film cover, steps, examples) is GONE from the home
-     flow — Hype Frame now rides the mid-feed banner inside the
-     Watch feed (app.js, hypeFrameBanner125) and lives in the
-     ☰ menu; every play keeps its own Create a Hype Frame
+     flow — Hype Frame now rides the mid-feed slot inside the
+     Watch feed (app.js; Round 126: hypeFrameStrip126, the old
+     section's own film treatment at compact size) and lives in
+     the ☰ menu; every play keeps its own Create a Hype Frame
      button and the studio is untouched. The pre-125 section is
      preserved in .bak-r125-pre125. -->
 </section>
@@ -989,11 +1003,21 @@
      Dyanna's board-first homepage: merch is a TEASER here, opened
      through the ☰ menu or these links — the full Store stays its
      own view. This replaces the Round 55 Rep The Hype photo band
-     (preserved in .bak-r125-pre125). Three products, names only:
+     (preserved in .bak-r125-pre125). Products, names only:
      NO prices on the homepage — prices live inside the Store
-     only (Emil's standing rule). The notify form is the store's
-     own per-sport drop alert (POST /api/drop-notify), the same
-     machinery as the bottle view's. -->
+     only (Emil's standing rule).
+     Round 126 (2026-11-13, Emil's phone review): the sweatshirt
+     cards default to the BACK view (the equipment back) with
+     the Swag Shop's Front/Back switch on the card (app.js swaps
+     the photo in place); the teaser's per-sport drop-notify
+     form is GONE entirely (the Store's own notify is
+     untouched); and the products render in TWO layouts Emil is
+     choosing between — A (default): the two hoodies in a row,
+     the bottle in its own slim row underneath; B (?teaser=B):
+     one hoodie (Baseball) + the bottle in a single two-card
+     row. The hoodies-and-bottle single row he saw in Round 125
+     is gone either way ("I don't like how the sweat shirts and
+     then water bottle looks together"). -->
 <div class="merch-teaser125 view-home" id="merchTeaser125">
   <div class="wrap">
     <div class="mt125-head">
@@ -1001,39 +1025,40 @@
       <span class="mt125-soon">Coming soon</span>
     </div>
     <p class="mt125-sub">Crest-and-sport hoodies for baseball, basketball, soccer, softball &amp; volleyball — plus the bottle every dugout and gym bag needs. Tap any product to open the full store.</p>
-    <div class="mt125-products">
-      <a class="mt125-prod" href="/store" data-store-link>
-        <img src="/swag/hs/baseball-front.jpg" loading="lazy" alt="Baseball Hype Hoodie — front: the HH crest over BASEBALL">
-        <b>Baseball Hoodie</b>
-        <span>Crest front · gear back</span>
-      </a>
-      <a class="mt125-prod" href="/store" data-store-link>
-        <img src="/swag/hs/basketball-front.jpg" loading="lazy" alt="Basketball Hype Hoodie — front: the HH crest over BASKETBALL">
-        <b>Basketball Hoodie</b>
-        <span>Crest front · gear back</span>
-      </a>
-      <a class="mt125-prod" href="/store" data-store-link>
-        <img src="/swag/hs/bottle-baseball.jpg" loading="lazy" alt="Hype Water Bottle — Baseball: the giant baseball graphic, gold crown and HYPE brush letters">
-        <b>Hype Water Bottle</b>
-        <span>32 oz · insulated</span>
-      </a>
-    </div>
-    <form class="mt125-notify" id="merchNotifyForm125">
-      <label class="mt125-notify-label" for="merchNotifyEmail125">Get told when your sport drops:</label>
-      <div class="mt125-notify-row">
-        <select id="merchNotifySport125" class="sport-select" aria-label="Sport — merch drop alert">
-          <option value="baseball">Baseball</option>
-          <option value="football">Football</option>
-          <option value="basketball">Basketball</option>
-          <option value="soccer">Soccer</option>
-          <option value="softball">Softball</option>
-          <option value="volleyball">Volleyball</option>
-        </select>
-        <input type="email" id="merchNotifyEmail125" placeholder="parent/guardian email" autocomplete="email">
-        <button type="submit" class="btlv-notify" id="merchNotifyBtn125">🔔 Notify me</button>
+    <div class="mt126-products" id="mtProducts126" data-teaser-variant="A">
+      <div class="mt126-hoodies">
+        <div class="mt125-prod" data-prod="baseball-hoodie" data-front="/swag/hs/baseball-front.jpg" data-back="/swag/hs/baseball-back.jpg">
+          <a class="mt125-prod-link" href="/store" data-store-link>
+            <img src="/swag/hs/baseball-back.jpg" loading="lazy" data-alt-front="Baseball Hype Hoodie — front: the HH crest over BASEBALL" data-alt-back="Baseball Hype Hoodie — back: the baseball gear graphic" alt="Baseball Hype Hoodie — back: the baseball gear graphic">
+            <b>Baseball Hoodie</b>
+            <span>Crest front · gear back</span>
+          </a>
+          <div class="mt126-sides" role="group" aria-label="Baseball Hoodie — view side">
+            <button type="button" class="mt126-side-btn" data-mt-side="front" aria-pressed="false">Front</button>
+            <button type="button" class="mt126-side-btn" data-mt-side="back" aria-pressed="true">Back</button>
+          </div>
+        </div>
+        <div class="mt125-prod" data-prod="basketball-hoodie" data-front="/swag/hs/basketball-front.jpg" data-back="/swag/hs/basketball-back.jpg">
+          <a class="mt125-prod-link" href="/store" data-store-link>
+            <img src="/swag/hs/basketball-back.jpg" loading="lazy" data-alt-front="Basketball Hype Hoodie — front: the HH crest over BASKETBALL" data-alt-back="Basketball Hype Hoodie — back: the basketball gear graphic" alt="Basketball Hype Hoodie — back: the basketball gear graphic">
+            <b>Basketball Hoodie</b>
+            <span>Crest front · gear back</span>
+          </a>
+          <div class="mt126-sides" role="group" aria-label="Basketball Hoodie — view side">
+            <button type="button" class="mt126-side-btn" data-mt-side="front" aria-pressed="false">Front</button>
+            <button type="button" class="mt126-side-btn" data-mt-side="back" aria-pressed="true">Back</button>
+          </div>
+        </div>
       </div>
-      <p class="mt125-notify-msg" id="merchNotifyMsg125" role="status"></p>
-    </form>
+      <div class="mt126-bottle-row">
+        <div class="mt125-prod mt126-bottle" data-prod="bottle">
+          <a class="mt125-prod-link" href="/store" data-store-link>
+            <img src="/swag/hs/bottle-baseball.jpg" loading="lazy" alt="Hype Water Bottle — Baseball: the giant baseball graphic, gold crown and HYPE brush letters">
+            <span class="mt126-bottle-copy"><b>Hype Water Bottle</b><span>32 oz · insulated</span></span>
+          </a>
+        </div>
+      </div>
+    </div>
     <p class="mt125-foot"><a href="/store" data-store-link>Open the full store →</a> <span class="mt125-note">Drop 001 · Youth sizes YXXS–YXL · No checkout yet — notify list only</span></p>
   </div>
 </div>
@@ -1521,6 +1546,6 @@
   </div>
 </div>
 
-<script src="app.js?v=126"></script>
+<script src="app.js?v=127"></script>
 </body>
 </html>
