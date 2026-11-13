@@ -438,6 +438,15 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN is_sample INTEGER DEFAULT 0"); 
 // guardian fields: never on the public allowlist — owner queue and
 // moderation pages only. Plays posted before this round keep ''.
 try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_consent_at TEXT DEFAULT ''"); } catch {}
+// Contest opt-in (Round 130, 2026-11-13): the Post a Play form's
+// "Enter this play in Hype of the Month" box is PRE-CHECKED, and
+// the client sends the state EXPLICITLY (contestOptin=1/0) on every
+// new-form submit. 1 = the guardian left it checked; approval then
+// enters the play automatically (see autoEnterOnApproval130). An
+// upload with NO contestOptin field is a legacy client — its plays
+// store 0 and are NEVER auto-entered; the Round 121 guardian
+// tap-to-enter remains their path. Rows predating this round are 0.
+try { db.exec("ALTER TABLE highlights ADD COLUMN contest_optin INTEGER DEFAULT 0"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -709,6 +718,28 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
 }
 function sendHtml(res, code, html) { res.writeHead(code, { "content-type": "text/html; charset=utf-8" }); res.end(html); }
 function currentPeriod() { return new Date().toISOString().slice(0, 7); } // YYYY-MM
+// Round 130 (2026-11-13): contest auto-entry on approval. A play
+// whose guardian left the upload form's contest box checked
+// (contest_optin=1) is entered into the APPROVAL month's contest
+// the moment it becomes approved — currentPeriod() at hook time IS
+// the approval month. Both approval paths (the emailed /moderate
+// action and the owner POST /api/highlights/:id/status) call this
+// with the post-update row on a pending->approved transition only.
+// Hard guards, in order: not approved, SAMPLE (a sample never
+// enters, whatever any flag says — the same rule the enter endpoint
+// enforces), no opt-in, already entered for the period (the
+// table's UNIQUE(highlight_id, period) backs this too). Prize
+// eligibility is untouched: an entered play with no reachable
+// guardian simply stays prize-ineligible, exactly as a manually
+// entered one does. Returns true when a row was inserted.
+function autoEnterOnApproval130(row) {
+  if (!row || row.status !== "approved" || row.is_sample || !row.contest_optin) return false;
+  const period = currentPeriod();
+  if (db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(row.id, period)) return false;
+  db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(row.id, period);
+  console.log(`[r130] auto-entered play ${row.id} into Hype of the Month ${period} on approval (upload opt-in)`);
+  return true;
+}
 function voteCount(id) { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=?").get(id).c; }
 function monthlyVoteCount(id, period) { try { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=? AND substr(created_at,1,7)=?").get(id, period).c; } catch { return voteCount(id); } }
 
@@ -1280,6 +1311,35 @@ async function r124RunMigration() {
     console.log("[r124] media migration complete");
   } catch (e) { console.error("[r124] migration error:", e.message); }
 }
+// One-time owner-directed retro-entry (Round 130, 2026-11-13):
+// Emil directed that the board's first two real plays — id 50
+// (Charlotte) and id 51 (Janine), both posted BEFORE the upload
+// form had an opt-in box — be entered into the November 2026
+// Hype of the Month contest. This is a one-time instruction for
+// these two plays ONLY: it does not generalize to other legacy
+// plays, and it never re-fires (settings marker, the r124 style).
+// Each play is entered only if it exists, is approved, is not a
+// sample, and is not already entered for 2026-11; every outcome
+// is logged. A guardian can still withdraw either play from
+// My Plays afterwards — the marker does not re-enter it.
+const R130_MIGRATION_KEY = "r130_enter_50_51_v1";
+function r130RunMigration() {
+  try {
+    if (getSetting(R130_MIGRATION_KEY)) return;
+    const period = "2026-11";
+    for (const id of [50, 51]) {
+      const row = db.prepare("SELECT id, status, is_sample FROM highlights WHERE id=?").get(id);
+      if (!row) { console.log(`[r130] retro-entry: play ${id} not found — skipped`); continue; }
+      if (row.status !== "approved") { console.log(`[r130] retro-entry: play ${id} is ${row.status}, not approved — skipped`); continue; }
+      if (row.is_sample) { console.log(`[r130] retro-entry: play ${id} is a sample — skipped`); continue; }
+      if (db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period)) { console.log(`[r130] retro-entry: play ${id} already entered for ${period} — skipped`); continue; }
+      db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
+      console.log(`[r130] retro-entry: play ${id} entered into Hype of the Month ${period} (owner direction, 2026-11-13)`);
+    }
+    setSetting(R130_MIGRATION_KEY, new Date().toISOString());
+    console.log("[r130] retro-entry migration complete");
+  } catch (e) { console.error("[r130] migration error:", e.message); }
+}
 
 // ---- Backup endpoints (hardening, 2026-11-04) ----
 // Read-only off-site backup pull for Muse's nightly job. Auth is a
@@ -1706,11 +1766,18 @@ const server = http.createServer(async (req, res) => {
       // as a story episode on the site and social channels. Board
       // posting never depends on it.
       const storyConsent = parseConsent(fields.storyConsent) ? 1 : 0;
+      // Contest opt-in (Round 130): the new form sends contestOptin
+      // EXPLICITLY ("1" checked / "0" unchecked — the client sets it
+      // from the pre-checked box on every submit). parseConsent maps
+      // "1"/"on"/"true" -> 1 and everything else -> 0, so a legacy
+      // upload with NO field lands on 0 = never auto-entered (see
+      // the column note above).
+      const contestOptin130 = Object.prototype.hasOwnProperty.call(fields, "contestOptin") ? parseConsent(fields.contestOptin) : 0;
       // Upload Assist (Round 99): the browser's AI result rides along
       // as an untrusted label (see sanitizeAiField) — display only.
       const aiJson = sanitizeAiField(fields.ai);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130);
       const newPlayId = Number(info.lastInsertRowid);
       // Round 124: the media pipeline runs BEFORE the response —
       // a converted file and its poster are part of the finished
@@ -1999,6 +2066,33 @@ const server = http.createServer(async (req, res) => {
       const info = db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
       return sendJson(res, 201, { ok: true, entryId: Number(info.lastInsertRowid), period, message: "🏆 Entered! Good luck." });
     }
+    if (p === "/api/contest/withdraw" && req.method === "POST") {
+      // Round 130 (2026-11-13): the mirror of Round 121's enter —
+      // withdrawing is the POSTING GUARDIAN's call too, proven with
+      // the same email match (or the owner token). Only the
+      // contest_entries row is removed: votes already cast stay in
+      // the votes table (they are counted per month from the votes
+      // rows themselves), so a play that re-enters in the same
+      // month shows its votes again — the codebase's entry/vote
+      // separation, unchanged. A withdrawn play can be re-entered
+      // by the guardian through /api/contest/enter as before.
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id = Number(body.highlightId);
+      const period = String(body.period || currentPeriod());
+      if (!/^\d{4}-\d{2}$/.test(period)) return sendJson(res, 400, { ok: false, message: "Invalid month." });
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (!ownerAuthorized(req)) {
+        if (!row.notify_email)
+          return sendJson(res, 403, { ok: false, message: "This play can't be withdrawn online — no guardian email is on file for it. The owner can withdraw it for you." });
+        const given = normIdentity(body.email || "");
+        if (!given || given !== normIdentity(row.notify_email))
+          return sendJson(res, 403, { ok: false, message: "That email doesn't match the one used to post this play — try the one you posted with." });
+      }
+      const info = db.prepare("DELETE FROM contest_entries WHERE highlight_id=? AND period=?").run(id, period);
+      if (!info.changes) return sendJson(res, 200, { ok: false, notEntered: true, message: "This play isn't entered in Hype of the Month." });
+      return sendJson(res, 200, { ok: true, period, message: "Withdrawn from Hype of the Month." });
+    }
     if (p === "/api/contest/winner" && req.method === "POST") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
@@ -2074,6 +2168,10 @@ const server = http.createServer(async (req, res) => {
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (status === "approved" && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       const after = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      // Round 130: on a fresh approval, an opted-in play auto-enters
+      // the contest (the helper refuses samples — approve_sample
+      // lands here with is_sample=1 already set on `after`).
+      if (status === "approved" && before.status !== "approved") autoEnterOnApproval130(after);
       const message = action === "approve_sample" ? "Approved as a sample play — this play is now live on the board, marked as a sample." : status === "approved" ? "Approved — this play is now live on the board." : "Declined — this play is hidden and will not appear on the board.";
       return sendHtml(res, 200, moderatePage(after, token, message));
     }
@@ -2247,6 +2345,11 @@ const server = http.createServer(async (req, res) => {
       if (hasSample) db.prepare("UPDATE highlights SET is_sample=? WHERE id=?").run(body.sample ? 1 : 0, Number(statusMatch[1]));
       if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (body.status === "approved" && before && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
+      // Round 130: on a fresh approval, an opted-in play auto-enters
+      // the contest. Re-fetched AFTER the sample-flag update above,
+      // so a same-call { sample: true } approval is refused by the
+      // helper's sample guard, exactly like the moderate path.
+      if (body.status === "approved" && before && before.status !== "approved") autoEnterOnApproval130(db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(statusMatch[1])));
       return sendJson(res, 200, { ok: true, status: body.status, isSample: hasSample ? !!body.sample : !!(before && before.is_sample) });
     }
     const delMatch = p.match(/^\/api\/highlights\/(\d+)$/);
@@ -2353,4 +2456,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r124RunMigration(); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r130RunMigration(); r124RunMigration(); });
