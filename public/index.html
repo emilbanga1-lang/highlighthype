@@ -11,10 +11,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=127" />
+<link rel="stylesheet" href="styles.css?v=128" />
 </head>
 <body>
-<!-- Round 126 (2026-11-13, Emil's phone review of Round 125):
+<!-- Round 127 (2026-11-13, Emil's phone review of the studio):
+     the Hype Frame STUDIO opens at the tool — the payoff stack
+     above the freeze card (autoplay film, example finishes,
+     Photo-or-Avatar concept-poster section) is removed from the
+     studio; the marketing stays in the Store's Hype Frame
+     feature. One tap on a filmstrip frame now PICKS it (seek +
+     freeze/compose in the same tap — the old flow needed the
+     separate Freeze button as a second hit). And the studio
+     player drops its native controls: iOS parked a big center
+     play button over the paused frame; now a custom overlay
+     starts the first play, the video surface toggles play/pause,
+     and the persistent controls live in the scrub row — a paused
+     frame shows completely clean.
+     (Round 126 shipped just before — Emil's phone review of
+     Round 125):
      the mid-feed Hype Frame banner (441px tall at 390px wide —
      "too big, and it doesn't look like what we had before") is
      now a COMPACT strip in the pre-125 treatment — the Hype
@@ -777,71 +791,39 @@
       <p id="hfPlayLine">Turn your highlight into wearable hype — freeze a real frame from the highlight, put it on premium youth apparel, and send the request. A parent or guardian confirms before anything is printed.</p>
     </div>
 
-    <!-- Payoff first (Round 3, 2026-11-05): the studio opens with what
-         the finished thing looks like — the Hype Frame film plus the
-         finished-product examples — THEN the freeze flow. Excitement
-         first, data collection last. -->
-    <div class="hf-payoff">
-      <div class="hf-film">
-        <video src="/hype-frame-film.mp4?v=7" poster="/swag/hf-door.jpg" autoplay muted loop playsinline preload="metadata" aria-label="Hype Frame film — a softball frame printed on a cream hoodie, morphing into the avatar version and back"></video>
-      </div>
-      <p class="hf-payoff-line">This is what your moment becomes.</p>
-      <div class="hf-examples hf-examples-studio">
-        <div class="hf-examples-grid">
-          <figure class="hf-example hf-example-hoodie">
-            <div class="hf-swipe" data-hf-swipe>
-              <div class="hf-swipe-track">
-                <img src="/swag/hf-example-hoodie-back.jpg" alt="Example finish: a frozen baseball moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-                <img src="/swag/hf-example-hoodie-back-avatar.webp" alt="Example finish, Avatar version: the same baseball moment illustrated as a bold avatar, printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-              </div>
-              <div class="hf-swipe-chips" role="group" aria-label="Hoodie example: Photo or Avatar">
-                <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
-                <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
-              </div>
-            </div>
-            <figcaption>Black hoodie · Back — example finish · Photo / Avatar</figcaption>
-          </figure>
-          <figure class="hf-example hf-example-lineup">
-            <img src="/swag/hf-example-lineup.jpg" alt="Example finishes lineup: frozen moments printed on a black hoodie, a cream tee, a black cap, a charcoal hoodie and a white tee" loading="lazy" decoding="async" />
-            <figcaption>Hoodies, tees and a cap — example finishes</figcaption>
-          </figure>
-        </div>
-    <div class="hf-examples-head hf-sub-head" style="margin-top:24px">
-      <h4>Photo or Avatar — your pick</h4>
-      <p>Every Hype Frame starts from your real moment. Print it as the photo it is, or have it illustrated as an avatar — same play, same uniform, no real face on the garment. You choose in the studio.</p>
-    </div>
-    <!-- Round 43 (2026-11-08, Twinkie: "more swipes"): the pair is
-         ONE swipe card now — Photo first, Avatar a flick away; the
-         block takes half the space and the comparison is instant. -->
-    <figure class="hf-example">
-      <div class="hf-swipe hf-swipe-wide" data-hf-swipe>
-        <div class="hf-swipe-track">
-          <img src="/swag/hf-poster-photo.webp" alt="Hype Frame concept poster, photo version: a baseball highlight frozen from a phone video and printed on hoodies, tees and a cap" loading="lazy" decoding="async" />
-          <img src="/swag/hf-poster-avatar.webp" alt="Hype Frame concept poster, avatar version: the same poster with every athlete illustrated as a bold avatar" loading="lazy" decoding="async" />
-        </div>
-        <div class="hf-swipe-chips" role="group" aria-label="Concept poster: Photo or Avatar">
-          <button type="button" data-hf-chip="0" aria-pressed="true">Photo</button>
-          <button type="button" data-hf-chip="1" aria-pressed="false">Avatar</button>
-        </div>
-      </div>
-      <figcaption>The concept poster, two ways — swipe: Real photo / Avatar</figcaption>
-    </figure>
-      </div>
-    </div>
-
+    <!-- Round 127 (2026-11-13, Emil): the studio opens AT the
+         tool now. The whole payoff stack that used to sit above
+         the freeze card is GONE from the studio — the autoplay
+         film + payoff line, the example-finishes block (hoodie
+         Photo/Avatar swipe + garment lineup) and the Photo-or-
+         Avatar concept-poster section. The marketing lives in the
+         Store's Hype Frame feature; the Photo/Avatar CHOICE
+         itself stays below as a working picker (#hfImageStyles). -->
     <div class="hf-studio upload-card" id="hfStudio">
       <div class="hf-grid">
         <div class="hf-col">
           <h4 class="form-sec-title">Freeze your frame</h4>
-          <video id="hfVideo" controls playsinline preload="metadata"></video>
+          <!-- Round 127 (2026-11-13, Emil): NO native controls on
+               the studio player — iOS parks its big center play
+               button over the paused frame, hiding the very frame
+               being judged. A custom overlay starts the first
+               play only; after that the video surface toggles
+               play/pause and the persistent controls live in the
+               scrub row below, so a paused frame shows clean. -->
+          <div class="hf-videowrap127" id="hfVideoWrap127">
+            <video id="hfVideo" playsinline preload="metadata"></video>
+            <button type="button" class="hf-bigplay127" id="hfBigPlay127" aria-label="Play the clip">▶</button>
+            <span class="hf-tapflash127" id="hfTapFlash127" aria-hidden="true"></span>
+          </div>
           <img id="hfPhoto" alt="The play's photo" hidden>
           <div class="hf-scrubrow" id="hfScrubRow">
+            <button type="button" class="hf-playbtn127" id="hfPlayBtn127" aria-label="Play">▶</button>
             <input type="range" id="hfScrub" min="0" max="0" step="0.01" value="0" aria-label="Video timeline — scrub to your favorite moment">
             <span id="hfTime">0:00 / 0:00</span>
           </div>
           <div class="hf-strip-wrap" id="hfStripWrap" hidden>
-            <p class="hf-strip-label">Tap a frame to jump to it</p>
-            <div class="hf-strip" id="hfStrip" role="group" aria-label="Frame thumbnails — tap one to jump the video to that moment"></div>
+            <p class="hf-strip-label">Tap a frame to pick it — that frame becomes your print</p>
+            <div class="hf-strip" id="hfStrip" role="group" aria-label="Frame thumbnails — tap one to pick that frame as your print"></div>
           </div>
           <div class="hf-freezerow">
             <button type="button" class="btn btn-ghost" id="hfStepBack" aria-label="Back one second">◀ 1s</button>
@@ -1546,6 +1528,6 @@
   </div>
 </div>
 
-<script src="app.js?v=127"></script>
+<script src="app.js?v=128"></script>
 </body>
 </html>
