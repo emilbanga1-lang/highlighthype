@@ -3025,3 +3025,18 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .mt125-foot a{color:var(--gold);font-weight:800;text-decoration:none}
 .mt125-note{font-size:12.5px;color:var(--muted)}
 @media (max-width:640px){ .mt126-hoodies{gap:8px} .mt125-prod{padding:8px} .mt125-prod b{font-size:13px} .mt126-bottle{padding:8px 10px} }
+
+/* Round 127 (2026-11-13): the studio player's custom chrome.
+   #hfVideo has no native controls (iOS's center play button
+   covered the paused frame); the wrap positions the first-play
+   overlay and the tap flash over the picture, and the [hidden]
+   guards are explicit per the standing CSS trap — a display
+   rule below would otherwise beat the attribute. */
+.hf-videowrap127{position:relative;line-height:0}
+.hf-videowrap127[hidden]{display:none}
+.hf-studio video#hfVideo[hidden]{display:none}
+.hf-bigplay127{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;border:2px solid rgba(0,0,0,.35);background:var(--volt);color:#0a0a0a;font-size:29px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 6px 24px rgba(0,0,0,.45);padding:0 0 0 6px}
+.hf-bigplay127[hidden]{display:none}
+.hf-tapflash127{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);color:#fff;font-weight:800;font-size:13px;padding:5px 10px;border-radius:999px;line-height:1;opacity:0;transition:opacity .3s ease;pointer-events:none}
+.hf-tapflash127.show127{opacity:1;transition:opacity .08s ease}
+.hf-playbtn127{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:#101010;color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0}
