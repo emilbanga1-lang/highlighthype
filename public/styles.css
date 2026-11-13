@@ -3040,3 +3040,18 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .hf-tapflash127{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);color:#fff;font-weight:800;font-size:13px;padding:5px 10px;border-radius:999px;line-height:1;opacity:0;transition:opacity .3s ease;pointer-events:none}
 .hf-tapflash127.show127{opacity:1;transition:opacity .08s ease}
 .hf-playbtn127{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:#101010;color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0}
+
+/* Round 128 (2026-11-13): the studio's composed print opens BIG.
+   The frozen confirmation (#hfFrozenWrap) is the tap target —
+   cursor + zoom chip say so — and the lightbox is a fixed
+   full-viewport overlay whose img is capped by the viewport on
+   both axes. The [hidden] guard is explicit per the standing
+   CSS trap: the display:flex below would otherwise beat the
+   attribute and leave the overlay up. */
+.hf-frozen{cursor:zoom-in;touch-action:manipulation}
+.hf-frozen:focus-visible{outline:2px solid var(--volt);outline-offset:3px;border-radius:12px}
+.hf-frozen-zoom128{color:var(--volt);white-space:nowrap}
+.hf-lightbox128{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;padding:18px}
+.hf-lightbox128[hidden]{display:none}
+.hf-lightbox128 img{max-width:96vw;max-height:92vh;width:auto;height:auto;object-fit:contain;border-radius:10px;background:#000;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.hf-lightbox-close128{position:absolute;top:14px;right:14px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:rgba(16,16,16,.9);color:#fff;font-size:19px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0;z-index:1}
