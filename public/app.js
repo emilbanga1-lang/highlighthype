@@ -347,8 +347,19 @@ function hydrateDurPills() {
   $$(".dur-host").forEach((host) => {
     const video = host.querySelector("video");
     if (!video) return;
-    if (video.readyState >= 1) { fillDurPill(host); markVertical107(host); }
-    video.addEventListener("loadedmetadata", () => { fillDurPill(host); markVertical107(host); }, { once: true });
+    /* Round 133 (2026-11-13): a Month host is never marked
+       vertical and never gains a .vfill clone — the fill is
+       preview dressing for a playing clip, and Month tiles
+       rest on their poster (see renderMonth). The duration
+       pill and the frame bank wire exactly as before on every
+       host; Watch, Battles, detail and athlete hosts mark
+       exactly as before. The closest() probe is guarded the
+       same way the Round 113 wiring guards it — sandbox hosts
+       without it simply mark as they always did. */
+    let monthHost133 = false;
+    try { monthHost133 = typeof host.closest === "function" && !!host.closest("#viewMonth"); } catch (e) { monthHost133 = false; }
+    if (video.readyState >= 1) { fillDurPill(host); if (!monthHost133) markVertical107(host); }
+    video.addEventListener("loadedmetadata", () => { fillDurPill(host); if (!monthHost133) markVertical107(host); }, { once: true });
     /* Round 123: board media feeds the frame bank too — a tile
        playing past its freeze point banks the frame that every
        other surface's poster then upgrades from (the bank used
@@ -412,7 +423,7 @@ function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
     <div class="tile-body">
       <div class="tile-toprow">
         <h3 class="tile-title">${esc(h.title)}</h3>
@@ -720,7 +731,13 @@ function renderMonth() {
   // .tile-deck (display:contents on desktop, stacked + swipe deck
   // on phones — see styles.css). Inlined at both render sites: the
   // test suites slice these functions separately.
-  const monthTiles = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount }));
+  /* Round 133 (2026-11-13): Month entry tiles rest on their
+     poster frame — rest133 drops the tile video's autoplay in
+     fameThumbHtml (the clip plays in the detail view on tap).
+     Emil's Charlotte catch: her montage reel ENDS in podium
+     photos, and the autoplaying tile kept landing on them,
+     reading as the wrong video on her card. */
+  const monthTiles = filtered.map((h) => tileHtml(h, { monthVotes: h.voteCount, rest133: true }));
   $("#board").innerHTML = monthTiles.length ? `<div class="tile-featured-slot">${monthTiles[0]}</div>` + (monthTiles.length > 1 ? `<div class="tile-deck">${monthTiles.slice(1).join("")}</div>` : "") : "";
   hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
@@ -754,12 +771,18 @@ function renderMonth() {
    the same two kinds the board cards play — get a REAL playing video
    (muted, looping, inline) instead of the old sport-name placeholder.
    Anything else (embeds, watch-links) keeps the sport-name fallback. */
-function fameThumbHtml(h) {
+function fameThumbHtml(h, opts) {
   if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
   /* Round 123: board tiles wear the Round 118 poster pattern from
      first paint too (see mediaHtml) — a tile never sits black while
      its clip loads. */
-  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline autoplay preload="metadata"></video>`;
+  /* Round 133 (2026-11-13): opts.rest133 (Month entry tiles only,
+     threaded from renderMonth via tileHtml) drops the autoplay
+     attribute — the tile rests on its poster frame and the clip
+     plays only in the detail view on tap. Every other caller
+     (Watch tiles, Hall of Fame thumbs) renders exactly as
+     before, autoplay included. */
+  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline${opts && opts.rest133 ? "" : " autoplay"} preload="metadata"></video>`;
   return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
 }
 function renderFame() {
@@ -1357,6 +1380,17 @@ function switchView(v) {
      (#contestSlim123) takes the old Watch-only rule. */
   const cs107 = $("#contestStrip"); if (cs107) cs107.hidden = v !== "month";
   const csSlim123 = $("#contestSlim123"); if (csSlim123) csSlim123.hidden = v !== "all";
+  /* Round 133 (2026-11-13): the board section's crowd-photo
+     backdrop (.board-bg) is switched OFF on the Month view.
+     The Month tab is a text surface — gold strip, prize line,
+     leaderboard rows — and the photo smeared behind all of it
+     read as a stray image behind everything (Emil: "what is
+     also that image behind everything"). With it off, the tab
+     rests on #plays' plain dark gradient. "fame" normalizes
+     to "month" at the top of this function, so the Hall of
+     Fame sub-view is covered; Watch and Battles restore the
+     backdrop exactly as before. */
+  const bb133 = $(".board-bg"); if (bb133) bb133.style.display = v === "month" ? "none" : "";
   const seeAllRow = $("#seeAllRow"); if (seeAllRow) seeAllRow.hidden = v === "all";
   /* Round 125: the board's heading band is gone (Dyanna: the
      page IS the board), so the title/intro writes land only if
