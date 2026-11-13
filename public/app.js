@@ -1041,13 +1041,17 @@ function updateContestStrip107() {
   const label107 = CONTEST.monthLabel || (y && m ? `${MONTHS[m - 1]} ${y}` : "");
   const t1 = $("#stripTitle"), t2 = $("#stripState"), ends = $("#stripEnds");
   /* Round 134 (2026-11-13): the banner is a card now — #stripTitle
-     is its gold EYEBROW and carries the contest period alone
-     ("November 2026", uppercased by CSS); the big title is static
-     markup under it, and the dynamic leader line no longer paints
-     in the banner at all (the #stripState element retired — the
-     guarded t2 write below simply no-ops on the Month tab; the
-     Watch slim line further down still carries the live state). */
-  if (t1) t1.textContent = label107 || "Hype of the Month";
+     is its gold EYEBROW (uppercased by CSS); the dynamic leader
+     line no longer paints in the banner at all (the #stripState
+     element retired — the guarded t2 write below simply no-ops
+     on the Month tab; the Watch slim line further down still
+     carries the live state).
+     Round 136 (2026-11-13, Emil): the card's big "Hype of the
+     Month" title is dropped — the tab already says it — and the
+     eyebrow carries name + period instead: "Hype of the Month ·
+     November 2026", so the card still reads on its own in a
+     screenshot. */
+  if (t1) t1.textContent = label107 ? `Hype of the Month · ${label107}` : "Hype of the Month";
   if (t2) t2.textContent = state;
   const endsTxt = y && m ? `Ends ${MONTHS[m - 1].slice(0, 3)} ${new Date(y, m, 0).getDate()}` : "";
   if (ends) ends.textContent = endsTxt;
