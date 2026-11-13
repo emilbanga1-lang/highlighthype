@@ -27,6 +27,10 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // They are never listed on any public endpoint.
 const HYPEFRAME_DIR = path.join(DATA_DIR, "hype-frames");
 fs.mkdirSync(HYPEFRAME_DIR, { recursive: true });
+// Round 128: cap on an order's composed print PNG (decoded bytes).
+// Studio compositions run ~170KB; 5MB is generous headroom without
+// letting one order payload park a huge file on the data disk.
+const HF_PRINT_IMAGE_MAX = 5 * 1024 * 1024;
 const DB_PATH = path.join(DATA_DIR, "highlighthype.db");
 
 // ---- Hardening (2026-11-04, security/infra review follow-up) ----
@@ -781,7 +785,7 @@ function notifyHypeFrameRequest(order, play) {
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n\nSee the request and the print image in Owner view: https://highlighthype.com/#owner\n` })
+    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
 // ---- Round 100: Daily Battle helpers ----
@@ -1787,16 +1791,30 @@ const server = http.createServer(async (req, res) => {
       const guardianEmail = String(body.guardianEmail || "").trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail))
         return sendJson(res, 400, { ok: false, message: "A parent/guardian email is required so we can confirm the order before printing." });
+      // Print image (Round 128): the composed PNG rides on the order
+      // and is stored as a file in HYPEFRAME_DIR (DATA_DIR/hype-frames
+      // — inside BACKUP_FILE_DIRS, so the nightly backup carries it).
+      // Fault-tolerant by design: a missing, malformed, oversized or
+      // unwritable image NEVER loses the order — the order is saved
+      // with print_image = "" (marked missing) and the problem is
+      // logged below; the owner view then shows "no print image on
+      // file" and the image endpoint 404s cleanly for that order.
+      let imgName = "";
+      let imgProblem = "";
       const m = String(body.image || "").match(/^data:image\/png;base64,([A-Za-z0-9+/=]+)$/);
-      if (!m) return sendJson(res, 400, { ok: false, message: "Freeze a frame first — the print image is missing." });
-      const imgBuf = Buffer.from(m[1], "base64");
-      if (!imgBuf.length || imgBuf.length > 25 * 1024 * 1024)
-        return sendJson(res, 400, { ok: false, message: "That print image is too large — try freezing the frame again." });
-      if (imgBuf.subarray(0, 4).toString("hex") !== "89504e47")
-        return sendJson(res, 400, { ok: false, message: "The print image must be a PNG — try freezing the frame again." });
-      if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
-      const imgName = `hf-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.png`;
-      fs.writeFileSync(path.join(HYPEFRAME_DIR, imgName), imgBuf);
+      if (!m) imgProblem = "no PNG data URL on the payload";
+      else {
+        const imgBuf = Buffer.from(m[1], "base64");
+        if (!imgBuf.length) imgProblem = "empty image payload";
+        else if (imgBuf.length > HF_PRINT_IMAGE_MAX) imgProblem = `image over the 5MB cap (${imgBuf.length} bytes)`;
+        else if (imgBuf.subarray(0, 4).toString("hex") !== "89504e47") imgProblem = "payload is not a PNG";
+        else if (storageIsFull()) imgProblem = "storage full";
+        else {
+          const candidate = `hf-${Date.now()}-${crypto.randomBytes(6).toString("hex")}.png`;
+          try { fs.writeFileSync(path.join(HYPEFRAME_DIR, candidate), imgBuf); imgName = candidate; }
+          catch (e) { imgProblem = "write failed: " + e.message; }
+        }
+      }
       // Placement: percentages relative to the garment print area.
       // Clamp to sane ranges; a missing/partial placement falls back to
       // the studio defaults (centered, default size) so every order on
@@ -1826,8 +1844,9 @@ const server = http.createServer(async (req, res) => {
       };
       const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,colorway,size,guardian_name,guardian_email,placement)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement);
+      if (imgProblem) console.error(`hype-frame order ${Number(info.lastInsertRowid)} saved WITHOUT its print image: ${imgProblem}`);
       notifyHypeFrameRequest({ ...order, id: Number(info.lastInsertRowid) }, play);
-      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
+      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", imageSaved: !!imgName, message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
     }
 
     // ---- Round 100: Daily Battle ----
@@ -2121,9 +2140,19 @@ const server = http.createServer(async (req, res) => {
     if (hfImgMatch && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const o = db.prepare("SELECT * FROM hype_frame_orders WHERE id=?").get(Number(hfImgMatch[1]));
-      const file = o ? path.join(HYPEFRAME_DIR, path.basename(o.print_image)) : "";
-      if (!o || !fs.existsSync(file)) return sendJson(res, 404, { ok: false, message: "Print image not found." });
-      res.writeHead(200, { "content-type": "image/png", "content-length": fs.statSync(file).size, "cache-control": "private, no-store" });
+      const file = o && o.print_image ? path.join(HYPEFRAME_DIR, path.basename(o.print_image)) : "";
+      // Round 128: orders saved without an image (print_image = "")
+      // 404 cleanly here — never resolve the directory itself.
+      if (!o || !file || !fs.existsSync(file) || !fs.statSync(file).isFile()) return sendJson(res, 404, { ok: false, message: "Print image not found." });
+      // Round 128 (Emil's fulfillment workflow): the owner grabs this
+      // image on his iPhone and feeds it to his avatar tool, so the
+      // response is a proper direct download — PNG content type plus
+      // an attachment disposition with a stable, meaningful filename
+      // (hypeframe-order-<id>.png) so iOS offers Save to Files/Photos
+      // without friction. Auth stays header-only (owner token); the
+      // Owner view fetches with the header and saves the blob under
+      // this same filename.
+      res.writeHead(200, { "content-type": "image/png", "content-disposition": `attachment; filename="hypeframe-order-${o.id}.png"`, "content-length": fs.statSync(file).size, "cache-control": "private, no-store" });
       return fs.createReadStream(file).pipe(res);
     }
     if (p === "/api/owner/reports" && req.method === "GET") {
