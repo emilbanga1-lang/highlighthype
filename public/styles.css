@@ -2922,3 +2922,9 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
   .filters-bar123 .divseg-row{flex:0 0 auto}
   .filters-bar123 .divseg-row .seg{margin-top:0}
 }
+
+/* Round 124 (2026-11-12): the Hype Frame filmstrip explains
+   itself when a clip's frames can't be captured at all (the
+   pre-conversion HEVC dead end) instead of sitting silently
+   empty — one quiet line where the thumbnails would have been. */
+.hf-strip-note{flex:1 1 auto;margin:4px 0;font-size:13px;font-weight:600;line-height:1.45;color:var(--muted2)}
