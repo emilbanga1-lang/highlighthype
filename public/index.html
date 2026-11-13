@@ -11,10 +11,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=128" />
+<link rel="stylesheet" href="styles.css?v=129" />
 </head>
 <body>
-<!-- Round 127 (2026-11-13, Emil's phone review of the studio):
+<!-- Round 128 (2026-11-13, Emil): in the Hype Frame studio,
+     tapping the composed print opens it BIG — a full-screen
+     lightbox (✕ / backdrop tap / Esc to close) that always
+     reads the CURRENT composition, so a name/placement change
+     shows on the next open. And the order now keeps its print
+     image no matter what: a missing, malformed or oversized
+     image no longer fails the order — it is saved with the
+     image marked missing, and the Owner view gains a real
+     "Download print image" action per request.
+     (Round 127 shipped just before, Emil's phone review of the studio):
      the Hype Frame STUDIO opens at the tool — the payoff stack
      above the freeze card (autoplay film, example finishes,
      Photo-or-Avatar concept-poster section) is removed from the
@@ -834,9 +843,9 @@
                removed apparel preview — just the composed print itself,
                small, so a freeze visibly lands. Hidden until a freeze
                succeeds; synced from composeHfPrint in app.js. -->
-          <div class="hf-frozen" id="hfFrozenWrap" hidden>
+          <div class="hf-frozen" id="hfFrozenWrap" hidden role="button" tabindex="0" aria-label="See your print bigger">
             <img id="hfFrozenImg" alt="Your frozen frame — the print composed from the moment you froze">
-            <p class="hf-frozen-cap">Your frozen frame — this is the print. Freeze again any time to change it.</p>
+            <p class="hf-frozen-cap">Your frozen frame — this is the print. <span class="hf-frozen-zoom128">⤢ Tap to see it bigger</span> — freeze again any time to change it.</p>
           </div>
           <p class="small">Play or scrub to the moment — Freeze works while the video plays, and the ◀ ▶ buttons nudge it a second at a time. Not the one? Freeze again — as many times as you like, until it's the shot. Your frozen frame becomes the print.</p>
           <div id="hfLinkNote" hidden>
@@ -1528,6 +1537,13 @@
   </div>
 </div>
 
-<script src="app.js?v=128"></script>
+<!-- ============ HYPE FRAME PRINT LIGHTBOX (Round 128: tap the
+     composed print in the studio → see it big) ============ -->
+<div class="hf-lightbox128" id="hfLightbox128" hidden role="dialog" aria-modal="true" aria-label="Your print, enlarged">
+  <button type="button" class="hf-lightbox-close128" id="hfLightboxClose128" aria-label="Close enlarged view">✕</button>
+  <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
+</div>
+
+<script src="app.js?v=129"></script>
 </body>
 </html>
