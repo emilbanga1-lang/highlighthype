@@ -2514,14 +2514,11 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 .month-sub:empty{display:none}
 .month-subseg button[aria-pressed="true"]{background:var(--gold);color:#171200;border-color:var(--gold)}
 #viewMonth .tile-grid{display:block}
-#viewMonth .tile-featured-slot{display:block;margin:0}
-#viewMonth .tile-deck{display:block;overflow:visible;padding:0}
-#viewMonth .tile{display:flex;gap:13px;align-items:center;padding:12px 2px;border-bottom:1px solid #232320}
-#viewMonth .tile-media{flex:0 0 118px;width:118px;aspect-ratio:16/9;border-radius:10px}
-#viewMonth .tile-body{flex:1;min-width:0;padding:0}
-#viewMonth .tile-title{font-size:15.5px}
-#viewMonth .tile-info{font-size:12.5px;white-space:normal}
-#viewMonth .tile-media .dur-pill{display:none}
+/* Round 134 (2026-11-13): the Month tile rules that stood here
+   (the 118px row layout) retire with the tile deck itself —
+   the tab's components (banner card, featured card,
+   Leaderboard heading + text tabs, compact rows, poster fill)
+   are styled in the Round 134 block at the end of this file. */
 
 /* ---- Watch view: the detail sheet becomes a page ---- */
 .play-detail{background:var(--bg);display:block;padding:76px 0 48px}
@@ -2717,7 +2714,6 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 #plays .tile-info{margin-top:2px}
 #plays .tile-votes{margin-top:7px}
 #plays .tile .play-badges,#plays .tile .play-crowns{margin-top:4px;margin-bottom:0}
-#viewMonth .tile{padding-top:10px;padding-bottom:10px}
 
 /* ---- Below the board: Hype Frame teaser + closing bands ---- */
 #hfExamplesHome{margin-top:18px;padding-top:20px}
@@ -3083,3 +3079,79 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
   .hf-strip-lockup126 b{font-size:19px;white-space:normal}
   .hf-strip-stepsline126{font-size:11.5px}
 }
+
+/* ================= Round 134 (2026-11-13, Emil's mockup):
+   the Month tab rebuilt — banner card, featured clip card,
+   Leaderboard heading + dropdown, text tabs, compact rows;
+   the Hall of Fame heading block + compact rows. ============ */
+
+/* (1) Banner card: the contest strip's gradient card, restacked
+   — eyebrow row (period + ENDS pill), big title, prize line. */
+.contest-strip.banner134{flex-direction:column;align-items:stretch;gap:0;padding:16px 18px 15px;border-radius:16px;margin:0 0 14px}
+.banner-top134{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.banner-eyebrow134{color:var(--gold);font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.banner-title134{font-family:"Archivo",sans-serif;font-weight:800;font-size:29px;line-height:1.12;color:#fff;margin-top:7px}
+.banner-prize134{color:#ddd6c2;font-size:14.5px;font-weight:600;margin-top:5px}
+
+/* (2) Featured card: one card — 16:9 poster-rest preview on
+   top, body below. The preview reuses .tile-media (16:9,
+   relative, overflow hidden); its radius is the card's. */
+.feat-card134{background:var(--card);border:1px solid var(--line2);border-radius:16px;overflow:hidden;margin:0 0 6px}
+#viewMonth .feat-media134{border-radius:0}
+.feat-media134 .pfill134{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(16px) brightness(.5);transform:scale(1.25);z-index:0;pointer-events:none}
+.feat-badge134{position:absolute;top:12px;left:12px;z-index:3;background:rgba(8,8,6,.82);border:1px solid rgba(240,185,62,.7);color:var(--gold);font-size:12.5px;font-weight:800;letter-spacing:.03em;padding:6px 11px;border-radius:999px}
+.feat-disc134{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:68px;height:68px;border-radius:50%;background:rgba(5,5,5,.55);border:2px solid rgba(255,255,255,.92);display:grid;place-items:center}
+.feat-disc134 svg{margin-left:3px}
+.feat-body134{padding:14px 16px 16px}
+.feat-title134{font-family:"Archivo",sans-serif;font-weight:800;font-size:20px;line-height:1.25;color:#fff;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feat-sub134{color:var(--muted);font-size:14.5px;font-weight:600;margin:4px 0 0}
+.feat-vote134{display:flex;align-items:center;gap:10px;width:100%;margin-top:13px;background:var(--gold);color:#171200;border:0;border-radius:12px;padding:14px 16px;font:inherit;font-size:16.5px;font-weight:800;cursor:pointer}
+.feat-vote134 .feat-vote-label134{flex:1;text-align:center}
+.feat-vote134 .feat-vote-count134{flex:none;font-size:13.5px;font-weight:800;opacity:.75}
+.feat-vote134.voted{background:#d9a92f;box-shadow:inset 0 0 0 2px rgba(23,18,0,.35)}
+.feat-vote134.is-static{justify-content:center;cursor:default}
+
+/* (3) Leaderboard heading row + the sport dropdown as a small
+   dark pill at its right. The select machinery is the same
+   (renderSportSelect fills #monthSportSelect / #fameSportSelect);
+   only the presentation moved. */
+.lb-head134{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 0}
+.lb-title134{font-family:"Archivo",sans-serif;font-weight:800;font-size:26px;color:#fff;margin:0}
+.lb-filter134{flex:none}
+.lb-select134{background:#17181c;color:#fff;border:1px solid #2a2b31;border-radius:999px;padding:8px 30px 8px 13px;font:inherit;font-size:14px;font-weight:700;min-height:38px;max-width:170px;cursor:pointer}
+.fame-explainer134{color:var(--muted);font-size:14px;font-weight:600;margin:6px 0 0}
+
+/* (4) Text tabs: the month/fame switch, pill chrome stripped —
+   gold text + gold underline when active, grey otherwise. The
+   data-msub wiring and aria-pressed state are untouched. */
+.seg.month-subseg.mtabs134{display:flex;gap:28px;background:transparent;border:0;border-bottom:1px solid var(--line2);border-radius:0;padding:0;margin:14px 0 0}
+.seg.month-subseg.mtabs134 button{background:transparent;border:0;color:var(--muted);font-size:16.5px;font-weight:700;padding:9px 2px 11px;border-radius:0;box-shadow:inset 0 -3px 0 transparent;margin-bottom:-1px}
+.seg.month-subseg.mtabs134 button[aria-pressed="true"]{background:transparent;color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
+
+/* (5) Compact leaderboard rows: rank chip · name/title + sport
+   · "N votes ›". */
+.month-rows134{margin-top:2px}
+.lb-row134{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid #232320;cursor:pointer}
+.lb-row134:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.lb-rank134{flex:none;width:34px;height:34px;display:grid;place-items:center;background:#1d1d1a;border:1px solid var(--line2);border-radius:9px;color:var(--gold);font-weight:800;font-size:15px}
+.lb-main134{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.lb-title134{color:#fff;font-weight:700;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-sub134{color:var(--muted);font-size:13px;font-weight:600}
+.lb-votes134{flex:none;color:#e8e8e2;font-size:14px;font-weight:700;white-space:nowrap}
+.lb-chev134{color:var(--muted);font-weight:400;margin-left:2px}
+
+/* (6) Hall of Fame rows, rebuilt compact: rank · poster thumb
+   with play icon · short title + sport · votes pill. Overrides
+   the Round 5-era grid (128px video thumb + wide votes
+   column) that squeezed the caption to five lines on phones. */
+.fame-row{grid-template-columns:30px 76px 1fr auto;gap:12px;padding:12px 2px}
+.fame-rank{font-size:24px}
+.fame-thumb134{position:relative;width:76px;aspect-ratio:16/9;flex:none}
+.fame-thumb134 img{width:100%;height:100%;object-fit:cover;display:block}
+.fame-play134{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:rgba(5,5,5,.55);border:1.5px solid rgba(255,255,255,.92);display:grid;place-items:center;pointer-events:none}
+.fame-play134 svg{margin-left:1px}
+.fame-thumb-fallback134{display:grid;place-items:center;height:100%;color:#fff;font-weight:800;font-size:11px;text-align:center;padding:2px}
+.fame-info{min-width:0}
+.fame-info h4{font-family:"Archivo",sans-serif;font-weight:700;font-size:15.5px;text-transform:none;letter-spacing:0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fame-info p{margin:2px 0 0;font-size:13px}
+.fame-votes-pill134{flex:none;background:rgba(240,185,62,.14);border:1px solid rgba(240,185,62,.45);color:#f3d98b;font-size:12.5px;font-weight:800;padding:6px 10px;border-radius:999px;white-space:nowrap}
