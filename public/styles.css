@@ -2864,3 +2864,40 @@ footer{padding-top:12px;padding-bottom:44px}
 .hero-mute{width:40px;height:40px;border-radius:50%;padding:0;gap:0;top:12px;right:12px}
 .hero-mute span{display:none}
 .hero-mute svg{width:18px;height:18px}
+
+/* ================================================================
+   Rounds 121 + 122 (2026-11-12, Emil "Correct" on the youth-agent
+   test): the posting chain + orientation.
+   121 — the post-success screen (the .upload-done form swap), the
+   My Plays status chips, the Month tab's how/prize lines, and the
+   guardian enter form inside the card message slot.
+   122 — the board section's scroll-margin for tab jumps, and the
+   floating Post pill clearance: body bottom padding + scroll
+   padding sized to the pill (bottom offset 18px + height ~48px +
+   margin), so any card on any panel can scroll fully clear of it.
+   ================================================================ */
+#plays{scroll-margin-top:76px}
+html{scroll-padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+/* Post-success screen: swap the form body for the panel. */
+#uploadForm.upload-done>*:not(.upload-close):not(.upload-success){display:none!important}
+.upload-success{padding:10px 0 4px}
+.upload-success[hidden]{display:none}
+.us-check{font-family:Anton,sans-serif;font-size:30px;letter-spacing:.02em;margin:6px 0 10px}
+.us-steps{margin:0 0 14px;padding-left:22px;line-height:1.65;font-weight:600}
+.us-tagline{font-weight:700;margin:0 0 8px}
+.us-tag{display:inline-block;background:var(--gold);color:#131313;border-radius:999px;padding:3px 12px;font-weight:900;letter-spacing:.06em;font-size:19px;vertical-align:middle}
+.us-note{color:var(--muted);margin:0 0 16px}
+.us-btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0}
+/* My Plays status chips */
+.status-chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:800;letter-spacing:.01em;margin-top:5px}
+.chip-review{background:rgba(255,176,0,.16);color:#ffc14d;border:1px solid rgba(255,176,0,.45)}
+.chip-live{background:rgba(200,255,0,.13);color:var(--volt);border:1px solid rgba(200,255,0,.4)}
+.chip-contest{background:rgba(212,175,55,.16);color:var(--gold);border:1px solid rgba(212,175,55,.5)}
+.chip-off{background:rgba(255,255,255,.07);color:var(--muted);border:1px solid var(--line)}
+/* Month tab: the one entry story + the prize */
+.month-how{margin:2px 0 0;color:var(--muted);font-weight:600}
+.month-prize{margin:6px 0 0;color:var(--gold);font-weight:800}
+/* Guardian enter form (inside the per-card message slot) */
+.enter-form input[type="email"]{display:block;width:100%;box-sizing:border-box;margin:8px 0 10px;background:#141414;border:1px solid var(--line);border-radius:10px;color:#fff;font:inherit;padding:10px 12px}
+.enter-form input[type="email"]:focus{outline:2px solid var(--volt);outline-offset:1px}
