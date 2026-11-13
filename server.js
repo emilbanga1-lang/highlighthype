@@ -10,6 +10,8 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { execFile } from "node:child_process";
+import { createRequire } from "node:module";
 import { DatabaseSync } from "node:sqlite";
 import tls from "node:tls";
 import { fileURLToPath } from "node:url";
@@ -352,6 +354,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN ai_json TEXT DEFAULT ''"); } ca
 // toggle clears every other play when it sets one). Its only public
 // effect is the best_celebration badge computed in publicHighlight.
 try { db.exec("ALTER TABLE highlights ADD COLUMN celebration_spotlight INTEGER DEFAULT 0"); } catch {}
+// Round 124 (2026-11-12): server-generated poster for a video play —
+// the frame at the play's freeze point, extracted by the media
+// pipeline below at upload time (and for pre-existing plays by the
+// one-time migration). Public and allowlisted in publicHighlight:
+// it is the first-choice poster on every client surface, ahead of
+// the Round 118/123 client-side frame banking. Empty when the play
+// has no server poster (link plays, images, ffmpeg unavailable).
+try { db.exec("ALTER TABLE highlights ADD COLUMN poster_url TEXT DEFAULT ''"); } catch {}
 // Round 100: Daily Battle + Battle Run. One matchup per ET day
 // (daily_battles.date is the America/New_York calendar date), one
 // pick per voter per day (the UNIQUE constraint IS the lock).
@@ -994,6 +1004,10 @@ function publicHighlight(row, voterToken = "") {
     story: row.story,
     media_kind: row.media_kind,
     media_url: row.media_url,
+    // Round 124: server-generated poster (see the media pipeline
+    // below). "" when the play has none — the client then falls
+    // back to its Round 118/123 banking + placeholder behavior.
+    poster_url: row.poster_url || "",
     mime: row.mime,
     embed_url: row.embed_url,
     host_label: row.host_label,
@@ -1041,6 +1055,227 @@ function publicHighlight(row, voterToken = "") {
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 
 const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
+
+// ---- Round 124 (2026-11-12): server-side media compatibility ----
+// WHY: play 50 (Charlotte, the board's first real play) arrived as
+// HEVC/hvc1 with a -90° rotation matrix. Safari plays it, Chromium
+// cannot decode it at all (the timer runs over a black picture),
+// and the Hype Frame studio — which must decode the clip AND
+// capture frames from it — got nothing: black freeze video, empty
+// filmstrip, a dead end on both studio entry paths. The client
+// cannot fix a codec; the server now owns compatibility:
+//   * uploads are probed, and anything that is not already
+//     H.264 + yuv420p + faststart (+ no rotation metadata — a
+//     rotated file is converted too, so the rotation is baked
+//     into the pixels rather than left for each player/canvas
+//     to interpret) is transcoded to exactly that, in place,
+//     before the upload is treated as complete;
+//   * every video play gets a server-generated poster JPEG at
+//     its freeze point (publicHighlight's poster_url), so first
+//     paint shows the action on every browser, no banking needed;
+//   * a one-time startup migration converts pre-existing
+//     non-H.264 files (in practice play 50) the same way.
+// FALLBACK CONTRACT (hard rule): conversion is best-effort, NEVER
+// a gate. If ffmpeg/ffprobe cannot be found, a probe fails, or a
+// conversion errors or times out, the upload still succeeds with
+// the original file and no poster, and a log line says why. The
+// pre-124 behavior is the floor, never a casualty.
+// Resolution order for both binaries: FFMPEG_PATH / FFPROBE_PATH
+// env → the ffmpeg-static / @ffprobe-installer/ffprobe packages
+// (package.json dependencies, installed by Render's build) →
+// system binaries on PATH. HH_NO_FFMPEG=1 forces "unavailable"
+// (the test suites use it to prove the fallback contract).
+const R124_FREEZE_OVERRIDES = { 50: 1.5 }; // mirrors btlStartOffset119 in public/app.js — keep the two in sync
+const R124_MIGRATION_KEY = "r124_media_migration_v1";
+let r124BinsCache; // undefined = not resolved yet, null = unavailable, {ffmpeg, ffprobe} = ready
+function r124BinWorks(bin) {
+  return new Promise((resolve) => {
+    if (!bin) return resolve(false);
+    execFile(bin, ["-version"], { timeout: 8000 }, (err) => resolve(!err));
+  });
+}
+async function r124ResolveBins() {
+  if (r124BinsCache !== undefined) return r124BinsCache;
+  if (process.env.HH_NO_FFMPEG === "1") {
+    r124BinsCache = null;
+    console.log("[r124] ffmpeg disabled via HH_NO_FFMPEG — uploads keep original files, posters skipped.");
+    return null;
+  }
+  const req = createRequire(import.meta.url);
+  const pkgPath = (name, pick) => { try { const v = pick(req(name)); return typeof v === "string" && v ? v : null; } catch { return null; } };
+  const ffmpegCands = [process.env.FFMPEG_PATH, pkgPath("ffmpeg-static", (m) => m), "ffmpeg"].filter(Boolean);
+  const ffprobeCands = [process.env.FFPROBE_PATH, pkgPath("@ffprobe-installer/ffprobe", (m) => m && m.path), "ffprobe"].filter(Boolean);
+  let ffmpeg = null, ffprobe = null;
+  for (const c of ffmpegCands) { if (await r124BinWorks(c)) { ffmpeg = c; break; } }
+  for (const c of ffprobeCands) { if (await r124BinWorks(c)) { ffprobe = c; break; } }
+  r124BinsCache = ffmpeg && ffprobe ? { ffmpeg, ffprobe } : null;
+  if (r124BinsCache) console.log(`[r124] media conversion ready (ffmpeg: ${ffmpeg} · ffprobe: ${ffprobe})`);
+  else console.log("[r124] ffmpeg/ffprobe unavailable — uploads keep their original files and posters are skipped (conversion is best-effort, never a gate).");
+  return r124BinsCache;
+}
+function r124Run(bin, args, timeoutMs) {
+  return new Promise((resolve) => {
+    execFile(bin, args, { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => resolve({ err, stderr: String(stderr || "") }));
+  });
+}
+async function r124Probe(bins, file) {
+  return new Promise((resolve) => {
+    execFile(bins.ffprobe, ["-v", "error", "-show_streams", "-show_format", "-of", "json", file], { timeout: 30000, maxBuffer: 4 * 1024 * 1024 }, (e, stdout) => {
+      if (e) return resolve(null);
+      try { resolve(JSON.parse(stdout)); } catch { resolve(null); }
+    });
+  });
+}
+function r124VideoInfo(probe) {
+  if (!probe || !Array.isArray(probe.streams)) return null;
+  const v = probe.streams.find((s) => s.codec_type === "video");
+  if (!v) return null;
+  let rotation = 0;
+  if (Array.isArray(v.side_data_list)) for (const sd of v.side_data_list) { if (sd && typeof sd.rotation === "number" && sd.rotation) rotation = sd.rotation; }
+  if (v.tags && v.tags.rotate) rotation = Number(v.tags.rotate) || rotation;
+  const duration = Number(probe.format && probe.format.duration) || Number(v.duration) || 0;
+  return { codec: v.codec_name || "", pixFmt: v.pix_fmt || "", width: v.width || 0, height: v.height || 0, rotation, duration };
+}
+// Faststart = the moov atom sits ahead of the media data, so a
+// player can start before the file finishes downloading. Probed
+// from the file head: if moov does not appear within the first
+// megabyte it lives at the tail (the classic phone-export layout
+// that made several sample clips slow to start).
+function r124IsFaststart(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, "r");
+    const buf = Buffer.alloc(1024 * 1024);
+    const n = fs.readSync(fd, buf, 0, buf.length, 0);
+    const head = buf.subarray(0, n);
+    const moov = head.indexOf("moov"), mdat = head.indexOf("mdat");
+    if (moov === -1) return false;
+    if (mdat === -1) return true;
+    return moov < mdat;
+  } catch { return false; } finally { if (fd !== undefined) { try { fs.closeSync(fd); } catch {} } }
+}
+function r124Compliant(file, info) {
+  return !!info && info.codec === "h264" && info.pixFmt === "yuv420p" && !info.rotation && r124IsFaststart(file);
+}
+// The freeze point a play's poster is taken from: the client's
+// per-play start-offset map wins (play 50 → 1.5s, past Charlotte's
+// black intro and diamond transition); everything else gets a
+// frame ~35% in, clamped inside the clip.
+function r124FreezeAt(id, duration) {
+  const over = R124_FREEZE_OVERRIDES[id];
+  let t = typeof over === "number" ? over : duration * 0.35;
+  if (!isFinite(t) || t < 0) t = 0;
+  if (duration > 0) t = Math.min(t, Math.max(0, duration - 0.1));
+  return t;
+}
+async function r124Convert(bins, inFile, outFile) {
+  // Autorotate is ffmpeg's default on decode, so a rotated phone
+  // clip comes out with the rotation baked into the pixels and no
+  // rotation metadata on the result. Height capped at 1280, never
+  // upscaled; the width follows at an even number for yuv420p.
+  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
+    "-vf", "scale=-2:'if(gt(ih,1280),1280,trunc(ih/2)*2)'",
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast",
+    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outFile];
+  const { err, stderr } = await r124Run(bins.ffmpeg, args, 240000);
+  if (err) { console.error("[r124] conversion failed:", err.message, stderr.slice(-300)); return false; }
+  return true;
+}
+async function r124MakePoster(bins, videoFile, posterFile, atSec) {
+  const { err } = await r124Run(bins.ffmpeg, ["-y", "-ss", String(atSec), "-i", videoFile, "-frames:v", "1", "-q:v", "3", posterFile], 60000);
+  if (err) { console.error("[r124] poster generation failed:", err.message); return false; }
+  try { return fs.existsSync(posterFile) && fs.statSync(posterFile).size > 0; } catch { return false; }
+}
+async function r124PosterFor(bins, id, absFile, info) {
+  const posterName = `poster-${id}.jpg`;
+  if (await r124MakePoster(bins, absFile, path.join(UPLOAD_DIR, posterName), r124FreezeAt(id, info ? info.duration : 0))) {
+    db.prepare("UPDATE highlights SET poster_url=? WHERE id=?").run(`/uploads/${posterName}`, id);
+    return true;
+  }
+  return false;
+}
+// Upload path: probe the just-written file, transcode it in place
+// if it is not already compliant (a renamed .mp4 replaces the
+// original upload on disk; the row follows), then generate its
+// poster. Any failure leaves the original untouched — the caller
+// has already inserted the row and answers 201 either way.
+async function r124ProcessUpload(id, name) {
+  const bins = await r124ResolveBins();
+  if (!bins) return;
+  try {
+    let abs = path.join(UPLOAD_DIR, name);
+    let info = r124VideoInfo(await r124Probe(bins, abs));
+    if (!info) return; // not a probeable video — leave exactly as uploaded
+    if (!r124Compliant(abs, info)) {
+      const base = name.replace(/\.[^.]+$/, "");
+      const tmpOut = path.join(UPLOAD_DIR, `${base}.r124tmp.mp4`);
+      if (await r124Convert(bins, abs, tmpOut)) {
+        const chk = r124VideoInfo(await r124Probe(bins, tmpOut));
+        if (chk && chk.codec === "h264") {
+          const finalName = `${base}.mp4`;
+          fs.renameSync(tmpOut, path.join(UPLOAD_DIR, finalName));
+          if (finalName !== name) { try { fs.unlinkSync(abs); } catch {} }
+          abs = path.join(UPLOAD_DIR, finalName);
+          db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${finalName}`, id);
+          info = chk;
+          console.log(`[r124] upload ${id}: converted ${name} → ${finalName} (H.264/yuv420p/faststart)`);
+        } else {
+          try { fs.unlinkSync(tmpOut); } catch {}
+          console.error(`[r124] upload ${id}: converted file did not probe as H.264 — original kept`);
+        }
+      }
+    }
+    await r124PosterFor(bins, id, abs, info);
+  } catch (e) { console.error(`[r124] upload ${id} media processing error (original kept):`, e.message); }
+}
+// One-time migration for plays that predate the pipeline: any
+// stored video file that probes as non-H.264 is converted to a
+// NEW file (<base>-h264.mp4), the row is repointed only after the
+// new file verifies as H.264, and the original is preserved on
+// disk under a backup name — never deleted. Every video play
+// without a poster gets one. Guarded by a settings marker so
+// later boots skip the scan entirely; when ffmpeg is missing the
+// marker is NOT set and the next boot retries.
+async function r124RunMigration() {
+  try {
+    if (getSetting(R124_MIGRATION_KEY)) return;
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r124] migration deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id, media_url FROM highlights WHERE media_kind='file'").all();
+    for (const row of rows) {
+      try {
+        const name = path.basename(row.media_url || "");
+        if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) continue;
+        const abs = path.join(UPLOAD_DIR, name);
+        if (!fs.existsSync(abs)) continue;
+        let info = r124VideoInfo(await r124Probe(bins, abs));
+        if (!info) continue;
+        if (info.codec !== "h264") {
+          const base = name.replace(/\.[^.]+$/, "");
+          const newName = `${base}-h264.mp4`;
+          const newAbs = path.join(UPLOAD_DIR, newName);
+          console.log(`[r124] migrating play ${row.id}: ${name} (${info.codec || "unknown codec"}) → ${newName}`);
+          if (!(await r124Convert(bins, abs, newAbs))) { console.error(`[r124] migration: conversion failed for play ${row.id} — left untouched`); continue; }
+          const chk = r124VideoInfo(await r124Probe(bins, newAbs));
+          if (!chk || chk.codec !== "h264") { console.error(`[r124] migration: converted file for play ${row.id} did not verify as H.264 — left untouched`); try { fs.unlinkSync(newAbs); } catch {} continue; }
+          let bakName = `${base}.hevc-orig.mp4`;
+          if (fs.existsSync(path.join(UPLOAD_DIR, bakName))) bakName = `${base}.hevc-orig-${Date.now()}.mp4`;
+          fs.renameSync(abs, path.join(UPLOAD_DIR, bakName));
+          db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${newName}`, row.id);
+          info = chk;
+          console.log(`[r124] play ${row.id} migrated to ${newName}; original preserved as ${bakName}`);
+        }
+        const cur = db.prepare("SELECT poster_url, media_url FROM highlights WHERE id=?").get(row.id);
+        if (cur && !cur.poster_url) {
+          const finalAbs = path.join(UPLOAD_DIR, path.basename(cur.media_url || name));
+          if (fs.existsSync(finalAbs)) await r124PosterFor(bins, row.id, finalAbs, info);
+        }
+      } catch (e) { console.error(`[r124] migration row ${row.id} failed:`, e.message); }
+    }
+    setSetting(R124_MIGRATION_KEY, new Date().toISOString());
+    console.log("[r124] media migration complete");
+  } catch (e) { console.error("[r124] migration error:", e.message); }
+}
 
 // ---- Backup endpoints (hardening, 2026-11-04) ----
 // Read-only off-site backup pull for Muse's nightly job. Auth is a
@@ -1443,6 +1678,7 @@ const server = http.createServer(async (req, res) => {
       const sport = String(fields.sport || "other").trim().toLowerCase();
       const division = ["girls","boys"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "boys";
       let media_kind, media_url, mime = "", embed_url = "", host_label = "";
+      let uploadedName = ""; // Round 124: the stored file's name, for the media pipeline below
       if (file && file.filename) {
         const ext = EXT[file.ctype] || path.extname(file.filename).replace(".", "").toLowerCase();
         if (!["mp4", "webm", "mov", "avi", "jpg", "jpeg", "png", "gif", "webp"].includes(ext) || !(file.ctype.startsWith("video/") || file.ctype.startsWith("image/")))
@@ -1450,7 +1686,7 @@ const server = http.createServer(async (req, res) => {
         if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
         const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
         fs.writeFileSync(path.join(UPLOAD_DIR, name), file.data);
-        media_kind = "file"; media_url = `/uploads/${name}`; mime = file.ctype;
+        media_kind = "file"; media_url = `/uploads/${name}`; mime = file.ctype; uploadedName = name;
       } else if (fields.videoUrl) {
         const c = classifyLink(fields.videoUrl);
         media_kind = c.media_kind; media_url = c.media_url; embed_url = c.embed_url; host_label = c.host_label;
@@ -1471,11 +1707,20 @@ const server = http.createServer(async (req, res) => {
       const aiJson = sanitizeAiField(fields.ai);
       const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson);
-      notifyPending(title, sport, Number(info.lastInsertRowid), review);
+      const newPlayId = Number(info.lastInsertRowid);
+      // Round 124: the media pipeline runs BEFORE the response —
+      // a converted file and its poster are part of the finished
+      // upload, not an afterthought. It can never fail the upload:
+      // every failure path inside keeps the original file and the
+      // 201 below still goes out (see the fallback contract above).
+      if (uploadedName && file && (file.ctype || "").startsWith("video/")) await r124ProcessUpload(newPlayId, uploadedName);
+      const rowNow = db.prepare("SELECT media_url, poster_url FROM highlights WHERE id=?").get(newPlayId);
+      if (rowNow) { media_url = rowNow.media_url; }
+      notifyPending(title, sport, newPlayId, review);
       // Round 121: the response carries the athlete's HH tag so the
       // client can show it on the post-success screen ("save it!") —
       // the tag is a public identifier, safe to hand back.
-      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending", athlete_tag: athlete.athlete_tag || "", message: "Thanks! Your play is in review and will appear once the owner approves it." });
+      return sendJson(res, 201, { ok: true, id: newPlayId, status: "pending", athlete_tag: athlete.athlete_tag || "", media_url, poster_url: (rowNow && rowNow.poster_url) || "", message: "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
     // ---- Vote toggle ----
@@ -1980,6 +2225,7 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(delMatch[1]));
       if (row && row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
+      if (row && row.poster_url) { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.poster_url))); } catch {} }
       for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(Number(delMatch[1]))) {
         try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
       }
@@ -2078,4 +2324,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`));
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r124RunMigration(); });
