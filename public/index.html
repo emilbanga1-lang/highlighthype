@@ -11,19 +11,35 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=125" />
+<link rel="stylesheet" href="styles.css?v=126" />
 </head>
 <body>
-<!-- Round 124 (2026-11-12, Emil: "Build the conversion fix"):
-     the server owns media compatibility — uploads are probed and
-     transcoded to H.264/yuv420p/faststart when they are not
-     already, every video play gets a server-generated poster
-     (poster_url, first-choice on every surface), the one-time
-     migration converted play 50's HEVC clip in place, and the
-     Hype Frame studio opens on the play's poster and explains
-     itself when a clip's frames can't be pulled.
-     (Round 123 shipped just before: action posters on every play
-     surface, the contest strip moved into the Month tab with a
+<!-- Round 125 (2026-11-13, Dyanna's board-first direction, Emil
+     approved after mock review; the pre-125 homepage is preserved
+     in .bak-r125-pre125 and this round is built to revert
+     cleanly): the hero music is ON by default with a mute choice
+     (browser policy still gates the first audible start); the
+     hero sub-line is "SHOW US YOURS"; the board's big heading
+     band (the old .sec-head) is gone — the board IS the page;
+     the contest lines render the live leader ("Charlotte leads
+     with N votes"); the sport pill bar is ONE dropdown; Hockey
+     reads "Ice Hockey" (Lacrosse was already in the list); the
+     full Hype Frame section and the Rep The Hype band leave the
+     homepage — Hype Frame rides a mid-feed banner in the Watch
+     feed and both live in the ☰ menu, with a price-free merch
+     teaser at the bottom; the upload form carries Dyanna's
+     youth message verbatim, drops the "quick upload" line, and
+     the last initial is now its own OPTIONAL field.
+     (Round 124 shipped just before: the server owns media
+     compatibility — uploads are probed and transcoded to
+     H.264/yuv420p/faststart when they are not already, every
+     video play gets a server-generated poster (poster_url,
+     first-choice on every surface), the one-time migration
+     converted play 50's HEVC clip in place, and the Hype Frame
+     studio opens on the play's poster and explains itself when
+     a clip's frames can't be pulled. Round 123 before that:
+     action posters on every play surface, the contest strip
+     moved into the Month tab with a
      one-line state line on Watch, desktop filters on one row, and
      ONE upload label — "Post a Play". Rounds 121 + 122 before
      that: the posting chain — post-success screen with the
@@ -84,6 +100,13 @@
            the menu goes to five items at his explicit direction,
            breaking the Round 29 four-item rule for this one. -->
       <a href="/stories">Hype Stories</a>
+      <!-- Round 125 (2026-11-13, Dyanna): Hype Frame joins the
+           menu — its full homepage section left in this round,
+           so the menu is one of its two front doors (the other
+           is the mid-feed banner). The button opens the same
+           choice card the homepage section used: sample clip
+           into the studio, or your own video into the form. -->
+      <button type="button" id="menuHf125">📸 Hype Frame</button>
       <a class="nav-swag" href="/store">Swag Shop — Rep The Hype</a>
     </nav>
   </div>
@@ -103,7 +126,7 @@
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
     <h1>Every athlete deserves the <span class="lime">hype.</span></h1>
-    <p class="hero-sub">HighlightHype is where young athletes become the highlight.</p>
+    <p class="hero-sub hero-sub125">SHOW US YOURS</p>
     <div class="hero-ctas">
       <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
       <a class="btn btn-ghost" href="#post" data-submit-link><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg> Post a Play</a>
@@ -126,14 +149,15 @@
          rules themselves still govern uploads and moderation;
          they just no longer sit above the board. -->
 
-    <div class="sec-head">
-      <span class="sec-tag" id="boardTag">The board</span>
-      <div class="sec-head-row">
-        <h2 id="boardTitle">Hype of the Month</h2>
-        <div class="count-chip" id="chipMonth">Voting ends in <b id="countdown">—</b></div>
-      </div>
-      <p id="boardIntro">Athletes post their plays. Your votes crown the winner.</p>
-    </div>
+    <!-- Round 125 (2026-11-13, Dyanna): the board's big heading
+         band is GONE — the .sec-head block ("The board" tag, the
+         giant title, the countdown chip, the intro line) sat
+         between the hero and the tabs and read as a banner the
+         page didn't need: the main page IS the board. app.js's
+         writes to #boardTag/#boardTitle/#boardIntro/#chipMonth
+         are null-guarded now, and the countdown IIFE already
+         no-ops without #countdown (the Month strip still shows
+         the end date). The pre-125 block lives in the backup. -->
 
 
 
@@ -169,30 +193,37 @@
          At the desktop breakpoint the two sit on ONE row (flex, see
          the Round 123 CSS block); below it the wrapper is a plain
          block and the Round 108 two-row stack is exactly as was. -->
+    <!-- Round 125 (2026-11-13, Dyanna): the pill bar is now ONE
+         dropdown — same full sport list, same state machinery
+         (syncFilterUI mirrors the value; the change handler
+         writes monthSport / allSport exactly as a pill tap did,
+         including the "sport with no plays falls back to All
+         Sports" rule). Ice Hockey carries its new label here;
+         Lacrosse rides along as it did in the pill list. -->
     <div class="filters-bar123">
-    <div class="sport-pills" id="sportPills">
-      <div class="sport-pills-row" role="group" aria-label="Filter plays by sport">
-        <button type="button" class="sp-pill" data-sp="all">All Sports</button>
-        <button type="button" class="sp-pill" data-sp="baseball">Baseball</button>
-        <button type="button" class="sp-pill" data-sp="basketball">Basketball</button>
-        <button type="button" class="sp-pill" data-sp="cheer">Cheer</button>
-        <button type="button" class="sp-pill" data-sp="dance">Dance</button>
-        <button type="button" class="sp-pill" data-sp="fieldhockey">Field Hockey</button>
-        <button type="button" class="sp-pill" data-sp="football">Football</button>
-        <button type="button" class="sp-pill" data-sp="golf">Golf</button>
-        <button type="button" class="sp-pill" data-sp="gymnastics">Gymnastics</button>
-        <button type="button" class="sp-pill" data-sp="hockey">Hockey</button>
-        <button type="button" class="sp-pill" data-sp="lacrosse">Lacrosse</button>
-        <button type="button" class="sp-pill" data-sp="martialarts">Martial Arts</button>
-        <button type="button" class="sp-pill" data-sp="other">Other</button>
-        <button type="button" class="sp-pill" data-sp="soccer">Soccer</button>
-        <button type="button" class="sp-pill" data-sp="softball">Softball</button>
-        <button type="button" class="sp-pill" data-sp="swimming">Swimming</button>
-        <button type="button" class="sp-pill" data-sp="tennis">Tennis</button>
-        <button type="button" class="sp-pill" data-sp="track">Track &amp; Field</button>
-        <button type="button" class="sp-pill" data-sp="volleyball">Volleyball</button>
-        <button type="button" class="sp-pill" data-sp="wrestling">Wrestling</button>
-      </div>
+    <div class="sport-dd125">
+      <select class="sport-select board-sport-select125" id="boardSportSelect" aria-label="Filter plays by sport">
+        <option value="all">All Sports</option>
+        <option value="baseball">Baseball</option>
+        <option value="basketball">Basketball</option>
+        <option value="cheer">Cheer</option>
+        <option value="dance">Dance</option>
+        <option value="fieldhockey">Field Hockey</option>
+        <option value="football">Football</option>
+        <option value="golf">Golf</option>
+        <option value="gymnastics">Gymnastics</option>
+        <option value="hockey">Ice Hockey</option>
+        <option value="lacrosse">Lacrosse</option>
+        <option value="martialarts">Martial Arts</option>
+        <option value="other">Other</option>
+        <option value="soccer">Soccer</option>
+        <option value="softball">Softball</option>
+        <option value="swimming">Swimming</option>
+        <option value="tennis">Tennis</option>
+        <option value="track">Track &amp; Field</option>
+        <option value="volleyball">Volleyball</option>
+        <option value="wrestling">Wrestling</option>
+      </select>
     </div>
 
     <!-- Round 108 (2026-11-12, Emil's phone screenshot): the
@@ -473,8 +504,10 @@
            Round 18 desktop grid. -->
       <button type="button" class="upload-close" id="uploadClose" aria-label="Close the upload form">✕</button>
       <h3 id="post">Post a play</h3>
-      <div class="upload-parent-banner"><b>Kids — ask a parent or guardian to help you post your clip.</b> They give permission, and their email or mobile is how we reach you if your play wins.</div>
-      <p>Quick upload — pick the clip, answer a few quick questions, post it. Your play goes to the owner for review and appears once approved.</p>
+      <!-- Round 125 (2026-11-13): the youth message is Dyanna's
+           exact wording, and the "Quick upload" line under it is
+           gone at her direction (unnecessary clutter). -->
+      <div class="upload-parent-banner">A message to our youth athletes! Ask your parent or guardian to help you post your clip. Once they give permission using their email or cell phone number, you can then post your video. Their contact information is how we'll notify you if your video wins the most votes for the month!</div>
 
       <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Add your video or photo — tap to pick a clip from your camera roll, or drop a file here">
         <svg class="dz-icon" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V5"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
@@ -505,6 +538,13 @@
       </div>
 
       <label>Athlete's first name * <input type="text" name="playerName" placeholder="First name only"></label>
+      <!-- Round 125 (2026-11-13, Dyanna): the last initial is its
+           own field now and it is OPTIONAL — the submit handler
+           composes playerName as "First" or "First L" from the
+           two fields, so every downstream consumer (display name,
+           athlete groups, HH tags, My Plays) sees exactly the
+           shape it always has. -->
+      <label>Last initial (optional) <input type="text" name="lastInitial" placeholder="e.g. B" maxlength="2" autocomplete="off"></label>
       <div class="quick-field">
         <span class="quick-label" id="divPickLabel">Boys or Girls *</span>
         <div class="seg quick-divseg" role="group" aria-labelledby="divPickLabel">
@@ -525,7 +565,7 @@
           <option value="football">Football</option>
           <option value="golf">Golf</option>
           <option value="gymnastics">Gymnastics</option>
-          <option value="hockey">Hockey</option>
+          <option value="hockey">Ice Hockey</option>
           <option value="lacrosse">Lacrosse</option>
           <option value="martialarts">Martial Arts</option>
           <option value="other">Other</option>
@@ -611,55 +651,14 @@
     </form>
   </div>
 
-<!-- ============ HYPE FRAME EXAMPLES (homepage) ============ -->
-<div class="wrap">
-  <div class="hf-examples" id="hfExamplesHome">
-    <div class="hf-bg" aria-hidden="true"></div>
-    <div class="hf-examples-head">
-      <span class="sec-tag">Hype Frame</span>
-      <h4>Hype Frame</h4>
-      <p>Pick a moment. Put it on a hoodie.</p>
-    </div>
-    <figure class="hf-example hf-hero-fig">
-      <!-- Round 48 (2026-11-08, Emil): the Hype Frame film is back
-           on the homepage, under a cream-hoodie cover. Nothing
-           autoplays — the cover is the finished hoodie with a small
-           "See how it works" control; tapping it swaps the film in
-           to play inline in the same frame. The Photo/Avatar swipe
-           still lives in the studio and the Store feature. -->
-      <div class="hf-film-box">
-        <div class="hf-film-cover" id="hfFilmCover">
-          <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async" />
-          <button type="button" class="hf-film-btn" onclick="playHfHomeFilm()">▶ See how it works</button>
-        </div>
-        <video id="hfHomeFilm" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
-      </div>
-      <figcaption>Black hoodie · Back — her moment, printed</figcaption>
-    </figure>
-    <!-- Round 58 (2026-11-08, Emil's pick): the film is now a
-         single smooth morph with no captions — the four steps
-         live here as page text instead. -->
-    <ol class="hf-steps">
-      <li><b>1</b><span>Start with your hype video</span></li>
-      <li><b>2</b><span>Pick your frame</span></li>
-      <li><b>3</b><span>Your actual image — or your avatar</span></li>
-      <li><b>4</b><span>We take care of the rest</span></li>
-    </ol>
-    <p class="hf-create-row"><a class="hf-create-link" href="#deck" data-hf-start onclick="openHfChoice();return false">Create a Hype Frame →</a></p>
-    <!-- Round 85 (2026-11-09, youth tester rerun): the film is a
-         softball story — the Boy tester asked where the baseball
-         frame is. The finished baseball example rides under the
-         steps on the homepage and in the Store feature. -->
-    <figure class="hf-ex-strip">
-      <img src="/swag/hf-example-hoodie-back.jpg" alt="Baseball Hype Frame example: a real swing frozen at contact, printed on the back of a black hoodie" width="386" height="448" loading="lazy" decoding="async" />
-      <figcaption><span class="hf-ex-tag">Baseball · Photo</span><strong>Not just softball.</strong> A real baseball swing, frozen at contact — printed on black, Hype Frame style.</figcaption>
-    </figure>
-    <!-- Round 44 (2026-11-08): the concept posters moved INTO the
-         studio (below its examples grid) — the homepage section is
-         now the concept's one image + one action, and the Photo /
-         Avatar comparison lives where the choice is actually made. -->
-  </div>
-</div>
+<!-- ============ HYPE FRAME ON THE HOMEPAGE (Round 125) ============
+     Round 125 (2026-11-13, Dyanna): the full homepage Hype Frame
+     section (film cover, steps, examples) is GONE from the home
+     flow — Hype Frame now rides the mid-feed banner inside the
+     Watch feed (app.js, hypeFrameBanner125) and lives in the
+     ☰ menu; every play keeps its own Create a Hype Frame
+     button and the studio is untouched. The pre-125 section is
+     preserved in .bak-r125-pre125. -->
 </section>
 
 <!-- ============ HYPE STORIES ============
@@ -986,21 +985,57 @@
   </div>
 </div>
 
-<!-- ============ REP THE HYPE (Round 55, 2026-11-08) ============
-     The mock's photo band replaces the Drop 001 film card: the
-     swag film is OFF the home page for now (the file stays on
-     the server to use again later, per Emil). One photo, three
-     lines, one link — the whole band opens the Store. -->
-<div class="store-cta view-home">
-  <a class="rep-band" href="/store" data-store-link aria-label="Rep The Hype — Drop 001. Shop the Drop">
-    <img src="/swag/rep-hype-band.jpg" loading="lazy" alt="A young ballplayer under stadium lights at night, wearing the black Hype Sports Baseball hoodie">
-    <span class="rep-band-shade" aria-hidden="true"></span>
-    <span class="rep-band-text">
-      <span class="rep-band-title">Rep the Hype</span>
-      <span class="rep-band-drop">Drop 001</span>
-      <span class="rep-band-link">Shop the Drop →</span>
-    </span>
-  </a>
+<!-- ============ MERCH TEASER (Round 125, 2026-11-13) ============
+     Dyanna's board-first homepage: merch is a TEASER here, opened
+     through the ☰ menu or these links — the full Store stays its
+     own view. This replaces the Round 55 Rep The Hype photo band
+     (preserved in .bak-r125-pre125). Three products, names only:
+     NO prices on the homepage — prices live inside the Store
+     only (Emil's standing rule). The notify form is the store's
+     own per-sport drop alert (POST /api/drop-notify), the same
+     machinery as the bottle view's. -->
+<div class="merch-teaser125 view-home" id="merchTeaser125">
+  <div class="wrap">
+    <div class="mt125-head">
+      <b>👑 Merch — Hype Sports Drop 001</b>
+      <span class="mt125-soon">Coming soon</span>
+    </div>
+    <p class="mt125-sub">Crest-and-sport hoodies for baseball, basketball, soccer, softball &amp; volleyball — plus the bottle every dugout and gym bag needs. Tap any product to open the full store.</p>
+    <div class="mt125-products">
+      <a class="mt125-prod" href="/store" data-store-link>
+        <img src="/swag/hs/baseball-front.jpg" loading="lazy" alt="Baseball Hype Hoodie — front: the HH crest over BASEBALL">
+        <b>Baseball Hoodie</b>
+        <span>Crest front · gear back</span>
+      </a>
+      <a class="mt125-prod" href="/store" data-store-link>
+        <img src="/swag/hs/basketball-front.jpg" loading="lazy" alt="Basketball Hype Hoodie — front: the HH crest over BASKETBALL">
+        <b>Basketball Hoodie</b>
+        <span>Crest front · gear back</span>
+      </a>
+      <a class="mt125-prod" href="/store" data-store-link>
+        <img src="/swag/hs/bottle-baseball.jpg" loading="lazy" alt="Hype Water Bottle — Baseball: the giant baseball graphic, gold crown and HYPE brush letters">
+        <b>Hype Water Bottle</b>
+        <span>32 oz · insulated</span>
+      </a>
+    </div>
+    <form class="mt125-notify" id="merchNotifyForm125">
+      <label class="mt125-notify-label" for="merchNotifyEmail125">Get told when your sport drops:</label>
+      <div class="mt125-notify-row">
+        <select id="merchNotifySport125" class="sport-select" aria-label="Sport — merch drop alert">
+          <option value="baseball">Baseball</option>
+          <option value="football">Football</option>
+          <option value="basketball">Basketball</option>
+          <option value="soccer">Soccer</option>
+          <option value="softball">Softball</option>
+          <option value="volleyball">Volleyball</option>
+        </select>
+        <input type="email" id="merchNotifyEmail125" placeholder="parent/guardian email" autocomplete="email">
+        <button type="submit" class="btlv-notify" id="merchNotifyBtn125">🔔 Notify me</button>
+      </div>
+      <p class="mt125-notify-msg" id="merchNotifyMsg125" role="status"></p>
+    </form>
+    <p class="mt125-foot"><a href="/store" data-store-link>Open the full store →</a> <span class="mt125-note">Drop 001 · Youth sizes YXXS–YXL · No checkout yet — notify list only</span></p>
+  </div>
 </div>
 
 <!-- ============ THE STORE ============ -->
@@ -1486,6 +1521,6 @@
   </div>
 </div>
 
-<script src="app.js?v=125"></script>
+<script src="app.js?v=126"></script>
 </body>
 </html>
