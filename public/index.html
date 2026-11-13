@@ -11,10 +11,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=131" />
+<link rel="stylesheet" href="styles.css?v=132" />
 </head>
 <body>
-<!-- Round 129 (2026-11-13, Emil's phone review): "The video
+<!-- Round 132 (2026-11-13, Emil's live Month-tab review):
+     the Month panel is decluttered — under the gold contest
+     strip there is now ONE slim prize line, then the
+     This month / Hall of Fame toggle, then the leaderboard +
+     entry cards. The duplicate "👑 Hype of the Month" heading,
+     the "November 2026 · Every vote counts…" line, the long
+     "How a play gets in: …" paragraph and the long prize
+     paragraph are GONE (the upload flow carries the how-entry
+     story now). The Boys/Girls toggle no longer shows on the
+     Month tab and the contest list ignores the division filter
+     entirely — one combined contest (app.js renderMonth +
+     switchView); Watch and Battles keep their toggle exactly
+     as before. And the header logo now returns to the top of
+     the Watch board from ANY tab (goHome activates the Watch
+     view; before, from Month it only scrolled, so the tap read
+     as dead).
+     (Round 129 shipped just before, Emil's phone review): "The video
      is really small in hype frame section" — the mid-feed Hype
      Frame strip's film is the hero of its card now: FULL CARD
      WIDTH at 16:9 across the TOP, with the lockup, the
@@ -318,17 +334,13 @@
         </div>
         <div class="cs-t2" id="stripState"></div>
       </div>
-      <!-- Round 107 (2026-11-12): the hybrid Month panel carries its
-           own title + honest-state sub (the board sec-head is
-           retired in the redesign); app.js fills the sub from the
-           contest payload on every render. -->
-      <h3 class="month-title">👑 Hype of the Month</h3>
-      <p class="month-sub" id="monthSub107"></p>
-      <!-- Round 121 (2026-11-12): ONE entry story + the prize,
-           stated on the tab itself — the youth-agent test found
-           three contradictory entry stories and no prize anywhere. -->
-      <p class="month-how">How a play gets in: post a play with the contest box checked (it's on by default) → once it's approved, it's in. Guardians can withdraw anytime in My Plays.</p>
-      <p class="month-prize">🏆 Winner gets featured on the homepage + a shoutout on our socials. Bragging rights only — no prizes, just glory.</p>
+      <!-- Round 132 (2026-11-13): ONE slim prize line under the
+           strip — the duplicate heading, the date/every-vote
+           sub and the long how-entry paragraph that used to
+           stack here are removed (see the Round 132 note at the
+           top of this file). updateContestStrip107's guarded
+           write to the retired #monthSub107 simply no-ops. -->
+      <p class="month-prize">🏆 Winner gets featured on the homepage + a shoutout on our socials — bragging rights only, just glory.</p>
       <div class="seg month-subseg" role="group" aria-label="Hype of the Month — this month or all-time">
         <button type="button" data-msub="month" aria-pressed="true">This month</button>
         <button type="button" data-msub="fame" aria-pressed="false">All-time · Hall of Fame</button>
@@ -1569,6 +1581,6 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=131"></script>
+<script src="app.js?v=132"></script>
 </body>
 </html>
