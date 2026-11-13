@@ -895,26 +895,25 @@ function updateContestStrip107() {
         : `🏆 Hype of the Month${monthName123 ? ` — ${monthName123}` : ""}: ${leadName125} leads with ${lead125.voteCount} vote${lead125.voteCount === 1 ? "" : "s"} · Vote now →`;
   }
 }
-/* Round 125 (2026-11-13, Dyanna + Emil): the mid-feed Hype Frame
-   banner — the homepage's old full Hype Frame section distilled
-   to one feed slot. It renders INSIDE the Watch deck after the
-   third tile of the CURRENT filtered list (so it follows the
-   filters like a tile does; with fewer than 3 matching plays it
-   doesn't render at all, and it never appears on the Month or
-   Battles views — renderAll2 is the Watch feed only). The visual
-   is the feed's lead play's own frame on a hoodie silhouette —
-   the concept itself: a real moment, printed — when that play
-   has a server poster; without one it falls back to the finished
-   softball example photo. The button opens the same choice card
-   as every other generic Hype Frame entry (openHfChoice), and
-   each play's own Hype Frame button is untouched. NO price —
-   teasers tease; prices live inside the Store only. */
-function hypeFrameBanner125(play) {
-  const poster = play && play.poster_url ? play.poster_url : "";
-  const visual = poster
-    ? `<svg class="hf-banner-svg125" viewBox="0 0 200 210" role="img" aria-label="Youth hoodie with this play's frame printed on the front"><defs><clipPath id="hfBannerClip125"><rect x="66" y="82" width="68" height="62" rx="3"/></clipPath></defs><path d="M70 34 C70 18 84 8 100 8 C116 8 130 18 130 34 L152 44 L178 108 L152 118 L146 92 L146 196 C146 202 142 205 136 205 L64 205 C58 205 54 202 54 196 L54 92 L48 118 L22 108 L48 44 Z" fill="#232323" stroke="#3d3d3d" stroke-width="2"/><path d="M78 30 C84 44 92 50 100 50 C108 50 116 44 122 30 C116 20 108 16 100 16 C92 16 84 20 78 30 Z" fill="#171717" stroke="#3d3d3d" stroke-width="2"/><rect x="72" y="168" width="56" height="26" rx="4" fill="#1b1b1b" stroke="#3d3d3d" stroke-width="1.5"/><rect x="62" y="78" width="76" height="78" rx="4" fill="#0d0d0d" stroke="#c8f31d" stroke-width="2.5" stroke-dasharray="5 3"/><image href="${esc(poster)}" x="66" y="82" width="68" height="62" preserveAspectRatio="xMidYMid slice" clip-path="url(#hfBannerClip125)"/><text x="100" y="150" text-anchor="middle" fill="#c8f31d" font-family="Archivo, sans-serif" font-weight="800" font-size="10" letter-spacing="1">HYPE FRAME</text></svg>`
-    : `<img class="hf-banner-img125" src="/swag/hf-hoodie-softball.jpg" alt="A finished Hype Frame hoodie: a player's frozen moment printed on the back" loading="lazy" decoding="async">`;
-  return `<div class="hf-banner125"><div class="hf-banner-visual125">${visual}</div><div class="hf-banner-copy125"><p class="hf-banner-eyebrow125">📸 Hype Frame · Printed from a real play</p><h3>Your moment on a hoodie</h3><p>That freeze-frame you just watched, printed on a premium youth hoodie. Pick the exact frame from any play, add a name and number, and a parent approves the order.</p><p class="hf-banner-cta125"><button type="button" class="hf-banner-btn125" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-banner-note125">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
+/* Round 126 (2026-11-13, Emil's phone review of Round 125):
+   the mid-feed Hype Frame slot keeps its Round 125 place and
+   splice (INSIDE the Watch deck after the third tile of the
+   CURRENT filtered list — it follows the filters like a tile
+   does; fewer than 3 matching plays, it doesn't render; never
+   on Month or Battles), but the big purple SVG-hoodie banner
+   (441px tall at 390px wide) is replaced by a COMPACT strip in
+   the PRE-125 homepage treatment: the Hype Frame film under
+   its finished-hoodie cover (the playHfStoreFilm pattern —
+   playHfFeedFilm126 swaps the film in on tap), the HYPE FRAME
+   lockup + "Your moment on a hoodie", the pre-125 four steps
+   compressed to one mini row, and the Create action opening
+   the same choice card as every other generic Hype Frame
+   entry (openHfChoice). Emil: the banner was "too big and
+   doesn't look like what we had before — bring that back but
+   make it take less space." NO price — teasers tease; prices
+   live inside the Store only. */
+function hypeFrameStrip126() {
+  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-steps126"><span><b>1</b> Your hype video</span><span><b>2</b> Pick your frame</span><span><b>3</b> Photo — or avatar</span><span><b>4</b> We take care of the rest</span></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -932,12 +931,14 @@ function renderAll2() { /* All Hypes view */
   const emptyEl = $("#allEmpty");
   emptyEl.textContent = "No plays match — try a different board, sport, or search.";
   const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
-  /* Round 125: the mid-feed Hype Frame banner splices into the
-     deck after the third tile of the filtered list (deck index 2
-     = overall tile #3, the featured slot holding #1); fewer than
-     3 tiles, no banner. See hypeFrameBanner125 above. */
+  /* Round 125→126: the mid-feed Hype Frame slot splices into
+     the deck after the third tile of the filtered list (deck
+     index 2 = overall tile #3, the featured slot holding #1);
+     fewer than 3 tiles, no slot. Round 126 replaced the slot's
+     contents (the tall SVG banner) with the compact film strip
+     — see hypeFrameStrip126 above. */
   const deckTiles125 = allTiles.slice(1);
-  if (allTiles.length >= 3) deckTiles125.splice(2, 0, hypeFrameBanner125(filtered[0]));
+  if (allTiles.length >= 3) deckTiles125.splice(2, 0, hypeFrameStrip126());
   $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${deckTiles125.join("")}</div>` : "") : "";
   hydrateDurPills();
   emptyEl.style.display = filtered.length ? "none" : "block";
@@ -3086,6 +3087,17 @@ function playHfStoreFilm() {
   const p = vid.play(); if (p && p.catch) p.catch(() => {});
 }
 
+/* Round 126 (2026-11-13): the Watch feed's compact Hype Frame
+   strip runs the same film with the same cover swap as the
+   pre-125 homepage section and the store feature above. */
+function playHfFeedFilm126() {
+  const cover = $("#hfFilmCoverFeed126"), vid = $("#hfFeedFilm126");
+  if (!vid) return;
+  if (cover) cover.hidden = true;
+  vid.hidden = false;
+  const p = vid.play(); if (p && p.catch) p.catch(() => {});
+}
+
 /* Round 84 (2026-11-09, Emil): warm the store's landing pictures
    in the background once the page settles, so clicking Swag Shop
    shows them instantly instead of popping in one by one. Skips
@@ -4430,23 +4442,49 @@ $("#btlNotifyForm")?.addEventListener("submit", async (e) => {
   } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
   if (btn) btn.disabled = false;
 });
-/* Round 125 (2026-11-13): the homepage merch teaser's notify
-   form — the same per-sport drop alert as the bottle view's
-   above (POST /api/drop-notify; the sport picker offers the
-   six Hype Sports, the endpoint's own list). */
-$("#merchNotifyForm125")?.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = $("#merchNotifyEmail125"), sportEl = $("#merchNotifySport125"), btn = $("#merchNotifyBtn125"), msg = $("#merchNotifyMsg125");
-  const email = (input?.value || "").trim();
-  const say = (text, ok) => { if (msg) { msg.textContent = text; msg.classList.toggle("ok", !!ok); } };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That email doesn't look right — check it and try again.", false); input?.focus(); return; }
-  if (btn) btn.disabled = true;
-  try {
-    await api("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, sport: sportEl ? sportEl.value : "baseball" }) });
-    say("You're on the list ✓ — we'll email you when it drops.", true);
-  } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
-  if (btn) btn.disabled = false;
+/* Round 126 (2026-11-13, Emil's phone review of Round 125):
+   the homepage merch teaser's wiring. The Round 125 per-sport
+   drop-notify form is GONE from the teaser (Emil: "get rid of
+   the section about when your sport drops") — its handler left
+   with it; the Store's own notify (the bottle form just above)
+   is untouched. What the teaser carries now:
+   (a) Each sweatshirt card defaults to its BACK view and wears
+   the Swag Shop's Front/Back switch (the hsv-side pattern:
+   two labeled buttons, aria-pressed follows the side); the
+   buttons swap the photo + alt in place, and the card's own
+   store link is a separate element, untouched.
+   (b) The products render in TWO layouts Emil is choosing
+   between — A (default): the two hoodies in a row with the
+   bottle in its own slim row underneath; B: one hoodie
+   (Baseball) + the bottle in a single two-card row. ?teaser=B
+   flips it (localStorage hh_teaser works too); the deploy
+   hard-codes his pick and the variant code comes out. */
+$$(".mt125-prod[data-front][data-back]").forEach((card) => {
+  const img = card.querySelector("img");
+  if (!img) return;
+  card.querySelectorAll(".mt126-side-btn").forEach((b) => b.addEventListener("click", () => {
+    const side = b.dataset.mtSide === "front" ? "front" : "back";
+    img.src = side === "back" ? card.dataset.back : card.dataset.front;
+    if (side === "back" && img.dataset.altBack) img.alt = img.dataset.altBack;
+    if (side === "front" && img.dataset.altFront) img.alt = img.dataset.altFront;
+    card.querySelectorAll(".mt126-side-btn").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+  }));
 });
+(function teaserVariant126() {
+  const wrap = $("#mtProducts126");
+  if (!wrap) return;
+  let v = "";
+  try { v = (new URLSearchParams(location.search).get("teaser") || hhStorageGet("hh_teaser") || "").toUpperCase(); } catch { /* params/storage unavailable — default A */ }
+  if (v !== "B") return;
+  wrap.dataset.teaserVariant = "B";
+  const hoodies = wrap.querySelector(".mt126-hoodies");
+  const bb = wrap.querySelector('[data-prod="basketball-hoodie"]');
+  const bottleRow = wrap.querySelector(".mt126-bottle-row");
+  const bottle = wrap.querySelector('[data-prod="bottle"]');
+  if (bb) bb.hidden = true;
+  if (bottle && hoodies) { bottle.classList.add("mt126-bottle-inrow"); hoodies.appendChild(bottle); }
+  if (bottleRow) bottleRow.hidden = true;
+})();
 /* Teaser deep link: ?view=shop&cat=bottles opens the store on the
    Bottles tab; &sport=football also carries the sport pick across,
    so a parent arriving from the football bottle post lands on the
