@@ -709,7 +709,13 @@ function renderMonth() {
       <div class="pod-main"><div class="rank-row"><div class="rank">${i + 1}</div>${medalSvg(i + 1)}</div>
       <div class="pod-text"><div class="who">${esc(h.title)}</div><div class="what">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : "Boys"} · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} this month</div></div></div>
     </div>`).join("") : `<div class="pod"><div class="pod-text"><div class="who">No entries yet this month</div><div class="what">Enter an approved play to start the board.</div></div></div>`;
-  const filtered = entries.filter((h) => divMatch(h, monthDiv) && (monthSport === "all" || h.sport === monthSport));
+  /* Round 132 (2026-11-13): the contest is ONE combined board —
+     the entry list ignores the Boys/Girls division entirely
+     (the seg is hidden on this tab, and whatever division state
+     happens to be stored, every entry renders). The sport
+     filter keeps its current behavior. Watch keeps its own
+     division filtering in renderAll2, untouched. */
+  const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
   // Round 54: first tile into .tile-featured-slot, the rest into
   // .tile-deck (display:contents on desktop, stacked + swipe deck
   // on phones — see styles.css). Inlined at both render sites: the
@@ -1334,7 +1340,12 @@ function switchView(v) {
   $("#viewFame").hidden = !fame;
   $("#viewAll").hidden = v !== "all";
   $$(".month-subseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.msub === monthSub)));
-  const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = !(v === "month" && !fame);
+  /* Round 132: the Boys/Girls seg no longer shows on the Month
+     tab (one combined contest — see renderMonth), so it stays
+     hidden on every view; the element, the monthDiv state and
+     its button wiring remain in place, dormant. The Watch
+     view's own seg (#allDivSeg, next line) is unchanged. */
+  const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = true;
   const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   const chip125 = $("#chipMonth"); if (chip125) chip125.style.display = v === "month" ? "" : "none";
@@ -1474,12 +1485,21 @@ function goHome() {
   if (location.pathname.replace(/\/+$/, "") !== "") { location.href = "/"; return; }
   showHome();
   showPanel("plays");
-  window.scrollTo(0, 0);
+  /* Round 132 (2026-11-13): the logo is the way back to the
+     board from ANY tab — activate the Watch view and park at
+     the board's top, exactly like a Watch tab tap. Before, the
+     tap only scrolled: from the Month tab the Month panel
+     stayed on screen, so the tap read as dead there. */
+  switchView("all");
+  scrollBoardIntoView122();
   if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top");
 }
 $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); closeMenu(false); showStore(a.dataset.storeTarget || null); }));
 $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()));
-$$(".brand").forEach((b) => b.addEventListener("click", () => goHome()));
+/* Round 132: preventDefault — the anchor's href="#top" jump
+   targets the hero and would override goHome's board parking
+   a beat later; goHome alone decides where a logo tap lands. */
+$$(".brand").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); goHome(); }));
 window.addEventListener("hashchange", () => {
   if (location.hash === "#post") goSubmit();
   if (location.hash === "#shop") showStore();
@@ -1588,7 +1608,11 @@ function renderSportSelect(el, current, sports, cb) {
 function syncFilterUI() {
   // Fall back to "All sports" when the selected sport has no plays left
   // in the current data (its option is gone, so the filter must not stick).
-  const monthSports = sportsInData((CONTEST.entries || []).filter((h) => divMatch(h, monthDiv)));
+  /* Round 132: the Month sport list derives from ALL contest
+     entries — the division no longer narrows the contest
+     (see renderMonth), so a sport whose entries are all in the
+     "other" division must not vanish from the dropdown. */
+  const monthSports = sportsInData(CONTEST.entries || []);
   if (monthSport !== "all" && !monthSports.includes(monthSport)) monthSport = "all";
   const allSports = sportsInData(ALL_PLAYS.filter((h) => divMatch(h, allDiv)));
   if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
