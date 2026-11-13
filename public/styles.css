@@ -2946,24 +2946,42 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .board-sport-select125{width:100%;max-width:340px;background:#151517;border:1px solid #2b2b28;color:#fff;border-radius:999px;padding:10px 16px;font:inherit;font-weight:700;font-size:15px;min-height:44px}
 @media (max-width:1023px){ .board-sport-select125{max-width:none} }
 
-/* Mid-feed Hype Frame banner (renderAll2 splices it into the
-   Watch deck after the third tile): the Hype Frame purple is
-   the accent, as everywhere the concept appears. */
-.hf-banner125{display:flex;gap:18px;align-items:center;background:linear-gradient(135deg,rgba(139,61,255,.20),rgba(139,61,255,.06) 55%,rgba(0,0,0,.25));border:1px solid rgba(139,61,255,.55);border-radius:16px;padding:18px;margin:4px 0}
-.hf-banner-visual125{flex:0 0 132px;display:flex;justify-content:center}
-.hf-banner-svg125{width:132px;height:auto;display:block}
-.hf-banner-img125{width:132px;height:150px;object-fit:cover;border-radius:10px;display:block}
-.hf-banner-copy125{flex:1;min-width:0}
-.hf-banner-eyebrow125{margin:0;font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--hf-purple-soft)}
-.hf-banner-copy125 h3{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:clamp(22px,3.4vw,30px);line-height:1.05;margin:6px 0 6px;color:#fff}
-.hf-banner-copy125 p{margin:0;color:#d9d9d2;font-size:14.5px;line-height:1.5}
-.hf-banner-cta125{margin-top:12px !important;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
-.hf-banner-btn125{background:var(--hf-purple);color:#fff;border:0;border-radius:999px;padding:11px 18px;font:inherit;font-weight:800;font-size:15px;cursor:pointer;min-height:44px}
-.hf-banner-btn125:hover{background:#9d55ff}
-.hf-banner-note125{font-size:12.5px;color:var(--muted)}
+/* Mid-feed Hype Frame strip (Round 126; renderAll2 splices it
+   into the Watch deck after the third tile): the PRE-125
+   homepage treatment — the Hype Frame film under its cover
+   (the .hf-film-box classes are the store feature's), the
+   lockup, the four steps as one mini row — compressed to a
+   slim horizontal strip, roughly a third of the Round 125
+   banner's 441px at 390px wide. Purple stays the Hype
+   Frame-only accent. */
+.hf-strip126{display:flex;gap:14px;align-items:center;background:linear-gradient(135deg,rgba(139,61,255,.16),rgba(139,61,255,.05) 55%,rgba(0,0,0,.25));border:1px solid rgba(139,61,255,.55);border-radius:14px;padding:12px 14px;margin:4px 0}
+.hf-strip-film126{flex:0 0 148px}
+.hf-strip-film126 .hf-film-box{border-radius:10px}
+.hf-strip-film126 .hf-film-btn{white-space:normal;text-align:center;max-width:94%;line-height:1.25}
+.hf-film-btn-sm126{font-size:11.5px;padding:5px 10px;bottom:8px}
+.hf-strip-copy126{flex:1;min-width:0}
+.hf-strip-lockup126{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.hf-strip-tag126{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--hf-purple-soft)}
+.hf-strip-lockup126 b{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:19px;letter-spacing:.02em;color:#fff}
+.hf-strip-steps126{margin:6px 0 0;display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;line-height:1.45;color:var(--muted)}
+.hf-strip-steps126 span b{color:var(--hf-purple-soft);margin-right:3px}
+/* Small screens: the same four steps as ONE flowing line (the
+   numbered mini row above wraps into a tower at phone width). */
+.hf-strip-stepsline126{display:none;margin:5px 0 0;font-size:12px;line-height:1.45;color:var(--muted)}
+.hf-strip-stepsline126 span{color:var(--hf-purple-soft);font-weight:800}
+.hf-strip-cta126{margin:9px 0 0;display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.hf-strip-btn126{background:var(--hf-purple);color:#fff;border:0;border-radius:999px;padding:8px 14px;font:inherit;font-weight:800;font-size:13.5px;line-height:1.25;cursor:pointer;min-height:38px}
+.hf-strip-btn126:hover{background:#9d55ff}
+.hf-strip-note126{font-size:11.5px;color:var(--muted)}
 @media (max-width:560px){
-  .hf-banner125{flex-direction:column;text-align:center;padding:16px}
-  .hf-banner-cta125{justify-content:center}
+  .hf-strip126{gap:10px;padding:9px 10px}
+  .hf-strip-film126{flex-basis:112px}
+  .hf-strip-lockup126 b{font-size:15px;white-space:nowrap}
+  .hf-strip-steps126{display:none}
+  .hf-strip-stepsline126{display:block;font-size:11.5px}
+  .hf-film-btn-sm126{font-size:10px}
+  .hf-strip-cta126{margin-top:6px}
+  .hf-strip-note126{display:none}
 }
 
 /* Merch teaser at the bottom of the homepage — products and
@@ -2973,20 +2991,37 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .mt125-head b{font-size:19px;color:#fff}
 .mt125-soon{font-size:11.5px;font-weight:900;letter-spacing:.6px;text-transform:uppercase;color:var(--gold);border:1px solid rgba(212,175,55,.5);border-radius:999px;padding:4px 10px}
 .mt125-sub{color:var(--muted);font-size:14.5px;line-height:1.55;margin:8px 0 0;max-width:640px}
-.mt125-products{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
-.mt125-prod{display:block;background:#101012;border:1px solid var(--line2);border-radius:14px;padding:12px;text-decoration:none;color:#fff}
+/* Round 126 teaser layouts. Variant A (default): the two
+   hoodies in a row, the bottle in its own slim row underneath.
+   Variant B (?teaser=B): app.js hides the basketball card and
+   moves the bottle card into the hoodies row (.mt126-bottle-
+   inrow restyles it back to a full card), so A is the only
+   layout the static markup has to describe. */
+.mt126-hoodies{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+#mtProducts126 [hidden]{display:none}
+.mt125-prod{display:block;background:#101012;border:1px solid var(--line2);border-radius:14px;padding:12px;color:#fff}
+.mt125-prod-link{display:block;text-decoration:none;color:#fff}
 .mt125-prod img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:9px;display:block;background:#1a1a1c}
 .mt125-prod b{display:block;margin-top:10px;font-size:15.5px}
 .mt125-prod span{display:block;margin-top:2px;font-size:12.5px;color:var(--muted)}
-.mt125-notify{margin-top:18px}
-.mt125-notify-label{display:block;font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.mt125-notify-row{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
-.mt125-notify-row select{background:#151517;border:1px solid var(--line2);color:#fff;border-radius:999px;padding:10px 14px;font:inherit;font-weight:700;min-height:44px}
-.mt125-notify-row input[type="email"]{flex:1 1 200px;background:#141414;border:1px solid var(--line);border-radius:999px;color:#fff;font:inherit;padding:10px 16px;min-height:44px;box-sizing:border-box}
-.mt125-notify-row .btlv-notify{width:auto;margin-top:0;min-height:44px;padding:10px 20px;font-size:14.5px;flex:none}
-.mt125-notify-msg{font-size:13.5px;font-weight:700;margin:8px 0 0;min-height:1.25em;color:#ffb3b3}
-.mt125-notify-msg.ok{color:var(--volt)}
+/* The sweatshirt cards' Front/Back switch — the Swag Shop's
+   hsv-side pattern (labels + aria-pressed), restyled to the
+   teaser's scale. The card DEFAULTS to Back (aria-pressed on
+   Back in the markup; the back photo is the img src). */
+.mt126-sides{display:flex;gap:8px;margin-top:10px}
+.mt126-side-btn{flex:1;appearance:none;border:1px solid var(--line2);background:#141414;color:#fff;border-radius:999px;padding:7px 10px;font:inherit;font-weight:800;font-size:13px;cursor:pointer;min-height:38px}
+.mt126-side-btn[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-color:var(--volt)}
+.mt126-bottle-row{margin-top:12px}
+.mt126-bottle{padding:10px 12px}
+.mt126-bottle .mt125-prod-link{display:flex;align-items:center;gap:14px}
+.mt126-bottle img{width:64px;height:64px;flex:none;aspect-ratio:auto}
+.mt126-bottle .mt126-bottle-copy{flex:1;min-width:0}
+.mt126-bottle .mt126-bottle-copy b{margin-top:0}
+.mt126-bottle-inrow{padding:12px}
+.mt126-bottle-inrow .mt125-prod-link{display:block}
+.mt126-bottle-inrow img{width:100%;height:auto;aspect-ratio:1/1}
+.mt126-bottle-inrow .mt126-bottle-copy b{margin-top:10px}
 .mt125-foot{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:baseline}
 .mt125-foot a{color:var(--gold);font-weight:800;text-decoration:none}
 .mt125-note{font-size:12.5px;color:var(--muted)}
-@media (max-width:640px){ .mt125-products{grid-template-columns:1fr 1fr 1fr;gap:8px} .mt125-prod{padding:8px} .mt125-prod b{font-size:13px} }
+@media (max-width:640px){ .mt126-hoodies{gap:8px} .mt125-prod{padding:8px} .mt125-prod b{font-size:13px} .mt126-bottle{padding:8px 10px} }
