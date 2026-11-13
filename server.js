@@ -1340,6 +1340,44 @@ function r130RunMigration() {
     console.log("[r130] retro-entry migration complete");
   } catch (e) { console.error("[r130] migration error:", e.message); }
 }
+// One-time athlete rename (Round 131, 2026-11-13): play 51 was
+// uploaded with the GUARDIAN's name in the athlete field — it
+// displays "Janine", but the athlete is the catcher in the play's
+// own story ("Juliana showing her catcher skills!!"). Emil
+// directed the correction ("Make the change"). The rename
+// re-derives the athlete identity with the very same resolver the
+// upload path uses, fed the row's own team/division/jersey/
+// guardian email, so the end state is indistinguishable from an
+// upload that had the right name all along: the resolver finds or
+// creates the "juliana" registry row and the play's athlete_id /
+// athlete_tag / athlete_group move to it. The old "janine"
+// registry row is left in place — registry rows are never
+// deleted, and nothing references it once the play moves.
+// Contest entries and votes key off highlight_id and are
+// untouched. One-time and idempotent twice over: the settings
+// marker (r124 style) never re-fires, and the name condition
+// alone — play 51 currently displaying "Janine" — would stop a
+// second run anyway.
+const R131_MIGRATION_KEY = "r131_rename_51_v1";
+function r131RunMigration() {
+  try {
+    if (getSetting(R131_MIGRATION_KEY)) return;
+    const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(51);
+    if (!row) {
+      console.log("[r131] rename: play 51 not found — skipped");
+    } else if (normIdentity(row.player_name) !== "janine") {
+      console.log(`[r131] rename: play 51 displays "${row.player_name}", not "Janine" — skipped`);
+    } else {
+      const before = { player_name: row.player_name, athlete_id: row.athlete_id, athlete_tag: row.athlete_tag, athlete_group: row.athlete_group };
+      const athlete = resolveAthlete({ playerName: "Juliana", team: String(row.team || "").trim(), division: row.division || "", jersey: String(row.jersey || "").trim(), notifyEmail: String(row.notify_email || "").trim() });
+      db.prepare("UPDATE highlights SET player_name=?, athlete_id=?, athlete_tag=?, athlete_group=? WHERE id=?")
+        .run("Juliana", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, 51);
+      console.log(`[r131] rename: play 51 athlete "${before.player_name}" -> "Juliana" (athlete_id ${before.athlete_id || "(none)"} -> ${athlete.athlete_id || "(none)"}, tag ${before.athlete_tag || "(none)"} -> ${athlete.athlete_tag || "(none)"}, group "${before.athlete_group}" -> "${athlete.athlete_group}") — owner direction, 2026-11-13`);
+    }
+    setSetting(R131_MIGRATION_KEY, new Date().toISOString());
+    console.log("[r131] rename migration complete");
+  } catch (e) { console.error("[r131] migration error:", e.message); }
+}
 
 // ---- Backup endpoints (hardening, 2026-11-04) ----
 // Read-only off-site backup pull for Muse's nightly job. Auth is a
@@ -2456,4 +2494,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r130RunMigration(); r124RunMigration(); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); });
