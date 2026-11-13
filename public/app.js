@@ -2433,6 +2433,36 @@ function hfSyncFrozenThumb() {
     if (btn) btn.textContent = HF_FREEZE_LABEL;
   }
 }
+/* Round 128 (2026-11-13, Emil): tap the composed print → see it
+   BIG. The lightbox reads hfState.printDataUrl at OPEN time, so
+   it always shows the CURRENT composition (a name, preset or
+   colorway edit recomposes it). One tap only — the two-tap flow
+   was just removed in Round 127; ✕, a backdrop tap, or Esc
+   closes, and closing restores the page exactly as it was. */
+function hfOpenLightbox128() {
+  const lb = $("#hfLightbox128"), im = $("#hfLightboxImg128");
+  if (!lb || !im || !hfState.frozen || !hfState.printDataUrl) return;
+  im.src = hfState.printDataUrl;
+  lb.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function hfCloseLightbox128() {
+  const lb = $("#hfLightbox128"), im = $("#hfLightboxImg128");
+  if (!lb || lb.hidden) return;
+  lb.hidden = true;
+  if (im) im.removeAttribute("src");
+  document.body.style.overflow = "";
+}
+(function wireHfLightbox128() {
+  const wrap = $("#hfFrozenWrap"), lb = $("#hfLightbox128"), closeBtn = $("#hfLightboxClose128");
+  if (wrap) {
+    wrap.addEventListener("click", hfOpenLightbox128);
+    wrap.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hfOpenLightbox128(); } });
+  }
+  if (closeBtn) closeBtn.addEventListener("click", hfCloseLightbox128);
+  if (lb) lb.addEventListener("click", (e) => { if (e.target === lb) hfCloseLightbox128(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") hfCloseLightbox128(); });
+})();
 // Compose the FINAL print image: the frozen frame, the optional HYPE
 // FRAME poster treatment (grunge frame + lockup band), and the name /
 // jersey caption under the frame. The submitted order carries this
@@ -2978,12 +3008,13 @@ async function loadOwner() {
         let src = "";
         try { const ir = await fetch(o.imageUrl, { headers: { "x-owner-token": ownerToken() } }); if (ir.ok) src = URL.createObjectURL(await ir.blob()); } catch {}
         hfHtml += `<div class="queue-item hf-req">
-          ${src ? `<img class="hf-req-img" src="${src}" alt="Hype Frame print image">` : `<p><i>Print image on file (preview unavailable here).</i></p>`}
+          ${src ? `<img class="hf-req-img" src="${src}" alt="Hype Frame print image">` : (o.print_image ? `<p><i>Print image on file (preview unavailable here).</i></p>` : `<p><i>No print image on file for this order.</i></p>`)}
           <div class="hf-req-body">
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
             Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"} · Image: ${o.image_style === "avatar" ? "Avatar (illustrate first)" : "Real photo"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
+            ${src ? `<a class="mini-btn" style="text-decoration:none" href="${src}" download="hypeframe-order-${o.id}.png">⬇ Download print image</a><br>` : ""}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
             <span style="color:var(--muted)">${esc(o.created_at)} — confirm with the guardian before printing anything.</span>
           </div>
