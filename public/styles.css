@@ -3055,3 +3055,31 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .hf-lightbox128[hidden]{display:none}
 .hf-lightbox128 img{max-width:96vw;max-height:92vh;width:auto;height:auto;object-fit:contain;border-radius:10px;background:#000;box-shadow:0 12px 48px rgba(0,0,0,.6)}
 .hf-lightbox-close128{position:absolute;top:14px;right:14px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:rgba(16,16,16,.9);color:#fff;font-size:19px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0;z-index:1}
+
+/* Round 129 (2026-11-13, Emil: "The video is really small in
+   hype frame section"): the mid-feed strip's film becomes the
+   hero of its card. The Round 126 side-by-side layout — film
+   in a 148px left box (112px on phones) beside the copy —
+   inverts to a STACKED card: the film takes the FULL CARD
+   WIDTH at 16:9 across the top (the shared .hf-film-box
+   already carries the 16:9 aspect), and the lockup, steps
+   and Create row stack below it. The card stays inside the
+   board column, so the film caps at the column width on
+   desktop. The arrow steps line — the phone presentation
+   since Round 126 — is the steps at every width now, and the
+   cover's play button grows back toward its store-feature
+   size now that the box is big again. The 126 classes and
+   the renderAll2 splice are unchanged; the orphaned
+   .hf-strip-steps126 numbered-row rules above simply go
+   unused (the markup retired in this round). */
+.hf-strip126{flex-direction:column;align-items:stretch;gap:12px}
+.hf-strip-film126{flex:none;width:100%}
+.hf-strip-film126 .hf-film-box{border-radius:12px}
+.hf-film-btn-sm126{font-size:12.5px;padding:7px 14px;bottom:12px}
+.hf-strip-stepsline126{display:block;font-size:12.5px;margin-top:7px}
+@media (max-width:560px){
+  .hf-strip126{gap:10px}
+  .hf-strip-film126{flex:none;width:100%}
+  .hf-strip-lockup126 b{font-size:19px;white-space:normal}
+  .hf-strip-stepsline126{font-size:11.5px}
+}
