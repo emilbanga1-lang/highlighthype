@@ -18,10 +18,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=158" />
+<link rel="stylesheet" href="styles.css?v=159" />
 </head>
 <body>
-<!-- Round 159 (2026-11-14): VISITOR SOURCES — Emil: "I really
+<!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
+     poster on iOS after the Round 158 deploy — Emil's phone:
+     hero still, sound badge showing muted. Not the sweep:
+     #heroVideo sits outside every swept root (verified in the
+     rig, where both the pre-158 and current trees behave
+     identically — Chromium's muted-autoplay rescue masks it).
+     The Round 125 start asks for sound first; where the
+     browser refuses an uninteracted start (iOS, no gesture
+     yet), the refusal handler muted the film and armed the
+     first-tap unmute but never played again — and Safari does
+     not re-run autoplay when muted flips after load. Fix, in
+     the hero controller only: the refusal path now retries
+     play() muted (motion beats a frozen poster), the saved
+     hh_music preference is never written by the fallback, the
+     badge stays truthful, and the first interaction still
+     turns the sound on. Client-only. Pins ?v=159.
+     Round 159 (2026-11-14): VISITOR SOURCES — Emil: "I really
      want to know — where visitors come from." Once per browser
      session (a sessionStorage flag; no cookie, nothing
      persistent) the app sends ONE visit_source event through
@@ -2029,6 +2045,6 @@
   </div>
 </div>
 
-<script src="app.js?v=158"></script>
+<script src="app.js?v=159"></script>
 </body>
 </html>
