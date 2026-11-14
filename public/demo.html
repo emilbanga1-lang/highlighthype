@@ -89,6 +89,12 @@ button{font:inherit}
 .demo-tiles166{display:flex;flex-direction:column;gap:16px;margin-top:14px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
 .tile-media{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden;cursor:pointer}
+/* Round 171: the five card stages carry Emil-approved AI
+   stills (fictional team, generated kids) — the img fills the
+   16/9 stage cover-cropped, under the unchanged overlays.
+   The gradient field / ghost number / diamond placeholder
+   art retired from the cards; the standings thumbs keep it. */
+.demo-still171{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .demo-ghost166{position:absolute;right:6px;top:-24px;font-family:"Anton",sans-serif;font-style:italic;font-size:150px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
 .demo-field166{position:absolute;inset:0;opacity:.9}
 .g1{background:radial-gradient(120% 130% at 18% 0%,#1d4d2b 0%,#0d2817 46%,#050f08 100%)}
@@ -200,7 +206,7 @@ button{font:inherit}
     <div class="demo-tiles166">
 
       <article class="tile">
-        <div class="tile-media"><div class="demo-field166 g1"></div><span class="demo-ghost166">7</span><div class="demo-diamond166"></div><span class="badge demo-badge166">🏆 Team's top play</span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 312</span><span class="dur-pill">0:24</span></div>
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-walkoff.jpg" alt="Demo still — Mason R. rounds the bases on his walk-off double" /><span class="badge demo-badge166">🏆 Team's top play</span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 312</span><span class="dur-pill">0:24</span></div>
         <div class="tile-body">
           <div class="tile-head153"><span class="tile-avatar153" data-name="Mason Reyes">MR</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Walk-off double off the wall</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Mason R.</span><span class="meta-rest153"> · Rockets 10U · Nov 9</span></p></div></div>
           <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="47" aria-pressed="false" aria-label="Vote for this play">Vote · <b>47</b></button></div>
@@ -208,7 +214,7 @@ button{font:inherit}
       </article>
 
       <article class="tile">
-        <div class="tile-media"><div class="demo-field166 g2"></div><span class="demo-ghost166">24</span><div class="demo-diamond166"></div><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 268</span><span class="dur-pill">0:11</span></div>
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-diving-catch.jpg" alt="Demo still — Noah K. lays out for the diving catch" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 268</span><span class="dur-pill">0:11</span></div>
         <div class="tile-body">
           <div class="tile-head153"><span class="tile-avatar153" data-name="Noah Kim">NK</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Diving catch saves the game</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Noah K.</span><span class="meta-rest153"> · Rockets 10U · Nov 8</span></p></div></div>
           <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="39" aria-pressed="false" aria-label="Vote for this play">Vote · <b>39</b></button></div>
@@ -216,7 +222,7 @@ button{font:inherit}
       </article>
 
       <article class="tile">
-        <div class="tile-media"><div class="demo-field166 g3"></div><span class="demo-ghost166">12</span><div class="demo-diamond166"></div><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 240</span><span class="dur-pill">0:31</span></div>
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-grand-slam.jpg" alt="Demo still — Jayden T. connects on the grand slam" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 240</span><span class="dur-pill">0:31</span></div>
         <div class="tile-body">
           <div class="tile-head153"><span class="tile-avatar153" data-name="Jayden Torres">JT</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Grand slam to deep left</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Jayden T.</span><span class="meta-rest153"> · Rockets 10U · Nov 2</span></p></div></div>
           <p class="play-badges moment-row162"><span class="moment-chip162">🔥 Big play</span></p>
@@ -225,7 +231,7 @@ button{font:inherit}
       </article>
 
       <article class="tile">
-        <div class="tile-media"><div class="demo-field166 g4"></div><span class="demo-ghost166">15</span><div class="demo-diamond166"></div><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 154</span><span class="dur-pill">0:09</span></div>
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-strikeout.jpg" alt="Demo still — Owen D. deals the game-ending strikeout" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 154</span><span class="dur-pill">0:09</span></div>
         <div class="tile-body">
           <div class="tile-head153"><span class="tile-avatar153" data-name="Owen Doyle">OD</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Strikeout looking to end it</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Owen D.</span><span class="meta-rest153"> · Rockets 10U · Oct 26</span></p></div></div>
           <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="21" aria-pressed="false" aria-label="Vote for this play">Vote · <b>21</b></button></div>
@@ -233,7 +239,7 @@ button{font:inherit}
       </article>
 
       <article class="tile">
-        <div class="tile-media"><div class="demo-field166 g5"></div><span class="demo-ghost166">2</span><div class="demo-diamond166"></div><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 121</span><span class="dur-pill">0:14</span></div>
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-steal-home.jpg" alt="Demo still — Liam S. slides home ahead of the tag" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 121</span><span class="dur-pill">0:14</span></div>
         <div class="tile-body">
           <div class="tile-head153"><span class="tile-avatar153" data-name="Liam Sullivan">LS</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Steals home on the passed ball</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Liam S.</span><span class="meta-rest153"> · Rockets 10U · Oct 19</span></p></div></div>
           <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="18" aria-pressed="false" aria-label="Vote for this play">Vote · <b>18</b></button></div>
