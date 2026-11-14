@@ -18,10 +18,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=153" />
+<link rel="stylesheet" href="styles.css?v=154" />
 </head>
 <body>
-<!-- Round 154 (2026-11-14): the Battles BIG players get the
+<!-- Round 155 (2026-11-14): the trusted-family FAST LANE —
+     Phase 7c of the owner-panel program; Emil decided
+     EMAIL-ONLY on 2026-11-14: a guardian email on the owner's
+     allowlist (trusted_guardians, hash-only) is by itself
+     enough for that family's uploads to go live without the
+     queue. ORDER IS A HARD RULE in the upload path: dedupe
+     first (Round 145), then the Upload Assist garbage gate
+     (a gate-stopped upload — a confident not_a_play, or the
+     guardian's override of one — is NEVER rescued by the
+     lane), then the hash-to-hash allowlist match. A match
+     inserts APPROVED with a fast_laned_at marker and runs the
+     standard approval side-effects (moderation log under
+     actor fast-lane:<label>, guardian email + text, contest
+     auto-entry per the upload's opt-in). The Owner panel
+     gains a Fast lane section: the list (metadata only —
+     never an email or a hash), an add form, revoke, and a
+     "Fast-laned — awaiting your look" strip whose Trash
+     button is the panel's ordinary delete (7-day undo).
+     Pins ?v=154.
+     Round 154 (2026-11-14): the Battles BIG players get the
      adaptive stage the Month featured clip got in Round 142.
      A portrait clip in a big player (Quick Battles, Daily
      Battle, Battle Run) was contained inside a fixed 16:9
@@ -1330,6 +1349,12 @@
            list, mint form and once-only reveal render client-side
            from /api/owner/tokens. -->
       <h3 style="margin-top:22px">Owner access</h3><div id="ownerAccess152"></div>
+      <!-- Round 155: the trusted-family fast lane — families the
+           owner adds here skip the review queue (email-only,
+           Emil's decision 2026-11-14). The list, add form and
+           the "awaiting your look" strip render client-side
+           from /api/owner/trusted. -->
+      <h3 style="margin-top:22px">⚡ Fast lane</h3><div id="fastLane155"></div>
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
@@ -1950,6 +1975,6 @@
   </div>
 </div>
 
-<script src="app.js?v=153"></script>
+<script src="app.js?v=154"></script>
 </body>
 </html>
