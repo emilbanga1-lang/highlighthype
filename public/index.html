@@ -8,13 +8,46 @@
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/favicon.png">
 <link rel="preload" as="image" href="/logo-header-gold.png?v=118" fetchpriority="high">
+<!-- Round 148 (2026-11-13): the hero video already wears
+     /hero-poster.jpg as its poster (a brand still), but on a cold
+     connection the 117KB poster arrived late and the hero sat
+     black for seconds — preload it at top priority so the first
+     paint has the still. Layout, autoplay and the Round 125 mute
+     behavior are untouched. -->
+<link rel="preload" as="image" href="/hero-poster.jpg" fetchpriority="high">
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=146" />
+<link rel="stylesheet" href="styles.css?v=147" />
 </head>
 <body>
-<!-- Round 147 (2026-11-13): two Emil-approved unifications.
+<!-- Round 148 (2026-11-13): QA-fix batch from the live-site
+     inspection + Emil's phone screenshots. (1) /my-highlights
+     rendered as bare board chrome over a black void: boot()
+     calls showPanel("mine") on the page-sub routes, and
+     showPanel → hidePlayDetail → teardownWatchChrome140 read
+     the Round 140 `let watchChromeOff140` before its declaration
+     (declared later in the file) — a TDZ ReferenceError killed
+     boot before the panel toggled or loadData ran. The two
+     watch-chrome state declarations now live above
+     hidePlayDetail in app.js; /how-it-works and /stories died
+     of the same throw and are fixed by the same move. (2) The
+     studio's freeze helper text slid 6px under the Freeze row
+     (the shared .upload-card .small margin-top:-6px); it gets
+     real clearance, scoped to the studio. (3) The mid-feed
+     Hype Frame strip is a compact horizontal band again — the
+     full-width 16:9 film read as a playable content video while
+     scrolling (styles.css Round 148 block). (4) The footer's
+     dead black tail (132px after the links row: footer padding
+     stacked on Round 122's body pill-clearance padding) is cut
+     to the footer's own 36px. (5) The final CTA headline gets
+     line-height:1 + the board's scroll-margin, so its italic
+     ink never rides at the sticky header's edge. (6) The hero
+     poster is preloaded (see <head>) — it existed, but arrived
+     late on cold loads. (7) Play-detail Up Next thumbs: portrait
+     clips cover-crop the 16:9 thumb instead of the contained
+     strip over a blur. Pins ?v=147.
+     Round 147 (2026-11-13): two Emil-approved unifications.
      (1) The Hype of the Month leaderboard rows adopt the Hall
      of Fame row look — renderMonth renders the This Month list
      with the shared fameRowHtml134 (poster thumb + play icon,
@@ -1792,6 +1825,6 @@
   </div>
 </div>
 
-<script src="app.js?v=146"></script>
+<script src="app.js?v=147"></script>
 </body>
 </html>
