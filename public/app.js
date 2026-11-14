@@ -1287,6 +1287,7 @@ function guardianPlaysHtml121(plays) {
     <div class="queue-item mine-play-row" style="display:flex;gap:14px;align-items:center">
       <div style="flex:1"><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.athlete_label || "")}${p.athlete_tag ? ` · <span class="tagchip">${esc(p.athlete_tag)}</span>` : ""} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}${when(p.created_at) ? ` · posted ${esc(when(p.created_at))}` : ""}</span><br>${chip(p)}</div>
       ${p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : ""}
+      ${p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">🎬 Get the reel</button>` : ""}
       ${p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : ""}
     </div>`).join("");
 }
@@ -1306,6 +1307,37 @@ window.withdrawContest130 = async (id, btn) => {
     if (findForm) findForm.requestSubmit();
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = "Withdraw from contest"; btn.insertAdjacentHTML("afterend", `<p class="mine-find-msg">${esc(e.message)}</p>`); }
+  }
+};
+/* Round 165 (2026-11-14): "Get the reel" — the guardian who
+   posted a play downloads its branded reel MP4 (sting + the
+   clip + crest watermark), generated on the server the first
+   time and cached after that. The email they just looked up
+   with rides along, exactly like the withdraw above — the
+   server matches it against the play's guardian email on file
+   and only then builds or serves the file. The answer is the
+   video itself, not JSON, so this goes through fetch + blob
+   (the Owner view's print-image download pattern), not api().
+   An error keeps the button and says why, in place. */
+window.getReel165 = async (id, btn) => {
+  const email = ($("#mineEmail")?.value || "").trim();
+  const label = "🎬 Get the reel";
+  if (btn) { btn.disabled = true; btn.textContent = "Making your reel… first one takes a few seconds"; }
+  try {
+    const r = await fetch(`/api/highlights/${id}/reel`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || "The reel couldn't be made right now."); }
+    const blob = await r.blob();
+    const m = /filename="([^"]+)"/.exec(r.headers.get("content-disposition") || "");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = m ? m[1] : `highlighthype-reel-${id}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = label; btn.insertAdjacentHTML("afterend", `<p class="mine-find-msg">${esc(e.message)}</p>`); }
   }
 };
 $("#mineFind").addEventListener("submit", async (e) => {
@@ -4079,7 +4111,7 @@ function storageHtml149(so) {
   const big = (so.biggest || []).length ? `<h4 class="stats-sub">Biggest files</h4>` + so.biggest.map((f) => `<div class="storage-big149"><span><b>${esc(f.title)}</b>${f.player_name ? ` — ${esc(f.player_name)}` : ""} <span class="tagchip">${esc(f.status)}</span></span><b>${fmtBytes149(f.bytes)}</b></div>`).join("") : "";
   return `<h4 class="stats-sub">Storage</h4>
     ${meter}
-    <p>Uploads <b>${fmtBytes149(so.uploadsBytes)}</b> · Database <b>${fmtBytes149(so.dbBytes)}</b> · Hype Frame prints <b>${fmtBytes149(so.hypeFramesBytes)}</b> · Waiting in queue: <b>${Number(so.pendingCount || 0)}</b> play${Number(so.pendingCount || 0) === 1 ? "" : "s"}, <b>${fmtBytes149(so.pendingBytes)}</b></p>
+    <p>Uploads <b>${fmtBytes149(so.uploadsBytes)}</b> · Database <b>${fmtBytes149(so.dbBytes)}</b> · Hype Frame prints <b>${fmtBytes149(so.hypeFramesBytes)}</b> · Reels <b>${fmtBytes149(so.reelsBytes)}</b> · Waiting in queue: <b>${Number(so.pendingCount || 0)}</b> play${Number(so.pendingCount || 0) === 1 ? "" : "s"}, <b>${fmtBytes149(so.pendingBytes)}</b></p>
     ${big}`;
 }
 /* Round 145: the last queue loadOwner rendered — deletePlay and
