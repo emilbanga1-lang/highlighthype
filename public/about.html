@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0a0a" />
+<!-- Round 173 (2026-11-14): the About page — reachable by
+     direct link only for now, not linked from the nav,
+     homepage or footer, and kept out of search indexes
+     while its link placement is decided. Round 173b
+     (2026-11-14): Emil approved THE STORY — the true
+     driveway-dunk origin, told as flowing prose — plus a
+     new portrait he supplied (photo-144, Nicholas with the
+     colorful Double Barrel bat), and an added paragraph on
+     the emotional scope of sports (wins, losses, lessons,
+     the underdog — all the moments matter). -->
+<meta name="robots" content="noindex" />
+<title>Our Story — HighlightHype</title>
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+<!-- Round 173/173b: STANDALONE page, the /demo pattern — it
+     deliberately does NOT load the app's stylesheet or
+     script. Isolation is the point: no API calls, no visit
+     beacons, no tracking, no worker registration, no
+     script at all; the story below is baked into the
+     markup. The copy is Emil-approved verbatim (the story
+     he and Dyanna signed off 2026-11-14, heart-first). -->
+<style>
+:root{
+  --bg:#0a0a0a; --bg2:#101010; --card:#141414; --card2:#1a1a1a;
+  --white:#ffffff; --muted:#a8a8a0; --muted2:#7c7c74;
+  --volt:#c8ff00; --volt-ink:#131a00;
+  --gold:#D4AF37;
+  --line:#262622; --line2:#33332c;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--white);font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+.about-wrap173{max-width:640px;margin:0 auto;padding:0 16px 34px}
+::selection{background:var(--volt);color:var(--volt-ink)}
+
+/* ---------- top chrome (mirrors the /demo top bar) ---------- */
+.about-topbar173{display:flex;align-items:center;gap:9px;padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.about-brand173{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
+.about-topbar173 img{height:30px;width:auto}
+.about-wordmark173{font-weight:800;font-size:13.5px;letter-spacing:.22em}
+.about-wordmark173 em{font-style:normal;color:var(--gold)}
+
+/* ---------- hero ---------- */
+.about-hero173{padding:26px 0 4px}
+.about-eyebrow173{display:block;font-size:12px;font-weight:800;font-style:italic;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.about-hero173 h1{font-family:"Anton",sans-serif;font-style:italic;font-size:42px;line-height:1.0;margin:0;text-transform:uppercase;letter-spacing:.005em}
+.about-portrait173{margin:20px 0 0}
+.about-portrait173 img{width:100%;height:auto;border-radius:18px;border:1px solid rgba(212,175,55,.55);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 14px 44px rgba(212,175,55,.16),0 22px 50px rgba(0,0,0,.55)}
+.about-portrait173 figcaption{margin-top:10px;color:var(--muted);font-size:13px;font-weight:600;line-height:1.45;text-align:center}
+
+/* ---------- the story (Round 173b: flowing prose) ---------- */
+.about-story173b{margin-top:24px}
+.about-story173b p{margin:0 0 19px;color:#dcdcd4;font-size:17px;font-weight:500;line-height:1.72}
+.about-story173b p.about-thought173b{font-style:italic;color:#f2f2ec;font-size:18.5px;line-height:1.6;margin-left:20px;padding-left:16px;border-left:2px solid rgba(212,175,55,.55)}
+.about-pull173b{font-family:"Anton",sans-serif;font-style:italic;font-size:30px;line-height:1.18;color:var(--gold);text-align:center;margin:32px 0;padding:0 4px}
+.about-signoff173b{font-family:"Anton",sans-serif;font-style:italic;font-size:25px;letter-spacing:.03em;text-transform:uppercase;color:var(--volt);margin:32px 0 0}
+
+/* ---------- mission band ---------- */
+.about-mission173{margin:36px -16px 30px;background:var(--gold);color:#171300;padding:28px 16px 24px;text-align:center}
+.about-mission173 h2{font-family:"Anton",sans-serif;font-style:italic;font-size:31px;line-height:1.04;margin:0;text-transform:uppercase;color:#171300}
+
+/* ---------- CTAs ---------- */
+.about-ctas173{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.about-cta-lime173{display:inline-flex;background:var(--volt);color:var(--volt-ink);font-weight:800;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none}
+.about-cta-lime173:active{transform:scale(.97)}
+.about-cta-ghost173{display:inline-flex;background:transparent;color:#fff;border:1px solid var(--line2);font-weight:800;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none}
+.about-cta-ghost173:active{transform:scale(.97)}
+
+/* ---------- footer ---------- */
+.about-foot173{margin-top:38px;text-align:center}
+.about-foot173 img{height:46px;width:auto;margin:0 auto 12px}
+.about-wordmark-line173{font-family:"Anton",sans-serif;font-size:19px;letter-spacing:.04em;text-transform:uppercase;color:var(--volt);margin:0}
+.about-foot173 p{margin-top:12px;color:var(--muted2);font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="about-wrap173">
+
+  <!-- top chrome -->
+  <div class="about-topbar173">
+    <!-- Round 173: every crest img on this page carries the ?v= pin — bump whenever public/crest-watermark.png is replaced in place (static images cache for 24h). -->
+    <a class="about-brand173" href="/" aria-label="HighlightHype home"><img src="/crest-watermark.png?v=169" alt="HighlightHype crest" /><span class="about-wordmark173">HIGHLIGHT<em>HYPE</em></span></a>
+  </div>
+
+  <!-- hero -->
+  <header class="about-hero173">
+    <span class="about-eyebrow173">Our Story</span>
+    <h1>It started in the driveway</h1>
+    <figure class="about-portrait173">
+      <!-- Round 173b: portrait replaced with Emil's new photo-144 art — pin bumped ?v=173 → ?v=174 so returning phones pick up the new image past the 24h static cache. -->
+      <img src="/about-nicholas.jpg?v=174" alt="Illustrated portrait of Nicholas, the 9-year-old founder of HighlightHype, in a black HighlightHype hoodie with a bat over his shoulder" />
+      <figcaption>Nicholas — illustrated the same way HighlightHype turns any athlete's best frame into art.</figcaption>
+    </figure>
+  </header>
+
+  <!-- the story (Round 173b: Emil-approved verbatim, flowing prose) -->
+  <div class="about-story173b">
+    <p>It happened in the driveway. Just Nicholas, a basketball, and a hoop he'd been attacking all afternoon.</p>
+    <p>Then — finally — he did it. His first dunk.</p>
+    <p>The rim was lowered, sure. But a dunk is a dunk. And the second his feet hit the pavement, he had the thought every kid who's ever made a great play has had:</p>
+    <p class="about-thought173b">There was nobody here to see it.</p>
+    <p>Not "that was cool." Not even "I did it." The play of his life — and its only witness was the driveway. But Nicholas took it one step further, the step that became all of this:</p>
+    <div class="about-pull173b">What if everyone could have seen that… and voted on how cool it was?</div>
+    <p>Read that again, because it's the whole company. Post the play. Everybody watches. Everybody votes. That wasn't a business plan — it was a 9-year-old in a driveway, wishing his moment had an audience.</p>
+    <p>So his family built it. His dad stayed up late, writing it line by line. His mom became the creative eye — if it shines gold, she approved it. His sister Juliette made sure the girls got a board of their own. His cousin Nicole dreamed up turning a kid's best frame into illustrated art.</p>
+    <p>And then the driveway got bigger. A martial artist's montage. A softball catcher tagging out a runner sliding in at home. Plays from kids they'd never met — each one somebody's dunk in the driveway, except this time, people saw it. And voted on how cool it was. Exactly like he pictured.</p>
+    <p>Because every kid has that play. The diving catch, caught on one parent's phone and seen by almost no one. The buzzer-beater, buried in a camera roll by Monday morning. The dunk in the driveway, with no witnesses at all. Those moments don't need a stadium. They just need somebody to see them — and say that was cool.</p>
+    <p>And not just the wins — all of it. The loss that stings for a week. The strikeout that teaches you more than the home run ever could. The comeback nobody saw coming. The underdog who refused to quit. Sports are emotional — that's exactly why they matter. Around here, the tears and the lessons count right alongside the trophies.</p>
+
+    <!-- mission band -->
+    <div class="about-mission173">
+      <h2>Every athlete deserves the hype.</h2>
+    </div>
+
+    <p>HighlightHype is where young athletes post their best plays for the world to watch, cheer, and vote on — with one athlete crowned every month for the moment that mattered most. And because a play is never just a play, you can mark what it was: a first ever, a personal best, a comeback — even a great effort in a game you lost. Around here, the moment matters as much as the highlight.</p>
+    <p>Every play is reviewed by a real person before it goes live, and a parent or guardian is always in control. We built it that way because these are our kids too.</p>
+    <p>We're in private beta now, growing one team at a time — starting with Nicholas's own, the Plainview Hawks.</p>
+    <p>Your kid's driveway moment is coming.</p>
+    <p class="about-signoff173b">Your moment. Your hype.</p>
+    <div class="about-ctas173">
+      <a class="about-cta-lime173" href="https://highlighthype.com/#upload">Post a Play</a>
+      <a class="about-cta-ghost173" href="/">Watch Highlights</a>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div class="about-foot173">
+    <img src="/crest-watermark.png?v=169" alt="HighlightHype crest" />
+    <p class="about-wordmark-line173">Your moment. Your hype.</p>
+    <p>HighlightHype — built by a baseball family in Plainview, NY.</p>
+  </div>
+
+</div>
+</body>
+</html>
