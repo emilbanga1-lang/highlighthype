@@ -693,11 +693,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN fast_laned_at TEXT"); } catch {
    momentKind162 below; never trusted raw. */
 try { db.exec("ALTER TABLE highlights ADD COLUMN moment_kind TEXT"); } catch {}
 /* Round 165 (2026-11-14): the Hype Reel cache record — when a
-   play's branded reel was generated and WHICH media_url it was
-   built from. The cache at DATA_DIR/reels/<id>.mp4 is reused
-   only while reel_source still equals the play's media_url;
-   plays' media never changes after approval in this product,
-   so in practice the first generation is the last. */
+   play's branded reel was generated and WHAT it was built
+   from. The cache at DATA_DIR/reels/<id>.mp4 is reused only
+   while reel_source still equals the current format key for
+   the play's media_url; plays' media never changes after
+   approval in this product, so absent a format bump (Round
+   167 added REEL_FORMAT_V for exactly that) the first
+   generation is the last. */
 try { db.exec("ALTER TABLE highlights ADD COLUMN reel_generated_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN reel_source TEXT DEFAULT ''"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
@@ -1967,7 +1969,7 @@ async function r124RunMigration() {
    and production) ships WITHOUT the drawtext filter, so ffmpeg
    cannot burn text in at all; and a name band needs text over
    moving video at every geometry. The crest watermark needs
-   only `overlay`: the flat gold crest at ~55% opacity in the
+   only `overlay`: the crest at ~55% opacity in the
    bottom-right corner, sized off the frame's width, identical
    for portrait and landscape, and it can never collide with
    the action the way a caption band can. The sting cards DO
@@ -1980,17 +1982,51 @@ async function r124RunMigration() {
 
    CACHING: a reel generates on the guardian's first request
    and is then served from DATA_DIR/reels/<playId>.mp4.
-   highlights.reel_source records the media_url it was built
-   from; the cache is reused only while that still matches.
+   highlights.reel_source records what it was built from;
+   the cache is reused only while that still matches.
    AUTHORIZATION IS NOT HERE: this block builds and fetches
    files; who may have one is decided by the endpoint below
-   (the guardian email-hash match from /api/athletes/lookup). */
+   (the guardian email-hash match from /api/athletes/lookup).
+
+   Round 167 (2026-11-14) — the sting cards go metallic. Emil
+   supplied two photographic masters of the crest (gold metal
+   on black): public/reel-crest.jpg (the crest ALONE) now
+   fronts the intro card where the flat crest PNG used to sit,
+   and public/reel-lockup.jpg (crest + HIGHLIGHTHYPE™ wordmark
+   + the slogan, all baked into the art) IS the outro card —
+   the bitmap renderer no longer draws "YOUR MOMENT. YOUR
+   HYPE." there; only the small highlighthype.com line is still
+   rendered, tucked under the artwork. Both masters are square
+   JPGs on black, so they contain-fit onto the black cards and
+   their ground disappears. The IN-CLIP watermark keeps its
+   mechanism (this same overlay path, 55% alpha) — and its
+   asset is the crest file itself, which Round 167 also
+   replaced with the shiny metallic crest (Dyanna: the crest
+   must be shiny, almost 3D), so the corner mark is the shiny
+   crest too; the metallic JPG masters still never enter the
+   clip (no alpha — they'd box). Card changes invalidate old
+   caches:
+   reel_source now stores REEL_FORMAT_V + ":" + media_url, and
+   a cached file serves only while the stored value matches
+   exactly, so every pre-167 reel regenerates on next request. */
 const R165_INTRO_SEC = 1.2;
 const R165_OUTRO_SEC = 1.5;
 const R165_GOLD = [212, 175, 55];      // #D4AF37 — sampled from the crest's own pixels
 const R165_WHITE = [255, 255, 255];
 const R165_SOFT = [217, 217, 217];
-const R165_CREST_PATH = path.join(__dirname, "public", "crest-watermark.png"); // 560×625 flat gold crest, transparent
+const R165_CREST_PATH = path.join(__dirname, "public", "crest-watermark.png"); // the site crest — Round 167: 1122×1100 shiny metallic, transparent (was the 560×625 flat crest)
+/* Round 167: the metallic card masters (both 1284×1284 JPGs
+   on black) and the reel format version. REEL_FORMAT_V is
+   folded into highlights.reel_source ahead of the media_url,
+   so any change to what a reel LOOKS like (like this card
+   swap) must bump it — old-format caches then miss and
+   regenerate instead of serving the retired sting. Round 165
+   stored the bare media_url; that is format "fmt1" by
+   absence, and it never matches again. */
+const R167_CREST_ART_PATH = path.join(__dirname, "public", "reel-crest.jpg");
+const R167_LOCKUP_ART_PATH = path.join(__dirname, "public", "reel-lockup.jpg");
+const REEL_FORMAT_V = "fmt2";
+const r167ReelSourceKey = (mediaUrl) => `${REEL_FORMAT_V}:${mediaUrl || ""}`;
 /* Embedded bitmap font — DO NOT hand-edit the table. Glyph
    record: [advance, w, h, dx, dy, base64] in 96px units; the
    base64 is the glyph's ink mask, 1 bit per pixel, rows packed
@@ -2159,25 +2195,35 @@ async function r165BuildReelNow(bins, row, srcAbs, outAbs, workDir) {
   if (W < 160 || H < 160) return { ok: false, status: 422, message: "That video is too small to make a reel from." };
   const dur = facts.duration;
   const maxTextW = Math.round(W * 0.88);
-  const crestW = Math.max(96, Math.min(460, Math.round(Math.min(W, H) * 0.44)));
-  const crestH = Math.round(crestW * 625 / 560);
   const namePx = Math.max(26, Math.min(100, Math.round(Math.min(W * 0.088, H * 0.14))));
-  // ---- intro card: crest centered at 35% height, name + title under it ----
-  const introCrestBottom = Math.round(H * 0.35 + crestH / 2);
+  // ---- intro card (Round 167): the metallic crest master,
+  // contain-fit on the black card — centered horizontally and
+  // centered on 35% of the height, exactly where the flat
+  // crest sat — with the rendered name + title under it, as
+  // before. The master is square, so its box is square. ----
+  const introArtW = Math.max(120, Math.min(560, Math.round(Math.min(W, H) * 0.52)));
+  const introArtH = introArtW;
+  const introArtBottom = Math.round(H * 0.35 + introArtH / 2);
   const introItems = [
     { text: r165SanitizeText(athleteDisplayName(row.player_name) || row.player_name || "", 60), px: namePx, rgb: R165_WHITE, maxLines: 2, gap: Math.round(H * 0.012) },
     { text: r165SanitizeText(row.title || "", 90), px: Math.round(namePx * 0.54), rgb: R165_SOFT, maxLines: 2, gap: 0 },
   ].filter((it) => it.text);
-  let introLines = r165FitLines(introItems, maxTextW, Math.round(introCrestBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
-  if (!introLines && introItems.length > 1) introLines = r165FitLines([introItems[0]], maxTextW, Math.round(introCrestBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
+  let introLines = r165FitLines(introItems, maxTextW, Math.round(introArtBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
+  if (!introLines && introItems.length > 1) introLines = r165FitLines([introItems[0]], maxTextW, Math.round(introArtBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
   if (!introLines) introLines = [];
-  // ---- outro card: crest at 33%, the slogan in gold, the address under it ----
-  const outroCrestBottom = Math.round(H * 0.33 + crestH / 2);
-  const sloganPx = Math.max(20, Math.min(74, Math.round(W * 0.064)));
+  // ---- outro card (Round 167): the full metallic lockup IS
+  // the card — crest, wordmark and the slogan are baked into
+  // the art, so the renderer draws nothing here but the small
+  // highlighthype.com line, tucked under the artwork inside
+  // the master's own black footroom (the artwork band ends at
+  // ~85% of the square; the URL baseline rides at ~93%). ----
+  const outroArtW = Math.max(140, Math.round(Math.min(W * 0.86, H * 0.62)));
+  const outroArtH = outroArtW;
+  const outroArtTop = Math.round(H * 0.10);
+  const urlPx = Math.max(16, Math.min(46, Math.round(W * 0.040)));
   let outroLines = r165FitLines([
-    { text: "YOUR MOMENT. YOUR HYPE.", px: sloganPx, rgb: R165_GOLD, maxLines: 1, gap: Math.round(H * 0.014) },
-    { text: "highlighthype.com", px: Math.round(sloganPx * 0.62), rgb: R165_WHITE, maxLines: 1, gap: 0 },
-  ], maxTextW, Math.round(outroCrestBottom + H * 0.05 + sloganPx * 0.75), Math.round(H * 0.96)) || [];
+    { text: "highlighthype.com", px: urlPx, rgb: R165_WHITE, maxLines: 1, gap: 0 },
+  ], maxTextW, Math.round(outroArtTop + outroArtH * 0.93 + urlPx * 0.75), Math.round(H * 0.97)) || [];
   const introPng = path.join(workDir, "intro.png");
   const outroPng = path.join(workDir, "outro.png");
   fs.writeFileSync(introPng, r165CardPng(W, H, introLines));
@@ -2195,17 +2241,20 @@ async function r165BuildReelNow(bins, row, srcAbs, outAbs, workDir) {
   const wmM = Math.max(10, Math.round(Math.min(W, H) * 0.032));
   const fc = [
     "[4:v]split=2[r165bgA][r165bgB]",
-    "[1:v]format=rgba,split=3[r165cA][r165cW][r165cB]",
-    `[r165cA]scale=${crestW}:-2[r165cAi]`,
+    // Round 167: the site crest (input 1) now feeds ONLY the
+    // in-clip watermark — the cards composite the metallic
+    // masters (inputs 6 and 7) instead.
+    "[1:v]format=rgba[r165cW]",
+    `[6:v]format=rgba,scale=${introArtW}:${introArtH}[r167artI]`,
     `[r165bgA]trim=end=${R165_INTRO_SEC},setpts=PTS-STARTPTS[r165bgAt]`,
-    `[r165bgAt][r165cAi]overlay=(main_w-overlay_w)/2:(main_h*0.35-overlay_h/2):shortest=1[r165iv0]`,
+    `[r165bgAt][r167artI]overlay=(main_w-overlay_w)/2:(main_h*0.35-overlay_h/2):shortest=1[r165iv0]`,
     "[r165iv0][2:v]overlay=0:0:shortest=1,setsar=1,format=yuv420p,fps=30[r165introV]",
     `[0:v]scale=${W}:${H},setsar=1,format=yuv420p,fps=30[r165base]`,
     `[r165cW]scale=${wmW}:-2,format=rgba,colorchannelmixer=aa=0.55[r165cWi]`,
     `[r165base][r165cWi]overlay=main_w-overlay_w-${wmM}:main_h-overlay_h-${wmM}:shortest=1[r165clipV]`,
-    `[r165cB]scale=${crestW}:-2[r165cBi]`,
+    `[7:v]format=rgba,scale=${outroArtW}:${outroArtH}[r167artO]`,
     `[r165bgB]trim=end=${R165_OUTRO_SEC},setpts=PTS-STARTPTS[r165bgBt]`,
-    "[r165bgBt][r165cBi]overlay=(main_w-overlay_w)/2:(main_h*0.33-overlay_h/2):shortest=1[r165ov0]",
+    `[r165bgBt][r167artO]overlay=(main_w-overlay_w)/2:${outroArtTop}:shortest=1[r165ov0]`,
     "[r165ov0][3:v]overlay=0:0:shortest=1,setsar=1,format=yuv420p,fps=30[r165outroV]",
     "[r165introV][r165clipV][r165outroV]concat=n=3:v=1:a=0[r165v]",
     // (the silence split is 2-way when the clip brings its own
@@ -2225,6 +2274,8 @@ async function r165BuildReelNow(bins, row, srcAbs, outAbs, workDir) {
     "-loop", "1", "-framerate", "30", "-i", outroPng,
     "-f", "lavfi", "-i", `color=c=black:s=${W}x${H}:r=30`,
     "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+    "-loop", "1", "-framerate", "30", "-i", R167_CREST_ART_PATH,
+    "-loop", "1", "-framerate", "30", "-i", R167_LOCKUP_ART_PATH,
     "-filter_complex", fc,
     "-map", "[r165v]", "-map", "[r165a]",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "21", "-preset", "veryfast", "-threads", "2",
@@ -2256,7 +2307,11 @@ async function r165BuildReel(bins, row, srcAbs, outAbs, workDir) {
 const reelInflight165 = new Map();   // playId -> Promise<absPath>
 const reelFailAt165 = new Map();     // playId -> ms of last failed build
 function r165CachedPath(row) {
-  if (!row.reel_generated_at || (row.reel_source || "") !== (row.media_url || "")) return null;
+  // Round 167: the stored key carries REEL_FORMAT_V — a reel
+  // cached under an older format (Round 165 stored the bare
+  // media_url) never matches, so it regenerates below instead
+  // of serving the retired card art.
+  if (!row.reel_generated_at || (row.reel_source || "") !== r167ReelSourceKey(row.media_url)) return null;
   const f = path.join(REEL_DIR, `${row.id}.mp4`);
   try { return fs.statSync(f).isFile() && fs.statSync(f).size > 0 ? f : null; } catch { return null; }
 }
@@ -2284,7 +2339,7 @@ async function r165EnsureReel(row) {
       if (!built.ok) { reelFailAt165.set(id, Date.now()); throw Object.assign(new Error(built.message), { status: built.status || 500 }); }
       const finalAbs = path.join(REEL_DIR, `${id}.mp4`);
       fs.renameSync(tmpAbs, finalAbs);
-      db.prepare("UPDATE highlights SET reel_generated_at=datetime('now'), reel_source=? WHERE id=?").run(fresh.media_url, id);
+      db.prepare("UPDATE highlights SET reel_generated_at=datetime('now'), reel_source=? WHERE id=?").run(r167ReelSourceKey(fresh.media_url), id);
       reelFailAt165.delete(id);
       return finalAbs;
     } finally {
