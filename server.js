@@ -447,6 +447,15 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN guardian_consent_at TEXT DEFAUL
 // store 0 and are NEVER auto-entered; the Round 121 guardian
 // tap-to-enter remains their path. Rows predating this round are 0.
 try { db.exec("ALTER TABLE highlights ADD COLUMN contest_optin INTEGER DEFAULT 0"); } catch {}
+// Round 145 (2026-11-13): the sha256 of an upload's file bytes,
+// stored at insert time so a retry of the SAME clip inside a short
+// window can be answered from the original play instead of landing
+// as a second pending row + a second full file copy (the 2026-11-13
+// crash-retry pile-up: 34 duplicate pendings, 639MB). NULL for
+// every pre-145 row and for link plays (no bytes to hash) — NULLs
+// never match, so only genuine same-bytes retries dedupe.
+try { db.exec("ALTER TABLE highlights ADD COLUMN media_hash TEXT"); } catch {}
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_highlights_media_hash ON highlights(media_hash)"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -1663,6 +1672,51 @@ const server = http.createServer(async (req, res) => {
         console.log(`[r144] restore-plays: restored plays ${ids.join(",")} (${written.length} files written, ${votes.length} votes, ${entries.length} contest entries)`);
         return sendJson(res, 200, { ok: true, restored: ids, filesWritten: written.length, votes: votes.length, entries: entries.length });
       }
+      // ---- Round 145: guarded cleanup of duplicate PENDING plays ----
+      // The queue-cleanup companion to restore-plays: the owner
+      // approves an exact id list (read off a backup pull), this
+      // route deletes ONLY those plays, and ONLY while each is
+      // still pending and not a sample — an approved or sample id
+      // in the list is skipped and reported, never deleted. That
+      // guard is the whole point: the 2026-11-13 hand-cleanup is
+      // how three APPROVED plays got deleted by mistake. Per-id
+      // semantics (NOT all-or-nothing): every id in the list gets
+      // a verdict in the response. Deletion mirrors the owner
+      // DELETE /api/highlights/:id cleanup exactly — media file,
+      // poster, Hype Frame print images + order rows, votes,
+      // contest entries, then the play row. Same BACKUP_TOKEN
+      // auth as every other backup route (block check above).
+      if (p === "/api/backup/delete-pending" && req.method === "POST") {
+        let body145 = null;
+        try { body145 = JSON.parse((await readBody(req, 64 * 1024)).toString("utf8") || "{}"); } catch { body145 = null; }
+        if (!body145 || !Array.isArray(body145.ids)) return sendJson(res, 400, { ok: false, message: "Body must be JSON with an ids array." });
+        if (body145.ids.length > 100) return sendJson(res, 400, { ok: false, message: "At most 100 ids per cleanup call." });
+        const ids145 = [];
+        for (const raw of body145.ids) {
+          const n = Number(raw);
+          if (!Number.isInteger(n) || n <= 0) return sendJson(res, 400, { ok: false, message: "Every id must be a positive integer." });
+          if (!ids145.includes(n)) ids145.push(n);
+        }
+        const deleted145 = [], skipped145 = [];
+        for (const id of ids145) {
+          const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+          if (!row) { skipped145.push({ id, reason: "not found" }); continue; }
+          if (row.status !== "pending") { skipped145.push({ id, reason: "not pending" }); continue; }
+          if (row.is_sample) { skipped145.push({ id, reason: "sample" }); continue; }
+          if (row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
+          if (row.poster_url) { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.poster_url))); } catch {} }
+          for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(id)) {
+            try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
+          }
+          db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(id);
+          db.prepare("DELETE FROM highlights WHERE id=?").run(id);
+          db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
+          db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
+          deleted145.push(id);
+        }
+        console.log(`[r145] delete-pending: deleted [${deleted145.join(",") || "none"}]; skipped ${skipped145.map((s) => `${s.id}:${s.reason}`).join(", ") || "none"}`);
+        return sendJson(res, 200, { ok: true, deleted: deleted145, skipped: skipped145 });
+      }
       return sendJson(res, 404, { ok: false, message: "Unknown backup route." });
     }
 
@@ -1917,10 +1971,23 @@ const server = http.createServer(async (req, res) => {
       const division = ["girls","boys"].includes(String(fields.division || "").trim().toLowerCase()) ? String(fields.division).trim().toLowerCase() : "boys";
       let media_kind, media_url, mime = "", embed_url = "", host_label = "";
       let uploadedName = ""; // Round 124: the stored file's name, for the media pipeline below
+      let mediaHash145 = null; // Round 145: sha256 of the file bytes (file uploads only)
       if (file && file.filename) {
         const ext = EXT[file.ctype] || path.extname(file.filename).replace(".", "").toLowerCase();
         if (!["mp4", "webm", "mov", "avi", "jpg", "jpeg", "png", "gif", "webp"].includes(ext) || !(file.ctype.startsWith("video/") || file.ctype.startsWith("image/")))
           return sendJson(res, 400, { ok: false, message: "Upload a video or photo file." });
+        // Round 145: dedupe, checked BEFORE any file write or row
+        // insert. The 2026-11-13 crash window made successful
+        // uploads look failed, and every panicked retry landed as
+        // a new pending play + a full file copy. A same-bytes play
+        // created within the last 30 minutes (any status) means
+        // this submit is that retry: answer from the original
+        // play, write nothing, insert nothing. The AI-gate
+        // override resubmits through this same handler, so it is
+        // covered identically — no special case.
+        mediaHash145 = crypto.createHash("sha256").update(file.data).digest("hex");
+        const dup145 = db.prepare("SELECT id, status, athlete_tag FROM highlights WHERE media_hash=? AND created_at >= datetime('now','-30 minutes') ORDER BY id DESC LIMIT 1").get(mediaHash145);
+        if (dup145) return sendJson(res, 200, { ok: true, deduped: true, id: dup145.id, status: dup145.status, athlete_tag: dup145.athlete_tag || "", message: "This clip is already in — no need to post it twice." });
         if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
         const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
         fs.writeFileSync(path.join(UPLOAD_DIR, name), file.data);
@@ -1950,8 +2017,8 @@ const server = http.createServer(async (req, res) => {
       // Upload Assist (Round 99): the browser's AI result rides along
       // as an untrusted label (see sanitizeAiField) — display only.
       const aiJson = sanitizeAiField(fields.ai);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin,media_hash)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130, mediaHash145);
       const newPlayId = Number(info.lastInsertRowid);
       // Round 124: the media pipeline runs BEFORE the response —
       // a converted file and its poster are part of the finished
@@ -2383,7 +2450,11 @@ const server = http.createServer(async (req, res) => {
         // text_consent flag says whether texting is permitted at all.
         // The Upload Assist result (`ai`) rides the same owner-only
         // channel — it is a label for the queue, never public.
-        return { ...publicHighlight(r), review, ai, celebration_spotlight: !!r.celebration_spotlight, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent };
+        return { ...publicHighlight(r), review, ai, celebration_spotlight: !!r.celebration_spotlight, guardian_email: r.notify_email || "", guardian_phone: r.guardian_phone || "", text_consent: !!r.text_consent, guardian_consent_at: r.guardian_consent_at || "", story_text: r.story || "", story_consent: !!r.story_consent,
+          // Round 145: the current period's contest entry, owner-only,
+          // so the live-delete confirmation can say the play is
+          // entered (and in which month) before the owner deletes it.
+          contest_entry_period: (db.prepare("SELECT period FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, currentPeriod()) || {}).period || "" };
       });
       return sendJson(res, 200, { queue: rows });
     }
