@@ -18,10 +18,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=155" />
+<link rel="stylesheet" href="styles.css?v=156" />
 </head>
 <body>
-<!-- Round 156 (2026-11-14): OWNER TEXT ALERTS — Phase 7b of
+<!-- Round 157 (2026-11-14): the Moderation queue gains a
+     New | All filter (Emil: "We should have a filter for new
+     videos and then all videos. It's confusing right now when
+     you see all videos by default."). A segmented pill bar —
+     the Round 141 idiom — tops the queue: New (pending plays
+     only, count on the pill) is the DEFAULT view, and with
+     nothing waiting it reads "🎉 All caught up — no new plays
+     waiting"; All renders exactly the list the queue has
+     always rendered — same plays, order, cards and detail.
+     The switch re-renders the queue the panel already loaded
+     (no re-fetch, no re-order) and CLEARS any in-progress
+     batch selection rather than applying it to the other
+     list. The choice is panel state only, never persisted:
+     a fresh load always opens on New. Client-only; the queue
+     render itself (Rounds 145/146/150) was lifted verbatim
+     out of loadOwner into renderOwnerQueue157 so the filter
+     can re-run it. Pins ?v=156.
+     Round 156 (2026-11-14): OWNER TEXT ALERTS — Phase 7b of
      the owner-panel program. When a new play lands in the
      review queue (inserted PENDING — never for a deduped
      retry, which inserts nothing, and never for a fast-laned
@@ -1994,6 +2011,6 @@
   </div>
 </div>
 
-<script src="app.js?v=155"></script>
+<script src="app.js?v=156"></script>
 </body>
 </html>
