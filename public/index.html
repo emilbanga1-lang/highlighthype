@@ -11,10 +11,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=145" />
+<link rel="stylesheet" href="styles.css?v=146" />
 </head>
 <body>
-<!-- Round 146 (2026-11-13): Trash + undo, and a moderation log —
+<!-- Round 147 (2026-11-13): two Emil-approved unifications.
+     (1) The Hype of the Month leaderboard rows adopt the Hall
+     of Fame row look — renderMonth renders the This Month list
+     with the shared fameRowHtml134 (poster thumb + play icon,
+     athlete-led short title, compact votes pill showing the
+     MONTH count from the /api/contest payload); the featured
+     clip card stays on top, exactly as it was. (2) The email
+     moderation link's delete becomes a Trash move, the same
+     trashPlay146 semantics as the Owner view's delete — the
+     /moderate result page and the queue's confirm checkbox now
+     say "moved to Trash", restorable from the Owner panel
+     within 7 days; its moderation-log entry is a 'trash' via
+     the email link, no longer a 'purge'. Pins ?v=146.
+     Round 146 (2026-11-13): Trash + undo, and a moderation log —
      Phase 2 of the owner-panel program Emil approved the night
      of the accidental deletions. Owner deletes are now a move to
      a Trash section in the Owner view: the play leaves the
@@ -510,7 +523,9 @@
       <div class="last-winner" id="lastWinner" hidden></div>
       <!-- Round 134: the compact leaderboard — one row per
            entry, rendered by renderMonth (lbRowHtml134). The
-           podium and the Month tile deck retire here. -->
+           podium and the Month tile deck retire here.
+           →147: the rows are fameRowHtml134 now — the Hall of
+           Fame row design, shared by both lists. -->
       <div class="month-rows134" id="monthRows"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
       <!-- Round 9 (2026-11-05): Nicholas worried a play "deletes"
@@ -1777,6 +1792,6 @@
   </div>
 </div>
 
-<script src="app.js?v=145"></script>
+<script src="app.js?v=146"></script>
 </body>
 </html>
