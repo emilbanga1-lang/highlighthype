@@ -3165,3 +3165,20 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
    retired) so the group can sit in the middle, desktop too. ---- */
 .viewseg{justify-content:center}
 @media (max-width:640px){ .viewseg button{flex:0 0 auto} }
+
+/* ---- Round 141 (2026-11-13, Emil picked Variant B from the
+   preview mocks): the board tab row becomes a segmented pill
+   control. Watch / Battles / Hype of the Month sit inside ONE
+   rounded dark bar (card fill, subtle line2 border), content-
+   sized and centered as a group; each tab is a pill and the
+   ACTIVE tab's pill is filled lime with black text — the filled
+   pill is the indicator, so the underline is retired. Labels,
+   order and switching behavior are unchanged; the This Month |
+   Hall of Fame text tabs inside the Month view are a different
+   control and keep their look. ---- */
+.viewseg{display:flex;justify-content:center;align-items:center;gap:2px;width:fit-content;max-width:100%;margin:2px auto 10px;background:var(--card);border:1px solid var(--line2);border-radius:999px;padding:5px;overflow:visible}
+.viewseg button{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-bottom:0;border-radius:999px;color:#8f8f86;font:inherit;font-weight:800;font-size:16.5px;line-height:1.2;padding:9px 18px;min-height:38px;cursor:pointer;white-space:nowrap}
+.viewseg button[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink);border-bottom:0}
+#plays .viewseg{justify-self:center}
+@media (max-width:640px){ .viewseg button{padding:9px 13px;font-size:15px;min-height:38px} }
+@media (max-width:380px){ .viewseg button{padding:9px 11px} }
