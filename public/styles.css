@@ -3104,6 +3104,11 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .feat-badge134{position:absolute;top:12px;left:12px;z-index:3;background:rgba(8,8,6,.82);border:1px solid rgba(240,185,62,.7);color:var(--gold);font-size:12.5px;font-weight:800;letter-spacing:.03em;padding:6px 11px;border-radius:999px}
 .feat-disc134{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;pointer-events:none;width:68px;height:68px;border-radius:50%;background:rgba(5,5,5,.55);border:2px solid rgba(255,255,255,.92);display:grid;place-items:center}
 .feat-disc134 svg{margin-left:3px}
+/* Round 163: while the featured showcase is playing, the big
+   play disc steps aside — the moving clip is the invitation
+   now; it fades back the moment the clip rests (paused). */
+.feat-disc134{transition:opacity .25s ease}
+.feat-media134.feat-playing163 .feat-disc134{opacity:0}
 .feat-body134{padding:14px 16px 16px}
 .feat-title134{font-family:"Archivo",sans-serif;font-weight:800;font-size:20px;line-height:1.25;color:#fff;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .feat-sub134{color:var(--muted);font-size:14.5px;font-weight:600;margin:4px 0 0}
