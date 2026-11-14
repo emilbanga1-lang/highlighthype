@@ -3155,3 +3155,13 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .fame-info h4{font-family:"Archivo",sans-serif;font-weight:700;font-size:15.5px;text-transform:none;letter-spacing:0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .fame-info p{margin:2px 0 0;font-size:13px}
 .fame-votes-pill134{flex:none;background:rgba(240,185,62,.14);border:1px solid rgba(240,185,62,.45);color:#f3d98b;font-size:12.5px;font-weight:800;padding:6px 10px;border-radius:999px;white-space:nowrap}
+
+/* ---- Round 140 (2026-11-13, Emil): the board tabs centered
+   as a group. Watch / Battles / Hype of the Month keep their
+   labels, order, sizes and the 26px spacing between them; the
+   row now centers the group in the row instead of leaving it
+   spread from the left edge — the buttons keep their natural
+   widths at every width (the ≤640px flex:1 stretch is
+   retired) so the group can sit in the middle, desktop too. ---- */
+.viewseg{justify-content:center}
+@media (max-width:640px){ .viewseg button{flex:0 0 auto} }
