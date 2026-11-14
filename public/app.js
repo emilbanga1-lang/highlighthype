@@ -929,6 +929,37 @@ window.sharePlay = async (id, btn) => {
   }
   catch { prompt("Copy this play link:", url); }
 };
+/* Round 172 (2026-11-14): share the ATHLETE PAGE — the second
+   parent surface that had no Share (My Plays rows, above, ride
+   sharePlay). The same fallback chain — native share sheet,
+   else clipboard with the "Link copied ✓" flip on the clicked
+   button, else a prompt — but the payload is the collection
+   URL (#athlete-<id>) with the athlete's name in the
+   title/text; there is no clip file to offer for a page. The
+   header button's data-athlete-id is (re)stamped by
+   openAthlete on every render, so it always names the athlete
+   on screen. */
+window.shareAthlete = async (athleteId, btn) => {
+  if (!athleteId) return;
+  const url = `${location.origin}${location.pathname}#athlete-${athleteId}`;
+  const name = ($("#athleteName")?.textContent || "").trim() || "This athlete";
+  if (navigator.share) {
+    try { await navigator.share({ title: `${name} · HighlightHype`, text: `Watch ${name}'s highlights on HighlightHype`, url }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    if (btn) {
+      const original = btn.innerHTML;
+      btn.textContent = "Link copied ✓";
+      btn.classList.add("share-copied");
+      setTimeout(() => { btn.innerHTML = original; btn.classList.remove("share-copied"); }, 2000);
+    } else {
+      alert("Link copied! Share it anywhere.");
+    }
+  }
+  catch { prompt("Copy this athlete page link:", url); }
+};
 
 /* ---------------- medals (podium) ---------------- */
 function medalSvg(rank) {
@@ -1285,8 +1316,16 @@ function guardianPlaysHtml121(plays) {
      inline at natural size, and the buttons in their own
      wrapping actions row underneath (.mine-play-actions). */
   return `<p class="mine-find-msg" style="margin-top:0">Your plays — every play posted with that email:</p>` + plays.map((p) => {
+    /* Round 172 (2026-11-14): APPROVED rows gain 🔗 Share,
+       riding the existing sharePlay (play cards and the watch
+       view have had it since Round 34) — view, share, reel,
+       withdraw. Pending / not-on-the-board plays are not
+       public, so they get NO Share: the gate is the status
+       alone. The actions row wraps (Round 169), so the extra
+       button cannot reopen the phone overflow. */
     const actions = [
       p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : "",
+      p.status === "approved" ? `<button type="button" class="mini-btn" onclick="sharePlay(${p.id}, this)">🔗 Share</button>` : "",
       p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">🎬 Get the reel</button>` : "",
       p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : "",
     ].filter(Boolean).join("");
@@ -1953,6 +1992,10 @@ window.openAthlete = async (athleteId) => {
     if (first?.athlete_tag) meta.push(first.athlete_tag);
     $("#athleteMeta").textContent = meta.join(" · ");
     $("#athleteCount").textContent = plays.length;
+    /* Round 172: the header's Share button always names the
+       athlete on screen — shareAthlete reads this stamp. */
+    const shareBtn172 = $("#athleteShareBtn");
+    if (shareBtn172) shareBtn172.dataset.athleteId = athleteId;
     $("#athleteBoard").innerHTML = plays.map((h) => cardHtml(h, { numbers: true })).join("");
     $("#athleteEmpty").style.display = plays.length ? "none" : "block";
   } catch (e) { $("#athleteEmpty").textContent = "Could not load this athlete's plays: " + e.message; $("#athleteEmpty").style.display = "block"; }
