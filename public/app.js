@@ -3250,8 +3250,8 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
     }
   }
   window.resetDropzone = () => { input.value = ""; showFile(); };
-  dz.addEventListener("click", (e) => { if (e.target !== input) input.click(); });
-  dz.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
+  dz.addEventListener("click", (e) => { if (window.__hhUploadLock145) return; if (e.target !== input) input.click(); });
+  dz.addEventListener("keydown", (e) => { if (window.__hhUploadLock145) return; if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.click(); } });
   input.addEventListener("change", showFile);
   ["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
   ["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
@@ -3288,9 +3288,35 @@ $$("[data-div-pick]").forEach((b) => b.addEventListener("click", () => setDivPic
 window.syncQuickPicks = () => { setDivPick("boys"); setSportPick(""); };
 
 /* ---------------- upload + athlete prompt ---------------- */
+/* Round 145 (2026-11-13, Emil's own ask): the upload button
+   LOCKS while a post is going out — submit button disabled and
+   relabeled "Posting your play…", file input disabled, dropzone
+   locked — and the submit handler refuses re-entry in flight, so
+   a double-tap (or a panicked re-tap on a slow connection, the
+   exact gesture that filled the queue with duplicate pendings
+   during the crash window) can never fire a second upload. An
+   error hands everything back for a retry; success leaves the
+   lock on because the success screen has replaced the form
+   ("Post another play" unlocks). */
+let uploadInFlight145 = false;
+function setUploadLock145(form, locked) {
+  uploadInFlight145 = locked;
+  window.__hhUploadLock145 = locked;
+  if (!form) return;
+  const btn = form.querySelector('button[type="submit"]');
+  if (btn) {
+    if (!btn.dataset.label145) btn.dataset.label145 = btn.textContent;
+    btn.disabled = locked;
+    btn.textContent = locked ? "Posting your play…" : btn.dataset.label145;
+  }
+  if (form.elements && form.elements.file) form.elements.file.disabled = locked;
+  const dz = $("#dropzone"); if (dz) dz.classList.toggle("locked145", locked);
+}
 let athleteCheckDoneFor = "";
 $("#uploadForm").addEventListener("submit", async (e) => {
   e.preventDefault();
+  // Round 145: a second submit while one is in flight is a no-op.
+  if (uploadInFlight145) return;
   const form = e.target;
   const msg = $("#uploadMsg");
   // Quick-upload validation (2026-11-04): the clip, the athlete's first
@@ -3366,6 +3392,16 @@ $("#uploadForm").addEventListener("submit", async (e) => {
        that never had the box" (a missing field is legacy and is
        never auto-entered; see server.js contest_optin note). */
     fdSend125.set("contestOptin", form.elements.contestOptin && form.elements.contestOptin.checked ? "1" : "0");
+    // Round 145: the lock engages HERE, at the point of no return —
+    // every earlier exit (a validation message, the AI gate, the
+    // athlete prompt's interrupt-and-resume) leaves the form fully
+    // usable, and from here to the response nothing can re-enter.
+    // It MUST come after the FormData above is built: a disabled
+    // file input is left OUT of FormData entirely, so locking one
+    // line earlier would strip the clip from its own upload (the
+    // r145 rig caught exactly that — the server answered 400
+    // "Upload a file or paste a video link.").
+    setUploadLock145(form, true);
     const r = await fetch("/api/highlights", { method: "POST", body: fdSend125 });
     const j = await r.json();
     if (!r.ok) throw new Error(j.message || "Upload failed");
@@ -3378,8 +3414,10 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     form.elements.athleteChoice.value = ""; form.elements.athleteKey.value = "";
     athleteCheckDoneFor = "";
     $("#athletePrompt").hidden = true;
-    showUploadSuccess121(j.athlete_tag || "", postedEmail121);
-  } catch (err) { msg.textContent = "Error: " + err.message; }
+    // Round 145: a deduped answer is a SUCCESS, not an error —
+    // the clip already landed once; show the variant screen.
+    showUploadSuccess121(j.athlete_tag || "", postedEmail121, j.deduped ? (j.status || "pending") : null);
+  } catch (err) { setUploadLock145(form, false); msg.textContent = "Error: " + err.message; }
 });
 
 /* Round 121 (2026-11-12): the post-success screen. The form body
@@ -3389,7 +3427,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
    pre-filled with the email just posted with. "Post another play"
    hands the (already reset) form back. */
 let lastPostedEmail121 = "";
-function showUploadSuccess121(tag, email) {
+function showUploadSuccess121(tag, email, dedupStatus145) {
   const form = $("#uploadForm");
   const panel = $("#uploadSuccess");
   if (!form || !panel) { const m = $("#uploadMsg"); if (m) m.textContent = "Thanks! Your play is in review and will appear once the owner approves it."; return; }
@@ -3397,6 +3435,24 @@ function showUploadSuccess121(tag, email) {
   const tagEl = $("#uploadSuccessTag"), tagline = $("#uploadSuccessTagline");
   if (tagEl) tagEl.textContent = tag || "";
   if (tagline) tagline.hidden = !tag;
+  /* Round 145: the dedupe variant — the server answered from an
+     earlier copy of the same clip, so the headline says exactly
+     that and the steps swap for the existing play's status line
+     (in review / live). A plain success restores the defaults,
+     so the panel never carries a stale variant. */
+  const checkEl145 = $("#uploadSuccessCheck"), stepsEl145 = $("#uploadSuccessSteps"), statusEl145 = $("#uploadSuccessStatus145");
+  if (dedupStatus145) {
+    if (checkEl145) checkEl145.textContent = "This clip is already in — no need to post it twice.";
+    if (stepsEl145) stepsEl145.hidden = true;
+    if (statusEl145) {
+      statusEl145.textContent = dedupStatus145 === "approved" ? "It's already live on the board. 🎉" : dedupStatus145 === "pending" ? "It's in review — once the owner approves it, it's live on the board." : "It's already on file — the owner has it.";
+      statusEl145.hidden = false;
+    }
+  } else {
+    if (checkEl145) checkEl145.textContent = "🎉 Your play is in!";
+    if (stepsEl145) stepsEl145.hidden = false;
+    if (statusEl145) { statusEl145.textContent = ""; statusEl145.hidden = true; }
+  }
   const msg = $("#uploadMsg"); if (msg) msg.textContent = "";
   form.classList.add("upload-done");
   panel.hidden = false;
@@ -3406,12 +3462,12 @@ function showUploadSuccess121(tag, email) {
 $("#uploadSuccessAnother")?.addEventListener("click", () => {
   const form = $("#uploadForm"), panel = $("#uploadSuccess");
   if (panel) panel.hidden = true;
-  if (form) { form.classList.remove("upload-done"); form.scrollTop = 0; }
+  if (form) { form.classList.remove("upload-done"); form.scrollTop = 0; setUploadLock145(form, false); }
 });
 $("#uploadSuccessPlays")?.addEventListener("click", () => {
   const form = $("#uploadForm"), panel = $("#uploadSuccess");
   if (panel) panel.hidden = true;
-  if (form) form.classList.remove("upload-done");
+  if (form) { form.classList.remove("upload-done"); setUploadLock145(form, false); }
   closeUploadOverlay();
   showPanel("mine");
   document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" });
@@ -3448,12 +3504,43 @@ function statsHtml(st) {
     <h4 class="stats-sub">Where visitors came from</h4>${refs}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
+/* Round 145: the last queue loadOwner rendered — deletePlay and
+   the duplicate-group actions look plays up here (status, votes,
+   contest entry) instead of re-fetching. */
+let ownerQueue145 = [];
 async function loadOwner() {
   if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; return; }
   try {
     const q = await api("/api/owner/queue");
+    ownerQueue145 = q.queue;
     $("#ownerStatus").textContent = "Owner access active on this device.";
-    $("#queue").innerHTML = q.queue.map((h) => `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
+    /* Round 145: duplicate grouping. Pending plays that share a
+       normalized athlete name + title (trim, collapse whitespace,
+       lowercase) are copies of one clip — the crash-retry pile-up
+       left dozens. The FIRST copy in the list gets a group header
+       with one Delete-all-copies action. Groups are pending-only
+       by construction: an approved twin is never in a group, and
+       when one exists the header says the live play is not
+       touched. */
+    const norm145 = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
+    const pendGroups145 = new Map();
+    for (const h of q.queue) {
+      if (h.status !== "pending") continue;
+      const key = norm145(h.player_name) + "|" + norm145(h.title);
+      if (!pendGroups145.has(key)) pendGroups145.set(key, []);
+      pendGroups145.get(key).push(h);
+    }
+    const liveKeys145 = new Set(q.queue.filter((h) => h.status === "approved").map((h) => norm145(h.player_name) + "|" + norm145(h.title)));
+    const emittedGroups145 = new Set();
+    const groupHeader145 = (h) => {
+      const key = norm145(h.player_name) + "|" + norm145(h.title);
+      const g = pendGroups145.get(key);
+      if (!g || g.length < 2 || emittedGroups145.has(key)) return "";
+      emittedGroups145.add(key);
+      const ids = g.map((x) => x.id).join(",");
+      return `<div class="queue-item queue-group145"><b>${g.length} copies of '${esc(h.title)}' — ${esc(h.player_name || h.athlete_label || "no athlete")}</b>${liveKeys145.has(key) ? `<br><span>One copy is live on the board — the live play is not touched.</span>` : ""}<div class="qa"><button type="button" class="mini-btn" onclick="deletePendingGroup145('${ids}')">Delete all copies</button></div></div>`;
+    };
+    $("#queue").innerHTML = q.queue.map((h) => groupHeader145(h) + `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -3518,7 +3605,59 @@ window.setSample = async (id, status, sample) => { await api(`/api/highlights/${
    The server clears every other play when one is set, so at most
    one play ever carries the Best Celebration badge. */
 window.setCelebration = async (id, on) => { await api(`/api/highlights/${id}/celebration`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spotlight: !!on }) }); loadOwner(); loadData(); };
-window.deletePlay = async (id) => { if (!confirm("Delete this play permanently?")) return; await api(`/api/highlights/${id}`, { method: "DELETE" }); loadOwner(); loadData(); };
+window.deletePlay = async (id) => {
+  /* Round 145: an APPROVED (live) play never deletes from the
+     bare confirm — it takes the dedicated dialog below, which
+     names the play, its votes and its contest entry. Pending and
+     hidden plays keep the one-tap confirm they always had. */
+  const row145 = (ownerQueue145 || []).find((h) => h.id === id);
+  if (row145 && row145.status === "approved") { openDeleteLive145(row145); return; }
+  if (!confirm("Delete this play permanently?")) return;
+  await api(`/api/highlights/${id}`, { method: "DELETE" });
+  loadOwner(); loadData();
+};
+/* Round 145: delete EVERY pending copy in a duplicate group —
+   one confirmation naming the count and the title, then the
+   existing owner delete per id, then one queue refresh. */
+window.deletePendingGroup145 = async (idsCsv) => {
+  const ids = String(idsCsv || "").split(",").map((s) => Number(s)).filter((n) => Number.isInteger(n) && n > 0);
+  if (!ids.length) return;
+  const first145 = (ownerQueue145 || []).find((h) => h.id === ids[0]);
+  const title145 = first145 ? first145.title : "this play";
+  if (!confirm(`Delete all ${ids.length} pending copies of '${title145}'? This cannot be undone. (A live play with this title is not touched.)`)) return;
+  for (const id of ids) { await api(`/api/highlights/${id}`, { method: "DELETE" }); }
+  loadOwner(); loadData();
+};
+/* Round 145: the delete-a-live-play dialog (#deleteLiveModal145
+   in index.html). It exists because the 2026-11-13 hand-cleanup
+   deleted three LIVE plays that wore the same titles as their
+   pending duplicates. Cancel carries the focus on open, so the
+   red button is never the default action. */
+let deleteLiveId145 = null;
+function openDeleteLive145(h) {
+  const modal = $("#deleteLiveModal145"), txt = $("#deleteLiveText145");
+  if (!modal || !txt) { // markup missing (older cached page): fall back to a named confirm
+    if (confirm(`Delete the LIVE play "${h.title}" permanently? Its video file will be deleted too.`)) {
+      api(`/api/highlights/${h.id}`, { method: "DELETE" }).then(() => { loadOwner(); loadData(); });
+    }
+    return;
+  }
+  deleteLiveId145 = h.id;
+  const who145 = h.athlete_label || h.player_name || "no athlete";
+  txt.textContent = `"${h.title}" — ${who145} is LIVE on the board with ${h.voteCount || 0} all-time vote${h.voteCount === 1 ? "" : "s"}${h.contest_entry_period ? `, and it's entered in Hype of the Month (${h.contest_entry_period})` : ""}.`;
+  modal.hidden = false;
+  const cancel145 = $("#deleteLiveCancel145"); if (cancel145) cancel145.focus();
+}
+function closeDeleteLive145() { const modal = $("#deleteLiveModal145"); if (modal) modal.hidden = true; deleteLiveId145 = null; }
+$("#deleteLiveCancel145")?.addEventListener("click", closeDeleteLive145);
+$("#deleteLiveModal145")?.querySelector("[data-dellive-cancel]")?.addEventListener("click", closeDeleteLive145);
+$("#deleteLiveConfirm145")?.addEventListener("click", async () => {
+  const id = deleteLiveId145;
+  closeDeleteLive145();
+  if (id == null) return;
+  await api(`/api/highlights/${id}`, { method: "DELETE" });
+  loadOwner(); loadData();
+});
 const ownerBtnEl = $("#ownerBtn"); if (ownerBtnEl) ownerBtnEl.addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
 $("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); setOwnerToken(r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
