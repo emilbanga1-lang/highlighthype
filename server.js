@@ -86,6 +86,16 @@ const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
 // hello@highlighthype.com). If SMTP_USER/SMTP_PASS are unset, this is a
 // silent no-op and uploads still succeed.
 function smtpSend({ host, port, user, pass, from, to, subject, body }) {
+  // Test seam (Round 164): when HH_MAIL_CAPTURE names a file, the
+  // "send" appends one JSON line per message ({to, subject, body})
+  // there instead of opening a socket — that file is the suites'
+  // mail stub, the only way email behavior is provable in the
+  // sandbox. NEVER set in prod; unset, this branch does not exist
+  // as far as behavior is concerned.
+  if (process.env.HH_MAIL_CAPTURE) {
+    try { fs.appendFileSync(process.env.HH_MAIL_CAPTURE, JSON.stringify({ to, subject, body }) + "\n"); } catch {}
+    return Promise.resolve();
+  }
   return new Promise((resolve, reject) => {
     const sock = tls.connect(port, host, { servername: host });
     let buf = ""; const queue = []; let waiting = null;
@@ -1033,6 +1043,231 @@ function autoEnterOnApproval130(row) {
   db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(row.id, period);
   console.log(`[r130] auto-entered play ${row.id} into Hype of the Month ${period} on approval (upload opt-in)`);
   return true;
+}
+// ---- Round 164 (2026-11-14): guardian trending nudges ----
+// When an entered play climbs, its GUARDIAN (highlights.notify_
+// email — never the athlete, never anyone else) hears about it:
+// TOOK #1, ENTERED TOP 3, and Emil's month-end RALLY in the
+// final 3 ET calendar days of the contest month. Detection is
+// deliberately boring: NO daemon, NO cron. Standings only move
+// when votes land, so transitions are evaluated on the vote
+// path (evaluateNudges164 after every recorded vote toggle),
+// and the rally rides a lazy check on the vote path + the
+// contest read path (maybeSendRally164). State lives in three
+// tables: nudge_log (what was actually handed to the mailer),
+// nudge_state (per play+period zone membership, fall-out stamps
+// and the daily-cap day), nudge_optouts (email hashes that have
+// unsubscribed from TRENDING mail — approval/transactional mail
+// is never gated by it). Trigger rules: a milestone fires at
+// most once per play per period; falling out of the zone and
+// re-entering >= 24h later may fire it once more; a hard cap of
+// ONE trigger email per play per day sits above both kinds; a
+// play needs at least one vote to hold a nudge rank at all
+// (a 0-vote play is never "trending"). Samples, phone-only
+// guardians and non-approved plays can never nudge — the
+// standings query below is the same one /api/contest serves
+// (approved, non-sample, votes desc then id asc), reused so
+// there is exactly ONE ranking in the codebase.
+db.exec(`CREATE TABLE IF NOT EXISTS nudge_log(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  play_id INTEGER NOT NULL, period TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL DEFAULT '', rank_at_send INTEGER NOT NULL DEFAULT 0,
+  sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS nudge_state(
+  play_id INTEGER NOT NULL, period TEXT NOT NULL DEFAULT '',
+  in_first INTEGER NOT NULL DEFAULT 0, in_top3 INTEGER NOT NULL DEFAULT 0,
+  first_out_at TEXT, top3_out_at TEXT, last_trigger_day TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY(play_id, period)
+);
+CREATE TABLE IF NOT EXISTS nudge_optouts(
+  email_hash TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
+// Test seam: EVERY nudge decision reads "now" through here. A
+// settings row (nudge_now_override164, an ISO string) pins the
+// clock so the suites can stand at the rally window's edges and
+// 24h past a fall-out. The row is never set in prod.
+function now164() {
+  const o = getSetting("nudge_now_override164");
+  if (o) { const d = new Date(o); if (!isNaN(d)) return d; }
+  return new Date();
+}
+function period164() { return now164().toISOString().slice(0, 7); } // YYYY-MM, the contest's own clock (currentPeriod is this, unpinned)
+function etDay164(d) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
+  const g = (t) => (parts.find((x) => x.type === t) || {}).value || "";
+  return `${g("year")}-${g("month")}-${g("day")}`;
+}
+// UTC ms of ET midnight starting the ET date y-m-d (two-pass
+// offset resolution; midnight never sits inside a DST jump).
+function etOffsetMs164(t) {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(new Date(t));
+  const g = (t) => Number((parts.find((x) => x.type === t) || {}).value || 0);
+  return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"), g("second")) - Math.floor(t / 1000) * 1000;
+}
+function etMidnightUtc164(y, m, d) { const base = Date.UTC(y, m - 1, d); return base - etOffsetMs164(base - etOffsetMs164(base)); }
+const MONTH_NAMES164 = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+function rallyWindow164(period) {
+  const [y, m] = String(period || "").split("-").map(Number);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return { opens: `${period}-${String(lastDay - 2).padStart(2, "0")}`, lastDay, endsLabel: `${MONTH_NAMES164[m - 1] || ""} ${lastDay}` };
+}
+// The contest standings, exactly as GET /api/contest computes
+// them (same query, same monthlyVoteCount, same sort) with a
+// 1-based rank attached. One ranking, two readers.
+function contestStandings164(period) {
+  const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
+    WHERE e.period=? AND h.status='approved' AND COALESCE(h.is_sample,0)=0`).all(period);
+  const out = rows.map((r) => ({ row: r, votes: monthlyVoteCount(r.id, period), rank: 0 }));
+  out.sort((a, b) => b.votes - a.votes || a.row.id - b.row.id);
+  out.forEach((e, i) => { e.rank = i + 1; });
+  return out;
+}
+const nudgeEmailHash164 = (row) => sha(normIdentity((row && row.notify_email) || ""));
+const nudgeOptedOut164 = (emailHash) => !!emailHash && !!db.prepare("SELECT 1 FROM nudge_optouts WHERE email_hash=?").get(emailHash);
+const firstName164 = (row) => String((row && row.player_name) || "").trim().split(/\s+/)[0] || "Your athlete";
+// Unsubscribe tokens: HMAC-SHA256 keyed by a server secret —
+// first choice the dedicated NUDGE_SECRET, else the secrets
+// already in the server env (BACKUP_TOKEN in prod, then
+// MODERATE_TOKEN / OWNER_TOKEN), else a settings-stored random
+// secret minted once (the moderateToken pattern). The key never
+// leaves the server, so a token cannot be forged from the email
+// hash it travels beside; rotating the env secret retires every
+// outstanding link, which for an unsubscribe is acceptable.
+function nudgeSecret164() {
+  const env = process.env.NUDGE_SECRET || process.env.BACKUP_TOKEN || process.env.MODERATE_TOKEN || process.env.OWNER_TOKEN;
+  if (env) return String(env);
+  let s = getSetting("nudge_secret164");
+  if (!s) { s = crypto.randomBytes(32).toString("hex"); setSetting("nudge_secret164", s); }
+  return s;
+}
+function nudgeUnsubToken164(emailHash) {
+  return crypto.createHmac("sha256", nudgeSecret164()).update("hh-nudge-unsub:" + emailHash).digest("hex").slice(0, 32);
+}
+function nudgeUnsubUrl164(emailHash) {
+  return `https://highlighthype.com/api/nudge/unsubscribe?e=${emailHash}&t=${nudgeUnsubToken164(emailHash)}`;
+}
+// One nudge send. Mirrors notifyApproved's discipline: silent
+// no-op (returns false, logs NOTHING) when SMTP is unconfigured
+// or the play has no guardian email — so a "sent" row in
+// nudge_log always means the mailer actually took the message.
+// Fire-and-forget like every house mailer; failures are logged
+// by the .catch and can never reach the vote path.
+function sendNudge164(row, kind, rank, votes, period, extra) {
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  const to = row && row.notify_email;
+  if (!user || !pass || !to) return false;
+  const first = firstName164(row);
+  const link = `https://highlighthype.com/#play-${row.id}`;
+  let subject, body;
+  if (kind === "first") {
+    subject = `🏆 ${first} is #1 in Hype of the Month!`;
+    body = `${first}'s play "${row.title}" just took the #1 spot in Hype of the Month — ${votes} vote${votes === 1 ? "" : "s"} and counting.\n\nSee it here: ${link}\n\nWant to keep it there? Share the link with friends and family and ask them to vote.\n`;
+  } else if (kind === "top3") {
+    subject = `🏆 ${first} just hit the Top 3 in Hype of the Month`;
+    body = `${first}'s play "${row.title}" just climbed to #${rank} in Hype of the Month — ${votes} vote${votes === 1 ? "" : "s"} so far.\n\nSee it here: ${link}\n\nA few more votes could take it to #1 — share the link and ask friends and family to vote.\n`;
+  } else { // rally
+    const ex = extra || {};
+    subject = `Final push: ${first} is #${rank} — voting ends ${ex.endsLabel || "soon"}`;
+    body = `${first}'s play "${row.title}" is #${rank} in Hype of the Month with ${votes} vote${votes === 1 ? "" : "s"} — and voting ends ${ex.endsLabel || "at month's end"} (${ex.timeLeft || "almost out of time"}).\n\nThis is the final push. Share ${first}'s link and ask for votes:\n\n${link}\n\nReady-to-post text you can copy:\n"${first} is #${rank} in Hype of the Month! 🏆 Watch the play and vote here: ${link}"\n\nThe winner is featured on the HighlightHype homepage — and earns some serious bragging rights.\n`;
+  }
+  body += `\n—\nYou're getting this because ${first}'s play is entered in Hype of the Month. Don't want trending updates? Unsubscribe here: ${nudgeUnsubUrl164(nudgeEmailHash164(row))}\n(Approval emails for your plays will still arrive.)\n`;
+  smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to, subject, body })
+    .catch((e) => console.error("sendNudge164 failed:", e.message));
+  db.prepare("INSERT INTO nudge_log(play_id, period, kind, rank_at_send, sent_at) VALUES(?,?,?,?,?)").run(row.id, period, kind, rank, now164().toISOString());
+  return true;
+}
+// Transition evaluation, called from the vote path after every
+// recorded vote toggle (standings can move on an un-vote too).
+// Phase 1 stamps fall-outs for every tracked play this period;
+// phase 2 walks the standings in rank order and fires entries.
+function evaluateNudges164(period) {
+  try {
+    period = period || period164();
+    const now = now164();
+    const nowIso = now.toISOString();
+    const today = etDay164(now);
+    const standings = contestStandings164(period);
+    const rankOf = new Map(standings.map((e) => [e.row.id, e]));
+    const hoursSince164 = (iso) => { if (!iso) return Infinity; const t = new Date(iso).getTime(); return isNaN(t) ? Infinity : (now.getTime() - t) / 36e5; };
+    for (const st of db.prepare("SELECT * FROM nudge_state WHERE period=?").all(period)) {
+      const e = rankOf.get(st.play_id);
+      const inFirst = !!(e && e.votes >= 1 && e.rank === 1), inTop3 = !!(e && e.votes >= 1 && e.rank <= 3);
+      let f = st.in_first, t3 = st.in_top3, fo = st.first_out_at, to = st.top3_out_at;
+      if (f && !inFirst) { f = 0; fo = nowIso; }
+      if (t3 && !inTop3) { t3 = 0; to = nowIso; }
+      if (f !== st.in_first || t3 !== st.in_top3 || fo !== st.first_out_at || to !== st.top3_out_at)
+        db.prepare("UPDATE nudge_state SET in_first=?, in_top3=?, first_out_at=?, top3_out_at=? WHERE play_id=? AND period=?").run(f, t3, fo, to, st.play_id, period);
+    }
+    for (const e of standings) {
+      if (e.votes < 1) continue; // a 0-vote play holds no nudge rank
+      const row = e.row;
+      let st = db.prepare("SELECT * FROM nudge_state WHERE play_id=? AND period=?").get(row.id, period);
+      if (!st) { db.prepare("INSERT INTO nudge_state(play_id, period) VALUES(?,?)").run(row.id, period); st = { in_first: 0, in_top3: 0, first_out_at: null, top3_out_at: null, last_trigger_day: "" }; }
+      const firstEntry = e.rank === 1 && !st.in_first;
+      const top3Entry = e.rank <= 3 && !st.in_top3;
+      if (!firstEntry && !top3Entry) continue;
+      const canSend = !!row.notify_email && !nudgeOptedOut164(nudgeEmailHash164(row)) && st.last_trigger_day !== today;
+      let sent = false;
+      if (firstEntry && canSend) {
+        const prior = db.prepare("SELECT 1 FROM nudge_log WHERE play_id=? AND period=? AND kind='first' LIMIT 1").get(row.id, period);
+        // First time ever: fire. Again: only when the fall-out
+        // that ended the last reign is at least 24h behind us.
+        if (!prior || hoursSince164(st.first_out_at) >= 24) sent = sendNudge164(row, "first", e.rank, e.votes, period);
+      }
+      // Straight to #1 sends ONLY the #1 mail — the top3 branch
+      // requires rank > 1, and the daily cap would stop a second
+      // same-day send anyway.
+      if (!sent && top3Entry && e.rank > 1 && canSend) {
+        const prior = db.prepare("SELECT 1 FROM nudge_log WHERE play_id=? AND period=? AND kind='top3' LIMIT 1").get(row.id, period);
+        if (!prior || hoursSince164(st.top3_out_at) >= 24) sent = sendNudge164(row, "top3", e.rank, e.votes, period);
+      }
+      // Zone membership updates whether or not a send happened
+      // (opted-out, capped and 24h-held entries are all still
+      // entries — the milestone doesn't re-fire tomorrow just
+      // because today's send was suppressed).
+      db.prepare("UPDATE nudge_state SET in_first=?, in_top3=?, last_trigger_day=? WHERE play_id=? AND period=?")
+        .run(Math.max(st.in_first, e.rank === 1 ? 1 : 0), Math.max(st.in_top3, e.rank <= 3 ? 1 : 0), sent ? today : st.last_trigger_day, row.id, period);
+    }
+  } catch (err) { console.error("evaluateNudges164 failed:", err.message); }
+}
+// The month-end rally: during the final 3 ET calendar days of
+// the contest month, ONE email per guardian featuring their
+// highest-ranked entered approved play. Lazy + idempotent: the
+// settings row rally_sent_<period> holds the guardian email
+// hashes already mailed this period, so repeated evaluations
+// (every contest read, every vote) re-send to nobody; a
+// guardian whose first play is entered mid-window is picked up
+// by the next evaluation. Opted-out guardians are skipped (and
+// not recorded — the opt-out check is one indexed lookup).
+function maybeSendRally164() {
+  try {
+    const now = now164();
+    const period = period164();
+    const win = rallyWindow164(period);
+    const et = etDay164(now);
+    if (et < win.opens || et.slice(0, 7) !== period) return; // outside the final-3-ET-days window
+    const key = `rally_sent_${period}`;
+    let sentArr = []; try { const parsed = JSON.parse(getSetting(key) || "[]"); if (Array.isArray(parsed)) sentArr = parsed; } catch {}
+    const sentSet = new Set(sentArr);
+    const [ny, nm] = period.split("-").map(Number);
+    const endMs = nm === 12 ? etMidnightUtc164(ny + 1, 1, 1) : etMidnightUtc164(ny, nm + 1, 1);
+    const hoursLeft = Math.max(0, Math.round((endMs - now.getTime()) / 36e5));
+    const dLeft = Math.floor(hoursLeft / 24), hLeft = hoursLeft % 24;
+    const timeLeft = dLeft >= 1 ? `${dLeft} day${dLeft === 1 ? "" : "s"} and ${hLeft} hour${hLeft === 1 ? "" : "s"} left` : `about ${hoursLeft} hour${hoursLeft === 1 ? "" : "s"} left`;
+    let changed = false;
+    const seen = new Set();
+    for (const e of contestStandings164(period)) { // rank order: a guardian's FIRST row here is their highest-ranked play
+      const row = e.row;
+      if (!row.notify_email) continue;
+      const h = nudgeEmailHash164(row);
+      if (seen.has(h)) continue;
+      seen.add(h);
+      if (sentSet.has(h) || nudgeOptedOut164(h)) continue;
+      if (sendNudge164(row, "rally", e.rank, e.votes, period, { endsLabel: win.endsLabel, timeLeft })) { sentSet.add(h); changed = true; }
+    }
+    if (changed) setSetting(key, JSON.stringify([...sentSet]));
+  } catch (err) { console.error("maybeSendRally164 failed:", err.message); }
 }
 function voteCount(id) { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=?").get(id).c; }
 function monthlyVoteCount(id, period) { try { return db.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=? AND substr(created_at,1,7)=?").get(id, period).c; } catch { return voteCount(id); } }
@@ -2523,6 +2758,11 @@ const server = http.createServer(async (req, res) => {
       const existing = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(id, voter, period);
       if (existing) db.prepare("DELETE FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").run(id, voter, period);
       else db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at,period) VALUES(?,?,datetime('now'),?)").run(id, voter, period);
+      // Round 164: standings just moved — evaluate guardian
+      // trending nudges + the lazy rally check. Both helpers
+      // catch their own errors; the extra wrap is belt-and-
+      // braces so mail can NEVER break voting.
+      try { evaluateNudges164(period); maybeSendRally164(); } catch (e) { console.error("nudge hooks failed:", e.message); }
       return sendJson(res, 200, { ok: true, voteCount: voteCount(id), hasVoted: !existing });
     }
 
@@ -2756,6 +2996,9 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, spotlight: pub162 });
     }
     if (p === "/api/contest" && req.method === "GET") {
+      // Round 164: the rally's lazy check rides the contest
+      // read path too (idempotent — see maybeSendRally164).
+      try { maybeSendRally164(); } catch (e) { console.error("rally check failed:", e.message); }
       const period = u.searchParams.get("period") || currentPeriod();
       const voter = u.searchParams.get("voterToken") || "";
       const winnerId = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period)?.highlight_id;
@@ -2851,6 +3094,21 @@ const server = http.createServer(async (req, res) => {
       // (log line only) until Emil activates Twilio; see sendText.
       if (wrow) notifyGuardianText(wrow, `HighlightHype: your athlete's play "${wrow.title}" won Hype of the Month! Reply to this text or check your email to claim. — HighlightHype`);
       return sendJson(res, 200, { ok: true, period, highlightId: id, warning: prizeEligibleFor(wrow) ? "" : "This play has no parent/guardian email or mobile on file, so the winner's parent/guardian cannot be contacted — it can't be featured as Hype of the Month until one is added." });
+    }
+
+    // ---- Round 164: trending-nudge unsubscribe (public) ----
+    // The link rides every nudge email. The token is an HMAC of
+    // the email hash (see nudgeUnsubToken164) — a valid pair
+    // proves the click came from a real nudge we sent, without
+    // any login. Opting out gates ONLY trending mail (triggers +
+    // rally); approval/transactional mail keeps flowing.
+    if (p === "/api/nudge/unsubscribe" && req.method === "GET") {
+      const eHash = String(u.searchParams.get("e") || "");
+      const tok = String(u.searchParams.get("t") || "");
+      const valid = /^[0-9a-f]{64}$/.test(eHash) && !!tok && sha(tok) === sha(nudgeUnsubToken164(eHash));
+      if (!valid) return sendHtml(res, 400, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HighlightHype</title></head><body style="font-family:system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 16px"><h1>That unsubscribe link isn't valid</h1><p>It may have been copied incompletely. Open the link straight from the trending-update email and it will work.</p><p><a href="/">← HighlightHype home</a></p></body></html>`);
+      db.prepare("INSERT OR IGNORE INTO nudge_optouts(email_hash) VALUES(?)").run(eHash);
+      return sendHtml(res, 200, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HighlightHype</title></head><body style="font-family:system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 16px"><h1>You're unsubscribed from trending updates</h1><p>Approval emails for your plays will still arrive — this only stops the trending updates (Top 3, #1 and the month-end rally).</p><p><a href="/">← HighlightHype home</a></p></body></html>`);
     }
 
     // ---- Email moderation (works on any device; see moderateToken) ----
@@ -3186,6 +3444,23 @@ const server = http.createServer(async (req, res) => {
       }
       const campaigns159 = [...campAgg159.values()].sort((x, y) => y.count - x.count || (x.campaign < y.campaign ? -1 : x.campaign > y.campaign ? 1 : 0)).slice(0, 8);
       const sources159 = { windowDays: 30, total: srcTotal159, byClass: byClass159, topHosts: topHosts159, campaigns: campaigns159 };
+      // Round 164: guardian trending nudges — this period's
+      // sends by kind, the last few log rows, and the rally
+      // state (window + how many guardians have been mailed).
+      const nudgePeriod164 = currentPeriod();
+      const nudgeCounts164 = { first: 0, top3: 0, rally: 0 };
+      for (const r of db.prepare("SELECT kind, COUNT(*) c FROM nudge_log WHERE period=? GROUP BY kind").all(nudgePeriod164))
+        if (Object.prototype.hasOwnProperty.call(nudgeCounts164, r.kind)) nudgeCounts164[r.kind] = r.c;
+      const nudgeRecent164 = db.prepare(`SELECT l.kind AS kind, l.rank_at_send AS rank, l.sent_at AS sent_at, h.player_name AS athlete, h.title AS title
+        FROM nudge_log l LEFT JOIN highlights h ON h.id=l.play_id WHERE l.period=? ORDER BY l.id DESC LIMIT 8`).all(nudgePeriod164);
+      const rallyWin164 = rallyWindow164(nudgePeriod164);
+      let rallySent164 = 0;
+      try { const arr164 = JSON.parse(getSetting(`rally_sent_${nudgePeriod164}`) || "[]"); if (Array.isArray(arr164)) rallySent164 = arr164.length; } catch {}
+      const etToday164 = etDay164(new Date());
+      const nudges164 = {
+        period: nudgePeriod164, counts: nudgeCounts164, recent: nudgeRecent164,
+        rally: { windowOpens: rallyWin164.opens, endsLabel: rallyWin164.endsLabel, inWindow: etToday164 >= rallyWin164.opens && etToday164.slice(0, 7) === nudgePeriod164, sentGuardians: rallySent164 },
+      };
       const playStatus = { total: 0, approved: 0, pending: 0, hidden: 0 };
       for (const r of db.prepare("SELECT status, COUNT(*) c FROM highlights GROUP BY status").all()) {
         playStatus.total += r.c;
@@ -3207,6 +3482,7 @@ const server = http.createServer(async (req, res) => {
         stories: { total: sumKind("story_open"), byEpisode: db.prepare("SELECT key, SUM(count) AS opens FROM stat_events WHERE kind='story_open' GROUP BY key ORDER BY key ASC").all().map((r) => ({ episode: r.key, opens: r.opens })) },
         referrers,
         sources: sources159,
+        nudges: nudges164,
         totals: {
           votes: db.prepare("SELECT COUNT(*) c FROM votes").get().c,
           plays: playStatus,
