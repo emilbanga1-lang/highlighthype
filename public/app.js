@@ -7076,3 +7076,130 @@ function wireBtlChrome143() {
   });
 }
 wireBtlChrome143();
+
+/* ============ Round 161 (2026-11-14): installable web app (PWA)
+   Emil: "Let's try this" — the middle path between the browser
+   and a native app. Three client pieces, all fail-safe (a
+   PWA problem must never break the page):
+   1. registerSW161 — registers /sw.js on window load. The
+      worker is conservative: network-first HTML, cache-first
+      only for ?v=-pinned assets + brand images/icons, and it
+      never touches /api, media or /moderate (see sw.js; its
+      cache version constant is HH_SW_VERSION — bump it WITH
+      the ?v= pin).
+   2. a2hsGate161 — the pure show/don't-show decision for the
+      Add to Home Screen hint (kept pure so §69 can run it in
+      a vm): never when already standalone, never after a
+      dismissal, never in a first visit's first seconds — a
+      return visit (visits >= 2) earns it at once, a first
+      visit after ~25s. Then: a captured Chromium install
+      prompt wins ("prompt"); iOS Safari, which has no prompt,
+      gets the Share-sheet walkthrough ("ios"); anything else
+      (Android with no prompt event) shows nothing rather than
+      dead instructions.
+   3. initA2HS161 — the wiring: counts visits in the safe
+      storage helper, captures beforeinstallprompt, fires it
+      from the bar's button, expands the iOS steps, and treats
+      ✕ / a completed install as a permanent dismissal. */
+function registerSW161() {
+  try {
+    if (!("serviceWorker" in navigator)) return;
+    const doRegister161 = () => {
+      try {
+        const reg161 = navigator.serviceWorker.register("/sw.js");
+        if (reg161 && reg161.catch) reg161.catch(() => { /* a failed worker never breaks the page */ });
+      } catch { /* fine */ }
+    };
+    if (document.readyState === "complete") doRegister161();
+    else window.addEventListener("load", doRegister161);
+  } catch { /* fine */ }
+}
+registerSW161();
+
+function a2hsGate161(env) {
+  if (!env || env.standalone || env.dismissed) return "";
+  if (env.visits < 2 && env.elapsedMs < 25000) return "";
+  if (env.hasPrompt) return "prompt";
+  if (env.isIOS) return "ios";
+  return "";
+}
+
+function a2hsStandalone161() {
+  try {
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(display-mode: standalone)").matches) return true;
+    return typeof navigator !== "undefined" && navigator.standalone === true;
+  } catch { return false; }
+}
+function a2hsIsIOS161() {
+  try {
+    const ua = (typeof navigator !== "undefined" && navigator.userAgent) || "";
+    if (!/iPhone|iPad|iPod/i.test(ua)) return false;
+    if (/Instagram|FBAN|FBAV|CriOS|FxiOS|EdgiOS/i.test(ua)) return false;
+    return true;
+  } catch { return false; }
+}
+
+function initA2HS161() {
+  const bar = document.getElementById("a2hsBar161");
+  if (!bar) return;
+  const btn = document.getElementById("a2hsBtn161");
+  const xBtn = document.getElementById("a2hsX161");
+  const steps = document.getElementById("a2hsSteps161");
+  const startedAt161 = Date.now();
+  let visits161 = 0;
+  try { visits161 = parseInt(hhStorageGet("hh_a2hs_visits161") || "0", 10) || 0; } catch { visits161 = 0; }
+  visits161 += 1;
+  try { hhStorageSet("hh_a2hs_visits161", String(visits161)); } catch { /* fine */ }
+  let prompt161 = null;
+  let shown161 = "";
+  const hide161 = (permanent) => {
+    bar.hidden = true;
+    document.body.classList.remove("a2hs-open161");
+    document.body.classList.remove("a2hs-steps161");
+    shown161 = "";
+    if (permanent) { try { hhStorageSet("hh_a2hs_dismissed161", "1"); } catch { /* fine */ } }
+  };
+  const evaluate161 = () => {
+    if (shown161) return;
+    let dismissed161 = false;
+    try { dismissed161 = hhStorageGet("hh_a2hs_dismissed161") === "1"; } catch { dismissed161 = false; }
+    const mode161 = a2hsGate161({
+      standalone: a2hsStandalone161(),
+      dismissed: dismissed161,
+      visits: visits161,
+      elapsedMs: Date.now() - startedAt161,
+      hasPrompt: !!prompt161,
+      isIOS: a2hsIsIOS161(),
+    });
+    if (!mode161) return;
+    shown161 = mode161;
+    if (btn) btn.textContent = mode161 === "prompt" ? "Install" : "How";
+    bar.hidden = false;
+    document.body.classList.add("a2hs-open161");
+  };
+  window.addEventListener("beforeinstallprompt", (e) => {
+    try { e.preventDefault(); } catch { /* fine */ }
+    prompt161 = e;
+    evaluate161();
+  });
+  window.addEventListener("appinstalled", () => hide161(true));
+  if (btn) btn.addEventListener("click", async () => {
+    if (shown161 === "prompt" && prompt161) {
+      try {
+        prompt161.prompt();
+        const choice161 = await prompt161.userChoice;
+        prompt161 = null;
+        if (choice161 && choice161.outcome === "accepted") hide161(true);
+        else hide161(false);
+      } catch { hide161(false); }
+    } else if (shown161 === "ios" && steps) {
+      const open161 = steps.hidden;
+      steps.hidden = !open161;
+      document.body.classList.toggle("a2hs-steps161", open161);
+    }
+  });
+  if (xBtn) xBtn.addEventListener("click", () => hide161(true));
+  evaluate161();
+  setTimeout(evaluate161, 25000);
+}
+initA2HS161();
