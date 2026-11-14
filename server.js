@@ -396,6 +396,75 @@ function bumpStat(kind, key) {
   db.prepare("INSERT INTO stat_events(day,kind,key,count) VALUES(?,?,?,1) ON CONFLICT(day,kind,key) DO UPDATE SET count=count+1").run(day, kind, key);
 }
 
+// ---- Round 159 (2026-11-14): visitor sources ----
+// Emil: "I really want to know — where visitors come from."
+// The SPA sends ONE visit_source event per browser session (see
+// trackVisitSource159 in public/app.js): the referrer reduced to
+// a bare HOST (never a URL — and reduced AGAIN here, so even a
+// full URL in the payload stores only its host), the UTM trio
+// from our own link, and the landing view. Everything lands in
+// the same aggregate stat_events counters — nothing per-visitor
+// is ever stored, no IPs, no user agents:
+//   kind "visit_source"   key = the class (direct|search|social|other)
+//   kind "visit_host"     key = bare host (external arrivals only;
+//                           known platforms fold to their base host,
+//                           e.g. l.instagram.com -> instagram.com, so
+//                           rankings don't fragment across subdomains;
+//                           every other host is kept verbatim)
+//   kind "visit_campaign" key = JSON [utm_source, utm_medium, utm_campaign]
+//   kind "visit_landing"  key = landing view (allowlist, else "other")
+// The owner reads the last 30 days via GET /api/owner/stats
+// (the .sources block). Counting starts with this round — earlier
+// arrivals were never recorded and nothing is backfilled.
+const VISIT_SEARCH_HOSTS159 = ["bing.com", "duckduckgo.com", "ecosia.org", "search.brave.com"];
+const VISIT_SOCIAL_HOSTS159 = ["instagram.com", "facebook.com", "tiktok.com", "youtube.com", "youtu.be", "x.com", "twitter.com", "threads.net", "threads.com", "snapchat.com", "reddit.com"];
+const VISIT_LANDING_KEYS159 = ["home", "board", "battles", "month", "stories", "store"];
+function visitHost159(raw) {
+  let h = String(raw || "").trim().toLowerCase();
+  if (!h) return "";
+  if (h.includes("://")) { try { h = new URL(h).hostname; } catch { return ""; } }
+  h = h.split("/")[0].split("?")[0].split("#")[0].split(":")[0].replace(/\.$/, "").replace(/^www\./, "");
+  if (h.length > 253) return "";
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(h)) return "";
+  return h;
+}
+function hostIs159(host, base) { return host === base || host.endsWith("." + base); }
+function classifyVisit159(host) {
+  if (!host) return "direct";
+  if (hostIs159(host, "highlighthype.com")) return "direct";
+  if (hostIs159(host, "google.com") || /^google\.[a-z]{2,}(\.[a-z]{2})?$/.test(host)) return "search";
+  if (hostIs159(host, "search.yahoo.com") || /^search\.yahoo\.[a-z]{2,}(\.[a-z]{2})?$/.test(host)) return "search";
+  for (const b of VISIT_SEARCH_HOSTS159) if (hostIs159(host, b)) return "search";
+  for (const b of VISIT_SOCIAL_HOSTS159) if (hostIs159(host, b)) return "social";
+  return "other";
+}
+function visitHostKey159(host, cls) {
+  if (cls === "social" || cls === "search") {
+    for (const b of [...VISIT_SOCIAL_HOSTS159, ...VISIT_SEARCH_HOSTS159, "google.com", "search.yahoo.com"]) if (hostIs159(host, b)) return b;
+  }
+  return host;
+}
+function sanUtm159(v) {
+  return String(v ?? "").replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 64);
+}
+const VISIT_HOST_LABELS159 = [["instagram.com", "Instagram"], ["facebook.com", "Facebook"], ["tiktok.com", "TikTok"], ["youtube.com", "YouTube"], ["youtu.be", "YouTube"], ["x.com", "X"], ["twitter.com", "X (Twitter)"], ["threads.net", "Threads"], ["threads.com", "Threads"], ["snapchat.com", "Snapchat"], ["reddit.com", "Reddit"], ["bing.com", "Bing"], ["duckduckgo.com", "DuckDuckGo"], ["ecosia.org", "Ecosia"], ["search.brave.com", "Brave Search"], ["pinterest.com", "Pinterest"], ["linkedin.com", "LinkedIn"]];
+function visitHostLabel159(host) {
+  if (hostIs159(host, "google.com") || /^google\.[a-z]{2,}(\.[a-z]{2})?$/.test(host)) return "Google";
+  if (hostIs159(host, "yahoo.com") || /^search\.yahoo\.[a-z]{2,}(\.[a-z]{2})?$/.test(host)) return "Yahoo";
+  for (const [base, label] of VISIT_HOST_LABELS159) if (hostIs159(host, base)) return label;
+  return host;
+}
+function recordVisitSource159(evt) {
+  const host = visitHost159(evt && evt.host);
+  const cls = classifyVisit159(host);
+  bumpStat("visit_source", cls);
+  if (host && cls !== "direct") bumpStat("visit_host", visitHostKey159(host, cls));
+  const src = sanUtm159(evt && evt.utmSource), med = sanUtm159(evt && evt.utmMedium), camp = sanUtm159(evt && evt.utmCampaign);
+  if (camp) bumpStat("visit_campaign", JSON.stringify([src, med, camp]));
+  const landing = VISIT_LANDING_KEYS159.includes(String((evt && evt.landing) || "")) ? String(evt.landing) : "other";
+  bumpStat("visit_landing", landing);
+}
+
 try { db.exec("ALTER TABLE votes ADD COLUMN created_at TEXT"); db.exec("UPDATE votes SET created_at=datetime('now') WHERE created_at IS NULL"); } catch {}
 try { db.exec("ALTER TABLE votes ADD COLUMN period TEXT"); db.exec("UPDATE votes SET period=substr(created_at,1,7) WHERE period IS NULL OR period=''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN division TEXT DEFAULT 'coed'"); } catch {}
@@ -2144,6 +2213,11 @@ const server = http.createServer(async (req, res) => {
     //  - kind "referrer": key is normalized to a host bucket /
     //    "direct" / "other" (see normalizeReferrerKey) — never
     //    refused, never stored raw.
+    //  - kind "visit_source" (Round 159): the body carries extra
+    //    fields (host / utmSource / utmMedium / utmCampaign /
+    //    landing); recordVisitSource159 reads ONLY those,
+    //    reduces the host again server-side, classifies it, and
+    //    bumps the visit_* counters — never refused.
     // Unknown kinds are 400. The body parse is fully guarded: a
     // malformed or oversized body is a 400, never a 500. Nothing
     // about the requester (IP, user agent) is stored — the IP only
@@ -2185,6 +2259,8 @@ const server = http.createServer(async (req, res) => {
         bumpStat("story_open", key);
       } else if (kind === "referrer") {
         bumpStat("referrer", normalizeReferrerKey(key));
+      } else if (kind === "visit_source") {
+        recordVisitSource159(evt);
       } else {
         return sendJson(res, 400, { ok: false, message: "Unknown tracking event." });
       }
@@ -3016,6 +3092,39 @@ const server = http.createServer(async (req, res) => {
         FROM stat_events s JOIN highlights h ON h.id = CAST(s.key AS INTEGER)
         WHERE s.kind='play_open' GROUP BY s.key ORDER BY opens DESC, id ASC LIMIT 10`).all();
       const referrers = db.prepare("SELECT key, SUM(count) AS count FROM stat_events WHERE kind='referrer' GROUP BY key ORDER BY count DESC, key ASC").all();
+      // Round 159: visitor sources — the last 30 days of the
+      // visit_* counters (see recordVisitSource159). Classes are
+      // always all four keys (zero-filled); top hosts carry a
+      // friendly label beside the raw host; campaigns decode the
+      // JSON [source, medium, campaign] keys back into fields.
+      const srcSince159 = dayStr(new Date(Date.now() - 29 * 864e5));
+      const byClass159 = { direct: 0, search: 0, social: 0, other: 0 };
+      let srcTotal159 = 0;
+      for (const r of db.prepare("SELECT key, SUM(count) c FROM stat_events WHERE kind='visit_source' AND day>=? GROUP BY key").all(srcSince159)) {
+        if (Object.prototype.hasOwnProperty.call(byClass159, r.key)) byClass159[r.key] = r.c;
+        srcTotal159 += r.c;
+      }
+      const topHosts159 = db.prepare("SELECT key, SUM(count) AS count FROM stat_events WHERE kind='visit_host' AND day>=? GROUP BY key ORDER BY count DESC, key ASC LIMIT 8").all(srcSince159)
+        .map((r) => ({ host: r.key, label: visitHostLabel159(r.key), count: r.count }));
+      // Campaign rows are stored per (source, medium, campaign)
+      // triple; for display they aggregate by (campaign, source)
+      // — the same campaign arriving with and without a medium
+      // tag is one campaign, not two lookalike rows. The medium
+      // shown is the first non-empty one (rows arrive count-
+      // ordered). Aggregation happens AFTER the full read: no
+      // LIMIT on the raw query, or a split row could be cut.
+      const campAgg159 = new Map();
+      for (const r of db.prepare("SELECT key, SUM(count) AS count FROM stat_events WHERE kind='visit_campaign' AND day>=? GROUP BY key ORDER BY count DESC, key ASC").all(srcSince159)) {
+        let a = []; try { const parsed159 = JSON.parse(r.key); if (Array.isArray(parsed159)) a = parsed159; } catch {}
+        const row159 = { source: String(a[0] || ""), medium: String(a[1] || ""), campaign: String(a[2] || ""), count: r.count };
+        if (!row159.campaign) continue;
+        const gk159 = row159.campaign + "\n" + row159.source;
+        const g159 = campAgg159.get(gk159);
+        if (g159) { g159.count += row159.count; if (!g159.medium && row159.medium) g159.medium = row159.medium; }
+        else campAgg159.set(gk159, row159);
+      }
+      const campaigns159 = [...campAgg159.values()].sort((x, y) => y.count - x.count || (x.campaign < y.campaign ? -1 : x.campaign > y.campaign ? 1 : 0)).slice(0, 8);
+      const sources159 = { windowDays: 30, total: srcTotal159, byClass: byClass159, topHosts: topHosts159, campaigns: campaigns159 };
       const playStatus = { total: 0, approved: 0, pending: 0, hidden: 0 };
       for (const r of db.prepare("SELECT status, COUNT(*) c FROM highlights GROUP BY status").all()) {
         playStatus.total += r.c;
@@ -3036,6 +3145,7 @@ const server = http.createServer(async (req, res) => {
         battles: { total: sumKind("battle_pick") },
         stories: { total: sumKind("story_open"), byEpisode: db.prepare("SELECT key, SUM(count) AS opens FROM stat_events WHERE kind='story_open' GROUP BY key ORDER BY key ASC").all().map((r) => ({ episode: r.key, opens: r.opens })) },
         referrers,
+        sources: sources159,
         totals: {
           votes: db.prepare("SELECT COUNT(*) c FROM votes").get().c,
           plays: playStatus,
