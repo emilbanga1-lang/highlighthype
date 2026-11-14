@@ -3525,12 +3525,36 @@ function statsHtml(st) {
     <h4 class="stats-sub">Where visitors came from</h4>${refs}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
+/* Round 149: the storage meter block under Site stats, fed by
+   GET /api/owner/storage. A meter bar (lime normally, gold at
+   >=75%, red at >=90%), the used/free line, a compact breakdown
+   and the biggest-files list. When the endpoint's mount numbers
+   are null (statfs unavailable) the bar and the used/free line
+   are skipped and the breakdown stands alone. */
+function fmtBytes149(b) {
+  const n = Number(b || 0);
+  if (n >= 1073741824) { const g = n / 1073741824; return (g >= 100 ? Math.round(g) : Math.round(g * 10) / 10) + " GB"; }
+  if (n >= 1048576) return Math.round(n / 1048576) + " MB";
+  if (n >= 1024) return Math.round(n / 1024) + " KB";
+  return n + " B";
+}
+function storageHtml149(so) {
+  const meter = (so.totalBytes != null && typeof so.usedPct === "number")
+    ? `<div class="storage-bar149"><div class="storage-fill149${so.usedPct >= 90 ? " crit149" : so.usedPct >= 75 ? " warn149" : ""}" style="width:${Math.min(100, Math.max(0, so.usedPct))}%"></div></div>
+    <p>${fmtBytes149(so.usedBytes)} of ${fmtBytes149(so.totalBytes)} used · ${fmtBytes149(so.freeBytes)} free</p>`
+    : "";
+  const big = (so.biggest || []).length ? `<h4 class="stats-sub">Biggest files</h4>` + so.biggest.map((f) => `<div class="storage-big149"><span><b>${esc(f.title)}</b>${f.player_name ? ` — ${esc(f.player_name)}` : ""} <span class="tagchip">${esc(f.status)}</span></span><b>${fmtBytes149(f.bytes)}</b></div>`).join("") : "";
+  return `<h4 class="stats-sub">Storage</h4>
+    ${meter}
+    <p>Uploads <b>${fmtBytes149(so.uploadsBytes)}</b> · Database <b>${fmtBytes149(so.dbBytes)}</b> · Hype Frame prints <b>${fmtBytes149(so.hypeFramesBytes)}</b> · Waiting in queue: <b>${Number(so.pendingCount || 0)}</b> play${Number(so.pendingCount || 0) === 1 ? "" : "s"}, <b>${fmtBytes149(so.pendingBytes)}</b></p>
+    ${big}`;
+}
 /* Round 145: the last queue loadOwner rendered — deletePlay and
    the duplicate-group actions look plays up here (status, votes,
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
@@ -3602,6 +3626,14 @@ async function loadOwner() {
       const st = await api("/api/owner/stats");
       $("#ownerStats").innerHTML = statsHtml(st);
     } catch { $("#ownerStats").innerHTML = "<p>Could not load site stats.</p>"; }
+    // Round 149: the storage meter rides the same refresh as
+    // Site stats, in its own try — a failed storage fetch renders
+    // a note in its block and never touches the rest of the panel.
+    try {
+      const so149 = await api("/api/owner/storage");
+      const soEl149 = $("#ownerStorage149");
+      if (soEl149) soEl149.innerHTML = storageHtml149(so149);
+    } catch { const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = "<h4 class=\"stats-sub\">Storage</h4><p>Storage unavailable right now.</p>"; }
     // Hype Frame requests (owner only): print image thumbnails are fetched
     // as blobs through the owner-authorized image endpoint — the images
     // are never publicly served. Guardian email is owner-visible here only.
