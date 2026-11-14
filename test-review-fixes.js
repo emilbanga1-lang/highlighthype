@@ -2910,7 +2910,7 @@ try {
   assert(css129.includes(".hf-strip126{flex-direction:column") && css129.includes(".hf-strip-film126{flex:none;width:100%}") && css129.includes(".hf-strip-stepsline126{display:block"), "r129 css: the strip stacks — column layout, film full width, steps line always shown — →148: the rules stand in the file but the Round 148 block (later in the cascade) overrides them back to the compact horizontal band; see §56");
   // (e) Asset pins: v131 for Round 129; bumped to v132 by
   // Round 132 (→132), and to v133 by Round 133 (→133).
-  assert(home.includes('href="styles.css?v=161"') && home.includes('src="app.js?v=161"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+  assert(home.includes('href="styles.css?v=162"') && home.includes('src="app.js?v=162"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
   /* ---- 43. Round 132 (2026-11-13): Emil's live Month-tab
      review. (a) The panel is decluttered in index.html: under
@@ -4188,7 +4188,7 @@ try {
     assert(!appJs.includes("function lbRowHtml134"), "r147 wiring: lbRowHtml134 is retired — one contest row renderer remains");
     assert(appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml")).includes("fameRowHtml134(h, i)"), "r147 wiring: renderMonth renders the This Month rows through fameRowHtml134");
     assert(serverJs.includes('trashPlay146(before, "owner", "via the email moderation link")') && serverJs.includes("function moderateTrashedPage147") && serverJs.includes("Yes, move to Trash"), "r147 wiring: the /moderate delete branch is the trashPlay146 move, the result page is moderateTrashedPage147, and the queue checkbox speaks Trash");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Server behavior ----
     const PORT55 = 3494, base55 = `http://localhost:${PORT55}`;
@@ -4373,7 +4373,7 @@ try {
     assert(css148.includes(".final{scroll-margin-top:76px}") && css148.includes(".final h2{line-height:1}"), "r148 cta: the final headline gets line-height 1 and the board's scroll-margin, so its italic ink never rides at the sticky header's edge");
     assert(home.includes('<link rel="preload" as="image" href="/hero-poster.jpg" fetchpriority="high">') && home.includes('poster="/hero-poster.jpg"'), "r148 hero: the hero video's poster (the brand still) is preloaded at high priority and still on the element — first paint has the still, autoplay/mute untouched");
     assert(css148.includes("#playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:absolute;inset:0;width:100%;height:100%;object-fit:cover}") && css148.includes("#playDetailBody .upnext-thumb .vfill{display:none}"), "r148 upnext: portrait clips cover-crop the 16:9 Up Next thumb and the blurred clone is hidden in the rail");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
   }
 
   /* ============ §57 Round 149 — the Owner panel storage meter ====
@@ -4395,7 +4395,7 @@ try {
     assert(appJs.includes("Storage unavailable right now"), "r149 wiring: a failed storage fetch degrades to the 'Storage unavailable right now' note in the block");
     assert(home.includes('id="ownerStorage149"'), "r149 wiring: the storage block div sits in the Site stats section");
     assert(css.includes(".storage-bar149") && css.includes(".storage-fill149.warn149") && css.includes(".storage-fill149.crit149"), "r149 wiring: the meter styles ship (bar, gold warn fill, red crit fill)");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Server behavior ----
     const PORT57 = 3495, base57 = `http://localhost:${PORT57}`;
@@ -4486,7 +4486,7 @@ try {
     for (const idAttr of ["reviewModal150", "reviewCard150", "reviewMedia150", "reviewMeta150", "reviewProgress150", "reviewApprove150", "reviewTrash150", "reviewUndo150", "reviewDone150", "reviewTint150"]) assert(home.includes(`id="${idAttr}"`), `r150 wiring: the review overlay markup carries #${idAttr}`);
     assert(home.includes("All caught up"), "r150 wiring: the review overlay carries the 'All caught up' empty state");
     assert(css.includes(".review150") && css.includes(".batch-bar150") && css.includes(".queue-head150") && css.includes(".review-tint150") && css.includes(".qsel150"), "r150 wiring: the batch + review styles ship");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Client behavior: the real block in a vm ----
     const escCap150 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -4691,7 +4691,7 @@ try {
     assert(appJs.includes("stats-bars151") && appJs.includes("stats-bar151") && appJs.includes("stats-bars-cap151") && appJs.includes("busiest day:"), "r151 wiring: the owner stats daily series renders as a CSS bar strip with tooltips + a busiest-day caption");
     assert(appJs.includes("Battle picks · all time") && appJs.includes("total watch"), "r151 wiring: the stats cards gain Battle picks and the Hype Stories total line");
     assert(css.includes(".views-chip151") && css.includes(".stats-bar151") && css.includes(".watch-views151") && css.includes(".feat-views151"), "r151 wiring: the Round 151 styles ship");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Formatter behavior: the real client block in a vm ----
     const fStart151 = appJs.indexOf("function fmtCount151");
@@ -4789,7 +4789,7 @@ try {
     assert(home.includes('id="ownerAccess152"'), "r152 wiring: the Owner access block mounts in the panel");
     assert(appJs.includes("function renderOwnerAccess152") && appJs.includes("window.mintPasscode152") && appJs.includes("window.revokePasscode152") && appJs.includes("shown only once"), "r152 wiring: the block renders, mints and revokes, with the once-only reveal");
     assert(css.includes(".access152-reveal") && css.includes(".access152-code"), "r152 wiring: the Round 152 styles ship");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Server behavior ----
     const j60 = async (b, p, opts = {}) => { const r = await fetch(b + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
@@ -4928,7 +4928,7 @@ try {
     const info153 = appJs.slice(appJs.indexOf("function tileInfoHtml"), appJs.indexOf("function tileHtml"));
     assert(!info153.includes("humanAge(") && !info153.includes("h.division") && !info153.includes('|| "all-time"'), "r153 wiring: the card meta no longer renders division, age, or 'all-time' wording (code-level: no humanAge call, no division read, no all-time fallback)");
     assert(css61.includes(".tile-head153{") && css61.includes(".tile-avatar153{") && css61.includes(".meta-name153{min-width:0;overflow:hidden;text-overflow:ellipsis") && css61.includes(".meta-rest153{flex:0 0 auto") && css61.includes(".vote-pill153") && css61.includes("background:var(--volt)"), "r153 wiring: styles.css carries the head row, the avatar disc, the name-only ellipsis (rest segment flex-fixed), and the volt lime pill");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Behavior: the real render chain in a vm ----
     const escCap153 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5019,7 +5019,7 @@ try {
     assert(css.includes(".btl-player video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover"), "r154 css: the base big-player rule is unchanged — landscape keeps 16:9 exactly as before");
     const css154 = css.slice(css.indexOf("Round 154"));
     assert(!css154.includes(".btl-mini"), "r154 scope: the Round 154 CSS block touches no battle mini — their posters already render fine");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
     // (c) Behavior: the REAL markBtlStage154 + syncBtlPlayer113
     // against fake players/boxes, incl. the poster race guard.
     const IMG_DIMS154 = { "/uploads/poster-p.jpg": { w: 720, h: 1280 }, "/uploads/poster-l.jpg": { w: 960, h: 444 } };
@@ -5115,7 +5115,7 @@ try {
     assert(appJs.includes("h.fast_laned_at") && appJs.includes("⚡ Fast lane"), "r155 wiring: queue cards wear the ⚡ Fast lane chip from the owner payload's marker");
     assert(appJs.includes("!j.deduped && !!j.fastLaned") && appJs.includes("fastLaned155"), "r155 wiring: the upload success screen routes a fast-laned answer to its live variant");
     assert(serverJs.includes("fast_laned_at: r.fast_laned_at || \"\""), "r155 wiring: the owner queue payload carries the marker (owner-only)");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Server behavior ----
     const { createHash: createHash63 } = await import("node:crypto");
@@ -5301,7 +5301,7 @@ try {
     assert((createSlice156.split("notifyOwnerTextAlert156({").length - 1) === 1 && createSlice156.indexOf("notifyOwnerTextAlert156({") > createSlice156.indexOf("autoEnterOnApproval130(laneRow155)"), "r156 trigger: exactly one alert call, in the pending else-branch AFTER the fast-lane block — dedupes (answered earlier) and laned plays can never reach it");
     assert(serverJs.includes("textAlerts156: ownerTextAlertStatus156()"), "r156 wiring: the counts-only status rides the owner trusted payload");
     assert(appJs.includes("function textAlertLine156") && appJs.includes("Text alerts: on") && appJs.includes("Text alerts: off") && appJs.includes("textAlerts156 = tr155.textAlerts156"), "r156 wiring: the panel renders the status line from the trusted payload (on/off forms)");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163)");
 
     // ---- Shared helpers ----
     const { pathToFileURL: p2u64 } = await import("node:url");
@@ -5460,7 +5460,7 @@ try {
     assert(block157.includes("🎉 All caught up — no new plays waiting"), "r157 wiring: the New view's empty-state copy ships");
     assert(block157.includes('queueView157 === "all" ? liveQueue146 : pendRows157'), "r157 wiring: All takes liveQueue146 itself (the pre-157 list, untouched); New takes the pending subset");
     assert(css.includes(".qfilter157") && css.includes('.qfilter157 button[aria-pressed="true"]') && css.includes(".queue-empty157"), "r157 wiring: the pill bar styles ship — active pill filled lime via aria-pressed, the Round 141 look");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162)");
 
     // ---- Client behavior: the real blocks in a vm ----
     const escCap157 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5573,7 +5573,7 @@ try {
     const ap139 = appJs.slice(appJs.indexOf("function hhApply139(place)"), appJs.indexOf("function hhSettle139()"));
     assert(ap139.includes("switchView(") && ap139.includes("showPanel(") && ap139.includes("hidePlayDetail()"), "r158 wiring: popstate restores (hhApply139) route through the same swept functions — Back is a view change");
     assert(appJs.includes("function attachChromeFade143") && appJs.includes("function markBtlStage154") && appJs.includes("function syncBtlPlayer113"), "r158 wiring: Round 143 chrome fade + Round 154 stage marking untouched");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162)");
 
     // ---- Behavior: real code slices in vms ----
     const helpersSrc158 = appJs.slice(i158, appJs.indexOf("function hidePlayDetail()"));
@@ -5685,7 +5685,7 @@ try {
     assert(appJs.includes("function sourcesHtml159") && appJs.includes("const refs = sourcesHtml159(st.sources);"), "r159 wiring: the Owner stats render the sources block under 'Where visitors came from'");
     assert(appJs.includes("No visits recorded yet — sources appear here as people arrive."), "r159 wiring: the honest empty-state line ships (counting starts this round, nothing backfilled)");
     assert(css159.includes(".stats-sub159"), "r159 wiring: the block's sub-head style ships in styles.css");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161)");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162)");
 
     // ---- Server classification behavior (real helpers, vm) ----
     const helpersSrc159 = serverJs159.slice(serverJs159.indexOf("const VISIT_SEARCH_HOSTS159"), serverJs159.indexOf("function recordVisitSource159"));
@@ -5878,7 +5878,7 @@ try {
     assert(startSlice160.indexOf("const q160") > startSlice160.indexOf("armFirstTap125();"), "r160 wiring: the retry runs inside the refusal handler, after the mute + arm (not as a parallel start)");
     assert(!startSlice160.includes("hhStorageSet"), "r160 wiring: the start path never writes storage — the fallback cannot overwrite the saved hh_music preference");
     assert(heroSlice160.includes('hhStorageSet("hh_music", v.muted ? "off" : "on")'), "r160 wiring: the badge tap remains the ONLY writer of the sound preference");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161 — →163: now ?v=162");
     // ---- §66 re-verified, unmodified ----
     const helpers66r = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
     assert(helpers66r.includes("function pauseMediaIn158") && !helpers66r.includes("heroVideo"), "r160/§66 recheck: the Round 158 sweep helpers stand unmodified and still never name the hero");
@@ -6019,10 +6019,10 @@ try {
     assert(home.includes('id="a2hsBar161"') && home.includes('id="a2hsBtn161"') && home.includes('id="a2hsX161"') && home.includes('id="a2hsSteps161"'), "r161 wiring: the hint bar markup (bar / button / dismiss / steps) ships, hidden by default");
     assert(home.includes("Add HighlightHype to your Home Screen") && home.includes("Add to Home Screen"), "r161 wiring: the bar's line + the walkthrough's second step ship");
     assert(css161.includes(".a2hs161{") && css161.includes("body.a2hs-open161 .float-submit") && css161.includes("body.a2hs-steps161 .float-submit"), "r161 wiring: the bar styles ship, including the pill-lift rules that keep it clear of Post a Play");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161 — →163: now ?v=162");
 
     // ---- Service worker pins ----
-    assert(swSrc161.includes('const HH_SW_VERSION = "r162-v161";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161)");
+    assert(swSrc161.includes('const HH_SW_VERSION = "r163-v162";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161) — →163: r163-v162 (Round 163)");
     assert(swSrc161.includes('"hh-static-" + HH_SW_VERSION'), "r161 sw: the cache name derives from HH_SW_VERSION — one bump invalidates every old cache");
     assert(swSrc161.includes('url.pathname.startsWith("/api/")') && swSrc161.includes('url.pathname.startsWith("/moderate")') && swSrc161.includes('url.pathname.startsWith("/uploads/")'), "r161 sw: /api, /moderate and /uploads pass through untouched");
     assert(swSrc161.includes("mp4|webm|mov|m4v") && swSrc161.includes('url.origin !== self.location.origin') && swSrc161.includes('request.method !== "GET"'), "r161 sw: video files, cross-origin requests and non-GETs pass through untouched");
@@ -6137,7 +6137,7 @@ try {
     assert(appJs.includes("No firsts or milestones yet — they'll show up here as families post them."), "r162 wiring: the empty-lane line ships verbatim");
     assert(appJs.includes("💛 MOMENT THAT MATTERED") && appJs.includes("function renderSpotlight162()"), "r162 wiring: the homepage card renderer + its eyebrow ship");
     assert(css162.includes(".moment-chip162{") && css162.includes(".lane-chip162.on{") && css162.includes(".moment-card162{"), "r162 wiring: the chip, lane and card styles ship");
-    assert(home.includes('app.js?v=161') && home.includes('styles.css?v=161'), "r162 wiring: asset pins bumped to ?v=161");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r162 wiring: asset pins bumped to ?v=161 — →163: now ?v=162 (Round 163)");
 
     // ---- Server validator (the REAL momentKind162, vm) ----
     const mkSrc162 = serverJs162.slice(serverJs162.indexOf("const MOMENT_KINDS162"), serverJs162.indexOf("function publicHighlight"));
@@ -6300,6 +6300,222 @@ try {
     assert(db162((d) => d.prepare("SELECT email_hash FROM athletes WHERE athlete_key=?").get(athId162)).email_hash === "sentinel-hash-162", "r162 guardian-email: an athlete's established email_hash is NEVER overwritten");
     assert(db162((d) => d.prepare("SELECT notify_email_hash FROM highlights WHERE id=?").get(e162.body.id)).notify_email_hash === sha70("other162@example.com"), "r162 guardian-email: the play's own email still updates");
     } finally { child162.kill(); try { fs.rmSync(tmp162, { recursive: true, force: true }); } catch {} }
+  }
+
+  /* ============ §71 Round 163 — the Month featured clip
+     autoplays muted (Emil, 2026-11-14) ====================
+     "Let's have the featured play in Hype of the Month
+     auto-play." The featured (#1) card's clip — Round 133's
+     poster-rest until now — starts MUTED + LOOPING when the
+     Month view is entered, as a showcase: the autoplay never
+     records a watch. The tap is the watch: sound ON + exactly
+     one play_open through the play-open path's own trackEvent
+     call; later taps play/pause. Leaving Month pauses the
+     featured player EXPLICITLY at the Round 158 choke points
+     (switchView / showPanel / openPlayDetail / hidePlayDetail
+     / showStore) — the sweep itself is untouched and still
+     skips the muted featured player (the trap this round is
+     built around). Whoever holds #1 is showcased; a refresh
+     that crowns a new #1 starts the NEW clip. The vm below
+     runs the REAL renderMonth / switchView / showPanel /
+     openPlayDetail / hidePlayDetail / sweep slices against a
+     stub DOM whose #monthFeat resolves its video from the
+     rendered card's data-feat-id, the way the browser parses
+     the rebuilt markup (§66/§132 pattern). */
+  {
+    const css163 = await text("/styles.css");
+    const sw163 = fs.readFileSync(path.join(root, "public/sw.js"), "utf8");
+
+    // ---- Wiring asserts ----
+    const i163 = appJs.indexOf("function featEnter163");
+    assert(i163 > -1 && appJs.includes("function featPause163") && appJs.includes("function featTap163"), "r163 wiring: the Round 163 helpers ship (featEnter163 / featPause163 / featTap163)");
+    const featSlice163 = appJs.slice(appJs.indexOf("function featCardHtml134"), appJs.indexOf("function renderMonth"));
+    assert(featSlice163.includes("featTap163(${h.id})") && !featSlice163.includes("openPlayDetail(${h.id})"), "r163 wiring: the featured media tap calls featTap163 — the featured media no longer opens the detail (the #1 leaderboard row still does)");
+    const enterSlice163 = appJs.slice(i163, appJs.indexOf("function featPause163"));
+    assert(enterSlice163.includes("v.muted = true") && enterSlice163.includes("v.play()") && enterSlice163.includes("p.catch") && !enterSlice163.includes("play_open") && !enterSlice163.includes("hhStorage"), "r163 wiring: the showcase entry mutes + plays with a swallowed refusal, fires NO play_open and writes NO preference key");
+    const tapSlice163 = appJs.slice(appJs.indexOf("function featTap163"), appJs.indexOf("/* Hall of Fame thumbnails"));
+    assert((tapSlice163.split('trackEvent("play_open", id)').length - 1) === 1 && tapSlice163.includes("featCounted163"), "r163 wiring: the tap records exactly one play_open (the play-open path's own call), latched per rendered card");
+    const rmSlice163 = appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("/* Round 163 (2026-11-14, Emil): the Month FEATURED"));
+    assert(rmSlice163.includes("featPause163()") && rmSlice163.includes("featEnter163()"), "r163 wiring: renderMonth pauses the outgoing featured element before a rebuild and re-enters the (possibly new) #1 after it");
+    const swView163 = appJs.slice(appJs.indexOf("function switchView(v)"), appJs.indexOf('$$(".viewseg button").forEach((b) => b.addEventListener("click"'));
+    assert(swView163.includes("featEnter163") && swView163.includes("featPause163"), "r163 wiring: switchView enters the showcase on Month and pauses it on every other view");
+    const spSlice163 = appJs.slice(appJs.indexOf("function showPanel(name)"), appJs.indexOf("/* Round 51"));
+    assert(spSlice163.includes("featEnter163") && spSlice163.includes("featPause163"), "r163 wiring: showPanel pauses the showcase leaving the boards and re-enters it on the plays panel");
+    const opSlice163 = appJs.slice(appJs.indexOf("window.openPlayDetail"), appJs.indexOf("/* Round 148"));
+    assert(opSlice163.includes("featPause163"), "r163 wiring: opening a play detail pauses the featured showcase behind it");
+    const hdSlice163 = appJs.slice(appJs.indexOf("function hidePlayDetail()"), appJs.indexOf("/* The explicit close affordances"));
+    assert(hdSlice163.includes("featPause163"), "r163 wiring: closing the detail is a featured-pause choke point too (no silent resume)");
+    const shSlice163 = appJs.slice(appJs.indexOf("function showHome()"), appJs.indexOf("function watchMontageVideos"));
+    assert(shSlice163.includes("featEnter163"), "r163 wiring: coming home from the Store re-enters the Month showcase");
+    const ssSlice163 = appJs.slice(appJs.indexOf("function showStore(target)"), appJs.indexOf("function showHome()"));
+    assert(ssSlice163.includes("featPause163"), "r163 wiring: opening the Store pauses the featured showcase");
+    const helpers163 = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
+    assert(!helpers163.includes("feat"), "r163 wiring: the Round 158 sweep itself is UNTOUCHED — it still skips the muted featured player; the round's pauses live outside it");
+    assert(css163.includes(".feat-media134.feat-playing163 .feat-disc134"), "r163 wiring: the play disc steps aside while the showcase is playing");
+    assert(home.includes('app.js?v=162') && home.includes('styles.css?v=162'), "r163 wiring: asset pins bumped to ?v=162");
+    assert(sw163.includes('const HH_SW_VERSION = "r163-v162";'), "r163 wiring: the SW version constant rides the pin (r163-v162)");
+
+    // ---- Behavior: real slices in a vm ----
+    const escCap163 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
+    const counts163 = appJs.slice(appJs.indexOf("function fmtCount151"), appJs.indexOf("function parsePlayDate"));
+    const monthBlock163 = appJs.slice(appJs.indexOf("function divMatch"), appJs.indexOf("function fameThumbHtml"));
+    const fameSlice163 = appJs.slice(appJs.indexOf("function fameThumbHtml"), appJs.indexOf("function renderMine"));
+    const helpersSrc163 = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
+    const detailSrc163 = appJs.slice(appJs.indexOf("window.openPlayDetail"), appJs.indexOf("/* Round 148")) +
+      appJs.slice(appJs.indexOf("function hidePlayDetail()"), appJs.indexOf("/* The explicit close affordances"));
+    const panelSrc163 = appJs.slice(appJs.indexOf("function showPanel(name)"), appJs.indexOf("/* Round 51"));
+    const switchSrc163 = appJs.slice(appJs.indexOf("function switchView(v)"), appJs.indexOf("function scrollBoardIntoView122"));
+
+    const mkEl163 = () => ({
+      innerHTML: "", textContent: "", hidden: false, style: {}, dataset: {},
+      classList: { _s: new Set(), toggle(c, f) { if (f === undefined) { if (this._s.has(c)) this._s.delete(c); else this._s.add(c); } else if (f) this._s.add(c); else this._s.delete(c); }, add(c) { this._s.add(c); }, remove(c) { this._s.delete(c); }, contains(c) { return this._s.has(c); } },
+      setAttribute() {}, getAttribute() { return ""; },
+      querySelector: () => null, querySelectorAll: () => [],
+    });
+    const mkFeatVid163 = (opts = {}) => {
+      const host163 = mkEl163();
+      return {
+        paused: true, muted: true, loop: true, currentTime: opts.t || 0, dataset: {}, id: "",
+        _host: host163, _refuse: !!opts.refuse,
+        closest(sel) { return sel === ".feat-media134" ? this._host : null; },
+        play() { if (this._refuse) return Promise.reject(new Error("refused")); this.paused = false; return Promise.resolve(); },
+        pause() { this.paused = true; },
+        addEventListener() {}, removeEventListener() {},
+        getAttribute() { return ""; }, setAttribute() {}, removeAttribute() {},
+      };
+    };
+    const playA163 = { id: 50, title: "Gold and silver in both Kata and Kumite. These are the highlights", sport: "martial-arts", division: "girls", player_name: "Charlotte A", athlete_label: "Charlotte A", media_kind: "file", mime: "video/mp4", media_url: "/uploads/a.mp4", poster_url: "/uploads/poster-50.jpg", voteCount: 4, viewCount: 2, hasVoted: false, isSample: false };
+    const playB163 = { id: 51, title: "Caught stealing home!", sport: "softball", division: "girls", player_name: "Juliana B", athlete_label: "Juliana B", media_kind: "file", mime: "video/mp4", media_url: "/uploads/b.mp4", poster_url: "/uploads/poster-51.jpg", voteCount: 1, viewCount: 0, hasVoted: false, isSample: false };
+    const playImg163 = { id: 52, title: "Team photo finish", sport: "soccer", division: "boys", player_name: "Cam C", athlete_label: "Cam C", media_kind: "file", mime: "image/png", media_url: "/uploads/i.png", voteCount: 0, viewCount: 0, hasVoted: false, isSample: false };
+
+    const els163 = {};
+    const featVids163 = {};
+    const featVidNow163 = () => { const m = /data-feat-id="(\d+)"/.exec(els163["#monthFeat"] ? els163["#monthFeat"].innerHTML : ""); return m ? featVids163[m[1]] || null : null; };
+    const $163 = (sel) => {
+      if (!els163[sel]) {
+        const el = mkEl163();
+        if (sel === "#monthFeat") { el.querySelector = () => featVidNow163(); el.querySelectorAll = () => { const v = featVidNow163(); return v ? [v] : []; }; }
+        if (sel === "#viewMonth") { el.querySelectorAll = (s) => { const v = s === "video, audio" ? featVidNow163() : null; return v ? [v] : []; }; }
+        els163[sel] = el;
+      }
+      return els163[sel];
+    };
+    const panels163 = [{ dataset: { panel: "plays" }, classList: mkEl163().classList }, { dataset: { panel: "mine" }, classList: mkEl163().classList }];
+    const trackCalls163 = [];
+    const sandbox163 = {
+      window: {}, console, $: $163,
+      $$: (sel) => (sel === ".panel[data-panel]" ? panels163 : []),
+      CONTEST: { period: "2026-11", entries: [playA163, playB163] },
+      LAST_MONTH: { winnerId: null, entries: [] },
+      ALL_PLAYS: [playA163, playB163, playImg163],
+      MONTHS: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+      monthSport: "all", monthSub: "month", currentView: "month",
+      detailPlayId: null, detailPlayedIds: new Set(),
+      trackEvent: (k, key) => trackCalls163.push([k, String(key)]),
+      renderPlayDetail: () => {}, hydrateDurPills: () => {}, teardownDetailAutoplay: () => {},
+      history: { state: null, replaceState() {}, back() {} },
+      document: { body: { classList: { add() {}, remove() {}, contains: () => false } } },
+    };
+    const ctx163 = vm.createContext(sandbox163);
+    vm.runInContext(escCap163 + counts163 + helpersSrc163 + monthBlock163 + fameSlice163 + detailSrc163 + panelSrc163 + switchSrc163, ctx163);
+    for (const k of Object.keys(ctx163.window)) ctx163[k] = ctx163.window[k];
+    const run163 = (code) => vm.runInContext(code, ctx163);
+    const opens163 = () => trackCalls163.filter(([k]) => k === "play_open");
+
+    // Render with no parsed video element yet: the card ships, nothing starts, nothing counts.
+    run163("renderMonth()");
+    assert(els163["#monthFeat"].innerHTML.includes('data-feat-id="50"') && els163["#monthFeat"].innerHTML.includes("featTap163(50)") && !els163["#monthFeat"].innerHTML.includes("autoplay"), "r163 behavior: the featured card renders with the Round 163 tap and still NO autoplay attribute (the start is a JS entry act, not markup)");
+    assert(trackCalls163.length === 0, "r163 behavior: a bare render fires no tracking");
+
+    // Entering Month: muted + looping, no watch recorded.
+    featVids163["50"] = mkFeatVid163({ t: 3 });
+    const vidA163 = featVids163["50"];
+    run163('switchView("month")');
+    assert(vidA163.paused === false && vidA163.muted === true && vidA163.loop === true && vidA163.currentTime === 3, "r163 behavior: entering Month starts the featured clip MUTED + LOOPING, position untouched");
+    assert(opens163().length === 0, "r163 behavior: the muted autoplay records NO watch — the showcase is not a view");
+    assert(vidA163._host.classList.contains("feat-playing163"), "r163 behavior: the playing state marks the media host (the play disc steps aside)");
+
+    // The trap, proven: the sweep alone leaves the muted showcase playing...
+    ctx163.__feat = vidA163;
+    assert(run163("hhSilence158(__feat)") === false, "r163 behavior: the Round 158 predicate still exempts the muted featured player — the trap is real");
+    run163("pauseMediaIn158($('#viewMonth'), false)");
+    assert(vidA163.paused === false, "r163 behavior: the sweep BY ITSELF does not pause the muted showcase (Round 158 behavior unchanged)");
+    // ...and the choke point pauses it explicitly.
+    run163('switchView("all")');
+    assert(vidA163.paused === true, "r163 behavior: leaving Month (switchView) pauses the featured player EXPLICITLY at the choke point");
+
+    // The tap cycle: unmute + exactly one watch, then play/pause.
+    run163('switchView("month")');
+    assert(vidA163.paused === false && vidA163.muted === true, "r163 behavior: re-entering Month restarts the showcase muted");
+    trackCalls163.length = 0;
+    run163("featTap163(50)");
+    assert(vidA163.muted === false && vidA163.paused === false, "r163 behavior: the tap turns the sound ON and the clip keeps playing");
+    assert(opens163().length === 1 && opens163()[0][1] === "50", "r163 behavior: the unmute tap records exactly ONE watch via play_open (the existing counting path)");
+    run163("featTap163(50)");
+    assert(vidA163.paused === true && !vidA163._host.classList.contains("feat-playing163") && opens163().length === 1, "r163 behavior: the next tap pauses (disc returns) — and no second watch");
+    run163("featTap163(50)");
+    assert(vidA163.paused === false && opens163().length === 1, "r163 behavior: tapping again resumes — still exactly one watch on this rendered card");
+
+    // Detail open/close at the choke points.
+    run163("openPlayDetail(51)");
+    assert(vidA163.paused === true, "r163 behavior: opening a play detail pauses the featured showcase behind it");
+    assert(opens163().filter(([, key]) => key === "51").length === 1, "r163 behavior: the detail open counts its own watch as always (the shared counting path)");
+    run163("hidePlayDetail()");
+    assert(vidA163.paused === true, "r163 behavior: closing the detail does NOT resume the showcase (pause-only; the next Month entry restarts it)");
+
+    // Panel switches.
+    run163('switchView("month")');
+    assert(vidA163.paused === false && vidA163.muted === true, "r163 behavior: back on Month, the showcase is muted-playing again");
+    run163('showPanel("mine")');
+    assert(vidA163.paused === true, "r163 behavior: a panel switch (showPanel) pauses the featured showcase");
+    run163('showPanel("plays")');
+    assert(vidA163.paused === false && vidA163.muted === true, "r163 behavior: returning to the plays panel with Month live restarts the showcase");
+
+    // A refresh crowns a new #1: the old element pauses, the NEW clip plays.
+    featVids163["51"] = mkFeatVid163({});
+    const vidB163 = featVids163["51"];
+    sandbox163.CONTEST.entries = [playB163, playA163];
+    run163("renderMonth()");
+    assert(vidA163.paused === true, "r163 behavior: a refresh pauses the OUTGOING featured element before the rebuild");
+    assert(els163["#monthFeat"].innerHTML.includes('data-feat-id="51"'), "r163 behavior: the new #1's card replaces the old");
+    assert(vidB163.paused === false && vidB163.muted === true, "r163 behavior: the NEW #1's clip is the one playing muted after the refresh (whoever holds #1)");
+
+    // No entries: nothing plays, the empty states carry the tab.
+    trackCalls163.length = 0;
+    sandbox163.CONTEST.entries = [];
+    run163("renderMonth()");
+    assert(els163["#monthFeat"].innerHTML === "" && vidB163.paused === true, "r163 behavior: no entries -> the featured slot empties and the last featured clip is paused");
+    run163('switchView("month")');
+    assert(opens163().length === 0, "r163 behavior: entering an empty Month starts nothing and counts nothing");
+
+    // Refused play(): the poster rests, the tap still works.
+    sandbox163.CONTEST.entries = [playA163, playB163];
+    featVids163["50"] = mkFeatVid163({ refuse: true });
+    const vidR163 = featVids163["50"];
+    run163("renderMonth()");
+    await wait(20);
+    assert(vidR163.paused === true, "r163 behavior: a refused autoplay (data-saver / low power) leaves the poster resting — swallowed, no crash");
+    run163("featTap163(50)");
+    await wait(20);
+    assert(vidR163.muted === false && opens163().length === 1, "r163 behavior: after a refusal the tap still lands the sound intent + the counted watch; playback stays the browser's call");
+
+    // The sweep's treatment of OTHER previews is unchanged.
+    const prev163 = mkFeatVid163({}); prev163.paused = false;
+    ctx163.__prevRoot = { querySelectorAll: (s) => (s === "video, audio" ? [prev163] : []) };
+    run163("pauseMediaIn158(__prevRoot, false)");
+    assert(prev163.paused === false, "r163 behavior: the sweep still leaves OTHER muted previews playing (Round 158 untouched)");
+    prev163.muted = false;
+    run163("pauseMediaIn158(__prevRoot, false)");
+    assert(prev163.paused === true, "r163 behavior: ...and an unmuted preview is still silenced by the not-muted rule, exactly as Round 158 built it");
+
+    // An image #1 has no video element: the tap keeps the pre-163 behavior (opens the play).
+    trackCalls163.length = 0;
+    sandbox163.CONTEST.entries = [playImg163];
+    run163("renderMonth()");
+    assert(els163["#monthFeat"].innerHTML.includes("<img"), "r163 behavior: an image #1 renders its photo (no video element to showcase)");
+    run163("featTap163(52)");
+    assert(opens163().some(([, key]) => key === "52") && run163("detailPlayId") === 52, "r163 behavior: an image #1's tap opens the play, counted as an open exactly as before");
+    run163("hidePlayDetail()");
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
