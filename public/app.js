@@ -1222,6 +1222,7 @@ function renderPlayDetail() {
      playback settles, so a black-intro clip opens on its action
      in Watch too. Guarded like the wiring above it. */
   if (typeof wireWatch123 === "function") wireWatch123(body, play);
+  if (typeof wireWatchChrome140 === "function") wireWatchChrome140(body);
   wireDetailAutoplay(play);
 }
 /* Round 14 (2026-11-06): "Up next" in the play detail — the third
@@ -1358,6 +1359,7 @@ window.openPlayDetail = (id, opts = {}) => {
 };
 function hidePlayDetail() {
   teardownDetailAutoplay(); // Round 15: nothing advances in the background once closed
+  if (typeof teardownWatchChrome140 === "function") teardownWatchChrome140(); // Round 140: no stray chrome fade timer past close
   const wrap = $("#playDetail");
   if (wrap) wrap.hidden = true;
   document.body.classList.remove("detail-open");
@@ -5831,6 +5833,72 @@ function wireWatch123(body, play) {
     video.addEventListener("timeupdate", cap);
     if (typeof setTimeout === "function") setTimeout(() => { try { video.removeEventListener("timeupdate", cap); } catch (e) { /* fine */ } }, 8000);
   } catch (e) { /* the wiring is a bonus, never a breaker */ }
+}
+/* Round 140 (2026-11-13): the play detail's native player chrome
+   never faded on Emil's iPhone — open a play and the big center
+   pause cluster (with the rest of the native bar) sat on the
+   picture for the whole clip: "it starts playing but the pause
+   is on stays there." The detail video is a plain native-controls
+   element (mediaHtml) with no app overlay of its own, so the app
+   now manages the chrome's visibility itself, standard-player
+   style: while the clip is PLAYING, the controls attribute is
+   removed ~2s after playback starts and the whole native bar —
+   center cluster included — goes with it; PAUSE (or the clip
+   ending) brings it straight back and it stays while paused; a
+   tap on the bare picture, or a mouse move over the player on
+   desktop, brings it back and re-arms the fade. The controls
+   themselves are untouched: same native scrubber, mute and
+   fullscreen buttons, just not parked on the picture. Detail
+   player only — board tiles rest on posters (Round 133) and
+   the Battles big player has its own tap-to-play wiring. */
+let watchChromeVideo140 = null;
+let watchChromeTimer140 = 0;
+let watchChromeOff140 = null;
+function teardownWatchChrome140() {
+  if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
+  if (watchChromeOff140) { try { watchChromeOff140(); } catch (e) { /* fine */ } watchChromeOff140 = null; }
+  if (watchChromeVideo140) { try { watchChromeVideo140.setAttribute("controls", ""); } catch (e) { /* fine */ } watchChromeVideo140 = null; }
+}
+function wireWatchChrome140(body) {
+  teardownWatchChrome140();
+  if (!body || typeof body.querySelector !== "function") return;
+  const box = body.querySelector(".watch-player");
+  if (!box) return;
+  const video = box.querySelector("video:not(.vfill)");
+  if (!video || typeof video.addEventListener !== "function") return;
+  watchChromeVideo140 = video;
+  const HIDE_MS140 = 2000;
+  const arm140 = () => {
+    if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
+    if (video.paused || video.ended) return;
+    watchChromeTimer140 = setTimeout(() => {
+      watchChromeTimer140 = 0;
+      if (!video.paused && !video.ended) { try { video.removeAttribute("controls"); } catch (e) { /* fine */ } }
+    }, HIDE_MS140);
+  };
+  const show140 = () => {
+    if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
+    try { video.setAttribute("controls", ""); } catch (e) { /* fine */ }
+  };
+  const onPlay140 = () => arm140();
+  const onPause140 = () => show140();
+  const onTap140 = () => { try { if (!video.hasAttribute("controls")) { show140(); arm140(); } } catch (e) { /* fine */ } };
+  const onMove140 = () => { try { if (!video.paused && !video.hasAttribute("controls")) { show140(); arm140(); } } catch (e) { /* fine */ } };
+  video.addEventListener("play", onPlay140);
+  video.addEventListener("playing", onPlay140);
+  video.addEventListener("pause", onPause140);
+  video.addEventListener("ended", onPause140);
+  video.addEventListener("click", onTap140);
+  if (typeof box.addEventListener === "function") box.addEventListener("mousemove", onMove140);
+  watchChromeOff140 = () => {
+    video.removeEventListener("play", onPlay140);
+    video.removeEventListener("playing", onPlay140);
+    video.removeEventListener("pause", onPause140);
+    video.removeEventListener("ended", onPause140);
+    video.removeEventListener("click", onTap140);
+    if (typeof box.removeEventListener === "function") box.removeEventListener("mousemove", onMove140);
+  };
+  arm140(); // autoplay may already be running by the time this wires
 }
 /* The slim contest line on Watch: a tap opens the Month board,
    with the Round 122 scroll so the tap visibly lands somewhere. */
