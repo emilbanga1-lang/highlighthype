@@ -1274,13 +1274,28 @@ function guardianPlaysHtml121(plays) {
     return `<span class="status-chip chip-off">Not on the board</span>`;
   };
   const when = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); };
-  return `<p class="mine-find-msg" style="margin-top:0">Your plays — every play posted with that email:</p>` + plays.map((p) => `
-    <div class="queue-item mine-play-row" style="display:flex;gap:14px;align-items:center">
-      <div style="flex:1"><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.athlete_label || "")}${p.athlete_tag ? ` · <span class="tagchip">${esc(p.athlete_tag)}</span>` : ""} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}${when(p.created_at) ? ` · posted ${esc(when(p.created_at))}` : ""}</span><br>${chip(p)}</div>
-      ${p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : ""}
-      ${p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">🎬 Get the reel</button>` : ""}
-      ${p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : ""}
-    </div>`).join("");
+  /* Round 169 (2026-11-14): the row is STACKED at every width.
+     Rounds 121–168 laid it out as one flex line — a flex:1 text
+     div squeezed beside up to three .mini-btn buttons — and at
+     phone width the text collapsed into a one-word ribbon, the
+     chips ballooned, and the last button overflowed the row AND
+     the viewport (body scrollWidth 396 on a 390px phone), which
+     is what let the whole page pan left/right on Dyanna's phone.
+     Now: title + meta full-width with natural wrapping, chips
+     inline at natural size, and the buttons in their own
+     wrapping actions row underneath (.mine-play-actions). */
+  return `<p class="mine-find-msg" style="margin-top:0">Your plays — every play posted with that email:</p>` + plays.map((p) => {
+    const actions = [
+      p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : "",
+      p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">🎬 Get the reel</button>` : "",
+      p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : "",
+    ].filter(Boolean).join("");
+    return `
+    <div class="queue-item mine-play-row">
+      <div class="mine-play-main"><b>${esc(p.title)}</b><br><span style="color:var(--muted)">${esc(p.athlete_label || "")}${p.athlete_tag ? ` · <span class="tagchip">${esc(p.athlete_tag)}</span>` : ""} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}${when(p.created_at) ? ` · posted ${esc(when(p.created_at))}` : ""}</span><br>${chip(p)}</div>
+      ${actions ? `<div class="mine-play-actions">${actions}</div>` : ""}
+    </div>`;
+  }).join("");
 }
 /* Round 130 (2026-11-13): withdraw from Hype of the Month, right
    where the guardian sees the entered chip. The email they just
