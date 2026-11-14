@@ -3423,3 +3423,11 @@ footer{padding-bottom:36px}
    above, untouched. The minis are not in this block — their
    posters already render fine. */
 .btl-player.btl-tall154 > video:not(.vfill){aspect-ratio:4/5;max-height:640px;object-fit:contain}
+
+/* Round 155 (2026-11-14): the Owner panel's Fast lane section.
+   The list rows and the strip rows reuse .queue-item; only the
+   strip heading and a little rhythm are new. The strip is the
+   owner's safety net — the most recent fast-laned plays still
+   live, each one Trash-able through the ordinary delete. */
+.fastlane155-striphead{margin:14px 0 6px}
+.fastlane155-item,.fastlane155-strip-row{margin:6px 0}
