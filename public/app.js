@@ -440,6 +440,29 @@ function hydrateDurPills() {
     }
   });
 }
+/* Round 151 (2026-11-13): watch counts on the videos. The
+   count is the payload's viewCount — the play_open events
+   POST /api/track already records every time a play opens (the
+   same counter behind the owner stats' "Most opened plays").
+   Nothing new is counted; the number is simply shown where the
+   videos live. One formatter everywhere: exact under 1,000,
+   compact above (1.2k). */
+function fmtCount151(n) {
+  const v = Math.max(0, Math.floor(Number(n) || 0));
+  if (v < 1000) return String(v);
+  const k = Math.round(v / 100) / 10;
+  return (Number.isInteger(k) ? String(k) : k.toFixed(1)) + "k";
+}
+function watchesText151(v) { return `${fmtCount151(v)} watch${Number(v) === 1 ? "" : "es"}`; }
+/* The quiet poster chip for board tiles + the featured card:
+   bottom-right, the corner opposite the duration pill's board
+   spot. Shown only once a play has actually been watched — a
+   wall of zeroes on brand-new plays helps nobody. */
+function viewsChip151(h) {
+  const v = Number(h && h.viewCount) || 0;
+  if (v < 1) return "";
+  return `<span class="views-chip151" aria-label="${v} view${v === 1 ? "" : "s"}">▶ ${fmtCount151(v)}</span>`;
+}
 function firstNameOf(h) { const label = h.athlete_label || h.player_name || ""; return label.trim().split(/\s+/)[0] || ""; }
 /* created_at arrives as SQLite UTC text ("2026-11-05 21:59:00") or
    ISO; normalize the space form to explicit UTC before parsing, so
@@ -493,7 +516,7 @@ function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
     <div class="tile-body">
       <div class="tile-toprow">
         <h3 class="tile-title">${esc(h.title)}</h3>
@@ -819,9 +842,10 @@ function featCardHtml134(h) {
   const votes = h.voteCount;
   const name = firstNameOf(h);
   return `<article class="feat-card134" data-feat-id="${h.id}">
-    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
+      ${Number(h.viewCount) >= 1 ? `<p class="feat-views151">▶ ${watchesText151(h.viewCount)}</p>` : ""}
       ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
     </div>
   </article>`;
@@ -947,7 +971,7 @@ function fameRowHtml134(h, i) {
   return `<div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
-      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}</p></div>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}</p></div>
       <span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span>
     </div>`;
 }
@@ -1233,6 +1257,7 @@ function watchHtml107(h, entry) {
     <div class="watch-meta">
       <h2 class="watch-title">${esc(h.title)}</h2>
       <p class="watch-line"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}${athleteBit ? ` · ${athleteBit}` : ""}</p>
+      <p class="watch-views151">👁 ${fmtCount151(h.viewCount)} view${Number(h.viewCount) === 1 ? "" : "s"}</p>
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h, true) : ""}
       ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span> <span class="watch-demo">Demo</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
@@ -3509,19 +3534,26 @@ function statsHtml(st) {
   const v = st.views || {}, po = st.playOpens || {}, t = st.totals || {}, pl = t.plays || {};
   const num = (n) => esc(Number(n || 0).toLocaleString("en-US"));
   const card = (label, n) => `<div class="queue-item stats-card"><b class="stats-num">${num(n)}</b><br><span style="color:var(--muted)">${esc(label)}</span></div>`;
-  const cards = card("Views today", v.today) + card("Views · last 7 days", v.last7Days) + card("Views · last 30 days", v.last30Days) + card("Views · all time", v.allTime) + card("Play opens · all time", po.total);
+  const cards = card("Views today", v.today) + card("Views · last 7 days", v.last7Days) + card("Views · last 30 days", v.last30Days) + card("Views · all time", v.allTime) + card("Play opens · all time", po.total) + card("Battle picks · all time", (st.battles || {}).total);
   const byView = Object.entries(v.byView || {}).map(([k, n]) => `${esc(k)}: <b>${num(n)}</b>`).join(" · ");
-  const dailyRows = (v.daily || []).filter((d) => d.count > 0);
-  const daily = dailyRows.length ? dailyRows.map((d) => `<p>${esc(d.day)} — ${num(d.count)} view${d.count === 1 ? "" : "s"}</p>`).join("") : "<p>No views recorded yet.</p>";
+  /* Round 151: the 30-day series as a CSS bar strip — every day
+     gets a bar (height against the busiest day, a floor sliver
+     for any nonzero day), the exact count rides the bar's
+     tooltip, and a caption names the range + the busiest day.
+     Pure divs: no chart library, no canvas. */
+  const daily151 = Array.isArray(v.daily) ? v.daily : [];
+  const maxDay151 = daily151.reduce((mx, d) => Math.max(mx, Number(d.count) || 0), 0);
+  const daily = daily151.length ? `<div class="stats-bars151" role="img" aria-label="Views by day for the last 30 days">${daily151.map((d) => { const c = Number(d.count) || 0; const pct = maxDay151 > 0 ? (c > 0 ? Math.max(6, Math.round((c / maxDay151) * 100)) : 0) : 0; return `<span class="stats-bar151" style="height:${pct}%" title="${esc(d.day)} — ${num(c)} view${c === 1 ? "" : "s"}"></span>`; }).join("")}</div><p class="stats-bars-cap151">${esc(daily151[0].day)} → ${esc(daily151[daily151.length - 1].day)} · busiest day: ${num(maxDay151)} view${maxDay151 === 1 ? "" : "s"}</p>` : "<p>No views recorded yet.</p>";
   const top = (po.top || []).length ? po.top.map((p) => `<p><b>${esc(p.title)}</b> — ${num(p.opens)} open${p.opens === 1 ? "" : "s"}</p>`).join("") : "<p>No play opens recorded yet.</p>";
   const refs = (st.referrers || []).length ? st.referrers.map((r) => `<p>${esc(r.key)} — ${num(r.count)}</p>`).join("") : "<p>No arrivals recorded yet.</p>";
   const sys = `<p>Total votes: <b>${num(t.votes)}</b> · Plays: <b>${num(pl.total)}</b> (${num(pl.approved)} approved, ${num(pl.pending)} pending, ${num(pl.hidden)} hidden) · Hype Frame orders: <b>${num(t.hypeFrameOrders)}</b> · Athletes: <b>${num(t.athletes)}</b></p>`;
+  const stories151 = st.stories || {};
   return `<div class="stats-cards">${cards}</div>
     <p>Views by page (all time): ${byView}</p>
     ${sys}
     <h4 class="stats-sub">Views by day (last 30 days)</h4>${daily}
     <h4 class="stats-sub">Most opened plays</h4>${top}
-    <h4 class="stats-sub">Hype Stories</h4>${(st.stories && st.stories.byEpisode && st.stories.byEpisode.length) ? st.stories.byEpisode.map((e) => `<p>${esc(e.episode)} — ${num(e.opens)} watch${e.opens === 1 ? "" : "es"}</p>`).join("") : "<p>No story watches recorded yet.</p>"}
+    <h4 class="stats-sub">Hype Stories</h4><p><b>${num(stories151.total)}</b> total watch${Number(stories151.total) === 1 ? "" : "es"}</p>${(stories151.byEpisode && stories151.byEpisode.length) ? stories151.byEpisode.map((e) => `<p>${esc(e.episode)} — ${num(e.opens)} watch${e.opens === 1 ? "" : "es"}</p>`).join("") : "<p>No story watches recorded yet.</p>"}
     <h4 class="stats-sub">Where visitors came from</h4>${refs}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
@@ -4331,7 +4363,7 @@ function btlMiniHTML(slot) {
     <span class="btl-letter" aria-hidden="true">${letter}</span>
     ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
   </article>`;
 }
 function btlRenderCount() {
@@ -4737,7 +4769,7 @@ function d100MiniHTML(prefix, slot, p) {
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
   </article>`;
 }
 function d100Watch(prefix, slot, play) {
