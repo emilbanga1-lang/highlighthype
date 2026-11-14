@@ -11,10 +11,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=144" />
+<link rel="stylesheet" href="styles.css?v=145" />
 </head>
 <body>
-<!-- Round 145 (2026-11-13): the crash-retry safeguards, all four
+<!-- Round 146 (2026-11-13): Trash + undo, and a moderation log —
+     Phase 2 of the owner-panel program Emil approved the night
+     of the accidental deletions. Owner deletes are now a move to
+     a Trash section in the Owner view: the play leaves the
+     board, Battles and the contest at once, but its files and
+     votes are kept, so Restore brings it back whole for 7 days
+     (after that, an auto-purge deletes it for good; "Delete
+     forever" is there too). The Round 145 live-play dialog now
+     says exactly that — its red button is "Move to Trash". And
+     every moderation action (approve, decline, trash, restore,
+     purge, plus the backup channel's cleanup + restore) lands
+     in a Moderation log section under the Trash. The R145
+     backup cleanup route keeps its permanent semantics — it is
+     the operator tool for junk, not an owner gesture. Pins ?v=145.
+     Round 145 (2026-11-13): the crash-retry safeguards, all four
      approved by Emil after the night the server crashes made
      uploads look failed, retries piled up 34 duplicate pendings
      (639MB), and the hand-cleanup deleted three LIVE plays by
@@ -1169,6 +1183,13 @@
       <p style="color:var(--muted2);font-size:13px">Already have an owner token? Paste it here — it is saved on this device only, it is not a password login.</p>
       <p><input id="tokenInp" type="password" placeholder="Paste owner token" size="36"> <button type="button" class="mini-btn" id="saveTokenBtn">Save owner token</button></p>
       <h3 style="margin-top:22px">Moderation queue</h3><div id="queue"></div>
+      <!-- Round 146: the Trash — every owner delete lands here for
+           7 days with Restore + Delete forever per play. -->
+      <h3 style="margin-top:22px">🗑 Trash</h3><div id="trash146"></div>
+      <!-- Round 146: the moderation log — the last 50 moderation
+           actions (approve, decline, trash, restore, purge,
+           backup-tool cleanup + restores), newest first. -->
+      <h3 style="margin-top:22px">Moderation log</h3><div id="modLog146"></div>
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
@@ -1740,19 +1761,22 @@
 <!-- ============ DELETE-A-LIVE-PLAY CONFIRMATION (Round 145:
      deleting an APPROVED play from the Owner view takes this
      dedicated dialog — it names the play, its all-time votes
-     and its contest entry, warns the video file goes too, and
-     only the red button deletes; Cancel carries the focus) ===
+     and its contest entry, and only the red button acts;
+     Cancel carries the focus. Round 146: a delete is now a
+     move to Trash, so the copy and the red button say so —
+     the play can be restored for 7 days before it is gone
+     for good.) ============================================
      ============ -->
-<div class="dellive145" id="deleteLiveModal145" hidden role="dialog" aria-modal="true" aria-label="Delete a live play">
+<div class="dellive145" id="deleteLiveModal145" hidden role="dialog" aria-modal="true" aria-label="Move a live play to Trash">
   <div class="dellive-backdrop145" data-dellive-cancel></div>
   <div class="dellive-panel145">
-    <h3>Delete this live play?</h3>
+    <h3>Move this live play to Trash?</h3>
     <p id="deleteLiveText145"></p>
-    <p class="dellive-warn145">Deleting it removes the play <b>and its video file</b> permanently.</p>
-    <p class="dellive-btns145"><button type="button" class="mini-btn" id="deleteLiveCancel145">Cancel</button> <button type="button" class="btn dellive-red145" id="deleteLiveConfirm145">Delete this live play</button></p>
+    <p class="dellive-warn145">Moving it to Trash takes it off the board right away — but it is <b>not</b> gone for good: you can restore it from the Trash in Owner view for <b>7 days</b>. After that it is deleted permanently.</p>
+    <p class="dellive-btns145"><button type="button" class="mini-btn" id="deleteLiveCancel145">Cancel</button> <button type="button" class="btn dellive-red145" id="deleteLiveConfirm145">Move to Trash</button></p>
   </div>
 </div>
 
-<script src="app.js?v=144"></script>
+<script src="app.js?v=145"></script>
 </body>
 </html>
