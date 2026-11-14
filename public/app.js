@@ -374,6 +374,39 @@ function markPosterFill134(host) {
     host.insertBefore(fill, video);
   } catch (e) { /* the mark alone still centers the clip via CSS */ }
 }
+/* Round 142 (2026-11-13): the FEATURED stage fits the clip.
+   The fixed 16:9 stage left a portrait #1 (Charlotte's kata
+   reel) as a ~⅓-width sliver between wide blurred sides. When
+   the featured clip is PORTRAIT, its host gains .feat-tall142
+   and the styles.css rule gives the stage a ~4:5 aspect (with
+   a desktop height cap) — the sharp clip, already centered at
+   full stage height by the .is-vertical rule, renders roughly
+   twice as wide, contain-fit as always: nothing is cropped,
+   her full movement stays in frame. Landscape stays 16:9
+   exactly as before.
+   Orientation signal, in order: (1) the poster image's
+   natural dimensions — the public payload carries no stored
+   media dimensions, and the server poster IS the clip's own
+   frame, so its shape is the clip's shape; (2) the video's
+   own metadata, the same signal markPosterFill134 trusts.
+   Neither known → no mark → today's 16:9 stage (the fallback
+   is the pre-142 card, never a broken one). */
+function markFeatStage142(host) {
+  if (!host.classList || typeof host.classList.contains !== "function") return;
+  if (!host.classList.contains("feat-media134")) return;
+  if (host.classList.contains("feat-tall142")) return;
+  const video = host.querySelector("video:not(.vfill)");
+  if (!video) return;
+  if (video.videoWidth > 0 && video.videoHeight > video.videoWidth) { host.classList.add("feat-tall142"); return; }
+  let poster = "";
+  try { poster = video.getAttribute("poster") || ""; } catch (e) { poster = ""; }
+  if (!poster) return;
+  try {
+    const img = new Image();
+    img.onload = () => { if (img.naturalHeight > img.naturalWidth) host.classList.add("feat-tall142"); };
+    img.src = poster;
+  } catch (e) { /* no Image in this context — the 16:9 stage stays */ }
+}
 function hydrateDurPills() {
   $$(".dur-host").forEach((host) => {
     const video = host.querySelector("video");
@@ -395,8 +428,8 @@ function hydrateDurPills() {
        clone; the fill is a still of the play's own poster. */
     let monthHost133 = false;
     try { monthHost133 = typeof host.closest === "function" && !!host.closest("#viewMonth"); } catch (e) { monthHost133 = false; }
-    if (video.readyState >= 1) { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); }
-    video.addEventListener("loadedmetadata", () => { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); }, { once: true });
+    if (video.readyState >= 1) { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); markFeatStage142(host); }
+    video.addEventListener("loadedmetadata", () => { fillDurPill(host); if (monthHost133) markPosterFill134(host); else markVertical107(host); markFeatStage142(host); }, { once: true });
     /* Round 123: board media feeds the frame bank too — a tile
        playing past its freeze point banks the frame that every
        other surface's poster then upgrades from (the bank used
@@ -774,7 +807,14 @@ function shortTitle(title) {
    vote action (toggleVote) in the mockup's full-width gold
    form — label left-of-center, the live count at the right
    end; the voted state re-renders from hasVoted after every
-   refresh, like the tile chip. */
+   refresh, like the tile chip.
+   Round 142 (2026-11-13): the body tightens to Emil's
+   endorsed order — media → the athlete · SHORT title line →
+   the full-width gold vote button DIRECTLY beneath it, so
+   the button reads as part of the clip block. The Sport ·
+   Division sub-line leaves the featured card (the leaderboard
+   rows, the Fame rows and the play view keep theirs), and the
+   stage itself adapts to the clip — see markFeatStage142. */
 function featCardHtml134(h) {
   const votes = h.voteCount;
   const name = firstNameOf(h);
@@ -782,7 +822,6 @@ function featCardHtml134(h) {
     <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
-      <p class="feat-sub134">${esc(cap(h.sport))} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
       ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
     </div>
   </article>`;
