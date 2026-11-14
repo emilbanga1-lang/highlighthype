@@ -18,10 +18,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=147" />
+<link rel="stylesheet" href="styles.css?v=148" />
 </head>
 <body>
-<!-- Round 148 (2026-11-13): QA-fix batch from the live-site
+<!-- Round 149 (2026-11-13): a storage meter in the Owner
+     panel's Site stats section (Phase 3a of the owner-panel
+     program). GET /api/owner/storage reports the DATA_DIR
+     mount, the uploads + hype-frames trees, the DB size, the
+     pending queue's footprint and the biggest media files;
+     the panel renders a meter bar (lime, gold ≥75%, red ≥90%),
+     the used/free line, a compact breakdown and the biggest
+     list. Born of the 2026-11-13 disk-full incident — the
+     1 GB disk filled silently until uploads failed. A failed
+     storage fetch degrades to a note in the block, never a
+     broken panel. Pins ?v=148.
+     Round 148 (2026-11-13): QA-fix batch from the live-site
      inspection + Emil's phone screenshots. (1) /my-highlights
      rendered as bare board chrome over a black void: boot()
      calls showPanel("mine") on the page-sub routes, and
@@ -1241,7 +1252,7 @@
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
-      <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div>
+      <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div><div id="ownerStorage149"></div>
       <h3 style="margin-top:22px">Daily Battle</h3><div id="ownerDaily">
       <p style="color:var(--muted2);font-size:13px">Fix a date's matchup ahead of time so it matches the social post. A matchup that already has picks (or is finalized) is locked.</p>
       <p><input type="date" id="odDate"> <span id="odCurrent" style="color:var(--muted2);font-size:13px"></span></p>
@@ -1825,6 +1836,6 @@
   </div>
 </div>
 
-<script src="app.js?v=147"></script>
+<script src="app.js?v=148"></script>
 </body>
 </html>
