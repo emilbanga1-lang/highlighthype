@@ -484,18 +484,43 @@ function humanAge(createdAt, now = Date.now()) {
   return `${Math.floor(weeks / 52)}y ago`;
 }
 function tileInfoHtml(h, votes, voteLabel) {
-  /* Round 45 (2026-11-08): ONE muted line under the title — name ·
-     sport · division · count · age (the concept's quiet line; the
-     count is bold so it still reads at a glance). */
-  const parts = [];
-  const first = firstNameOf(h);
-  if (first) parts.push(esc(first));
-  parts.push(esc(cap(h.sport)));
-  parts.push(h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed");
-  parts.push(`<b>${votes}</b> ${voteLabel || "all-time"} vote${votes === 1 ? "" : "s"}`);
-  const age = humanAge(h.created_at);
-  if (age) parts.push(age);
-  return `<p class="tile-meta tile-info">${parts.join(" · ")}</p>`;
+  /* Round 45 (2026-11-08): ONE muted line under the title.
+     Round 153 (2026-11-14): the HYBRID line, from Emil's pick of
+     the YouTube-mock exploration — "Full Name · Sport · ▶ views ·
+     N votes" in the variant's single-line form. The name is the
+     fullest the payload carries (player_name; athlete_label —
+     the site's "First L." display name — is only the fallback);
+     views are the Round 151 play_open count via fmtCount151;
+     votes stay the count this card already showed (all-time, or
+     the month count when threaded), now labeled plainly "votes".
+     Division and time-ago leave the card (both still live on
+     the play detail view). The line is a flex row: the NAME
+     segment alone may ellipsis — the counts never truncate.
+     voteLabel is accepted for signature compatibility and is no
+     longer rendered here (the action row's sample chip still
+     carries it). */
+  const name = fullName153(h);
+  const rest = `${esc(cap(h.sport))} · ▶ ${fmtCount151(h.viewCount)} · <b>${votes}</b> vote${votes === 1 ? "" : "s"}`;
+  return `<p class="tile-meta tile-info tile-meta153">${name ? `<span class="meta-name153">${esc(name)}</span><span class="meta-rest153"> · ${rest}</span>` : `<span class="meta-rest153">${rest}</span>`}</p>`;
+}
+/* Round 153 (2026-11-14): the hybrid card's name + avatar
+   helpers, adapted from the YouTube mock's tileHtmlYT (the
+   variant Emil reviewed side by side with the live board).
+   The avatar is an initials disc whose background hue is
+   hashed from the name — no athlete photos exist in the
+   data, so the disc is an identity mark, not a portrait. */
+function fullName153(h) {
+  return String((h && (h.player_name || h.athlete_label)) || "").trim();
+}
+function avatarInitials153(name) {
+  const t = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (!t.length) return "HH";
+  return ((t[0][0] || "H") + (t.length > 1 ? (t[t.length - 1][0] || "") : "")).toUpperCase();
+}
+function avatarHue153(name) { let x = 0; for (const c of String(name || "")) x = (x * 31 + c.charCodeAt(0)) % 360; return x; }
+function avatarDisc153(h) {
+  const name = fullName153(h);
+  return `<span class="tile-avatar153" style="--avh153:${avatarHue153(name)}" aria-hidden="true">${esc(avatarInitials153(name))}</span>`;
 }
 /* Round 107 (2026-11-12): the hybrid feed card. The tile is now a
    big single-column feed card in the approved redesign: 16:9 media
@@ -511,22 +536,36 @@ function tileInfoHtml(h, votes, voteLabel) {
    ("👑 Vote · N" / "👑 Voted · N"), wired to the same toggleVote
    as the watch view (identical server semantics), its click
    stopped so it can never also open the watch view. Samples keep
-   the display-only chip — no vote affordance, as ever. */
+   the display-only chip — no vote affordance, as ever.
+   Round 153 (2026-11-14): the HYBRID card — Emil reviewed the
+   YouTube-grammar mock against this card and picked the blend:
+   the stage and poster identity stay exactly as they were, and
+   the body takes the variant's three best parts — an avatar
+   disc + FULL athlete name beside the title, ONE meta line
+   whose counts cannot truncate, and the Vote button as a
+   solid lime pill (the variant's form, no crown in its label —
+   crowns still live in the badge/crown rows and the sample
+   chip). */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
     <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
     <div class="tile-body">
-      <div class="tile-toprow">
-        <h3 class="tile-title">${esc(h.title)}</h3>
-        <span class="tile-dots" aria-hidden="true">⋮</span>
+      <div class="tile-head153">
+        ${avatarDisc153(h)}
+        <div class="tile-head-main153">
+          <div class="tile-toprow">
+            <h3 class="tile-title">${esc(h.title)}</h3>
+            <span class="tile-dots" aria-hidden="true">⋮</span>
+          </div>
+          ${tileInfoHtml(h, votes, voteLabel)}
+        </div>
       </div>
-      ${tileInfoHtml(h, votes, voteLabel)}
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
       <div class="tile-votes">
-        ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "👑 Voted" : "👑 Vote"} · <b>${votes}</b></button>`}
+        ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
         <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
       </div>
     </div>
