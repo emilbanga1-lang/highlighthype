@@ -1242,24 +1242,15 @@ function renderFame() {
   const ranked = rankedAll.filter((h) => monthSport === "all" || h.sport === monthSport).slice(0, 10);
   $("#fameList").innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p style="color:var(--muted)">${rankedAll.length ? "No plays in this sport yet — try All Sports." : "No plays yet — the Hall of Fame fills in as plays are posted and voted on."}</p>`;
 }
-function renderMine() {
-  const byAthlete = new Map();
-  for (const h of ALL_PLAYS) {
-    if (!h.athlete_id) continue;
-    if (!byAthlete.has(h.athlete_id)) byAthlete.set(h.athlete_id, { id: h.athlete_id, label: h.athlete_label || h.player_name || "Athlete", team: h.team || "", tag: h.athlete_tag || "", count: 0 });
-    const a = byAthlete.get(h.athlete_id);
-    a.count++;
-    if (!a.team && h.team) a.team = h.team;
-    if (h.athlete_tag) a.tag = h.athlete_tag;
-  }
-  const list = [...byAthlete.values()].sort((a, b) => b.count - a.count);
-  $("#mineAthletes").innerHTML = list.length ? list.map((a) => `
-    <div class="queue-item" style="display:flex;gap:14px;align-items:center">
-      <div class="athlete-avatar" aria-hidden="true">${esc((a.label || "?")[0].toUpperCase())}</div>
-      <div style="flex:1"><b>${esc(a.label)}</b>${a.team ? ` · ${esc(a.team)}` : ""}${a.tag ? ` · <span class="tagchip">${esc(a.tag)}</span>` : ""}<br><span style="color:var(--muted)">${a.count} public play${a.count === 1 ? "" : "s"}</span></div>
-      <button type="button" class="mini-btn" onclick="openAthlete('${esc(a.id)}')">See all plays →</button>
-    </div>`).join("") : `<p style="color:var(--muted)">No athletes on the board yet — the first approved play starts the first collection.</p>`;
-}
+/* Round 167 (2026-11-14): renderMine is GONE. It populated
+   the "Athletes on the board" directory (#mineAthletes) that
+   sat under the My Plays lookup — every athlete with an
+   approved play, on a page headed "My Plays · Private". The
+   lookup itself was always private, but the directory read
+   to parents as if My Plays showed everyone's plays, so the
+   directory and its renderer were removed outright. The
+   email/tag lookup below is untouched; public collections
+   stay reachable from play cards and the tag field. */
 /* My Plays lookup (light, no accounts): the panel's form asks the
    server who/what sits behind a guardian email or an HH tag
    (GET /api/athletes/lookup).
@@ -1367,7 +1358,7 @@ $("#mineFind").addEventListener("submit", async (e) => {
       </div>`).join("");
   } catch (err) { box.innerHTML = `<p class="mine-find-msg">${esc(err.message)}</p>`; }
 });
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); }
 /* Round 107 (2026-11-12): the hybrid contest strip + the Month
    panel's sub line — both filled from the live contest payload on
    every render, with honest states only: no entries says so, no
