@@ -18,10 +18,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=157" />
+<link rel="stylesheet" href="styles.css?v=158" />
 </head>
 <body>
-<!-- Round 157 (2026-11-14): the Moderation queue gains a
+<!-- Round 159 (2026-11-14): VISITOR SOURCES — Emil: "I really
+     want to know — where visitors come from." Once per browser
+     session (a sessionStorage flag; no cookie, nothing
+     persistent) the app sends ONE visit_source event through
+     the existing POST /api/track plumbing: the referrer reduced
+     to its bare HOST (never a URL), any UTM tags on our link,
+     and the landing view. The owner panel is never counted.
+     The server reduces the host AGAIN (a full URL in the
+     payload still stores only its host), classifies it —
+     direct / search / social / other — and keeps aggregate
+     daily counters only (visit_source / visit_host /
+     visit_campaign / visit_landing in stat_events; no IPs, no
+     user agents, nothing per-visitor). The Owner stats gain a
+     "Where visitors come from" block: last 30 days, class
+     counts + shares, top source hosts with friendly names,
+     and a Campaigns list that appears only when UTM-tagged
+     visits exist. Counting starts with this round; nothing is
+     backfilled. Server + client. Pins ?v=158.
+     Round 157 (2026-11-14): the Moderation queue gains a
      New | All filter (Emil: "We should have a filter for new
      videos and then all videos. It's confusing right now when
      you see all videos by default."). A segmented pill bar —
@@ -2011,6 +2029,6 @@
   </div>
 </div>
 
-<script src="app.js?v=157"></script>
+<script src="app.js?v=158"></script>
 </body>
 </html>
