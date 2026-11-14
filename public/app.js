@@ -3501,7 +3501,9 @@ $("#uploadForm").addEventListener("submit", async (e) => {
     $("#athletePrompt").hidden = true;
     // Round 145: a deduped answer is a SUCCESS, not an error —
     // the clip already landed once; show the variant screen.
-    showUploadSuccess121(j.athlete_tag || "", postedEmail121, j.deduped ? (j.status || "pending") : null);
+    // Round 155: a fast-laned answer is a success too — the play
+    // is already live, so the screen says so (4th argument).
+    showUploadSuccess121(j.athlete_tag || "", postedEmail121, j.deduped ? (j.status || "pending") : null, !j.deduped && !!j.fastLaned);
   } catch (err) { setUploadLock145(form, false); msg.textContent = "Error: " + err.message; }
 });
 
@@ -3512,7 +3514,7 @@ $("#uploadForm").addEventListener("submit", async (e) => {
    pre-filled with the email just posted with. "Post another play"
    hands the (already reset) form back. */
 let lastPostedEmail121 = "";
-function showUploadSuccess121(tag, email, dedupStatus145) {
+function showUploadSuccess121(tag, email, dedupStatus145, fastLaned155) {
   const form = $("#uploadForm");
   const panel = $("#uploadSuccess");
   if (!form || !panel) { const m = $("#uploadMsg"); if (m) m.textContent = "Thanks! Your play is in review and will appear once the owner approves it."; return; }
@@ -3533,6 +3535,15 @@ function showUploadSuccess121(tag, email, dedupStatus145) {
       statusEl145.textContent = dedupStatus145 === "approved" ? "It's already live on the board. 🎉" : dedupStatus145 === "pending" ? "It's in review — once the owner approves it, it's live on the board." : "It's already on file — the owner has it.";
       statusEl145.hidden = false;
     }
+  } else if (fastLaned155) {
+    /* Round 155: the fast-lane variant — a trusted family's
+       play skipped the queue and is already live, so the
+       review steps don't apply; the status line reuses the
+       exact approved wording the dedupe variant uses for a
+       live play. Not a new screen: same panel, same elements. */
+    if (checkEl145) checkEl145.textContent = "🎉 Your play is in!";
+    if (stepsEl145) stepsEl145.hidden = true;
+    if (statusEl145) { statusEl145.textContent = "It's already live on the board. 🎉"; statusEl145.hidden = false; }
   } else {
     if (checkEl145) checkEl145.textContent = "🎉 Your play is in!";
     if (stepsEl145) stepsEl145.hidden = false;
@@ -3625,7 +3636,7 @@ function storageHtml149(so) {
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const flEl155 = $("#fastLane155"); if (flEl155) flEl155.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
@@ -3670,7 +3681,7 @@ async function loadOwner() {
        queue head (Select all + Review mode + the batch bar) is
        prepended below, and each PENDING card carries a batch
        checkbox whose state comes from batchSel150. */
-    const queueCards150 = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
+    const queueCards150 = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}${h.fast_laned_at ? ` — <span class="tagchip">⚡ Fast lane</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -3764,6 +3775,15 @@ async function loadOwner() {
       ownerTokens152 = tk152.tokens || [];
       renderOwnerAccess152();
     } catch { const oaEl = $("#ownerAccess152"); if (oaEl) oaEl.innerHTML = "<p>Could not load the passcode list.</p>"; }
+    // Fast lane (owner only, Round 155): the trusted-guardian
+    // list + the "awaiting your look" strip of fast-laned plays.
+    // Own try, same pattern as the sections above.
+    try {
+      const tr155 = await api("/api/owner/trusted");
+      trustedGuardians155 = tr155.guardians || [];
+      fastLaneRecent155 = tr155.recent || [];
+      renderFastLane155();
+    } catch { const flEl = $("#fastLane155"); if (flEl) flEl.innerHTML = "<p>Could not load the fast-lane list.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
 }
 /* Round 152: named owner passcodes — the Owner access block.
@@ -3825,6 +3845,60 @@ window.copyPasscode152 = async () => {
   }
 };
 window.dismissReveal152 = () => { passcodeReveal152 = null; renderOwnerAccess152(); };
+/* Round 155: the trusted-family fast lane block. The caches
+   hold METADATA only (the API never sends an email or a hash):
+   labels, stamps, active/revoked. The strip lists the most
+   recent fast-laned plays that are still live; each row's
+   Trash button calls the panel's ordinary deletePlay, so a
+   live play gets the same name-it-first dialog (Round 145)
+   and the same 7-day Trash move as any panel delete — the
+   strip invents no delete path of its own. */
+let trustedGuardians155 = [];
+let fastLaneRecent155 = [];
+function renderFastLane155() {
+  const el = $("#fastLane155"); if (!el) return;
+  const rows = (trustedGuardians155 || []).map((g) => `<div class="queue-item fastlane155-item">
+    <b>${esc(g.label)}</b> — ${g.revoked ? `<span class="tagchip warn">Revoked</span>` : `<span class="tagchip">Active</span>`}<br>
+    <span style="color:var(--muted)">Added ${esc(fmtDate152(g.created_at))} · Last upload through the lane ${g.last_used_at ? esc(fmtDate152(g.last_used_at)) : "never"}</span>
+    ${g.revoked ? "" : `<div class="qa"><button type="button" class="mini-btn" onclick="revokeTrusted155(${g.id})">Revoke</button></div>`}
+  </div>`).join("");
+  const strip = (fastLaneRecent155 || []).length ? `<h4 class="fastlane155-striphead">Fast-laned — awaiting your look</h4>` + fastLaneRecent155.map((p) => `<div class="queue-item fastlane155-strip-row">
+    <b>⚡ ${esc(p.title)}</b>${p.athlete ? ` — ${esc(p.athlete)}` : ""}${p.label ? ` <span style="color:var(--muted)">(via ${esc(p.label)})</span>` : ""}<br>
+    <span style="color:var(--muted)">Went live ${esc(fmtDate152(p.fast_laned_at))} without waiting in the queue.</span>
+    <div class="qa"><button type="button" class="mini-btn" onclick="deletePlay(${p.id})">Trash</button></div>
+  </div>`).join("") : "";
+  el.innerHTML = `<p>Families on this list skip the review queue — their plays go live right away. You can undo any of them from here. The Upload Assist check still runs first: a clip it flags as not-a-play waits for you like any other upload, trusted or not.</p>
+  ${strip}
+  ${rows || "<p>No families on the fast lane yet — every upload waits in the queue.</p>"}
+  <p><input id="trustedEmail155" type="email" placeholder="Guardian email" size="26"> <input id="trustedLabel155" type="text" placeholder="Label — e.g. The Millers — Hawks" size="26" maxlength="60"> <button type="button" class="mini-btn" onclick="addTrusted155()">Add to fast lane</button></p>
+  <p id="trustedMsg155" style="color:var(--muted)"></p>`;
+}
+async function refreshFastLane155() {
+  try { const tr = await api("/api/owner/trusted"); trustedGuardians155 = tr.guardians || []; fastLaneRecent155 = tr.recent || []; } catch {}
+  renderFastLane155();
+}
+window.addTrusted155 = async () => {
+  const emailEl = $("#trustedEmail155"), labelEl = $("#trustedLabel155"), msg = $("#trustedMsg155");
+  const email = emailEl ? emailEl.value.trim() : "";
+  const label = labelEl ? labelEl.value.trim() : "";
+  if (!email) { if (msg) msg.textContent = "Type the guardian's email first."; return; }
+  if (!label) { if (msg) msg.textContent = "Give the family a label — e.g. The Millers — Hawks."; return; }
+  try {
+    const r = await api("/api/owner/trusted", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, label }) });
+    await refreshFastLane155();
+    const m2 = $("#trustedMsg155");
+    if (m2) m2.textContent = r.reactivated ? `${r.label} is back on the fast lane.` : `${r.label} is on the fast lane — their next upload goes live right away.`;
+  } catch (e) { if (msg) msg.textContent = e.message; else alert(e.message); }
+};
+window.revokeTrusted155 = async (id) => {
+  const g = (trustedGuardians155 || []).find((x) => x.id === id);
+  const label = g ? g.label : "this family";
+  if (!confirm(`Take ${label} off the fast lane? Their next upload waits in the review queue again. Plays already live stay live.`)) return;
+  try {
+    await api("/api/owner/trusted/revoke", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    await refreshFastLane155();
+  } catch (e) { alert(e.message); }
+};
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
 // Sample flag (Round 7): rides the same status call — one tap in the
 // owner queue approves AND flags a play as a sample (or removes the
