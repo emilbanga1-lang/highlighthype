@@ -3431,3 +3431,16 @@ footer{padding-bottom:36px}
    live, each one Trash-able through the ordinary delete. */
 .fastlane155-striphead{margin:14px 0 6px}
 .fastlane155-item,.fastlane155-strip-row{margin:6px 0}
+
+/* Round 157 (2026-11-14): the Moderation queue's New | All
+   filter — the Round 141 segmented pill bar in miniature,
+   left-aligned to the panel column (the board's .viewseg is
+   the centered public cousin). aria-pressed carries the
+   state, exactly as .viewseg: the ACTIVE view's pill is
+   filled lime with black text. The bar sits above the queue
+   head inside #queue; the New view's empty state is one calm
+   line where the cards would be. */
+.qfilter157{display:flex;align-items:center;gap:2px;width:fit-content;max-width:100%;margin:0 0 10px;background:var(--card);border:1px solid var(--line2);border-radius:999px;padding:4px}
+.qfilter157 button{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:999px;color:#8f8f86;font:inherit;font-weight:800;font-size:14.5px;line-height:1.2;padding:7px 16px;min-height:36px;cursor:pointer;white-space:nowrap}
+.qfilter157 button[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink)}
+.queue-empty157{color:var(--muted);font-size:15px;margin:6px 0 2px}
