@@ -3239,3 +3239,54 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .trash146-thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line2);flex:none}
 .trash146-body{flex:1;min-width:0}
 .modlog146-row{margin:6px 0;font-size:14px}
+
+/* ================================================================
+   Round 148 (2026-11-13, QA-fix batch from the live inspection +
+   Emil's phone screenshots):
+   (2) Studio freeze helper: the shared .upload-card .small pulls
+       itself up with margin-top:-6px — right for the upload form,
+       wrong under the studio's Freeze row, where it slid the
+       helper line 6px UNDER the buttons (measured overlap: 6px).
+       The freeze helper (the .small right after #hfFrozenWrap in
+       the studio column) gets real clearance instead. The studio
+       video overlay rules are untouched (Round 127 territory).
+   (3) The mid-feed Hype Frame strip goes back to a COMPACT
+       horizontal band (Emil: at full width it reads as a playable
+       content video while scrolling). The Round 129 stacked
+       full-width film retires: film thumb at the left (~40%, the
+       same cover + one-tap film swap), lockup/steps/Create at the
+       right, tighter paddings and type. Slot, cover, Create
+       destination and the HYPE FRAME tag are unchanged.
+   (4) Footer dead tail: the page ended 132px after the footer
+       links row — the footer's 44px bottom padding stacked on
+       Round 122's body{padding-bottom:88px} pill clearance. The
+       static body tail goes (html's scroll-padding-bottom keeps
+       programmatic scrolls clear of the pill — that mechanism is
+       unchanged) and the footer keeps a 36px close.
+   (5) Final CTA headline: Anton italic at line-height:.95 lets
+       the ink ride ~4px above the h2 box. line-height:1 plus a
+       scroll-margin (the board's Round 122 value) so a scroll
+       landing parks the headline fully below the sticky header.
+   (7) Play-detail Up Next thumbs: the .is-vertical treatment
+       (contained strip over a blurred clone — the board tile's
+       house style) reads as a blurry slice at 112px. Up Next
+       thumbs now cover-crop like every other thumb in the rail:
+       the portrait clip fills the 16:9 box, clone hidden.
+   ================================================================ */
+#hfStudio .hf-frozen + p.small{margin-top:12px}
+.hf-strip126{flex-direction:row;align-items:center;gap:12px;padding:10px 12px}
+.hf-strip-film126{flex:0 0 40%;width:auto}
+.hf-strip-lockup126 b{font-size:17px}
+.hf-strip-stepsline126{font-size:11.5px;margin-top:4px}
+.hf-strip-cta126{margin-top:7px}
+@media (max-width:560px){
+  .hf-strip126{gap:10px;padding:10px}
+  .hf-strip-film126{flex-basis:38%}
+  .hf-strip-lockup126 b{font-size:16px;white-space:normal}
+}
+body{padding-bottom:0}
+footer{padding-bottom:36px}
+.final{scroll-margin-top:76px}
+.final h2{line-height:1}
+#playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#playDetailBody .upnext-thumb .vfill{display:none}
