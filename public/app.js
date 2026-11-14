@@ -76,6 +76,48 @@ function trackReferrer() {
   } catch { /* keep "direct" */ }
   trackEvent("referrer", key);
 }
+/* ---------------- Round 159: visitor sources ------------------
+   ONE arrival event per browser session: where this visitor came
+   from, reduced to a bare HOST — the payload carries the
+   referrer's hostname only, never its URL, path or query — plus
+   any UTM campaign tags on our own link and the view landed on.
+   The once-only flag lives in sessionStorage (it dies with the
+   tab; no cookie is set and nothing persists between visits),
+   and the owner panel is never counted: an owner checking the
+   site is not audience. The server classifies the host (direct /
+   search / social / other) and keeps daily counters only — see
+   recordVisitSource159 in server.js. Fire-and-forget like every
+   trackEvent; a failure here must never break the page. */
+function landingView159() {
+  try {
+    const path = location.pathname.replace(/\/+$/, "") || "/";
+    const view = new URLSearchParams(location.search).get("view");
+    if (path === "/store" || ["#shop", "#hype-girls", "#hype-boys"].includes(location.hash)) return "store";
+    if (path === "/stories" || location.hash === "#stories") return "stories";
+    if (view === "battles") return "battles";
+    if (view === "month") return "month";
+    if (view === "all") return "board";
+  } catch { /* fall through to home */ }
+  return "home";
+}
+function trackVisitSource159() {
+  try {
+    if (location.hash === "#owner") return;
+    let seen159 = "";
+    try { seen159 = sessionStorage.getItem("hhVisitSource159") || ""; } catch { /* storage blocked: count the arrival anyway */ }
+    if (seen159) return;
+    try { sessionStorage.setItem("hhVisitSource159", "1"); } catch { /* storage blocked: the flag is best-effort too */ }
+    let host159 = "";
+    try { if (document.referrer) host159 = new URL(document.referrer).hostname || ""; } catch { host159 = ""; }
+    const q159 = new URLSearchParams(location.search);
+    const payload159 = JSON.stringify({ kind: "visit_source", host: host159, utmSource: q159.get("utm_source") || "", utmMedium: q159.get("utm_medium") || "", utmCampaign: q159.get("utm_campaign") || "", landing: landingView159() });
+    if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+      navigator.sendBeacon("/api/track", new Blob([payload159], { type: "application/json" }));
+    } else if (typeof fetch === "function") {
+      fetch("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body: payload159, keepalive: true }).catch(() => {});
+    }
+  } catch { /* stats are best-effort only */ }
+}
 /* Round 6 (2026-11-05): Dance, Golf, Swimming, Tennis, Track & Field
    and Wrestling join the list (youth rerun v3: kids in those sports
    had to pick "Other"). Alphabetical, with "other" keeping its
@@ -3678,6 +3720,31 @@ $("#uploadSuccessPlays")?.addEventListener("click", () => {
 });
 
 /* ---------------- owner ---------------- */
+/* Round 159: "Where visitors come from" — renders the .sources
+   block of GET /api/owner/stats (last 30 days of the visit_*
+   counters): class rows with shares, the top source hosts, and
+   a Campaigns list that exists ONLY when UTM-tagged visits do.
+   This supersedes the old coarse referrer-bucket list in this
+   spot (the endpoint still returns `referrers` and the per-load
+   bucket counter still runs — the series is unbroken, it just
+   no longer renders here). With nothing recorded yet the block
+   says so plainly: counting starts with this round, nothing is
+   backfilled. */
+function sourcesHtml159(src) {
+  const num = (n) => esc(Number(n || 0).toLocaleString("en-US"));
+  const s = src || {};
+  const total = Number(s.total || 0);
+  if (!total) return "<p>No visits recorded yet — sources appear here as people arrive.</p>";
+  const bc = s.byClass || {};
+  const row159 = (label, n) => { const c = Number(n || 0); return `<p>${esc(label)} — <b>${num(c)}</b> · ${Math.round((c / total) * 100)}%</p>`; };
+  let out = `<p><b>${num(total)}</b> visit${total === 1 ? "" : "s"} in the last 30 days</p>`;
+  out += row159("Direct", bc.direct) + row159("Search", bc.search) + row159("Social", bc.social) + row159("Other", bc.other);
+  const hosts = Array.isArray(s.topHosts) ? s.topHosts : [];
+  if (hosts.length) out += `<h5 class="stats-sub159">Top sources</h5>` + hosts.map((h) => `<p>${esc(h.label || h.host)}${h.label && h.label !== h.host ? ` <span style="color:var(--muted)">(${esc(h.host)})</span>` : ""} — ${num(h.count)}</p>`).join("");
+  const camps = Array.isArray(s.campaigns) ? s.campaigns : [];
+  if (camps.length) out += `<h5 class="stats-sub159">Campaigns</h5>` + camps.map((c) => `<p>${esc(c.campaign)}${c.source ? ` · ${esc(c.source)}` : ""} — ${num(c.count)}</p>`).join("");
+  return out;
+}
 /* Site stats panel (owner view): renders GET /api/owner/stats —
    the aggregate counters (views, play opens, referrers) plus the
    existing-system totals the endpoint reads from the live tables.
@@ -3698,7 +3765,7 @@ function statsHtml(st) {
   const maxDay151 = daily151.reduce((mx, d) => Math.max(mx, Number(d.count) || 0), 0);
   const daily = daily151.length ? `<div class="stats-bars151" role="img" aria-label="Views by day for the last 30 days">${daily151.map((d) => { const c = Number(d.count) || 0; const pct = maxDay151 > 0 ? (c > 0 ? Math.max(6, Math.round((c / maxDay151) * 100)) : 0) : 0; return `<span class="stats-bar151" style="height:${pct}%" title="${esc(d.day)} — ${num(c)} view${c === 1 ? "" : "s"}"></span>`; }).join("")}</div><p class="stats-bars-cap151">${esc(daily151[0].day)} → ${esc(daily151[daily151.length - 1].day)} · busiest day: ${num(maxDay151)} view${maxDay151 === 1 ? "" : "s"}</p>` : "<p>No views recorded yet.</p>";
   const top = (po.top || []).length ? po.top.map((p) => `<p><b>${esc(p.title)}</b> — ${num(p.opens)} open${p.opens === 1 ? "" : "s"}</p>`).join("") : "<p>No play opens recorded yet.</p>";
-  const refs = (st.referrers || []).length ? st.referrers.map((r) => `<p>${esc(r.key)} — ${num(r.count)}</p>`).join("") : "<p>No arrivals recorded yet.</p>";
+  const refs = sourcesHtml159(st.sources);
   const sys = `<p>Total votes: <b>${num(t.votes)}</b> · Plays: <b>${num(pl.total)}</b> (${num(pl.approved)} approved, ${num(pl.pending)} pending, ${num(pl.hidden)} hidden) · Hype Frame orders: <b>${num(t.hypeFrameOrders)}</b> · Athletes: <b>${num(t.athletes)}</b></p>`;
   const stories151 = st.stories || {};
   return `<div class="stats-cards">${cards}</div>
@@ -3707,7 +3774,7 @@ function statsHtml(st) {
     <h4 class="stats-sub">Views by day (last 30 days)</h4>${daily}
     <h4 class="stats-sub">Most opened plays</h4>${top}
     <h4 class="stats-sub">Hype Stories</h4><p><b>${num(stories151.total)}</b> total watch${Number(stories151.total) === 1 ? "" : "es"}</p>${(stories151.byEpisode && stories151.byEpisode.length) ? stories151.byEpisode.map((e) => `<p>${esc(e.episode)} — ${num(e.opens)} watch${e.opens === 1 ? "" : "es"}</p>`).join("") : "<p>No story watches recorded yet.</p>"}
-    <h4 class="stats-sub">Where visitors came from</h4>${refs}
+    <h4 class="stats-sub">Where visitors come from</h4>${refs}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
 /* Round 149: the storage meter block under Site stats, fed by
@@ -4472,6 +4539,7 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   // shared #play-, an athlete, the owner panel) starts on the home
   // boards, so it counts "home" here.
   trackReferrer();
+  trackVisitSource159();
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post", "#stories"].includes(location.hash)) trackEvent("view", "home");
   /* Round 139: arm in-app history — the boot entry gets its
      first snapshot now and settles when loadData lands (the
