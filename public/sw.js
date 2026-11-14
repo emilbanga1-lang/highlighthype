@@ -14,7 +14,7 @@
    the same commit that bumps the ?v= asset pin, so old caches
    are dropped on activate and no visitor is stranded on a
    stale app shell. */
-const HH_SW_VERSION = "r161-v160";
+const HH_SW_VERSION = "r162-v161";
 const HH_CACHE161 = "hh-static-" + HH_SW_VERSION;
 const HH_PRECACHE161 = [
   "/",
