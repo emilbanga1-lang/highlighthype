@@ -3509,7 +3509,7 @@ function statsHtml(st) {
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
@@ -3540,7 +3540,13 @@ async function loadOwner() {
       const ids = g.map((x) => x.id).join(",");
       return `<div class="queue-item queue-group145"><b>${g.length} copies of '${esc(h.title)}' — ${esc(h.player_name || h.athlete_label || "no athlete")}</b>${liveKeys145.has(key) ? `<br><span>One copy is live on the board — the live play is not touched.</span>` : ""}<div class="qa"><button type="button" class="mini-btn" onclick="deletePendingGroup145('${ids}')">Delete all copies</button></div></div>`;
     };
-    $("#queue").innerHTML = q.queue.map((h) => groupHeader145(h) + `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
+    /* Round 146: trashed plays leave the queue list entirely —
+       they render in the Trash section below instead. (The
+       grouping above reads q.queue but only ever groups pending
+       rows, so a trashed copy can never join a delete-all group.) */
+    const liveQueue146 = q.queue.filter((h) => h.status !== "trashed");
+    const trashRows146 = q.queue.filter((h) => h.status === "trashed");
+    $("#queue").innerHTML = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -3551,6 +3557,20 @@ async function loadOwner() {
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("") || "<p>Queue is empty.</p>";
+    /* Round 146: the Trash section. Poster thumb, title, athlete,
+       when it was trashed + the status a Restore lands on, and
+       the whole days left before the auto-purge — with Restore
+       and Delete forever per play. The copy carries the rule the
+       owner needs at restore time: the play comes back as it
+       was, but its contest entry is NOT recreated. */
+    const trashEl146 = $("#trash146");
+    if (trashEl146) trashEl146.innerHTML = trashRows146.length ? trashRows146.map((h) => `<div class="queue-item trash146-item">
+      ${h.poster_url ? `<img class="trash146-thumb" src="${esc(h.poster_url)}" alt="">` : ""}
+      <div class="trash146-body"><b>${esc(h.title)}</b>${h.player_name ? ` — ${esc(h.athlete_label || h.player_name)}` : ""}${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}<br>
+      <span style="color:var(--muted)">Trashed ${esc(h.trashed_at || "")} · was <b>${esc(h.status_before_trash || "pending")}</b> · ${h.trash_days_left == null ? "" : h.trash_days_left === 0 ? "<b>auto-purges today</b>" : `<b>${h.trash_days_left} day${h.trash_days_left === 1 ? "" : "s"}</b> left to restore`}</span><br>
+      <span style="color:var(--muted)">Restoring puts the play back as it was; contest entry is not automatic.</span>
+      <div class="qa"><button type="button" class="mini-btn" onclick="restorePlay146(${h.id})">Restore</button><button type="button" class="mini-btn" onclick="purgePlay146(${h.id})">Delete forever</button></div></div>
+    </div>`).join("") : "<p>Trash is empty — deleted plays land here for 7 days before they are gone for good.</p>";
     if (typeof buildOwnerDaily100 === "function") buildOwnerDaily100(q.queue);
     const rep = await api("/api/owner/reports");
     $("#reports").innerHTML = rep.reports.map((r) => `<p>Play #${r.highlight_id}: ${esc(r.reason)} (${esc(r.created_at)})</p>`).join("") || "<p>No reports.</p>";
@@ -3594,6 +3614,14 @@ async function loadOwner() {
       const dnRows = (dn.signups || []).map((s) => `<p><b>${esc(s.email)}</b> — ${esc(cap(s.sport))} bottle <span style="color:var(--muted)">(${esc(s.created_at)})</span></p>`).join("");
       $("#dropNotify").innerHTML = `<p>${dnCounts || "No signups yet."}</p>${dnRows}`;
     } catch { $("#dropNotify").innerHTML = "<p>Could not load drop notifications.</p>"; }
+    // Moderation log (owner only, Round 146): the last 50 actions,
+    // newest first — time, action, play, actor. Own try, same
+    // pattern as the sections above.
+    try {
+      const ml = await api("/api/owner/moderation-log");
+      const mlEl = $("#modLog146");
+      if (mlEl) mlEl.innerHTML = (ml.entries || []).length ? ml.entries.map((e) => `<p class="modlog146-row"><span style="color:var(--muted)">${esc(e.created_at)}</span> — <b>${esc(e.action)}</b> — ${esc(e.play_title || ("Play #" + e.play_id))} <span style="color:var(--muted)">(by ${esc(e.actor)}${e.detail ? ` — ${esc(e.detail)}` : ""})</span></p>`).join("") : "<p>No moderation actions recorded yet.</p>";
+    } catch { const mlEl = $("#modLog146"); if (mlEl) mlEl.innerHTML = "<p>Could not load the moderation log.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
 }
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
@@ -3609,22 +3637,28 @@ window.deletePlay = async (id) => {
   /* Round 145: an APPROVED (live) play never deletes from the
      bare confirm — it takes the dedicated dialog below, which
      names the play, its votes and its contest entry. Pending and
-     hidden plays keep the one-tap confirm they always had. */
+     hidden plays keep the one-tap confirm they always had.
+     Round 146: the delete itself is now a move to Trash (the
+     server flips the status; files + votes are kept), so the
+     confirm says so — nothing here is permanent any more. */
   const row145 = (ownerQueue145 || []).find((h) => h.id === id);
   if (row145 && row145.status === "approved") { openDeleteLive145(row145); return; }
-  if (!confirm("Delete this play permanently?")) return;
+  if (!confirm("Move this play to Trash? It leaves the board, and you can restore it from the Trash for 7 days.")) return;
   await api(`/api/highlights/${id}`, { method: "DELETE" });
   loadOwner(); loadData();
 };
 /* Round 145: delete EVERY pending copy in a duplicate group —
    one confirmation naming the count and the title, then the
-   existing owner delete per id, then one queue refresh. */
+   existing owner delete per id, then one queue refresh.
+   Round 146: those deletes are Trash moves now (the same owner
+   path), so the copies land in the Trash — restorable for 7
+   days like any other trashed play. */
 window.deletePendingGroup145 = async (idsCsv) => {
   const ids = String(idsCsv || "").split(",").map((s) => Number(s)).filter((n) => Number.isInteger(n) && n > 0);
   if (!ids.length) return;
   const first145 = (ownerQueue145 || []).find((h) => h.id === ids[0]);
   const title145 = first145 ? first145.title : "this play";
-  if (!confirm(`Delete all ${ids.length} pending copies of '${title145}'? This cannot be undone. (A live play with this title is not touched.)`)) return;
+  if (!confirm(`Move all ${ids.length} pending copies of '${title145}' to Trash? They can be restored for 7 days. (A live play with this title is not touched.)`)) return;
   for (const id of ids) { await api(`/api/highlights/${id}`, { method: "DELETE" }); }
   loadOwner(); loadData();
 };
@@ -3637,7 +3671,7 @@ let deleteLiveId145 = null;
 function openDeleteLive145(h) {
   const modal = $("#deleteLiveModal145"), txt = $("#deleteLiveText145");
   if (!modal || !txt) { // markup missing (older cached page): fall back to a named confirm
-    if (confirm(`Delete the LIVE play "${h.title}" permanently? Its video file will be deleted too.`)) {
+    if (confirm(`Move the LIVE play "${h.title}" to Trash? It leaves the board right away, and you can restore it for 7 days.`)) {
       api(`/api/highlights/${h.id}`, { method: "DELETE" }).then(() => { loadOwner(); loadData(); });
     }
     return;
@@ -3658,6 +3692,25 @@ $("#deleteLiveConfirm145")?.addEventListener("click", async () => {
   await api(`/api/highlights/${id}`, { method: "DELETE" });
   loadOwner(); loadData();
 });
+/* Round 146: the Trash actions. Restore flips the play back to
+   its pre-trash status server-side — files and votes were kept
+   the whole time, so the play comes back whole; the contest
+   entry is NOT recreated (the Trash row says so). A failed
+   restore (e.g. the video file went missing) alerts the reason
+   and leaves the play in the Trash. Delete forever is the
+   panel's one permanent gesture and names itself as final. */
+window.restorePlay146 = async (id) => {
+  try { await api(`/api/highlights/${id}/restore`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); }
+  catch (e) { alert(e.message); }
+  loadOwner(); loadData();
+};
+window.purgePlay146 = async (id) => {
+  const row146 = (ownerQueue145 || []).find((h) => h.id === id);
+  const name146 = row146 ? `"${row146.title}"` : "this play";
+  if (!confirm(`Delete ${name146} FOREVER? The play, its video file and its votes are permanently deleted. This cannot be undone.`)) return;
+  await api(`/api/highlights/${id}/purge`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  loadOwner(); loadData();
+};
 const ownerBtnEl = $("#ownerBtn"); if (ownerBtnEl) ownerBtnEl.addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
 $("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); setOwnerToken(r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
