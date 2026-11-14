@@ -1395,7 +1395,7 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
 
-const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm" };
+const MIME = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".mp4": "video/mp4", ".webm": "video/webm", ".webmanifest": "application/manifest+json" };
 
 // ---- Round 124 (2026-11-12): server-side media compatibility ----
 // WHY: play 50 (Charlotte, the board's first real play) arrived as
@@ -3359,7 +3359,13 @@ const server = http.createServer(async (req, res) => {
        Versioned URLs (?v=) cache for a week (the version IS the
        invalidation), images/video/fonts for a day, pages never. */
     const staticExt = path.extname(filePath).toLowerCase();
-    const cacheControl = /[?&]v=/.test(req.url || "") ? "public, max-age=604800"
+    /* Round 161 (2026-11-14): the service worker and the web app
+       manifest must always revalidate — a cached sw.js would
+       strand visitors on a stale worker, and the manifest is
+       three lines of JSON. They opt out of the rules below by
+       name so a future rule change can't sweep them in. */
+    const cacheControl = (p === "/sw.js" || p === "/manifest.webmanifest") ? "no-cache"
+      : /[?&]v=/.test(req.url || "") ? "public, max-age=604800"
       : /\.(jpe?g|png|webp|gif|svg|ico|mp4|webm|woff2?)$/.test(staticExt) ? "public, max-age=86400"
       : "no-cache";
     const range = req.headers.range;
