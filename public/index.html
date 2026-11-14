@@ -7,6 +7,20 @@
 <title>HighlightHype — Every Athlete Deserves The Hype</title>
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/favicon.png">
+<!-- Round 161 (2026-11-14): installable web app (PWA). The
+     manifest + crest icons under /icons/, the iOS standalone
+     meta, and a conservative service worker (/sw.js, cache
+     version HH_SW_VERSION there — bump it WITH the ?v= pin)
+     turn Add to Home Screen into the real app experience:
+     full-screen, no browser chrome. Push is NOT part of this
+     round. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HighlightHype">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <link rel="preload" as="image" href="/logo-header-gold.png?v=118" fetchpriority="high">
 <!-- Round 148 (2026-11-13): the hero video already wears
      /hero-poster.jpg as its poster (a brand still), but on a cold
@@ -18,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=159" />
+<link rel="stylesheet" href="styles.css?v=160" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -557,6 +571,25 @@
      and tapping it opens the upload form as a full-screen overlay
      instead of scrolling the long page. Desktop keeps the pill. -->
 <button type="button" class="float-submit" id="floatSubmit" aria-label="Post a Play — go to the upload form"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span class="float-submit-label">Post a Play</span><span class="float-submit-short">Post a Play</span></button>
+
+<!-- Round 161 (2026-11-14): the Add to Home Screen hint. Hidden
+     by default; app.js (initA2HS161) shows it only when the app
+     is not already installed/standalone, was never dismissed,
+     and the visit has earned it (a return visit, or ~25s in).
+     On Chromium the button fires the real install prompt; on
+     iOS (no prompt exists) it opens the two-step Share-sheet
+     walkthrough below. While it shows, body.a2hs-open161 lifts
+     the Post a Play pill clear of it (styles.css). -->
+<div class="a2hs161" id="a2hsBar161" hidden>
+  <img class="a2hs-crest161" src="/icons/icon-192.png" alt="" width="34" height="34">
+  <div class="a2hs-text161"><strong>Get the app</strong><span>Add HighlightHype to your Home Screen</span></div>
+  <button type="button" class="a2hs-btn161" id="a2hsBtn161">Add</button>
+  <button type="button" class="a2hs-x161" id="a2hsX161" aria-label="Dismiss">&times;</button>
+  <div class="a2hs-steps161" id="a2hsSteps161" hidden>
+    <p><b>1.</b> Tap the <b>Share</b> button in Safari&rsquo;s toolbar.</p>
+    <p><b>2.</b> Scroll down and tap <b>Add to Home Screen</b>.</p>
+  </div>
+</div>
 
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
@@ -2045,6 +2078,6 @@
   </div>
 </div>
 
-<script src="app.js?v=159"></script>
+<script src="app.js?v=160"></script>
 </body>
 </html>
