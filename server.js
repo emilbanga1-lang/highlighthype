@@ -1556,6 +1556,113 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": `attachment; filename="${path.basename(resolved)}"`, "content-length": fs.statSync(resolved).size });
         return fs.createReadStream(resolved).pipe(res);
       }
+      // ---- Round 144: exact restore of deleted plays (the one
+      // WRITING backup route) ----
+      // Built for one job: putting back plays the owner deleted by
+      // mistake, with their original ids, votes, contest entries and
+      // media files, from a bundle extracted out of a pulled backup.
+      // ALL-OR-NOTHING: every validation below runs before a single
+      // byte or row is written; any failure leaves the live DB and
+      // the uploads dir exactly as they were. Auth is the same
+      // BACKUP_TOKEN check as every other backup route (above).
+      // Body: multipart/form-data with a text field "bundle" (JSON:
+      // { plays, votes, contest_entries, athletes, files:[{name,
+      // size}] }) and one file part per file, part name = basename.
+      if (p === "/api/backup/restore-plays" && req.method === "POST") {
+        const ct = req.headers["content-type"] || "";
+        if (!ct.includes("multipart/form-data")) return sendJson(res, 400, { ok: false, message: "multipart/form-data required." });
+        const boundary = ct.split("boundary=")[1];
+        if (!boundary) return sendJson(res, 400, { ok: false, message: "Missing multipart boundary." });
+        const buf = await readBody(req);
+        const parts = parseMultipart(buf, boundary);
+        const bundlePart = parts.find((x) => x.name === "bundle");
+        if (!bundlePart) return sendJson(res, 400, { ok: false, message: "Missing bundle field." });
+        let bundle;
+        try { bundle = JSON.parse(bundlePart.data.toString("utf8")); } catch { return sendJson(res, 400, { ok: false, message: "Bundle is not valid JSON." }); }
+        const plays = Array.isArray(bundle.plays) ? bundle.plays : null;
+        const votes = Array.isArray(bundle.votes) ? bundle.votes : [];
+        const entries = Array.isArray(bundle.contest_entries) ? bundle.contest_entries : [];
+        const athletes = Array.isArray(bundle.athletes) ? bundle.athletes : [];
+        const fileSpecs = Array.isArray(bundle.files) ? bundle.files : null;
+        if (!plays || !plays.length || !fileSpecs) return sendJson(res, 400, { ok: false, message: "Bundle needs at least one play and a files list." });
+        const ids = plays.map((r) => Number(r && r.id));
+        if (ids.some((id) => !Number.isInteger(id) || id <= 0) || new Set(ids).size !== ids.length)
+          return sendJson(res, 400, { ok: false, message: "Bundle plays need unique positive integer ids." });
+        const fileParts = new Map();
+        for (const part of parts) if (part.name !== "bundle") fileParts.set(part.name, part.data);
+        const safeName = (n) => typeof n === "string" && n.length > 0 && !n.includes("\0") && path.basename(n) === n && n !== "." && n !== "..";
+        // ---- Validate EVERYTHING before writing ANYTHING ----
+        const present = db.prepare(`SELECT id FROM highlights WHERE id IN (${ids.map(() => "?").join(",")})`).all(...ids).map((r) => r.id);
+        if (present.length) return sendJson(res, 409, { ok: false, message: "Some plays already exist; restore aborted, nothing written.", ids: present });
+        const specByName = new Map();
+        for (const f of fileSpecs) {
+          if (!f || !safeName(f.name) || !Number.isInteger(f.size) || f.size < 0 || specByName.has(f.name))
+            return sendJson(res, 400, { ok: false, message: "Bundle files list is malformed." });
+          specByName.set(f.name, f.size);
+          const data = fileParts.get(f.name);
+          if (!data) return sendJson(res, 400, { ok: false, message: `Missing file part: ${f.name}` });
+          if (data.length !== f.size) return sendJson(res, 400, { ok: false, message: `File size mismatch for ${f.name}: bundle says ${f.size}, part has ${data.length}.` });
+        }
+        // Every file the plays point at must be covered by the bundle.
+        for (const r of plays) {
+          const refs = [];
+          if (r.media_kind === "file" && r.media_url) refs.push(r.media_url);
+          if (r.poster_url) refs.push(r.poster_url);
+          for (const url of refs) {
+            const base = path.basename(String(url));
+            if (!specByName.has(base)) return sendJson(res, 400, { ok: false, message: `Play ${r.id} references ${base}, which is not in the bundle files.` });
+          }
+        }
+        // Votes/entries may only reference plays inside this bundle.
+        for (const v of [...votes, ...entries]) {
+          if (!v || !ids.includes(Number(v.highlight_id))) return sendJson(res, 400, { ok: false, message: "Bundle votes/entries reference a play outside the bundle." });
+        }
+        for (const a of athletes) {
+          if (!a || typeof a.athlete_key !== "string" || !a.athlete_key) return sendJson(res, 400, { ok: false, message: "Bundle athlete row is missing its athlete_key." });
+        }
+        // Existing-file rule: same size already on disk = already
+        // there, skip its write; a different size = conflict, abort.
+        const toWrite = [];
+        for (const [name, size] of specByName) {
+          const dest = path.join(UPLOAD_DIR, name);
+          if (fs.existsSync(dest)) {
+            if (fs.statSync(dest).size !== size) return sendJson(res, 409, { ok: false, message: `File already exists with a different size: ${name}` });
+          } else toWrite.push(name);
+        }
+        // ---- Write: files (temp + rename), then ONE DB transaction.
+        // Any throw removes the files this request wrote and rolls
+        // the transaction back — the restore lands whole or not at all.
+        const written = [];
+        const tableCols = (t) => db.prepare(`PRAGMA table_info(${t})`).all().map((c) => c.name);
+        const insertRow = (table, rowObj, orIgnore) => {
+          const cols = tableCols(table).filter((c) => Object.prototype.hasOwnProperty.call(rowObj, c));
+          if (!cols.length) return;
+          db.prepare(`INSERT ${orIgnore ? "OR IGNORE " : ""}INTO ${table}(${cols.join(",")}) VALUES(${cols.map(() => "?").join(",")})`)
+            .run(...cols.map((c) => (rowObj[c] === undefined ? null : rowObj[c])));
+        };
+        try {
+          for (const name of toWrite) {
+            const tmpName = path.join(UPLOAD_DIR, `.restore-${Date.now()}-${crypto.randomBytes(4).toString("hex")}-${name}`);
+            fs.writeFileSync(tmpName, fileParts.get(name));
+            fs.renameSync(tmpName, path.join(UPLOAD_DIR, name));
+            written.push(name);
+          }
+          db.exec("BEGIN IMMEDIATE");
+          try {
+            for (const a of athletes) insertRow("athletes", a, true);
+            for (const r of plays) insertRow("highlights", r, false);
+            for (const v of votes) insertRow("votes", v, false);
+            for (const e of entries) insertRow("contest_entries", e, false);
+            db.exec("COMMIT");
+          } catch (txErr) { try { db.exec("ROLLBACK"); } catch {} throw txErr; }
+        } catch (err) {
+          for (const name of written) { try { fs.unlinkSync(path.join(UPLOAD_DIR, name)); } catch {} }
+          console.error("[r144] restore-plays failed, nothing kept:", err.message);
+          return sendJson(res, 500, { ok: false, message: `Restore failed and was rolled back: ${err.message}` });
+        }
+        console.log(`[r144] restore-plays: restored plays ${ids.join(",")} (${written.length} files written, ${votes.length} votes, ${entries.length} contest entries)`);
+        return sendJson(res, 200, { ok: true, restored: ids, filesWritten: written.length, votes: votes.length, entries: entries.length });
+      }
       return sendJson(res, 404, { ok: false, message: "Unknown backup route." });
     }
 
