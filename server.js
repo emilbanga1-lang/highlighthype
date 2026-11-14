@@ -652,6 +652,14 @@ db.exec(`CREATE TABLE IF NOT EXISTS trusted_guardians(
 );`);
 try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trusted_guardians_hash ON trusted_guardians(email_hash)"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN fast_laned_at TEXT"); } catch {}
+/* Round 162 (2026-11-14): the milestone tag — WHY this moment
+   mattered, in the family's own category, not just how big it
+   was (Emil: the first hit after a run of outs must not have to
+   out-shine the home run). One of MOMENT_KINDS162 or NULL
+   (untagged — every play posted before this round). Validated
+   at both write paths (upload + the owner's retro-tag) by
+   momentKind162 below; never trusted raw. */
+try { db.exec("ALTER TABLE highlights ADD COLUMN moment_kind TEXT"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -1310,6 +1318,31 @@ function badgesFor(row) {
   return out;
 }
 
+/* ---- Round 162 (2026-11-14): milestone tags + the Moment
+   That Mattered spotlight (Emil picked the A+B design) --------
+   The kinds and their labels are single-sourced HERE (the
+   client carries its own copy for rendering, as with the
+   Round 100 badges). big_play is a tag like any other, but it
+   is NOT part of the board's Firsts & Milestones lane — that
+   lane is the heart kinds only (MOMENT_HEART162), enforced
+   client-side in the board filter; the server just stores. */
+const MOMENT_KINDS162 = ["first", "personal_best", "comeback", "big_play", "effort"];
+const MOMENT_LABELS162 = { first: "🌟 First Ever", personal_best: "📈 Personal Best", comeback: "💪 Comeback", big_play: "🔥 Big Play", effort: "❤️ Great Effort" };
+const MOMENT_HEART162 = ["first", "personal_best", "comeback", "effort"];
+/* The one validator for the tag, used by the upload insert and
+   the owner's retro-tag endpoint: an allowlist value (any case,
+   stray spaces forgiven) or NULL — junk never reaches the
+   column, mirroring the division parse at upload. */
+const momentKind162 = (v) => { const k = String(v == null ? "" : v).trim().toLowerCase(); return MOMENT_KINDS162.includes(k) ? k : null; };
+/* The spotlight pick lives in settings as one JSON value —
+   { play_id, set_at, set_by } — the same single-row pattern as
+   the moderate token. Read fresh on every call: the public
+   endpoint and the panel can never disagree about the pick. */
+const SPOTLIGHT_KEY162 = "moment_spotlight162";
+function getSpotlight162() {
+  try { const j = JSON.parse(getSetting(SPOTLIGHT_KEY162) || "null"); return j && Number(j.play_id) ? { play_id: Number(j.play_id), set_at: j.set_at || "", set_by: j.set_by || "" } : null; } catch { return null; }
+}
+
 function publicHighlight(row, voterToken = "", viewsMap151 = null) {
   // Public shape is an explicit ALLOWLIST (hardening, 2026-11-04): only
   // the fields the client renders are returned. The old spread-minus-
@@ -1375,6 +1408,11 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     // Hall of Fame ranking drops samples client-side as a second
     // layer under the server-side contest exclusions.
     isSample: !!row.is_sample,
+    // Round 162: the milestone tag + its display label (null /
+    // "" when untagged — pre-162 plays included). Public and
+    // safe: the family picked the category themselves.
+    moment_kind: row.moment_kind || null,
+    moment_label: row.moment_kind ? (MOMENT_LABELS162[row.moment_kind] || "") : "",
     // Round 100 badges (see badgesFor): computed per play, samples
     // always []. The client renders gold chips from these keys.
     badges: badgesFor(row),
@@ -2400,6 +2438,10 @@ const server = http.createServer(async (req, res) => {
       // upload with NO field lands on 0 = never auto-entered (see
       // the column note above).
       const contestOptin130 = Object.prototype.hasOwnProperty.call(fields, "contestOptin") ? parseConsent(fields.contestOptin) : 0;
+      // Round 162: the milestone tag — optional, skippable, and
+      // validated by the allowlist helper: a valid kind stores,
+      // anything else (or nothing) stores NULL = untagged.
+      const momentKind162v = momentKind162(fields.momentKind);
       // Upload Assist (Round 99): the browser's AI result rides along
       // as an untrusted label (see sanitizeAiField) — display only.
       const aiJson = sanitizeAiField(fields.ai);
@@ -2424,8 +2466,8 @@ const server = http.createServer(async (req, res) => {
       const trusted155 = aiGateBlocksLane155(aiJson) ? null : trustedGuardianFor155(guardianHash155);
       const insertStatus155 = trusted155 ? "approved" : "pending";
       const fastLanedAt155 = trusted155 ? new Date().toISOString().replace("T", " ").slice(0, 19) : null;
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin,media_hash,fast_laned_at)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, insertStatus155, JSON.stringify(review), String(fields.team || "").trim(), notifyEmail155, guardianHash155, athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130, mediaHash145, fastLanedAt155);
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin,media_hash,fast_laned_at,moment_kind)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, insertStatus155, JSON.stringify(review), String(fields.team || "").trim(), notifyEmail155, guardianHash155, athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130, mediaHash145, fastLanedAt155, momentKind162v);
       const newPlayId = Number(info.lastInsertRowid);
       // Round 124: the media pipeline runs BEFORE the response —
       // a converted file and its poster are part of the finished
@@ -2694,6 +2736,25 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ---- Contest ----
+    /* Round 162: the Moment That Mattered — the owner's current
+       spotlight pick, resolved LIVE on every read: the pick is
+       served only while the play is an approved, non-sample play,
+       so trashing / hiding / un-approving it later makes the
+       homepage card simply vanish (no stale feature, no separate
+       cleanup). The story text is consent-gated HERE, at the one
+       public surface that quotes it: without the play's
+       story_consent flag the payload carries NO story at all —
+       not a teaser, not a truncation. */
+    if (p === "/api/spotlight" && req.method === "GET") {
+      const pick162 = getSpotlight162();
+      if (!pick162) return sendJson(res, 200, { ok: true, spotlight: null });
+      const row162 = db.prepare("SELECT * FROM highlights WHERE id=?").get(pick162.play_id);
+      if (!row162 || row162.status !== "approved" || row162.is_sample) return sendJson(res, 200, { ok: true, spotlight: null });
+      const pub162 = publicHighlight(row162);
+      pub162.story = row162.story_consent ? (row162.story || "") : "";
+      pub162.story_consent = !!row162.story_consent;
+      return sendJson(res, 200, { ok: true, spotlight: pub162 });
+    }
     if (p === "/api/contest" && req.method === "GET") {
       const period = u.searchParams.get("period") || currentPeriod();
       const voter = u.searchParams.get("voterToken") || "";
@@ -3211,6 +3272,94 @@ const server = http.createServer(async (req, res) => {
       }
       const current = db.prepare("SELECT id FROM highlights WHERE celebration_spotlight=1").get();
       return sendJson(res, 200, { ok: true, spotlightId: current ? current.id : null });
+    }
+    /* Round 162: owner retro-tagging — plays posted before the
+       milestone question existed (and any play whose family
+       skipped it) get their tag here. Same allowlist validator
+       as the upload; null / "" clears. Logged like every other
+       owner action (Round 146). Any status may be tagged — the
+       tag only displays once a play is public. */
+    if (p === "/api/owner/moment-kind" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id = Number(body.id);
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (body.kind != null && body.kind !== "" && !momentKind162(body.kind)) return sendJson(res, 400, { ok: false, message: "Unknown moment kind." });
+      const kind162 = momentKind162(body.kind);
+      db.prepare("UPDATE highlights SET moment_kind=? WHERE id=?").run(kind162, id);
+      logModeration146(id, "moment-kind", ownerActor152(req), `"${row.title}" moment tag ${kind162 ? `set to ${MOMENT_LABELS162[kind162]}` : "cleared"}${row.moment_kind ? ` (was ${MOMENT_LABELS162[row.moment_kind] || row.moment_kind})` : ""}`);
+      return sendJson(res, 200, { ok: true, id, moment_kind: kind162, moment_label: kind162 ? MOMENT_LABELS162[kind162] : "" });
+    }
+    /* Round 162 (Feature 3): attach a guardian email to a play
+       posted phone-only — Emil found play 71 (Nicholas's
+       "Double") has notify_email EMPTY, so its guardian finds
+       nothing in My Plays by email (the lookup matches on
+       notify_email_hash / the athlete's email_hash). Sets the
+       play's email + hash (the insert's own single expression,
+       sha(normIdentity(email)), so spellings can never drift),
+       and the athlete row's email_hash ONLY when it's empty —
+       an athlete's established email is never overwritten.
+       Same email again = a no-op success (nothing written,
+       nothing logged — the log stays a record of changes).
+       Logged like every other owner action (Round 146). */
+    if (p === "/api/owner/guardian-email" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id = Number(body.id);
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      const email162 = String(body.email || "").trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email162)) return sendJson(res, 400, { ok: false, message: "That doesn't look like an email address — check it and try again." });
+      const hash162 = sha(normIdentity(email162));
+      if ((row.notify_email_hash || "") === hash162 && (row.notify_email || "") === email162) return sendJson(res, 200, { ok: true, id, email: email162, unchanged: true });
+      db.prepare("UPDATE highlights SET notify_email=?, notify_email_hash=? WHERE id=?").run(email162, hash162, id);
+      let athleteLinked162 = false;
+      if (row.athlete_id) {
+        const ath162 = db.prepare("SELECT athlete_key, email_hash FROM athletes WHERE athlete_key=?").get(row.athlete_id);
+        if (ath162 && !(ath162.email_hash || "")) { db.prepare("UPDATE athletes SET email_hash=? WHERE athlete_key=?").run(hash162, row.athlete_id); athleteLinked162 = true; }
+      }
+      logModeration146(id, "guardian-email", ownerActor152(req), `"${row.title}" guardian email attached (${email162})${athleteLinked162 ? " — athlete record linked" : ""}`);
+      return sendJson(res, 200, { ok: true, id, email: email162, athleteLinked: athleteLinked162 });
+    }
+    /* Round 162: the Moment That Mattered pick (owner only).
+       POST { playId } sets the one current pick — APPROVED,
+       non-sample plays only, refused in plain words otherwise;
+       { playId: null } clears it. GET /api/owner/spotlight-state
+       feeds the panel section: the current pick (with who/when)
+       plus the picker list — approved, non-sample plays that
+       carry a story OR a milestone tag, newest first. */
+    if (p === "/api/owner/spotlight" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const actor162 = ownerActor152(req);
+      if (body.playId == null) {
+        const prev162 = getSpotlight162();
+        setSetting(SPOTLIGHT_KEY162, "");
+        if (prev162) logModeration146(prev162.play_id, "spotlight-clear", actor162, "Moment That Mattered spotlight cleared");
+        return sendJson(res, 200, { ok: true, spotlight: null });
+      }
+      const id = Number(body.playId);
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (row.is_sample) return sendJson(res, 400, { ok: false, message: "Sample plays can't be the Moment That Mattered." });
+      if (row.status !== "approved") return sendJson(res, 400, { ok: false, message: "Only an approved play can be the Moment That Mattered." });
+      const pick162 = { play_id: id, set_at: new Date().toISOString(), set_by: actor162 };
+      setSetting(SPOTLIGHT_KEY162, JSON.stringify(pick162));
+      logModeration146(id, "spotlight-set", actor162, `"${row.title}" set as the Moment That Mattered`);
+      return sendJson(res, 200, { ok: true, spotlight: pick162 });
+    }
+    if (p === "/api/owner/spotlight-state" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const pick162 = getSpotlight162();
+      let current162 = null;
+      if (pick162) {
+        const r = db.prepare("SELECT id, player_name, title, moment_kind, status FROM highlights WHERE id=?").get(pick162.play_id);
+        if (r) current162 = { play_id: r.id, player_name: r.player_name || "", title: r.title || "", moment_kind: r.moment_kind || null, moment_label: r.moment_kind ? (MOMENT_LABELS162[r.moment_kind] || "") : "", status: r.status, set_at: pick162.set_at, set_by: pick162.set_by };
+      }
+      const picker162 = db.prepare("SELECT id, player_name, title, moment_kind, story, story_consent, created_at FROM highlights WHERE status='approved' AND COALESCE(is_sample,0)=0 AND ((story IS NOT NULL AND story<>'') OR moment_kind IS NOT NULL) ORDER BY id DESC").all()
+        .map((r) => ({ id: r.id, player_name: r.player_name || "", title: r.title || "", moment_kind: r.moment_kind || null, moment_label: r.moment_kind ? (MOMENT_LABELS162[r.moment_kind] || "") : "", has_story: !!(r.story && r.story.trim()), story_consent: !!r.story_consent, created_at: r.created_at || "" }));
+      return sendJson(res, 200, { ok: true, current: current162, picker: picker162 });
     }
     const statusMatch = p.match(/^\/api\/highlights\/(\d+)\/status$/);
     if (statusMatch && req.method === "POST") {
