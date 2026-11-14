@@ -3782,6 +3782,7 @@ async function loadOwner() {
       const tr155 = await api("/api/owner/trusted");
       trustedGuardians155 = tr155.guardians || [];
       fastLaneRecent155 = tr155.recent || [];
+      textAlerts156 = tr155.textAlerts156 || null;
       renderFastLane155();
     } catch { const flEl = $("#fastLane155"); if (flEl) flEl.innerHTML = "<p>Could not load the fast-lane list.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
@@ -3855,6 +3856,18 @@ window.dismissReveal152 = () => { passcodeReveal152 = null; renderOwnerAccess152
    strip invents no delete path of its own. */
 let trustedGuardians155 = [];
 let fastLaneRecent155 = [];
+/* Round 156: the owner text-alert status (counts + booleans
+   only — the API never sends the numbers). The line renders
+   at the top of the Fast lane section: on with its number
+   count, or off naming exactly what Render still needs. */
+let textAlerts156 = null;
+function textAlertLine156() {
+  const s = textAlerts156;
+  if (!s) return "";
+  if (s.on) return `<p>📱 <b>Text alerts: on</b> — ${s.numbers} number${s.numbers === 1 ? "" : "s"} get a text with the review link when a new play lands in the queue.</p>`;
+  const missing = [!s.configured ? "OWNER_ALERT_PHONES" : "", !s.twilio ? "Twilio" : ""].filter(Boolean).join(" + ");
+  return `<p>📱 <b>Text alerts: off</b> — needs ${missing} in Render.</p>`;
+}
 function renderFastLane155() {
   const el = $("#fastLane155"); if (!el) return;
   const rows = (trustedGuardians155 || []).map((g) => `<div class="queue-item fastlane155-item">
@@ -3868,13 +3881,14 @@ function renderFastLane155() {
     <div class="qa"><button type="button" class="mini-btn" onclick="deletePlay(${p.id})">Trash</button></div>
   </div>`).join("") : "";
   el.innerHTML = `<p>Families on this list skip the review queue — their plays go live right away. You can undo any of them from here. The Upload Assist check still runs first: a clip it flags as not-a-play waits for you like any other upload, trusted or not.</p>
+  ${textAlertLine156()}
   ${strip}
   ${rows || "<p>No families on the fast lane yet — every upload waits in the queue.</p>"}
   <p><input id="trustedEmail155" type="email" placeholder="Guardian email" size="26"> <input id="trustedLabel155" type="text" placeholder="Label — e.g. The Millers — Hawks" size="26" maxlength="60"> <button type="button" class="mini-btn" onclick="addTrusted155()">Add to fast lane</button></p>
   <p id="trustedMsg155" style="color:var(--muted)"></p>`;
 }
 async function refreshFastLane155() {
-  try { const tr = await api("/api/owner/trusted"); trustedGuardians155 = tr.guardians || []; fastLaneRecent155 = tr.recent || []; } catch {}
+  try { const tr = await api("/api/owner/trusted"); trustedGuardians155 = tr.guardians || []; fastLaneRecent155 = tr.recent || []; textAlerts156 = tr.textAlerts156 || null; } catch {}
   renderFastLane155();
 }
 window.addTrusted155 = async () => {
