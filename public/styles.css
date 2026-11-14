@@ -3407,3 +3407,19 @@ footer{padding-bottom:36px}
 #plays .vote-chip-btn.vote-pill153.voted b,.tile .vote-chip-btn.vote-pill153.voted b{color:var(--volt)}
 #plays .vote-chip-btn.vote-pill153.vote-failed,.tile .vote-chip-btn.vote-pill153.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}
 #plays .vote-chip-btn.vote-pill153.vote-failed b,.tile .vote-chip-btn.vote-pill153.vote-failed b{color:#ffb9be}
+
+/* Round 154 (2026-11-14): the Battles BIG-player stage adapts
+   to the clip — the Round 142 featured-stage treatment for
+   #btlPlayer / #dailyPlayer / #runPlayer. Round 113 contained
+   a portrait clip (object-fit:contain + blur fill) but inside
+   the fixed 16:9 video element, so it rendered as a skinny
+   pillar-boxed strip. When app.js marks the box .btl-tall154
+   (poster signal at selection, metadata sync in
+   syncBtlPlayer113), the video element itself takes the tall
+   stage: ~4:5, height capped at 640px like the featured
+   stage, contain-fit as always — no crop, no squeeze; the
+   .vfill blur fill (absolute inset:0) grows with the box.
+   Landscape never gets the mark and keeps the base 16:9 rule
+   above, untouched. The minis are not in this block — their
+   posters already render fine. */
+.btl-player.btl-tall154 > video:not(.vfill){aspect-ratio:4/5;max-height:640px;object-fit:contain}
