@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=160" />
+<link rel="stylesheet" href="styles.css?v=161" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -639,6 +639,13 @@
          Sports + the first sports, with More expanding the rest.
          The pills filter the board in place, through the same
          monthSport / allSport state the dropdowns wrote. -->
+    <!-- Round 162 (2026-11-14): the Moment That Mattered card —
+         the owner's spotlight pick, rendered by
+         renderSpotlight162 (app.js) from GET /api/spotlight.
+         Hidden and empty whenever no pick is live; the container
+         sits between the hero and the board, above the pill bar. -->
+    <div id="momentCard162" hidden></div>
+
     <div class="viewseg" role="group" aria-label="Board views — Watch, Battles, Hype of the Month">
       <button type="button" data-view="all" aria-pressed="false">Watch</button>
       <button type="button" data-view="battles" aria-pressed="false">Battles</button>
@@ -716,6 +723,13 @@
         <button type="button" data-div="boys" aria-pressed="false">Boys</button>
         <button type="button" data-div="girls" aria-pressed="false">Girls</button>
       </div>
+    </div>
+    <!-- Round 162 (2026-11-14): the Firsts & Milestones lane
+         toggle — a Watch-board filter, so switchView shows this
+         row on the Watch view only (like #allDivSeg). State +
+         wiring: lane162 / syncFilterUI in app.js. -->
+    <div class="lane-row162" id="laneRow162" hidden>
+      <button type="button" id="laneToggle162" class="lane-chip162" aria-pressed="false">🌟 Firsts &amp; Milestones</button>
     </div>
     </div><!-- /.filters-bar123 -->
 
@@ -1103,6 +1117,22 @@
            public-sharing permission a story needs (the board
            consent above does not cover social). Both optional. -->
       <div class="quick-field story-block">
+        <!-- Round 162 (2026-11-14): the milestone question — one
+             tap, skippable, none pre-selected. The chips write the
+             hidden momentKind field (empty = untagged); the
+             wiring lives with the other quick picks in app.js
+             (setMomentPick162 / syncMomentPick162). -->
+        <div class="quick-field moment-field162">
+          <span class="quick-label" id="momentPickLabel">What kind of moment is this? (optional)</span>
+          <div class="seg moment-seg162" role="group" aria-labelledby="momentPickLabel">
+            <button type="button" data-moment-pick="first" aria-pressed="false">🌟 First Ever</button>
+            <button type="button" data-moment-pick="personal_best" aria-pressed="false">📈 Personal Best</button>
+            <button type="button" data-moment-pick="comeback" aria-pressed="false">💪 Comeback</button>
+            <button type="button" data-moment-pick="big_play" aria-pressed="false">🔥 Big Play</button>
+            <button type="button" data-moment-pick="effort" aria-pressed="false">❤️ Great Effort</button>
+          </div>
+          <input type="hidden" name="momentKind" value="">
+        </div>
         <label>What made this moment matter? (optional) <textarea name="story" placeholder="What was on the line, who was watching, why this one mattered — that's where a Hype Story starts."></textarea></label>
         <label class="checkline"><input type="checkbox" name="storyConsent"> You can feature this play as a Hype Story — on HighlightHype and our social channels — and contact me about it.</label>
       </div>
@@ -1458,6 +1488,13 @@
            the "awaiting your look" strip render client-side
            from /api/owner/trusted. -->
       <h3 style="margin-top:22px">⚡ Fast lane</h3><div id="fastLane155"></div>
+      <!-- Round 162: the Moment That Mattered — the one current
+           spotlight pick + the picker (approved plays carrying a
+           story or a milestone tag), rendered client-side from
+           /api/owner/spotlight-state. -->
+      <h3 style="margin-top:22px">💛 Moment That Mattered</h3>
+      <p style="color:var(--muted2);font-size:13px">One play, featured on the homepage between the hero and the board. The story text appears only when that family gave story consent.</p>
+      <div id="momentSpotlight162"></div>
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
       <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
@@ -2078,6 +2115,6 @@
   </div>
 </div>
 
-<script src="app.js?v=160"></script>
+<script src="app.js?v=161"></script>
 </body>
 </html>
