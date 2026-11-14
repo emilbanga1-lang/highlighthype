@@ -4272,7 +4272,12 @@ const server = http.createServer(async (req, res) => {
     // The page is fully static fictional content: it loads no
     // app.js, calls no API and emits no tracking, so this mapping
     // is its only server footprint; nothing here reads the DB.
-    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p === "/terms" ? "terms.html" : p === "/privacy" ? "privacy.html" : p === "/demo" ? "demo.html" : p);
+    // Round 173 (2026-11-14): /about joins them — the standalone
+    // About / Our Story page (public/about.html), a PROTOTYPE
+    // for Emil's review: noindex, not linked from the nav,
+    // homepage or footer yet. Same isolation posture as /demo:
+    // fully static, no app.js, no API, no tracking, no script.
+    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p === "/terms" ? "terms.html" : p === "/privacy" ? "privacy.html" : p === "/demo" ? "demo.html" : p === "/about" ? "about.html" : p);
     if (!filePath.startsWith(path.join(__dirname, "public")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory())
       filePath = path.join(__dirname, "public", "index.html");
     const type = MIME[path.extname(filePath)] || "text/plain";
