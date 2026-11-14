@@ -18,10 +18,27 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=152" />
+<link rel="stylesheet" href="styles.css?v=153" />
 </head>
 <body>
-<!-- Round 153 (2026-11-14): the HYBRID board card. Emil
+<!-- Round 154 (2026-11-14): the Battles BIG players get the
+     adaptive stage the Month featured clip got in Round 142.
+     A portrait clip in a big player (Quick Battles, Daily
+     Battle, Battle Run) was contained inside a fixed 16:9
+     element — a skinny pillar-boxed strip. Now the stage
+     itself adapts per side: the player's box gains
+     .btl-tall154 and the video element takes a ~4:5 stage
+     (640px height cap), contain-fit with the Round 113 blur
+     fill behind it — no crop, no squeeze. Landscape stays
+     16:9 exactly as before. Orientation signal, R142-style:
+     the play's server poster (the clip's own frame) marks
+     the stage before metadata lands; loadedmetadata
+     (syncBtlPlayer113) confirms or clears it, both ways, on
+     every clip change, so mixed-orientation matchups adapt
+     each side independently. Battle mechanics, the minis,
+     the Round 143 chrome fade and all other surfaces are
+     unchanged. Client-only. Pins ?v=153.
+     Round 153 (2026-11-14): the HYBRID board card. Emil
      reviewed the YouTube-grammar mock side by side with the
      live board and picked the blend: the stage and poster
      identity are untouched, and the card body takes the
@@ -1933,6 +1950,6 @@
   </div>
 </div>
 
-<script src="app.js?v=152"></script>
+<script src="app.js?v=153"></script>
 </body>
 </html>
