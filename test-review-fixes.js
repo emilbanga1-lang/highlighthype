@@ -7200,6 +7200,64 @@ try {
     assert(shareAth172.includes("#athlete-${athleteId}") && appJs.includes("shareBtn172.dataset.athleteId = athleteId"), "r172 athlete: shareAthlete builds the #athlete-<id> collection URL, and openAthlete stamps the button with the rendered athlete's id");
   }
 
+  /* ============ §82 Round 173 + 173b — About page, the story =
+     Emil (2026-11-14) chose the illustrated-portrait path for
+     the About page and supplied the portrait himself (the
+     Hype Frame Avatar style applied to Nicholas, the
+     9-year-old founder). /about serves public/about.html
+     through the static clean-route mapper beside /demo —
+     noindex, NOT linked from the nav, homepage or footer
+     while link placement is decided. Round 173b: Emil and
+     Dyanna approved THE STORY — the true driveway-dunk
+     origin told as flowing prose — replacing the R173
+     sectioned layout wholesale (headings, family list,
+     eyebrow tags all gone); a new portrait (photo-144,
+     pin ?v=174) and an added emotional-scope paragraph
+     (wins, losses, lessons, the underdog — all the moments
+     matter). The family is named by first names and roles
+     only — the family LAST NAME appears nowhere on the
+     page. Isolation mirrors /demo: standalone markup,
+     self-contained CSS, no app assets, no /api, no
+     tracking — and no script at all.
+     ==================================================== */
+  {
+    const aboutSrc173 = fs.readFileSync(path.join(root, "public", "about.html"), "utf8");
+    const serverSrc173 = fs.readFileSync(path.join(root, "server.js"), "utf8");
+    const rAbout173 = await fetch(base + "/about");
+    const about173 = await rAbout173.text();
+    assert(rAbout173.status === 200, "r173 route: GET /about answers 200");
+    assert(about173 === aboutSrc173, "r173 route: /about serves public/about.html itself, byte for byte — not the SPA shell");
+    assert(serverSrc173.includes('p === "/about" ? "about.html"'), "r173 wiring: the static mapper routes /about to about.html beside /demo");
+    const aboutDirect173 = await text("/about.html");
+    assert(aboutDirect173 === aboutSrc173, "r173 route: /about.html serves the same file directly, like /demo.html");
+    assert(about173.includes('<meta name="robots" content="noindex" />'), "r173 posture: the prototype carries noindex until Emil approves launch");
+    // ---- the approved story, verbatim (the H1 is sentence-case in markup, uppercased by CSS — the /demo convention; body prose stays normal case) ----
+    for (const s173b of ["Our Story", "It started in the driveway", "It happened in the driveway. Just Nicholas, a basketball, and a hoop he'd been attacking all afternoon.", "Then — finally — he did it. His first dunk.", "There was nobody here to see it.", "The play of his life — and its only witness was the driveway.", "What if everyone could have seen that… and voted on how cool it was?", "it's the whole company. Post the play. Everybody watches. Everybody votes.", "it was a 9-year-old in a driveway", "His cousin Nicole dreamed up turning a kid's best frame into illustrated art.", "tagging out a runner sliding in at home", "and say that was cool.", "And not just the wins — all of it.", "The loss that stings for a week", "The underdog who refused to quit", "Sports are emotional — that's exactly why they matter.", "the tears and the lessons count right alongside the trophies", "Every athlete deserves the hype.", "you can mark what it was: a first ever, a personal best, a comeback — even a great effort in a game you lost.", "the moment matters as much as the highlight.", "Every play is reviewed by a real person before it goes live, and a parent or guardian is always in control.", "starting with Nicholas's own, the Plainview Hawks.", "Your kid's driveway moment is coming.", "Your moment. Your hype.", "HighlightHype — built by a baseball family in Plainview, NY."]) {
+      assert(about173.includes(s173b), `r173b story: the page carries "${s173b}"`);
+    }
+    // ---- the R173 sectioned layout is GONE (headings, family list, eyebrow tags, old paragraphs) ----
+    for (const gone173b of ["Twinkie", "Banga", "10-year-old", "Built at the kitchen table", "kitchen table", "The moment that disappears", "Built by parents. That's the point.", "Where we are now", "It started with one kid and one question.", "This is Nicholas. He's 10", "HighlightHype wasn't made in a boardroom.", "Not just the starters.", "about-sec173", "about-sec-tag173", "about-family173", "about-frow173", "about-lead173"]) {
+      assert(!about173.includes(gone173b), `r173b story: the old R173 copy/markup "${gone173b}" appears nowhere on the page`);
+    }
+    assert(about173.includes('href="https://highlighthype.com/#upload"') && about173.includes(">Post a Play</a>"), "r173 cta: Post a Play (lime) links to the app's #upload route");
+    assert(about173.includes('href="/"') && about173.includes(">Watch Highlights</a>"), "r173 cta: Watch Highlights (ghost) links home");
+    // ---- portrait ----
+    assert(about173.includes('src="/about-nicholas.jpg?v=174"'), "r173b portrait: the hero references /about-nicholas.jpg with its ?v=174 pin");
+    assert(!about173.includes("about-nicholas.jpg?v=173"), "r173b portrait: the old ?v=173 portrait pin is gone — returning phones must not be served the cached R173 portrait");
+    assert(about173.includes("Nicholas — illustrated the same way HighlightHype turns any athlete's best frame into art."), "r173 portrait: the caption ties the illustration to the Hype Frame Avatar idea");
+    const portrait173 = path.join(root, "public", "about-nicholas.jpg");
+    assert(fs.existsSync(portrait173) && fs.statSync(portrait173).size > 10000, "r173 portrait: public/about-nicholas.jpg exists and is a real photo, not a stub");
+    const rPortrait173 = await fetch(base + "/about-nicholas.jpg?v=174");
+    assert(rPortrait173.status === 200 && (rPortrait173.headers.get("content-type") || "").includes("image/jpeg"), "r173 portrait: /about-nicholas.jpg serves 200 as image/jpeg");
+    // ---- isolation, the /demo posture ----
+    assert(!aboutSrc173.includes("/api/"), "r173 isolation: about.html never references the API");
+    assert(!aboutSrc173.includes("app.js") && !aboutSrc173.includes("styles.css"), "r173 isolation: about.html loads no app JS or CSS");
+    assert(!aboutSrc173.includes("<script"), "r173 isolation: about.html carries no script at all");
+    assert(!aboutSrc173.includes('<img src="http'), "r173 isolation: no external images — every image is a same-origin asset");
+    // ---- prototype stays unlinked ----
+    assert(!home.includes('"/about"') && !home.includes("about.html"), "r173 posture: the homepage (nav/footer included) links nowhere to /about — prototype until Emil approves");
+  }
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();
