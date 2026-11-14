@@ -829,15 +829,17 @@ function featCardHtml134(h) {
 /* Round 134: one compact leaderboard row — rank chip, the
    athlete-led short title over the sport, and the month vote
    count with its chevron at the right. The whole row opens
-   the play, like the podium rows never could. */
-function lbRowHtml134(h, i) {
-  const name = firstNameOf(h);
-  return `<div class="lb-row134" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <span class="lb-rank134">${i + 1}</span>
-    <span class="lb-main134"><span class="lb-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</span><span class="lb-sub134">${esc(cap(h.sport))}</span></span>
-    <span class="lb-votes134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"} <span class="lb-chev134" aria-hidden="true">›</span></span>
-  </div>`;
-}
+   the play, like the podium rows never could.
+   Round 147 (2026-11-13, Emil): RETIRED — the Month rows adopt
+   the Hall of Fame row design wholesale, so renderMonth calls
+   the shared fameRowHtml134 (rank, poster thumb with the play
+   icon, athlete-led short title, sport line, compact votes
+   pill). The payload decides the numbers: /api/contest
+   overrides each entry's voteCount with the MONTH count and
+   sorts by it, so the one renderer shows this month's votes
+   here and all-time votes in the Hall of Fame. The lb CSS
+   stays in styles.css, as the podium's did when its writer
+   retired. */
 function renderMonth() {
   const entries = CONTEST.entries || [];
   const [y, m] = (CONTEST.period || "").split("-").map(Number);
@@ -850,7 +852,9 @@ function renderMonth() {
      contest's #1 in the payload's own order — the same leader
      the banner used to name — and is NOT narrowed by the sport
      filter (the spotlight is the contest leader; the rows
-     below carry the filter). */
+     below carry the filter).
+     Round 147 (2026-11-13): the rows are the Hall of Fame
+     rows (fameRowHtml134) — same design, month numbers. */
   const feat134 = entries.length ? entries[0] : null;
   $("#monthFeat").innerHTML = feat134 ? featCardHtml134(feat134) : "";
   /* Round 132 (2026-11-13): the contest is ONE combined board —
@@ -860,7 +864,7 @@ function renderMonth() {
      filter keeps its current behavior. Watch keeps its own
      division filtering in renderAll2, untouched. */
   const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
-  $("#monthRows").innerHTML = filtered.map((h, i) => lbRowHtml134(h, i)).join("");
+  $("#monthRows").innerHTML = filtered.map((h, i) => fameRowHtml134(h, i)).join("");
   hydrateDurPills();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): when the month has NO entries at all, the
@@ -928,7 +932,12 @@ function posterUrlFor134(h) {
    title, the sport, and the all-time count as a compact pill
    at the right. The whole row still opens the play's card
    (goToPlayCard), as before. An empty team shows NOTHING —
-   the "No team tagged" placeholder is gone. */
+   the "No team tagged" placeholder is gone.
+   Round 147 (2026-11-13): this is now THE contest row —
+   renderMonth renders the This Month leaderboard with it
+   too. Same markup, same tap; the /api/contest payload's
+   voteCount override (month count, month order) is what
+   makes the shared pill tell the month story on that tab. */
 function fameRowHtml134(h, i) {
   const name = firstNameOf(h);
   const poster = posterUrlFor134(h);
