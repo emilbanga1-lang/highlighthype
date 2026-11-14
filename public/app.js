@@ -5887,16 +5887,29 @@ function wireWatch123(body, play) {
    tap on the bare picture, or a mouse move over the player on
    desktop, brings it back and re-arms the fade. The controls
    themselves are untouched: same native scrubber, mute and
-   fullscreen buttons, just not parked on the picture. Detail
-   player only — board tiles rest on posters (Round 133) and
-   the Battles big player has its own tap-to-play wiring. */
+   fullscreen buttons, just not parked on the picture. As built
+   in Round 140 this covered the detail player only — board
+   tiles rest on posters (Round 133) and the Battles big
+   player was left out (its own tap-to-play wiring).
+   Round 143 (2026-11-13): Emil, in Quick Battles — "it's also
+   delayed before the pause button goes away." The fade core
+   is now ONE shared helper, attachChromeFade143(video, box):
+   wireWatchChrome140 delegates to it for the detail player
+   (rewire-per-render lifecycle — its element is rebuilt per
+   open), and wireBtlChrome143 (below) wires the three Battles
+   big players to it once at startup — #btlPlayer (Quick),
+   #dailyPlayer (Daily), #runPlayer (Battle Run), the
+   persistent native-controls players; their clip changes,
+   picks and pauses all surface as play/pause events on the
+   same element, which is all the helper follows. Same ~2s
+   fade, same restore on pause/tap. The Battles minis never
+   carried native chrome (muted frame-grab previews), so
+   there is nothing to fade on them. */
 let watchChromeVideo140 = null;
-let watchChromeTimer140 = 0;
 let watchChromeOff140 = null;
 function teardownWatchChrome140() {
-  if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
   if (watchChromeOff140) { try { watchChromeOff140(); } catch (e) { /* fine */ } watchChromeOff140 = null; }
-  if (watchChromeVideo140) { try { watchChromeVideo140.setAttribute("controls", ""); } catch (e) { /* fine */ } watchChromeVideo140 = null; }
+  watchChromeVideo140 = null;
 }
 function wireWatchChrome140(body) {
   teardownWatchChrome140();
@@ -5906,17 +5919,32 @@ function wireWatchChrome140(body) {
   const video = box.querySelector("video:not(.vfill)");
   if (!video || typeof video.addEventListener !== "function") return;
   watchChromeVideo140 = video;
+  /* Round 143: the fade itself lives in the shared helper
+     below; this wrapper keeps the detail player's lifecycle —
+     tear the previous open's wiring down, attach fresh. */
+  watchChromeOff140 = attachChromeFade143(video, box);
+}
+/* The shared chrome fade (Rounds 140 + 143): attach to ONE
+   native-controls video and its hover box; returns a teardown
+   that clears any pending fade, detaches the listeners and
+   restores the controls. While the clip plays, the controls
+   attribute drops ~2s in; pause/ended restores it at once and
+   it stays; a tap on the bare picture (or a desktop mouse
+   move) brings it back and re-arms the fade. */
+function attachChromeFade143(video, hoverBox) {
+  if (!video || typeof video.addEventListener !== "function") return function () {};
+  let chromeTimer143 = 0;
   const HIDE_MS140 = 2000;
   const arm140 = () => {
-    if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
+    if (chromeTimer143) { try { clearTimeout(chromeTimer143); } catch (e) { /* fine */ } chromeTimer143 = 0; }
     if (video.paused || video.ended) return;
-    watchChromeTimer140 = setTimeout(() => {
-      watchChromeTimer140 = 0;
+    chromeTimer143 = setTimeout(() => {
+      chromeTimer143 = 0;
       if (!video.paused && !video.ended) { try { video.removeAttribute("controls"); } catch (e) { /* fine */ } }
     }, HIDE_MS140);
   };
   const show140 = () => {
-    if (watchChromeTimer140) { try { clearTimeout(watchChromeTimer140); } catch (e) { /* fine */ } watchChromeTimer140 = 0; }
+    if (chromeTimer143) { try { clearTimeout(chromeTimer143); } catch (e) { /* fine */ } chromeTimer143 = 0; }
     try { video.setAttribute("controls", ""); } catch (e) { /* fine */ }
   };
   const onPlay140 = () => arm140();
@@ -5928,17 +5956,41 @@ function wireWatchChrome140(body) {
   video.addEventListener("pause", onPause140);
   video.addEventListener("ended", onPause140);
   video.addEventListener("click", onTap140);
-  if (typeof box.addEventListener === "function") box.addEventListener("mousemove", onMove140);
-  watchChromeOff140 = () => {
+  if (hoverBox && typeof hoverBox.addEventListener === "function") hoverBox.addEventListener("mousemove", onMove140);
+  arm140(); // autoplay may already be running by the time this wires
+  return function teardownChromeFade143() {
+    if (chromeTimer143) { try { clearTimeout(chromeTimer143); } catch (e) { /* fine */ } chromeTimer143 = 0; }
     video.removeEventListener("play", onPlay140);
     video.removeEventListener("playing", onPlay140);
     video.removeEventListener("pause", onPause140);
     video.removeEventListener("ended", onPause140);
     video.removeEventListener("click", onTap140);
-    if (typeof box.removeEventListener === "function") box.removeEventListener("mousemove", onMove140);
+    if (hoverBox && typeof hoverBox.removeEventListener === "function") hoverBox.removeEventListener("mousemove", onMove140);
+    try { video.setAttribute("controls", ""); } catch (e) { /* fine */ }
   };
-  arm140(); // autoplay may already be running by the time this wires
 }
 /* The slim contest line on Watch: a tap opens the Month board,
    with the Round 122 scroll so the tap visibly lands somewhere. */
 $("#contestSlim123")?.addEventListener("click", () => { switchView("month"); scrollBoardIntoView122(); $("#contestSlim123")?.blur(); });
+
+/* Round 143 (2026-11-13): the Battles big players get the same
+   chrome fade as the play detail (attachChromeFade143, above).
+   The three players are persistent elements — never rebuilt —
+   so each is wired ONCE here; every later clip change flows
+   through the same element, and playing / pausing / a pick all
+   surface as the play/pause events the helper already follows
+   (btlPick and the Daily/Run picks pause their player, which
+   restores the chrome; a tap on the faded picture brings it
+   back and re-arms). No mechanics change: the R118 self-tap
+   handler (a tap while PAUSED plays the loaded clip) is
+   untouched — the fade's tap handler acts only while playing
+   with the chrome down, the one state R118 ignores. */
+function wireBtlChrome143() {
+  ["btlPlayer", "dailyPlayer", "runPlayer"].forEach((id) => {
+    const player = document.getElementById(id);
+    if (!player) return;
+    const box = typeof player.closest === "function" ? player.closest(".btl-player") : null;
+    attachChromeFade143(player, box || player);
+  });
+}
+wireBtlChrome143();
