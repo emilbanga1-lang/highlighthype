@@ -474,6 +474,25 @@ db.exec(`CREATE TABLE IF NOT EXISTS moderation_log(
   detail TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );`);
+// Round 152 (2026-11-13): named owner passcodes (Phase 7a of the
+// owner-panel program). Until now there was ONE owner token —
+// Emil's — so a second moderator (Dyanna) could only share it,
+// and a lost phone meant rotating access for everyone. A named
+// passcode is a person's own row here: only the SHA-256 hash is
+// stored (the plaintext is shown exactly once, at mint), a
+// revoked_at stamp kills just that person's access the moment
+// it lands, and last_used_at (stamped on auth, throttled) shows
+// whether a passcode is actually in use. The env OWNER_TOKEN /
+// claimed main token are untouched and keep actor 'owner'; a
+// named passcode's moderation actions log under its name.
+db.exec(`CREATE TABLE IF NOT EXISTS owner_tokens(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL DEFAULT '',
+  token_hash TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at TEXT,
+  revoked_at TEXT
+);`);
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -609,12 +628,53 @@ try {
   for (const r of stale121) upd121.run(sha(normIdentity(r.notify_email)), r.id);
 } catch { /* fresh DB: nothing to backfill */ }
 
-function ownerAuthorized(req) {
+// Round 152: ownerIdentity152 is the one place owner auth is
+// decided. It returns null for no/bad credentials, { actor:
+// "owner" } for the main token (env OWNER_TOKEN, else the
+// claimed owner_token_hash — the exact pre-152 rule, including
+// env taking precedence over the stored hash), and { actor:
+// <name>, tokenId } for a named passcode from owner_tokens.
+// ownerAuthorized keeps its boolean shape for every existing
+// call site; ownerActor152 hands the moderation-log call sites
+// the actor string for THIS request ('owner' when anonymous —
+// those sites only run after a successful auth check anyway).
+function ownerIdentity152(req) {
   const token = req.headers["x-owner-token"];
-  if (!token) return false;
-  if (process.env.OWNER_TOKEN) return sha(token) === sha(process.env.OWNER_TOKEN);
-  const stored = getSetting("owner_token_hash");
-  return !!stored && sha(token) === stored;
+  if (!token) return null;
+  const presented152 = sha(token);
+  if (process.env.OWNER_TOKEN) {
+    if (presented152 === sha(process.env.OWNER_TOKEN)) return { actor: "owner", tokenId: null };
+  } else {
+    const stored = getSetting("owner_token_hash");
+    if (stored && presented152 === stored) return { actor: "owner", tokenId: null };
+  }
+  // Named passcodes: the presented hash is compared against
+  // every ACTIVE row's stored hash with timingSafeEqual (the
+  // table is tiny — one row per person). A match stamps
+  // last_used_at, throttled to once per ~5 minutes per token
+  // so a busy panel session is not a write per request.
+  let rows152 = [];
+  try { rows152 = db.prepare("SELECT id, name, token_hash, last_used_at FROM owner_tokens WHERE revoked_at IS NULL").all(); } catch { rows152 = []; }
+  const presentedBuf152 = Buffer.from(presented152, "hex");
+  for (const r152 of rows152) {
+    const storedBuf152 = Buffer.from(String(r152.token_hash || ""), "hex");
+    if (storedBuf152.length === presentedBuf152.length && crypto.timingSafeEqual(storedBuf152, presentedBuf152)) {
+      try {
+        const lastMs152 = r152.last_used_at ? Date.parse(String(r152.last_used_at).replace(" ", "T") + "Z") : NaN;
+        if (isNaN(lastMs152) || Date.now() - lastMs152 > 5 * 60 * 1000)
+          db.prepare("UPDATE owner_tokens SET last_used_at=datetime('now') WHERE id=?").run(r152.id);
+      } catch { /* a failed stamp never fails the auth */ }
+      return { actor: String(r152.name || "owner"), tokenId: r152.id };
+    }
+  }
+  return null;
+}
+function ownerAuthorized(req) {
+  return !!ownerIdentity152(req);
+}
+function ownerActor152(req) {
+  const id152 = ownerIdentity152(req);
+  return id152 ? id152.actor : "owner";
 }
 // ---- Email moderation (private beta) ----
 // Why this exists: Owner view relies on a token in ONE browser's
@@ -1469,10 +1529,11 @@ function r131RunMigration() {
 // logModeration146 is the ONE writer for moderation_log. It is
 // deliberately fail-silent: a logging error must never fail the
 // moderation action it records (every call site also stays outside
-// the action's own error handling). actor is 'owner' for the owner
-// surfaces (Owner view + email moderation links — named tokens are
-// Phase 7), 'backup-tool' for the BACKUP_TOKEN channel, 'system'
-// for the auto-purge.
+// the action's own error handling). actor is 'owner' for the main
+// owner token (Owner view + email moderation links), the NAME on
+// the passcode for a named-token Owner view action (Round 152),
+// 'backup-tool' for the BACKUP_TOKEN channel, 'system' for the
+// auto-purge.
 function logModeration146(playId, action, actor, detail) {
   try {
     db.prepare("INSERT INTO moderation_log(play_id, action, actor, detail) VALUES(?,?,?,?)")
@@ -2616,6 +2677,44 @@ const server = http.createServer(async (req, res) => {
         FROM moderation_log l LEFT JOIN highlights h ON h.id = l.play_id ORDER BY l.id DESC LIMIT 50`).all();
       return sendJson(res, 200, { entries });
     }
+    // ---- Owner: named passcodes (Round 152; owner-authorized ONLY) ----
+    // Each person gets their OWN passcode (owner_tokens) instead
+    // of sharing the main token. The list exposes metadata only —
+    // never a hash, never a value. Mint returns the plaintext
+    // EXACTLY ONCE (only its SHA-256 is stored). Revoke stamps
+    // revoked_at and takes effect on the very next request,
+    // because ownerIdentity152 only matches active rows. Any
+    // valid owner credential (main token or a named passcode)
+    // may mint/revoke — Dyanna can kill her own lost passcode.
+    if (p === "/api/owner/tokens" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const tokens152 = db.prepare("SELECT id, name, created_at, last_used_at, revoked_at FROM owner_tokens ORDER BY id").all()
+        .map((r) => ({ id: r.id, name: r.name, created_at: r.created_at, last_used_at: r.last_used_at || null, revoked: !!r.revoked_at }));
+      return sendJson(res, 200, { ok: true, tokens: tokens152 });
+    }
+    if (p === "/api/owner/tokens" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const name152 = String(body.name || "").trim().replace(/\s+/g, " ");
+      if (!name152) return sendJson(res, 400, { ok: false, message: "Give the passcode a name — whose is it?" });
+      if (name152.length > 40) return sendJson(res, 400, { ok: false, message: "That name is too long — 40 characters max." });
+      const dup152 = db.prepare("SELECT id FROM owner_tokens WHERE revoked_at IS NULL AND LOWER(name)=LOWER(?)").get(name152);
+      if (dup152) return sendJson(res, 400, { ok: false, message: `There is already an active passcode named "${name152}" — revoke that one first, or pick another name.` });
+      const token152 = "hh-" + crypto.randomBytes(12).toString("base64url");
+      const info152 = db.prepare("INSERT INTO owner_tokens(name, token_hash) VALUES(?,?)").run(name152, sha(token152));
+      return sendJson(res, 200, { ok: true, id: Number(info152.lastInsertRowid), name: name152, token: token152 });
+    }
+    if (p === "/api/owner/tokens/revoke" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id152 = Number(body.id);
+      if (!Number.isInteger(id152)) return sendJson(res, 400, { ok: false, message: "Which passcode should be revoked? Reload the panel and try again." });
+      const row152 = db.prepare("SELECT id, name, revoked_at FROM owner_tokens WHERE id=?").get(id152);
+      if (!row152) return sendJson(res, 404, { ok: false, message: "That passcode doesn't exist." });
+      const already152 = !!row152.revoked_at;
+      if (!already152) db.prepare("UPDATE owner_tokens SET revoked_at=datetime('now') WHERE id=?").run(id152);
+      return sendJson(res, 200, { ok: true, id: id152, name: row152.name, revoked: true, alreadyRevoked: already152 });
+    }
     // ---- Owner: Hype Frame requests (owner-authorized ONLY) ----
     // This is the only place order requests are listed, and the only place
     // a guardian email for an order is returned. The print image itself is
@@ -2792,8 +2891,8 @@ const server = http.createServer(async (req, res) => {
       // Round 146: approvals and declines land in the moderation
       // log (transitions only — a same-state re-post, e.g. a pure
       // sample-flag change, logs nothing).
-      if (before && body.status === "approved" && before.status !== "approved") logModeration146(Number(statusMatch[1]), "approve", "owner", `"${before.title}" approved${hasSample && body.sample ? " (as a sample play)" : ""}`);
-      if (before && body.status === "hidden" && before.status !== "hidden") logModeration146(Number(statusMatch[1]), "reject", "owner", `"${before.title}" declined (hidden)`);
+      if (before && body.status === "approved" && before.status !== "approved") logModeration146(Number(statusMatch[1]), "approve", ownerActor152(req), `"${before.title}" approved${hasSample && body.sample ? " (as a sample play)" : ""}`);
+      if (before && body.status === "hidden" && before.status !== "hidden") logModeration146(Number(statusMatch[1]), "reject", ownerActor152(req), `"${before.title}" declined (hidden)`);
       if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (body.status === "approved" && before && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       // Round 130: on a fresh approval, an opted-in play auto-enters
@@ -2819,7 +2918,7 @@ const server = http.createServer(async (req, res) => {
       // it is the operator tool for junk, not an owner gesture.
       const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(delMatch[1]));
       if (!row) return sendJson(res, 200, { ok: true, trashed: false });
-      const newly = trashPlay146(row, "owner", "");
+      const newly = trashPlay146(row, ownerActor152(req), "");
       return sendJson(res, 200, { ok: true, trashed: newly, alreadyTrashed: row.status === "trashed" });
     }
     // ---- Round 146: Trash restore + delete-forever (owner) ----
@@ -2842,7 +2941,7 @@ const server = http.createServer(async (req, res) => {
       // and re-entering is the guardian/owner's explicit call via
       // the existing enter flow. The play's votes were kept, so a
       // re-entry shows them again.
-      logModeration146(row.id, "restore", "owner", `"${row.title}" restored from Trash to ${backTo} (contest entry is not automatic)`);
+      logModeration146(row.id, "restore", ownerActor152(req), `"${row.title}" restored from Trash to ${backTo} (contest entry is not automatic)`);
       return sendJson(res, 200, { ok: true, status: backTo });
     }
     const purgeMatch146 = p.match(/^\/api\/highlights\/(\d+)\/purge$/);
@@ -2852,7 +2951,7 @@ const server = http.createServer(async (req, res) => {
       if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
       if (row.status !== "trashed") return sendJson(res, 400, { ok: false, message: "Only a play in the Trash can be deleted forever — move it to Trash first." });
       permanentDeletePlay146(row.id);
-      logModeration146(row.id, "purge", "owner", `manual delete-forever from Trash: "${row.title}"`);
+      logModeration146(row.id, "purge", ownerActor152(req), `manual delete-forever from Trash: "${row.title}"`);
       return sendJson(res, 200, { ok: true });
     }
 
