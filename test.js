@@ -1,7 +1,8 @@
 // Local end-to-end test. Run: node test.js
 // Starts the server on a scratch DATA_DIR, then exercises the API.
 // Exits non-zero on any failed assertion. Test data is NOT shipped.
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -36,7 +37,7 @@ try {
   pub = await j("/api/highlights"); assert(pub.body.highlights.length === 1, "approved play is public");
   // 3b. Public shape is an explicit allowlist (hardening): every field the
   // client uses is present, and NO internal pre-review JSON leaks.
-  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "badges", "voteCount", "hasVoted", "crowns", "votesMonth", "views", "battleWins"];
+  const ALLOW = ["id", "title", "sport", "play_type", "player_name", "story", "media_kind", "media_url", "poster_url", "mime", "embed_url", "host_label", "status", "created_at", "division", "team", "athlete_id", "athlete_tag", "athlete_group", "jersey", "athlete_label", "athlete_collision", "hasGuardianEmail", "hasGuardianText", "hasGuardianPhone", "isSample", "badges", "voteCount", "hasVoted", "crowns", "votesMonth", "views", "battleWins", "viewCount", "moment_kind", "moment_label"]; // →151: viewCount joins the allowlist deliberately — the same aggregate play_open sum as views, surfaced for the public watch-count chips (Round 151, §59) — →162: moment_kind + moment_label join deliberately — the family's own milestone tag + its display label, public by design (Round 162, §70)
   const pubKeys = Object.keys(pub.body.highlights[0]);
   assert(ALLOW.every((k) => pubKeys.includes(k)), "public play carries every allowlisted field the client uses");
   assert(pubKeys.every((k) => ALLOW.includes(k)), "public play carries NOTHING outside the allowlist");
@@ -56,10 +57,14 @@ try {
   let v2 = await j(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "tester-1" }) });
   assert(v2.body.voteCount === 0 && !v2.body.hasVoted, "second tap removes vote");
   await j(`/api/highlights/${id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "tester-1" }) });
-  // 5. Contest enter + duplicate refused + winner (owner only)
-  let enter = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) });
-  assert(enter.body.ok && enter.body.period, "contest enter succeeds after approval");
-  let dup = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) });
+  // 5. Contest enter + duplicate refused + winner (owner only).
+  // Round 121: entry is gated — the posting guardian proves it with
+  // their email, or the owner enters with the token (this play has
+  // no guardian email on file, so the owner path is the only door;
+  // the dedicated r121 suite below covers the guardian paths).
+  let enter = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ highlightId: id }) });
+  assert(enter.body.ok && enter.body.period, "contest enter succeeds after approval (owner override)");
+  let dup = await j("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok }, body: JSON.stringify({ highlightId: id }) });
   assert(dup.body.alreadyEntered, "duplicate contest entry refused");
   let contest = await j("/api/contest"); assert(contest.body.totalEntries === 1 && contest.body.entries[0].voteCount === 1, "contest leaderboard shows entry + votes");
   let winNo = await j("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: id }) });
@@ -196,6 +201,68 @@ try {
     for (let i = 0; i < 60 && !limited; i++) { const r = await j3(`/api/athletes/lookup?email=${encodeURIComponent("probe" + i + "@example.com")}`); if (r.status === 429) limited = r; }
     assert(limited && /Too many lookups/.test(limited.body.message || ""), "lookup endpoint rate-limits repeated probing (429)");
   } finally { child3.kill(); fs.rmSync(tmp3, { recursive: true, force: true }); }
+  // 8e. Round 121 (2026-11-12): the posting chain — the upload
+  // response carries the athlete tag; an EMAIL lookup returns the
+  // guardian's own plays in EVERY status (pending included, with
+  // inContest flags), never leaking the address; contest entry is
+  // gated to the posting guardian (email match, trimmed +
+  // case-insensitive) or the owner token, and a play with no
+  // guardian email on file refuses everyone but the owner.
+  // Own scratch server (the 8c pattern) — fresh rate limiters.
+  const tmp5 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r121-"));
+  const PORT5 = 3477, base5 = `http://localhost:${PORT5}`;
+  const child5 = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT5), DATA_DIR: tmp5 }, stdio: "pipe" });
+  const j5 = async (p, opts = {}) => { const r = await fetch(base5 + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+  const enter5 = (payload, tok5) => j5("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json", ...(tok5 ? { "x-owner-token": tok5 } : {}) }, body: JSON.stringify(payload) });
+  try {
+    for (let i = 0; i < 50; i++) { try { await fetch(base5 + "/api/health"); break; } catch { await wait(200); } }
+    const tok5 = (await j5("/api/owner/claim", { method: "POST" })).body.token; assert(tok5, "r121: owner claim returns token");
+    const G5 = "Guardian@Example.com"; // mixed case on purpose: matching is case-insensitive
+    const mk5 = async (fields) => {
+      const r = await j5("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true", ...fields }) });
+      assert(r.status === 201, `r121: play created (${fields.title})`);
+      return r.body;
+    };
+    const approve5 = async (id) => { const r = await j5(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok5 }, body: JSON.stringify({ status: "approved" }) }); assert(r.body.status === "approved", "r121: play approved"); };
+    // (1) The upload response carries the athlete's HH tag.
+    const up5 = await mk5({ title: "R121 Pending Play", playerName: "Pia", notifyEmail: G5 });
+    assert(/^HH-\d{4}$/.test(up5.athlete_tag || ""), "r121: upload response includes the athlete tag (HH-####)");
+    // (2) Email lookup: the pending play IS listed, with its status —
+    // and the response never carries the address itself.
+    let lk5 = await j5(`/api/athletes/lookup?email=${encodeURIComponent("guardian@example.com")}`);
+    assert(lk5.status === 200 && Array.isArray(lk5.body.plays) && lk5.body.plays.length === 1, "r121: email lookup returns the guardian's plays");
+    const lp5 = lk5.body.plays[0];
+    assert(lp5.id === up5.id && lp5.status === "pending" && lp5.inContest === false && lp5.athlete_tag === up5.athlete_tag, "r121: the pending play shows with status=pending + its tag");
+    const raw5 = await (await fetch(`${base5}/api/athletes/lookup?email=${encodeURIComponent("guardian@example.com")}`)).text();
+    assert(!raw5.includes("guardian@example.com") && !raw5.includes("Guardian@Example.com") && !/"(notify_email|guardian_phone|guardian_email|email_hash|notify_email_hash|text_consent)"/.test(raw5), "r121: lookup response carries no guardian email or private field names");
+    // A stranger's email sees nothing; a TAG lookup never returns plays.
+    lk5 = await j5(`/api/athletes/lookup?email=${encodeURIComponent("stranger@example.com")}`);
+    assert(lk5.body.plays.length === 0 && lk5.body.athletes.length === 0, "r121: an unmatched email returns no plays");
+    lk5 = await j5(`/api/athletes/lookup?tag=${encodeURIComponent(up5.athlete_tag)}`);
+    assert(Array.isArray(lk5.body.plays) && lk5.body.plays.length === 0, "r121: tag lookups never return the plays list (public path unchanged)");
+    // (3) Enter gating on an approved play WITH a guardian email.
+    await approve5(up5.id);
+    let en5 = await enter5({ highlightId: up5.id });
+    assert(en5.status === 403 && /doesn't match the one used to post/.test(en5.body.message), "r121: a stranger's one-tap enter is refused (403, plain-words reason)");
+    en5 = await enter5({ highlightId: up5.id, email: "someoneelse@example.com" });
+    assert(en5.status === 403 && /doesn't match the one used to post/.test(en5.body.message), "r121: a wrong email is refused with the same message");
+    en5 = await enter5({ highlightId: up5.id, email: "  GUARDIAN@example.com " });
+    assert(en5.status === 201 && en5.body.ok && en5.body.message === "🏆 Entered! Good luck.", "r121: the posting guardian's email (trimmed, any case) enters the play");
+    en5 = await enter5({ highlightId: up5.id, email: "guardian@example.com" });
+    assert(en5.body.alreadyEntered === true, "r121: a second guardian enter reports already-entered");
+    lk5 = await j5(`/api/athletes/lookup?email=${encodeURIComponent("guardian@example.com")}`);
+    assert(lk5.body.plays[0].status === "approved" && lk5.body.plays[0].inContest === true, "r121: the lookup now flags the play approved + entered in the contest");
+    // (4) A play with NO guardian email: strangers AND email-guessers
+    // are refused; only the owner can enter it.
+    const up5b = await mk5({ title: "R121 No Email Play", playerName: "Noe" });
+    await approve5(up5b.id);
+    en5 = await enter5({ highlightId: up5b.id, email: "guardian@example.com" });
+    assert(en5.status === 403 && /no guardian email is on file/.test(en5.body.message), "r121: a no-email play refuses a guardian-path enter");
+    en5 = await enter5({ highlightId: up5b.id }, tok5);
+    assert(en5.status === 201 && en5.body.ok, "r121: the owner token enters a no-email play (override path)");
+    const contest5 = await j5("/api/contest");
+    assert(contest5.body.totalEntries === 2, "r121: both gated entries landed on the contest board");
+  } finally { child5.kill(); fs.rmSync(tmp5, { recursive: true, force: true }); }
   // 8d. Site stats (first-party, aggregate only): POST /api/track
   // increments daily counters behind a strict allowlist, and
   // GET /api/owner/stats serves the combined owner view. Own scratch
@@ -392,7 +459,7 @@ try {
     const [G1, G2] = await pair("lacrosse", "G One", "G Two", "Gil");
     const solo = await up100(jB, tokB, { title: "Solo Play", sport: "golf", division: "boys", playerName: "Sol", notifyEmail: "sol@example.com" });
     // Today's daily is the first real same-sport pair (A baseball).
-    await jB("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: A1 }) });
+    await jB("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: A1, email: "al@example.com" }) });
     let dB = await jB("/api/daily-battle?voterToken=rb1");
     assert(dB.body.available && dB.body.practice === false && dB.body.a.id === A1 && dB.body.b.id === A2, "r100: today's daily auto-picks the first real same-sport pair");
     let pkB = await jB("/api/daily-battle/pick", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "rb1", pickId: A1 }) });
@@ -540,8 +607,8 @@ try {
       // Monthly crown: awarded at crowning, MOVES on a re-crown.
       const period105 = new Date().toISOString().slice(0, 7);
       const monthlyTitle105 = `Hype of the Month · ${LONG105[Number(period105.slice(5, 7)) - 1]} ${period105.slice(0, 4)}`;
-      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr1 }) });
-      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr2 }) });
+      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr1, email: "cam@example.com" }) });
+      await jC("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: cr2, email: "cam@example.com" }) });
       let win = await jC("/api/contest/winner", { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tokC }, body: JSON.stringify({ highlightId: cr2, period: period105 }) });
       assert(win.body.ok, "r105: owner crowns the month winner");
       pubC = await jC("/api/highlights");
@@ -558,8 +625,8 @@ try {
       const home105 = await (await fetch("http://localhost:3473/")).text();
       const app105 = await (await fetch("http://localhost:3473/app.js")).text();
       const css105 = await (await fetch("http://localhost:3473/styles.css")).text();
-      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=122"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v122) assets");
-      assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("🔥 Your streak: "), "r105: app.js wires challenge share + landing, crown/number renderers and the streak display");
+      assert(home105.includes('id="dailyStreak105"') && home105.includes('id="dailyTop105"') && home105.includes('id="dailyTopList"') && home105.includes('id="btlShareChallenge"') && home105.includes('id="btlChallengeNote"') && home105.includes('src="app.js?v=161"'), "r105: markup carries the streak line, Top Pickers block, challenge share + note, and current (v147, →148) assets — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+      assert(app105.includes("You got challenged — which play wins?") && app105.includes("challenge=${L}-${R}") && app105.includes("btlShare105") && app105.includes("crownsHtml105") && app105.includes("numbersHtml105") && app105.includes("renderStreak105") && app105.includes("Your streak: "), "r105/r122: app.js wires challenge share + landing, crown/number renderers and the (Round 122: always-visible) streak display");
       assert(css105.includes(".crown-chip") && css105.includes(".daily-top105") && css105.includes(".play-numbers105") && css105.includes(".btl-challenge-note"), "r105: styles carry the crown chips, Top Pickers block, numbers line and challenge note");
     } finally { childC.kill(); fs.rmSync(tmpC, { recursive: true, force: true }); }
   }
@@ -614,6 +681,112 @@ try {
   const pub106 = await j("/api/highlights");
   assert(!JSON.stringify(pub106.body).includes("parent@example.com"), "r106: the notify email never appears in a public payload");
 
+  // 8f. Round 124 — server-side media conversion. Non-H.264
+  // uploads are transcoded to H.264/yuv420p/faststart and given a
+  // server poster; compliant uploads pass through byte-for-byte;
+  // a one-time startup migration converts legacy files
+  // (originals preserved, second boot a no-op); and with ffmpeg
+  // forced off, the upload path degrades to exactly the pre-124
+  // behavior. Own scratch servers (ports 3481–3483) so the main
+  // suite's budgets are untouched. Fixtures are tiny clips made
+  // with the system ffmpeg.
+  {
+    const fixDir = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r124-fix-"));
+    const ffgen = (args) => execFileSync("ffmpeg", ["-y", "-v", "error", ...args]);
+    ffgen(["-f", "lavfi", "-i", "testsrc2=size=320x240:rate=15:duration=3", "-c:v", "libx265", "-pix_fmt", "yuv420p", "-crf", "30", path.join(fixDir, "hevc.mp4")]);
+    ffgen(["-f", "lavfi", "-i", "testsrc2=size=320x240:rate=15:duration=3", "-c:v", "libvpx-vp9", "-pix_fmt", "yuv420p", "-b:v", "300k", path.join(fixDir, "vp9.webm")]);
+    ffgen(["-f", "lavfi", "-i", "testsrc2=size=320x240:rate=15:duration=3", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", path.join(fixDir, "h264.mp4")]);
+    const hevcBytes = fs.readFileSync(path.join(fixDir, "hevc.mp4"));
+    const vp9Bytes = fs.readFileSync(path.join(fixDir, "vp9.webm"));
+    const h264Bytes = fs.readFileSync(path.join(fixDir, "h264.mp4"));
+    const vstreamOf = (file) => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-of", "json", file], { encoding: "utf8" })).streams.find((s) => s.codec_type === "video");
+    const startSrv124 = async (port, dir, extraEnv = {}) => {
+      const ch = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(port), DATA_DIR: dir, AI_VISION_API_KEY: "", ...extraEnv }, stdio: "pipe" });
+      let log = ""; ch.stdout.on("data", (d) => { log += d; }); ch.stderr.on("data", (d) => { log += d; });
+      for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${port}/api/health`); break; } catch { await wait(200); } }
+      return { ch, log: () => log };
+    };
+    const mkJ124 = (port) => async (p, opts = {}) => { const r = await fetch(`http://localhost:${port}` + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+    const mpUpload124 = async (jj, fields, fname, ctype, bytes) => {
+      const boundary = "----r124boundary";
+      const parts = [];
+      for (const [k, v] of Object.entries(fields)) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`));
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fname}"\r\nContent-Type: ${ctype}\r\n\r\n`));
+      parts.push(bytes, Buffer.from(`\r\n--${boundary}--\r\n`));
+      return jj("/api/highlights", { method: "POST", headers: { "content-type": `multipart/form-data; boundary=${boundary}` }, body: Buffer.concat(parts) });
+    };
+    // (a)+(b) upload-time transcoding on a live server.
+    const tmpA124 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r124-a-"));
+    const srvA = await startSrv124(3481, tmpA124);
+    const jA124 = mkJ124(3481);
+    try {
+      const upHevc = await mpUpload124(jA124, { title: "R124 HEVC", sport: "martial-arts", guardianConsent: "true", playerName: "Kid A" }, "clip.mp4", "video/mp4", hevcBytes);
+      assert(upHevc.status === 201, "r124: HEVC upload accepted (201)");
+      assert(/^\/uploads\/poster-\d+\.jpg$/.test(upHevc.body.poster_url || ""), "r124: HEVC upload response carries a poster_url");
+      const vsA = vstreamOf(path.join(tmpA124, "uploads", path.basename(upHevc.body.media_url)));
+      assert(vsA.codec_name === "h264" && vsA.pix_fmt === "yuv420p", "r124: stored HEVC upload is now H.264/yuv420p");
+      const posterDisk = fs.readFileSync(path.join(tmpA124, "uploads", path.basename(upHevc.body.poster_url)));
+      assert(posterDisk[0] === 0xff && posterDisk[1] === 0xd8, "r124: poster_url points at a real JPEG on disk");
+      const posterHttp = await fetch(`http://localhost:3481${upHevc.body.poster_url}`);
+      assert(posterHttp.status === 200 && (posterHttp.headers.get("content-type") || "").includes("image/jpeg"), "r124: poster serves over HTTP as image/jpeg");
+      const claimA = await jA124("/api/owner/claim", { method: "POST" });
+      await jA124(`/api/highlights/${upHevc.body.id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": claimA.body.token }, body: JSON.stringify({ status: "approved" }) });
+      const pubA124 = await jA124("/api/highlights");
+      const pubPlay = pubA124.body.highlights.find((h) => h.id === upHevc.body.id);
+      assert(pubPlay && pubPlay.poster_url === upHevc.body.poster_url, "r124: public payload carries poster_url");
+      const upVp9 = await mpUpload124(jA124, { title: "R124 VP9", sport: "soccer", guardianConsent: "true", playerName: "Kid B" }, "clip.webm", "video/webm", vp9Bytes);
+      assert(upVp9.status === 201 && upVp9.body.media_url.endsWith(".mp4"), "r124: VP9 upload is stored as .mp4");
+      assert(vstreamOf(path.join(tmpA124, "uploads", path.basename(upVp9.body.media_url))).codec_name === "h264", "r124: stored VP9 upload probes H.264");
+      const upH = await mpUpload124(jA124, { title: "R124 H264", sport: "soccer", guardianConsent: "true", playerName: "Kid C" }, "good.mp4", "video/mp4", h264Bytes);
+      assert(upH.status === 201, "r124: compliant H.264 upload accepted");
+      assert(fs.readFileSync(path.join(tmpA124, "uploads", path.basename(upH.body.media_url))).equals(h264Bytes), "r124: compliant H.264 upload stored byte-for-byte (not rewritten)");
+      assert(!!upH.body.poster_url, "r124: compliant upload still gets a server poster");
+    } finally { srvA.ch.kill(); fs.rmSync(tmpA124, { recursive: true, force: true }); }
+    // (c) the one-time migration: seed a legacy play while ffmpeg
+    // is forced off (schema created, marker NOT set), then boot
+    // normally and watch it convert exactly once.
+    const tmpB124 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r124-b-"));
+    const srvB1 = await startSrv124(3482, tmpB124, { HH_NO_FFMPEG: "1" });
+    srvB1.ch.kill(); await wait(500);
+    fs.copyFileSync(path.join(fixDir, "hevc.mp4"), path.join(tmpB124, "uploads", "legacy-hevc.mp4"));
+    const seedDb124 = new DatabaseSync(path.join(tmpB124, "highlighthype.db"));
+    seedDb124.prepare("INSERT INTO highlights(title,sport,media_kind,media_url,mime,status,player_name,division) VALUES('Legacy HEVC','martial-arts','file','/uploads/legacy-hevc.mp4','video/mp4','approved','Legacy Kid','girls')").run();
+    seedDb124.close();
+    const srvB2 = await startSrv124(3482, tmpB124);
+    const jB124 = mkJ124(3482);
+    try {
+      let mig = null;
+      for (let i = 0; i < 100; i++) { const pp = await jB124("/api/highlights"); mig = pp.body.highlights.find((h) => h.title === "Legacy HEVC"); if (mig && mig.media_url.endsWith("-h264.mp4")) break; await wait(300); }
+      assert(mig && mig.media_url === "/uploads/legacy-hevc-h264.mp4", "r124: migration repointed the legacy play at the converted file");
+      assert(vstreamOf(path.join(tmpB124, "uploads", "legacy-hevc-h264.mp4")).codec_name === "h264", "r124: migrated file probes H.264");
+      const bak124 = path.join(tmpB124, "uploads", "legacy-hevc.hevc-orig.mp4");
+      assert(fs.existsSync(bak124) && fs.readFileSync(bak124).equals(hevcBytes), "r124: migration preserved the original file byte-for-byte under the backup name");
+      assert(mig.poster_url === "/uploads/poster-1.jpg" && fs.existsSync(path.join(tmpB124, "uploads", "poster-1.jpg")), "r124: migration generated the legacy play's poster");
+      const listingBefore = fs.readdirSync(path.join(tmpB124, "uploads")).sort().join("|");
+      srvB2.ch.kill(); await wait(500);
+      const srvB3 = await startSrv124(3482, tmpB124);
+      try {
+        await wait(800);
+        const pp3 = await jB124("/api/highlights");
+        const mig3 = pp3.body.highlights.find((h) => h.title === "Legacy HEVC");
+        assert(mig3 && mig3.media_url === "/uploads/legacy-hevc-h264.mp4", "r124: second boot leaves the migrated play untouched (marker no-op)");
+        assert(fs.readdirSync(path.join(tmpB124, "uploads")).sort().join("|") === listingBefore, "r124: second boot adds no files (migration ran exactly once)");
+      } finally { srvB3.ch.kill(); }
+    } finally { try { srvB2.ch.kill(); } catch {} fs.rmSync(tmpB124, { recursive: true, force: true }); }
+    // (d) ffmpeg forced off: the upload degrades to pre-124.
+    const tmpC124 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r124-c-"));
+    const srvC = await startSrv124(3483, tmpC124, { HH_NO_FFMPEG: "1" });
+    const jC124 = mkJ124(3483);
+    try {
+      const upC = await mpUpload124(jC124, { title: "R124 NoFF", sport: "martial-arts", guardianConsent: "true", playerName: "Kid D" }, "clip.mp4", "video/mp4", hevcBytes);
+      assert(upC.status === 201, "r124: with ffmpeg unavailable the HEVC upload still succeeds (201)");
+      assert(upC.body.poster_url === "", "r124: with ffmpeg unavailable no poster is promised");
+      assert(fs.readFileSync(path.join(tmpC124, "uploads", path.basename(upC.body.media_url))).equals(hevcBytes), "r124: with ffmpeg unavailable the original file is kept byte-for-byte");
+      assert(srvC.log().includes("HH_NO_FFMPEG"), "r124: the no-ffmpeg state is logged, not silent");
+    } finally { srvC.ch.kill(); fs.rmSync(tmpC124, { recursive: true, force: true }); }
+    fs.rmSync(fixDir, { recursive: true, force: true });
+  }
+
   // 9. Upload rate limit: 20 POSTs/hour/IP (2 already made above) — the
   // 21st attempt is refused with 429. Runs last; the scratch server is
   // discarded right after.
@@ -623,6 +796,301 @@ try {
   }
   const over = await j("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "One Too Many", sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
   assert(over.status === 429 && /Too many uploads/.test(over.body.message || ""), "21st upload within the hour is rate-limited (429)");
+  // 8g. Round 125 — lacrosse joins the taxonomy, and an upload
+  // WITHOUT a last initial succeeds end to end. The client now
+  // composes playerName from a first-name field + an OPTIONAL
+  // last-initial field, so the server sees "Riley" (no initial)
+  // or "Riley T". The no-initial fallback is simply the single
+  // name: the HH tag never embedded the initial (random
+  // HH-####), the display name derives from the tokens present,
+  // and resolveAthlete keys identity on name+team+guardian-email
+  // hash — two same-name athletes under different guardians must
+  // stay two athletes. Own scratch server (port 3485).
+  {
+    const fixDir125 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r125-fix-"));
+    execFileSync("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=15:duration=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", path.join(fixDir125, "clip.mp4")]);
+    const clip125 = fs.readFileSync(path.join(fixDir125, "clip.mp4"));
+    // →145: the server's upload dedupe hashes the file bytes — the
+    // four scenario uploads below are four DIFFERENT plays (other
+    // guardians, other athletes) that happen to share one fixture
+    // clip, and identical bytes now (correctly) read as a retry of
+    // the first. Remux the base clip with a per-upload metadata tag
+    // (-c copy, no re-encode) so each scenario upload carries
+    // distinct bytes, like four real families' clips would.
+    const clip125v = (n) => { const p = path.join(fixDir125, `clip-v${n}.mp4`); execFileSync("ffmpeg", ["-y", "-v", "error", "-i", path.join(fixDir125, "clip.mp4"), "-c", "copy", "-metadata", `comment=fixture-${n}`, p]); return fs.readFileSync(p); };
+    const tmp125 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r125-"));
+    const ch125 = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: "3485", DATA_DIR: tmp125, AI_VISION_API_KEY: "" }, stdio: "pipe" });
+    for (let i = 0; i < 50; i++) { try { await fetch("http://localhost:3485/api/health"); break; } catch { await wait(200); } }
+    const j125 = async (p, opts = {}) => { const r = await fetch("http://localhost:3485" + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+    const up125 = async (fields, variant) => {
+      const boundary = "----r125boundary";
+      const parts = [];
+      for (const [k, v] of Object.entries(fields)) parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${k}"\r\n\r\n${v}\r\n`));
+      parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="clip.mp4"\r\nContent-Type: video/mp4\r\n\r\n`));
+      parts.push(clip125v(variant), Buffer.from(`\r\n--${boundary}--\r\n`));
+      return j125("/api/highlights", { method: "POST", headers: { "content-type": `multipart/form-data; boundary=${boundary}` }, body: Buffer.concat(parts) });
+    };
+    try {
+      const claim125 = await j125("/api/owner/claim", { method: "POST" });
+      const tok125 = claim125.body.token;
+      const approve125 = (id) => j125(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok125 }, body: JSON.stringify({ status: "approved" }) });
+      // Lacrosse + NO last initial (playerName is the bare first name).
+      const lax = await up125({ title: "R125 lacrosse rip", sport: "lacrosse", division: "girls", guardianConsent: "true", playerName: "Riley", notifyEmail: "riley-guardian@example.com"}, 1);
+      assert(lax.status === 201, "r125: lacrosse upload WITHOUT a last initial succeeds (201)");
+      assert(/^HH-\d{4}$/.test(lax.body.athlete_tag || ""), "r125: the no-initial athlete still gets a sane HH-#### tag (the tag never embedded the initial)");
+      await approve125(lax.body.id);
+      const pub125 = await j125("/api/highlights");
+      const laxPub = pub125.body.highlights.find((h) => h.id === lax.body.id);
+      assert(laxPub && laxPub.athlete_id, "r125: the no-initial upload created an athlete (public payload carries its athlete_id)");
+      assert(laxPub && laxPub.sport === "lacrosse", "r125: the lacrosse play is public after approval, sport key intact");
+      assert(laxPub.athlete_label === "Riley", "r125: a single-token name displays as itself (no dangling initial/period)");
+      // My Plays: the guardian's email lookup finds the athlete + play.
+      const lk125 = await j125(`/api/athletes/lookup?email=${encodeURIComponent("riley-guardian@example.com")}`);
+      assert(lk125.status === 200 && lk125.body.athletes.length === 1 && lk125.body.athletes[0].playCount === 1, "r125: My Plays email lookup returns the no-initial athlete with its approved play");
+      // Same name, DIFFERENT guardian: a second athlete, never a merge.
+      const lax2 = await up125({ title: "R125 other Riley", sport: "lacrosse", division: "girls", guardianConsent: "true", playerName: "Riley", notifyEmail: "other-riley@example.com"}, 2);
+      assert(lax2.status === 201 && lax2.body.athlete_tag !== lax.body.athlete_tag, "r125: a same-name no-initial upload under another guardian gets its OWN HH tag at once (no merge, no crash)");
+      await approve125(lax2.body.id);
+      // Same guardian again: continuity — the same athlete as upload 1.
+      const lax3 = await up125({ title: "R125 Riley again", sport: "lacrosse", division: "girls", guardianConsent: "true", playerName: "Riley", notifyEmail: "riley-guardian@example.com"}, 3);
+      assert(lax3.status === 201 && lax3.body.athlete_tag === lax.body.athlete_tag, "r125: the same guardian + same name reuses the same athlete/tag (the email-hash continuity the form's athlete check relies on)");
+      await approve125(lax3.body.id);
+      const pub125b = await j125("/api/highlights");
+      const ids125 = new Set(pub125b.body.highlights.filter((h) => [lax.body.id, lax2.body.id, lax3.body.id].includes(h.id)).map((h) => h.athlete_id));
+      assert(ids125.size === 2, "r125: three same-name no-initial plays resolve to exactly TWO athletes — uploads 1+3 share one, upload 2 is distinct");
+      // With an initial, the composed name behaves as it always has.
+      const withInit = await up125({ title: "R125 with initial", sport: "hockey", division: "boys", guardianConsent: "true", playerName: "Riley T", notifyEmail: "riley-t@example.com"}, 4);
+      assert(withInit.status === 201 && withInit.body.athlete_tag !== lax.body.athlete_tag, "r125: 'Riley T' starts its own athlete, distinct from bare 'Riley'");
+      await approve125(withInit.body.id);
+      const pub125c = await j125("/api/highlights");
+      assert(pub125c.body.highlights.find((h) => h.id === withInit.body.id)?.athlete_label === "Riley T.", "r125: the with-initial display name keeps the classic 'First L.' form");
+    } finally { ch125.kill(); fs.rmSync(tmp125, { recursive: true, force: true }); fs.rmSync(fixDir125, { recursive: true, force: true }); }
+  }
+
+  // 8h. Round 130 (2026-11-13) — contest AUTO-ENTRY. Posting
+  // defaults INTO Hype of the Month: the upload carries the
+  // guardian's opt-in explicitly (contestOptin=1/0), approval enters
+  // an opted-in play in the approval month, samples never enter,
+  // legacy uploads (no field) never auto-enter, the guardian can
+  // withdraw from My Plays, and the owner-directed migration
+  // retro-enters plays 50 + 51 into 2026-11 exactly once.
+  {
+    const tmp130 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r130-"));
+    const PORT130 = 3487, base130 = `http://localhost:${PORT130}`;
+    const ch130 = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(PORT130), DATA_DIR: tmp130, AI_VISION_API_KEY: "", HH_NO_FFMPEG: "1", MODERATE_TOKEN: ["r130", "mod", "token"].join("-") }, stdio: "pipe" });
+    const MODTOK130 = ["r130", "mod", "token"].join("-");
+    const j130 = async (p, opts = {}) => { const r = await fetch(base130 + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+    try {
+      for (let i = 0; i < 50; i++) { try { await fetch(base130 + "/api/health"); break; } catch { await wait(200); } }
+      const tok130 = (await j130("/api/owner/claim", { method: "POST" })).body.token; assert(tok130, "r130: owner claim returns token");
+      const G130 = "optin-guardian@example.com";
+      const mk130 = async (fields) => {
+        const r = await j130("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sport: "baseball", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true", ...fields }) });
+        assert(r.status === 201, `r130: play created (${fields.title})`);
+        return r.body;
+      };
+      const approve130 = async (id, extra = {}) => { const r = await j130(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok130 }, body: JSON.stringify({ status: "approved", ...extra }) }); assert(r.body.status === "approved", "r130: play approved via owner status endpoint"); };
+      const entries130 = async () => (await j130("/api/contest")).body;
+      const lookup130 = async () => (await j130(`/api/athletes/lookup?email=${encodeURIComponent(G130)}`)).body.plays;
+
+      // (1) Opted IN: not entered while pending, entered on approval.
+      const inA = await mk130({ title: "R130 Opted In", playerName: "Opti", notifyEmail: G130, contestOptin: "1" });
+      assert((await entries130()).totalEntries === 0, "r130: an opted-in play is NOT entered while still pending");
+      await approve130(inA.id);
+      let c130 = await entries130();
+      assert(c130.totalEntries === 1 && c130.entries[0].id === inA.id, "r130: approving an opted-in play enters it in the approval month");
+      // Re-approval (hide -> approve) never duplicates the entry.
+      await j130(`/api/highlights/${inA.id}/status`, { method: "POST", headers: { "content-type": "application/json", "x-owner-token": tok130 }, body: JSON.stringify({ status: "hidden" }) });
+      await approve130(inA.id);
+      assert((await entries130()).totalEntries === 1, "r130: hide -> re-approve does not duplicate the contest entry");
+
+      // (2) Explicitly UNCHECKED: approved, never entered.
+      const outB = await mk130({ title: "R130 Opted Out", playerName: "Outi", notifyEmail: G130, contestOptin: "0" });
+      await approve130(outB.id);
+      assert((await entries130()).totalEntries === 1, "r130: an unchecked play is approved but NOT entered");
+      assert((await lookup130()).find((p) => p.id === outB.id)?.inContest === false, "r130: My Plays shows the unchecked play as not in the contest");
+
+      // (3) LEGACY upload (no contestOptin field at all): the
+      // pre-130 shape — approved, never auto-entered; the Round 121
+      // guardian tap-to-enter remains its path (proven in 8e).
+      const legC = await mk130({ title: "R130 Legacy", playerName: "Leg", notifyEmail: G130 });
+      await approve130(legC.id);
+      assert((await entries130()).totalEntries === 1, "r130: a legacy upload (no opt-in field) is approved but NOT auto-entered");
+
+      // (4) SAMPLE with opt-in: never entered, on either approval
+      // path — the owner status call with { sample: true } in the
+      // same step, and /moderate approve_sample.
+      const samD = await mk130({ title: "R130 Sample OptIn", playerName: "Sam", notifyEmail: G130, contestOptin: "1" });
+      await approve130(samD.id, { sample: true });
+      assert((await entries130()).totalEntries === 1, "r130: a sample approved with opt-in (owner path, sample flag in the same call) never enters");
+      assert((await lookup130()).find((p) => p.id === samD.id)?.inContest === false, "r130: My Plays agrees — the sample is not in the contest");
+      const samE = await mk130({ title: "R130 Sample Moderate", playerName: "Sam", notifyEmail: G130, contestOptin: "1" });
+      const modSam = await fetch(base130 + "/moderate", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ id: String(samE.id), token: MODTOK130, action: "approve_sample" }).toString() });
+      assert(modSam.status === 200, "r130: /moderate approve_sample succeeds");
+      assert((await entries130()).totalEntries === 1, "r130: a sample approved via /moderate approve_sample never enters");
+
+      // (5) The /moderate plain-approve path auto-enters too.
+      const modF = await mk130({ title: "R130 Moderate OptIn", playerName: "Modi", notifyEmail: G130, contestOptin: "1" });
+      const modOk = await fetch(base130 + "/moderate", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ id: String(modF.id), token: MODTOK130, action: "approve" }).toString() });
+      assert(modOk.status === 200, "r130: /moderate approve succeeds");
+      c130 = await entries130();
+      assert(c130.totalEntries === 2 && c130.entries.some((e) => e.id === modF.id), "r130: an opted-in play approved via the emailed /moderate link auto-enters");
+
+      // (6) Withdraw: gated like enter; votes stay in history.
+      await j130(`/api/highlights/${inA.id}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken: "r130-voter" }) });
+      c130 = await entries130();
+      assert(c130.entries.find((e) => e.id === inA.id)?.voteCount === 1, "r130: the entered play carries its vote before withdrawal");
+      const wdBad = await j130("/api/contest/withdraw", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: inA.id, email: "stranger@example.com" }) });
+      assert(wdBad.status === 403, "r130: a stranger cannot withdraw someone else's play (403)");
+      const wdOk = await j130("/api/contest/withdraw", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: inA.id, email: "  OPTIN-GUARDIAN@example.com " }) });
+      assert(wdOk.status === 200 && wdOk.body.ok === true, "r130: the posting guardian (trimmed, any case) withdraws the play");
+      c130 = await entries130();
+      assert(c130.totalEntries === 1 && !c130.entries.some((e) => e.id === inA.id), "r130: the withdrawn play leaves the contest board");
+      assert((await lookup130()).find((p) => p.id === inA.id)?.inContest === false, "r130: My Plays reflects the withdrawal");
+      const wdAgain = await j130("/api/contest/withdraw", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: inA.id, email: G130 }) });
+      assert(wdAgain.status === 200 && wdAgain.body.notEntered === true, "r130: withdrawing a non-entered play reports notEntered, no error");
+      // Re-enter through the existing guardian path: the month's
+      // votes were never deleted, so the count comes back with it.
+      const reEnter = await j130("/api/contest/enter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ highlightId: inA.id, email: G130 }) });
+      assert(reEnter.status === 201 && reEnter.body.ok, "r130: the withdrawn play re-enters via the Round 121 guardian path");
+      c130 = await entries130();
+      assert(c130.entries.find((e) => e.id === inA.id)?.voteCount === 1, "r130: votes cast before withdrawal stayed in history (count returns on re-entry)");
+
+      // (7) Client wiring: pre-checked box, explicit payload, the
+      // My Plays withdraw action.
+      const home130 = fs.readFileSync(new URL("public/index.html", import.meta.url), "utf8");
+      const app130 = fs.readFileSync(new URL("public/app.js", import.meta.url), "utf8");
+      assert(/name="contestOptin" checked/.test(home130), "r130: the upload form's contest box is present and PRE-CHECKED");
+      assert(app130.includes('fdSend125.set("contestOptin"'), "r130: the submit handler sends the contest state explicitly (1/0)");
+      assert(app130.includes("/api/contest/withdraw") && app130.includes("withdrawContest130") && app130.includes("Withdraw from contest"), "r130: My Plays carries the withdraw action wired to the endpoint");
+    } finally { ch130.kill(); fs.rmSync(tmp130, { recursive: true, force: true }); }
+  }
+  // 8h-ii. Round 130 migration: plays 50 + 51 (approved, non-sample)
+  // are retro-entered into 2026-11 exactly once; a sample or an
+  // unapproved play at those ids is skipped.
+  {
+    const migBoot = async (dir, port) => {
+      const ch = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(port), DATA_DIR: dir, AI_VISION_API_KEY: "", HH_NO_FFMPEG: "1" }, stdio: "pipe" });
+      for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${port}/api/health`); break; } catch { await wait(200); } }
+      return ch;
+    };
+    const migSeed = (dir, rows) => {
+      const d = new DatabaseSync(path.join(dir, "highlighthype.db"));
+      d.prepare("DELETE FROM settings WHERE key='r130_enter_50_51_v1'").run();
+      for (const r of rows) d.prepare("INSERT INTO highlights(id,title,sport,media_kind,media_url,status,is_sample) VALUES(?,?,?,'link','https://www.youtube.com/watch?v=dQw4w9WgXcQ',?,?)").run(r.id, r.title, "softball", r.status, r.sample ? 1 : 0);
+      d.close();
+    };
+    const migEntries = (dir) => { const d = new DatabaseSync(path.join(dir, "highlighthype.db"), { readOnly: true }); const rows = d.prepare("SELECT highlight_id, period FROM contest_entries ORDER BY highlight_id").all(); const marker = d.prepare("SELECT value FROM settings WHERE key='r130_enter_50_51_v1'").get(); d.close(); return { rows, marker }; };
+    // Happy path: both plays eligible.
+    const tmpM130 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r130mig-"));
+    let chM = await migBoot(tmpM130, 3488); chM.kill(); await wait(300);
+    migSeed(tmpM130, [{ id: 50, title: "R130 Mig Charlotte", status: "approved" }, { id: 51, title: "R130 Mig Janine", status: "approved" }]);
+    chM = await migBoot(tmpM130, 3488);
+    const mc = await (await fetch("http://localhost:3488/api/contest?period=2026-11")).json();
+    assert(mc.totalEntries === 2 && mc.entries.some((e) => e.id === 50) && mc.entries.some((e) => e.id === 51), "r130 migration: plays 50 + 51 are retro-entered into the November 2026 contest");
+    chM.kill(); await wait(300);
+    chM = await migBoot(tmpM130, 3488); chM.kill(); await wait(300);
+    const after3 = migEntries(tmpM130);
+    assert(after3.rows.length === 2 && after3.rows.every((r) => r.period === "2026-11") && !!after3.marker, "r130 migration: a second boot adds no duplicates and the marker is set (exactly once)");
+    fs.rmSync(tmpM130, { recursive: true, force: true });
+    // Skip path: id 50 is a sample, id 51 is still pending.
+    const tmpM130b = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r130mig2-"));
+    let chM2 = await migBoot(tmpM130b, 3489); chM2.kill(); await wait(300);
+    migSeed(tmpM130b, [{ id: 50, title: "R130 Mig Sample", status: "approved", sample: true }, { id: 51, title: "R130 Mig Pending", status: "pending" }]);
+    chM2 = await migBoot(tmpM130b, 3489); chM2.kill(); await wait(300);
+    const skipped = migEntries(tmpM130b);
+    assert(skipped.rows.length === 0 && !!skipped.marker, "r130 migration: a sample at id 50 and a pending play at id 51 are both skipped (no entries, marker still set)");
+    fs.rmSync(tmpM130b, { recursive: true, force: true });
+  }
+
+  // 8i. Round 131 (2026-11-13) — one-time athlete RENAME. Play 51
+  // was uploaded with the guardian's name ("Janine") in the athlete
+  // field; the athlete is "Juliana" (the catcher in the play's own
+  // story). The startup migration renames her and re-derives the
+  // athlete identity with the upload resolver (same team / division
+  // / jersey / guardian email), so the end state matches a correct
+  // upload. Contest entries + votes key off highlight_id and must
+  // be untouched; a play 51 with any other name is left alone.
+  {
+    const sha131 = (s) => crypto.createHash("sha256").update(String(s)).digest("hex");
+    const norm131 = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
+    const boot131 = async (dir, port) => {
+      const ch = spawn(process.execPath, ["server.js"], { cwd: new URL(".", import.meta.url).pathname, env: { ...process.env, PORT: String(port), DATA_DIR: dir, AI_VISION_API_KEY: "", HH_NO_FFMPEG: "1" }, stdio: "pipe" });
+      for (let i = 0; i < 50; i++) { try { await fetch(`http://localhost:${port}/api/health`); break; } catch { await wait(200); } }
+      return ch;
+    };
+    const G131 = "guardian-51@example.com";
+    const seed131 = (dir, playerName) => {
+      const d = new DatabaseSync(path.join(dir, "highlighthype.db"));
+      // The schema-creation boot already set the marker (no play 51
+      // existed); clear it so the seeded boot is the one that fires.
+      d.prepare("DELETE FROM settings WHERE key='r131_rename_51_v1'").run();
+      // The registry row + identity a real upload under this name
+      // (same guardian email, no team) would have produced.
+      d.prepare("INSERT INTO athletes(athlete_key,tag,name_norm,team_norm,email_hash,display_name,division,jersey) VALUES('oldkey131','HH-1310',?,'',?,?,'girls','')")
+        .run(norm131(playerName), sha131(norm131(G131)), playerName);
+      d.prepare("INSERT INTO highlights(id,title,sport,division,player_name,story,media_kind,media_url,status,is_sample,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey) VALUES(51,'Caught stealing home!','softball','girls',?,'Juliana showing her catcher skills!!','link','https://www.youtube.com/watch?v=dQw4w9WgXcQ','approved',0,'',?,?,'oldkey131','HH-1310',?,'')")
+        .run(playerName, G131, sha131(norm131(G131)), norm131(playerName) + "|");
+      d.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(51,'2026-11')").run();
+      d.prepare("INSERT INTO votes(highlight_id,voter_token,created_at,period) VALUES(51,'r131-voter',datetime('now'),'2026-11')").run();
+      d.close();
+    };
+    const read131 = (dir) => {
+      const d = new DatabaseSync(path.join(dir, "highlighthype.db"), { readOnly: true });
+      const out = {
+        play: d.prepare("SELECT player_name, athlete_id, athlete_tag, athlete_group FROM highlights WHERE id=51").get(),
+        julianaAthletes: d.prepare("SELECT * FROM athletes WHERE name_norm='juliana'").all(),
+        oldAthlete: d.prepare("SELECT * FROM athletes WHERE athlete_key='oldkey131'").get(),
+        entries: d.prepare("SELECT highlight_id, period FROM contest_entries WHERE highlight_id=51").all(),
+        votes: d.prepare("SELECT COUNT(*) c FROM votes WHERE highlight_id=51").get().c,
+        marker: d.prepare("SELECT value FROM settings WHERE key='r131_rename_51_v1'").get(),
+      };
+      d.close();
+      return out;
+    };
+    // Happy path: play 51 displays "Janine" -> becomes "Juliana".
+    const tmp131 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r131-"));
+    let ch131 = await boot131(tmp131, 3490); ch131.kill(); await wait(300);
+    seed131(tmp131, "Janine");
+    ch131 = await boot131(tmp131, 3490);
+    const pub131 = await (await fetch("http://localhost:3490/api/highlights")).json();
+    const p51 = pub131.highlights.find((h) => h.id === 51);
+    assert(p51 && p51.player_name === "Juliana" && p51.athlete_label === "Juliana", "r131: /api/highlights serializes play 51 as Juliana");
+    assert(p51.athlete_group === "juliana|" && p51.athlete_id !== "oldkey131", "r131: play 51 carries a NEW athlete identity derived for Juliana");
+    const con131 = await (await fetch("http://localhost:3490/api/contest?period=2026-11")).json();
+    const e51 = con131.entries.find((e) => e.id === 51);
+    assert(e51 && e51.player_name === "Juliana" && e51.voteCount === 1, "r131: /api/contest serializes the entered play 51 as Juliana with its vote intact");
+    // The public serializer only exposes athlete_tag on a name
+    // collision, so the tag checks read the stored row directly.
+    const live131 = read131(tmp131);
+    assert(live131.play.athlete_tag !== "" && live131.play.athlete_tag !== "HH-1310" && live131.play.athlete_id === p51.athlete_id, "r131: the stored row carries the new athlete tag (not the guardian-name one)");
+    // Upload-equivalence: a fresh upload for Juliana (same guardian
+    // email) resolves to the SAME athlete the migration produced —
+    // the end state is what a correct upload would have created.
+    const up131 = await (await fetch("http://localhost:3490/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "R131 Second Juliana Play", sport: "softball", playerName: "Juliana", notifyEmail: G131, videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) })).json();
+    assert(up131.athlete_tag && up131.athlete_tag === live131.play.athlete_tag, "r131: a fresh Juliana upload resolves to the migrated athlete (same tag)");
+    ch131.kill(); await wait(300);
+    const after131 = read131(tmp131);
+    assert(after131.play.player_name === "Juliana" && after131.play.athlete_id === p51.athlete_id && after131.play.athlete_tag === live131.play.athlete_tag, "r131: the stored row matches the serialized identity");
+    assert(after131.julianaAthletes.length === 1 && after131.julianaAthletes[0].athlete_key === p51.athlete_id && after131.julianaAthletes[0].email_hash === sha131(norm131(G131)) && after131.julianaAthletes[0].display_name === "Juliana", "r131: exactly one 'juliana' registry row, keyed as the resolver keys it (name + guardian email hash)");
+    assert(!!after131.oldAthlete, "r131: the old 'janine' registry row is left in place (registry rows are never deleted)");
+    assert(after131.entries.length === 1 && after131.entries[0].period === "2026-11" && after131.votes === 1, "r131: contest entry and vote for play 51 are untouched");
+    assert(!!after131.marker, "r131: the migration marker is set");
+    // Second boot: nothing changes (marker + name condition).
+    ch131 = await boot131(tmp131, 3490); ch131.kill(); await wait(300);
+    const again131 = read131(tmp131);
+    assert(again131.play.player_name === "Juliana" && again131.play.athlete_id === p51.athlete_id && again131.julianaAthletes.length === 1 && !!again131.marker, "r131: a second boot changes nothing (no duplicate athlete, no re-rename)");
+    fs.rmSync(tmp131, { recursive: true, force: true });
+    // Skip path: play 51 with a different name is untouched.
+    const tmp131b = fs.mkdtempSync(path.join(os.tmpdir(), "hh-test-r131b-"));
+    let ch131b = await boot131(tmp131b, 3491); ch131b.kill(); await wait(300);
+    seed131(tmp131b, "Somebody Else");
+    ch131b = await boot131(tmp131b, 3491); ch131b.kill(); await wait(300);
+    const skip131 = read131(tmp131b);
+    assert(skip131.play.player_name === "Somebody Else" && skip131.play.athlete_id === "oldkey131" && skip131.julianaAthletes.length === 0 && !!skip131.marker, "r131: a play 51 with a different name is untouched (marker still set, no 'juliana' athlete created)");
+    fs.rmSync(tmp131b, { recursive: true, force: true });
+  }
+
   console.log("\nALL TESTS PASSED");
 } finally {
   child.kill();
