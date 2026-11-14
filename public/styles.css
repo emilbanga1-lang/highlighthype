@@ -3473,3 +3473,29 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
   body.a2hs-open161 .float-submit{bottom:calc(14px + 118px + env(safe-area-inset-bottom,0px))}
   body.a2hs-steps161 .float-submit{bottom:calc(14px + 200px + env(safe-area-inset-bottom,0px))}
 }
+
+/* ---- Round 162 (2026-11-14): milestone tags + the Moment
+   That Mattered. The chip is gold-outline (the badges are
+   solid gold; the moment tag is the family's own words, so it
+   reads as a quote tag, not an award). The lane chip borrows
+   the viewseg's active lime when on. The spotlight card sits
+   between hero and board: dark card, gold eyebrow, poster
+   stage (tile-media does the stage geometry), name first —
+   the moment belongs to the athlete, not the play. */
+.moment-chip162{display:inline-block;font-size:10.5px;font-weight:900;letter-spacing:.05em;color:var(--gold);background:rgba(230,178,60,.10);border:1px solid rgba(230,178,60,.5);border-radius:999px;padding:3px 8px;white-space:nowrap}
+.play-badges.moment-row162{margin-top:4px}
+.fame-info .moment-chip162{vertical-align:1px}
+.moment-seg162{flex-wrap:wrap}
+.moment-set162{font-size:13px;color:var(--muted)}
+.moment-select162{background:#121317;color:#fff;border:1px solid var(--line2);border-radius:9px;padding:4px 8px;font:inherit;font-size:13px}
+.lane-row162{margin-top:10px}
+.lane-chip162{border:1px solid var(--line2);background:var(--card);color:var(--muted);font:inherit;font-weight:800;font-size:13.5px;padding:8px 16px;border-radius:999px;cursor:pointer}
+.lane-chip162.on{background:var(--volt);border-color:var(--volt);color:var(--volt-ink)}
+#momentCard162{margin:0 0 14px}
+.moment-card162{background:#101114;border:1px solid #2a2b31;border-radius:18px;overflow:hidden}
+.moment-eyebrow162{margin:0;padding:12px 16px 0;font-size:11.5px;font-weight:900;letter-spacing:.14em;color:var(--gold)}
+.moment-media162{margin:10px 16px 0;border-radius:12px;overflow:hidden}
+.moment-body162{padding:12px 16px 16px}
+.moment-name162{margin:0;font-size:21px;line-height:1.15}
+.moment-title162{margin:3px 0 0;color:var(--muted);font-size:14.5px}
+.moment-story162{margin:10px 0 0;font-size:15.5px;line-height:1.45;color:#f2ead2}
