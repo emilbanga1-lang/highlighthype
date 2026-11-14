@@ -7142,6 +7142,38 @@ try {
     assert(css170.includes(".mine-find .mine-find-btn{flex:1 1 100%;width:100%;min-height:52px"), "r170 mine-find: phone sizing — under the mobile breakpoint the button stacks full-width at min-height 52px");
   }
 
+  /* ============ §80 Round 171 — demo card stages carry stills ====
+     Emil (2026-11-14), looking at the Rockets page: "Anyway to
+     add some still images?" — then approved the five AI-
+     generated stills as a set (fictional team, generated kids,
+     black-and-gold kits; the mixed set after Dyanna's note).
+     Round 171 swaps each play card's CSS placeholder stage
+     (gradient field + ghost number + diamond) for its still
+     under /demo-img/, cover-filling the same 16/9 frame; every
+     overlay (top-play badge, play disc, views chip, duration
+     pill) and the local vote toggle are untouched, and the
+     standings thumbs keep the gradient look — cards only.
+     Isolation is unchanged: the stills are local files, so
+     §75's no-external-images and no-live-data-paths checks
+     still stand guard over the whole page. ================= */
+  {
+    const demoSrc171 = fs.readFileSync(path.join(root, "public", "demo.html"), "utf8");
+    const plays171 = demoSrc171.slice(demoSrc171.indexOf('id="plays"'), demoSrc171.indexOf('id="standings"'));
+    const stills171 = ["demo-play-walkoff.jpg", "demo-play-diving-catch.jpg", "demo-play-grand-slam.jpg", "demo-play-strikeout.jpg", "demo-play-steal-home.jpg"];
+    for (const f171 of stills171) {
+      assert(plays171.includes(`src="/demo-img/${f171}"`), `r171 stills: a play card stage references /demo-img/${f171}`);
+      const p171 = path.join(root, "public", "demo-img", f171);
+      assert(fs.existsSync(p171) && fs.statSync(p171).size > 10000, `r171 stills: public/demo-img/${f171} exists and is a real photo, not a stub`);
+      const r171 = await fetch(base + "/demo-img/" + f171);
+      assert(r171.status === 200 && (r171.headers.get("content-type") || "").includes("image/jpeg"), `r171 stills: /demo-img/${f171} serves 200 as image/jpeg`);
+    }
+    assert((demoSrc171.match(/class="demo-still171"/g) || []).length === 5, "r171 stills: exactly five card stages carry a still");
+    assert(demoSrc171.includes(".demo-still171{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}"), "r171 stills: the still fills the stage frame (absolute inset 0, object-fit cover)");
+    assert(!plays171.includes("demo-field166") && !plays171.includes("demo-ghost166") && !plays171.includes("demo-diamond166"), "r171 stills: no play card stage is left as the old CSS placeholder (field/ghost/diamond gone from the cards)");
+    assert((demoSrc171.match(/class="demo-field166/g) || []).length === 5, "r171 stills: the standings thumbs keep the gradient field look (five fame thumbs, unchanged)");
+    assert(demoSrc171.includes("🏆 Team's top play") && demoSrc171.includes('class="views-chip151"') && demoSrc171.includes('class="dur-pill"'), "r171 chrome: the stage overlays (top-play badge, views chip, duration pill) still ride the cards");
+  }
+
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
 } finally {
   child.kill();
