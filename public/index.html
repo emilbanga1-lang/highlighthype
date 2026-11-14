@@ -18,10 +18,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=154" />
+<link rel="stylesheet" href="styles.css?v=155" />
 </head>
 <body>
-<!-- Round 155 (2026-11-14): the trusted-family FAST LANE —
+<!-- Round 156 (2026-11-14): OWNER TEXT ALERTS — Phase 7b of
+     the owner-panel program. When a new play lands in the
+     review queue (inserted PENDING — never for a deduped
+     retry, which inserts nothing, and never for a fast-laned
+     play, which the panel's strip covers), one text round
+     goes to every number in the OWNER_ALERT_PHONES env var:
+     athlete, title, sport, and the play's moderation link —
+     Emil explicitly chose the link IN the text on 2026-11-14.
+     The link is minted by the SAME builder the pending email
+     uses (moderateLinkFor), so text and email carry the
+     identical link for a play. Sending rides the existing
+     Twilio plumbing: no Twilio vars = the usual logged no-op,
+     no numbers configured = fully silent, and the send can
+     never delay or fail the upload response. The numbers
+     themselves never leave the env — the Owner panel shows
+     a counts-only status line at the top of the Fast lane
+     section ("Text alerts: on — 2 numbers" / off naming what
+     Render still needs), fed by the trusted payload.
+     Server + one panel line. Pins ?v=155.
+     Round 155 (2026-11-14): the trusted-family FAST LANE —
      Phase 7c of the owner-panel program; Emil decided
      EMAIL-ONLY on 2026-11-14: a guardian email on the owner's
      allowlist (trusted_guardians, hash-only) is by itself
@@ -1975,6 +1994,6 @@
   </div>
 </div>
 
-<script src="app.js?v=154"></script>
+<script src="app.js?v=155"></script>
 </body>
 </html>
