@@ -3182,3 +3182,32 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 #plays .viewseg{justify-self:center}
 @media (max-width:640px){ .viewseg button{padding:9px 13px;font-size:15px;min-height:38px} }
 @media (max-width:380px){ .viewseg button{padding:9px 11px} }
+
+/* ---- Round 142 (2026-11-13): two tweaks from the review Emil
+   shared and endorsed ("Build both tweaks").
+   (1) HERO: the duplicate "Post a Play" button is out of the
+   hero markup (the header's lime pill remains THE upload
+   entry up top). On the stacked-buttons breakpoint the hero's
+   min-height drops by the removed button's footprint
+   (~56px button + the 14px flex gap), so the hero genuinely
+   shortens and the board rises — with the content anchored to
+   the hero's bottom edge, deleting the button alone would
+   only have grown the empty film above the headline. Desktop
+   keeps its own hero heights; its CTA row simply holds the
+   one button now.
+   (2) FEATURED STAGE: a portrait #1 clip (host marked
+   .feat-tall142 by markFeatStage142 in app.js) gets a ~4:5
+   stage instead of 16:9 — the centered sharp clip renders
+   about twice as wide, still contain-fit over the blurred
+   poster fill, never cropped. A desktop max-height caps the
+   stage so the card can't run away; the fill covers the card
+   width as before. Landscape leaders keep 16:9 untouched.
+   The featured body also tightens: slimmer padding, and the
+   vote button sits directly under the title line (the Sport ·
+   Division sub-line left the featured card in app.js). ---- */
+@media (max-width:560px){
+  .hero{min-height:min(calc(80vh - 70px),610px)}
+}
+#viewMonth .feat-media134.feat-tall142{aspect-ratio:4/5;width:100%;max-height:640px}
+.feat-body134{padding:12px 16px 14px}
+.feat-vote134{margin-top:10px}
