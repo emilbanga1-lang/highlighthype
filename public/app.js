@@ -135,6 +135,11 @@ let LAST_MONTH = { period: "", entries: [], winnerId: null }; // previous period
 let currentView = "month";
 let monthDiv = "boys", monthSport = "all";
 let allDiv = "all", allSport = "all", allSearch = "";
+/* Round 162: the Firsts & Milestones lane — session-only board
+   state like its neighbours (never persisted). ON narrows the
+   Watch board to the heart kinds (MOMENT_HEART162); OFF is the
+   board exactly as it was. */
+let lane162 = false;
 /* Default landing view (Round 8, 2026-11-05): the site used to land
    on the Hype of the Month board unconditionally — a dead first
    screen whenever the month has no contest entries yet (samples
@@ -188,6 +193,41 @@ async function loadData() {
       document.getElementById("plays")?.scrollIntoView();
     }
   } catch (err) {}
+  /* Round 162: the Moment That Mattered pick rides its own
+     tiny endpoint, fetched AFTER the first render (best-effort,
+     like the last-month strip): a failure leaves SPOTLIGHT162
+     null and the card simply never renders — no placeholder,
+     no broken promise on the homepage. On success the card is
+     painted straight away (renderAll already ran). */
+  try {
+    const s162 = await api("/api/spotlight");
+    SPOTLIGHT162 = s162 && s162.spotlight ? s162.spotlight : null;
+  } catch (e) { SPOTLIGHT162 = null; }
+  if (typeof renderSpotlight162 === "function") { try { renderSpotlight162(); } catch (e) { /* the card is decoration — a render hiccup never breaks the board load */ } }
+}
+/* Round 162: the current Moment That Mattered payload (a
+   publicHighlight, with its story ALREADY consent-gated by the
+   server — absent consent means an empty story here, so this
+   renderer can quote h.story blindly and never leak one). */
+let SPOTLIGHT162 = null;
+function renderSpotlight162() {
+  let host = null;
+  try { host = $("#momentCard162"); } catch (e) { return; }
+  if (!host) return;
+  const h = SPOTLIGHT162;
+  if (!h) { host.hidden = true; host.innerHTML = ""; return; }
+  const name = (typeof fullName153 === "function" ? fullName153(h) : "") || h.player_name || h.athlete_label || "";
+  host.innerHTML = `<article class="moment-card162">
+    <p class="moment-eyebrow162">💛 MOMENT THAT MATTERED</p>
+    <div class="tile-media dur-host moment-media162">${fameThumbHtml(h, { rest133: true })}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span></div>
+    <div class="moment-body162">
+      <h3 class="moment-name162">${esc(name)}</h3>
+      <p class="moment-title162">${esc(shortTitle(h.title))}</p>
+      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
+      ${h.story ? `<p class="moment-story162">&ldquo;${esc(h.story)}&rdquo;</p>` : ""}
+    </div>
+  </article>`;
+  host.hidden = false;
 }
 /* The period ("YYYY-MM") right before the given one. */
 function prevPeriodOf(period) {
@@ -241,6 +281,25 @@ function badgesHtml100(h) {
   if (!h || h.isSample || !Array.isArray(h.badges) || !h.badges.length) return "";
   return `<p class="play-badges">${h.badges.map((b) => `<span class="badge-chip">${BADGE_LABELS100[b] || esc(b)}</span>`).join("")}</p>`;
 }
+/* Round 162 (2026-11-14): milestone tags — the label copy of
+   the server's MOMENT_LABELS162 (server.js single-sources the
+   kinds; the client labels for rendering, same split as the
+   Round 100 badges). The chip rides the badge-row area on
+   cards (never the meta line); untagged plays render NOTHING —
+   the row simply doesn't exist, exactly like an unbadged play.
+   MOMENT_HEART162 = the Firsts & Milestones lane's kinds:
+   big_play is tagged and chipped, but it plays on the main
+   board, not in the lane. */
+const MOMENT_LABELS162 = { first: "🌟 First Ever", personal_best: "📈 Personal Best", comeback: "💪 Comeback", big_play: "🔥 Big Play", effort: "❤️ Great Effort" };
+const MOMENT_HEART162 = ["first", "personal_best", "comeback", "effort"];
+function momentChip162(h) {
+  if (!h || !h.moment_kind || !MOMENT_LABELS162[h.moment_kind]) return "";
+  return `<p class="play-badges moment-row162"><span class="moment-chip162">${MOMENT_LABELS162[h.moment_kind]}</span></p>`;
+}
+function momentChipInline162(h) {
+  if (!h || !h.moment_kind || !MOMENT_LABELS162[h.moment_kind]) return "";
+  return `<span class="moment-chip162">${MOMENT_LABELS162[h.moment_kind]}</span>`;
+}
 /* Round 105 (2026-11-11): winner crowns — the server PERSISTS the
    records (play_crowns; samples included, they never expire), the
    client only renders them. Compact form (tiles, battle minis):
@@ -272,6 +331,7 @@ function cardHtml(h, opts = {}) {
       ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
       ${athleteLine(h)}
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h, true) : ""}
       ${opts.numbers && typeof numbersHtml105 === "function" ? numbersHtml105(h) : ""}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
@@ -605,6 +665,7 @@ function tileHtml(h, opts = {}) {
         </div>
       </div>
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
       <div class="tile-votes">
         ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
@@ -926,6 +987,7 @@ function featCardHtml134(h) {
     <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
+      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
       ${Number(h.viewCount) >= 1 ? `<p class="feat-views151">▶ ${watchesText151(h.viewCount)}</p>` : ""}
       ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
     </div>
@@ -1052,7 +1114,7 @@ function fameRowHtml134(h, i) {
   return `<div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
-      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}</p></div>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p></div>
       <span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span>
     </div>`;
 }
@@ -1163,7 +1225,7 @@ $("#mineFind").addEventListener("submit", async (e) => {
       </div>`).join("");
   } catch (err) { box.innerHTML = `<p class="mine-find-msg">${esc(err.message)}</p>`; }
 });
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderMine(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); }
 /* Round 107 (2026-11-12): the hybrid contest strip + the Month
    panel's sub line — both filled from the live contest payload on
    every render, with honest states only: no entries says so, no
@@ -1262,13 +1324,25 @@ function renderAll2() { /* All Hypes view */
   // change: loadData never sent a team parameter (the server's
   // /api/highlights team param simply stays at its "all" default).
   const q = allSearch.toLowerCase();
+  /* Round 162: the lane read is typeof-guarded (the syncFilterUI
+     currentView precedent) — in the app lane162 is always the
+     module state; a partial slice without it reads as OFF,
+     which is the pre-162 board exactly. */
+  const laneOn162 = typeof lane162 !== "undefined" && !!lane162 && typeof MOMENT_HEART162 !== "undefined";
   const filtered = ALL_PLAYS.filter((h) =>
     divMatch(h, allDiv) &&
     (allSport === "all" || h.sport === allSport) &&
+    /* Round 162: the lane clause composes with sport + division
+       exactly like the clauses around it — heart kinds only;
+       big_play and untagged plays fall out while it's on. */
+    (!laneOn162 || MOMENT_HEART162.includes(h.moment_kind)) &&
     (!q || [h.title, h.player_name, h.story, h.team, h.sport].join(" ").toLowerCase().includes(q)));
   $("#allCount").textContent = `${filtered.length} plays`;
   const emptyEl = $("#allEmpty");
-  emptyEl.textContent = "No plays match — try a different board, sport, or search.";
+  /* Round 162: an empty LANE gets its own honest line (no plays
+     yet is a state, not a failed search); every other empty
+     board keeps the generic line. */
+  emptyEl.textContent = laneOn162 && !filtered.length ? "No firsts or milestones yet — they'll show up here as families post them." : "No plays match — try a different board, sport, or search.";
   const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
   /* Round 125→126: the mid-feed Hype Frame slot splices into
      the deck after the third tile of the filtered list (deck
@@ -1340,6 +1414,7 @@ function watchHtml107(h, entry) {
       <p class="watch-line"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}${athleteBit ? ` · ${athleteBit}` : ""}</p>
       <p class="watch-views151">👁 ${fmtCount151(h.viewCount)} view${Number(h.viewCount) === 1 ? "" : "s"}</p>
       ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
+      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
       ${typeof crownsHtml105 === "function" ? crownsHtml105(h, true) : ""}
       ${h.isSample ? `<p class="sample-line"><span class="sample-badge">⭐ SAMPLE PLAY</span> <span class="watch-demo">Demo</span></p><p class="meta sample-note">Sample play — posted by HighlightHype to show how it works.</p>` : ""}
       ${h.story ? `<p class="meta">${esc(h.story)}</p>` : ""}
@@ -1785,6 +1860,9 @@ function switchView(v) {
      view's own seg (#allDivSeg, next line) is unchanged. */
   const mSeg94 = $("#monthDivSeg"); if (mSeg94) mSeg94.hidden = true;
   const aSeg94 = $("#allDivSeg"); if (aSeg94) aSeg94.hidden = v !== "all";
+  /* Round 162: the lane toggle is a Watch-board filter — its
+     row follows the same visibility rule as the Watch seg. */
+  const laneRow162 = $("#laneRow162"); if (laneRow162) laneRow162.hidden = v !== "all";
   const viewBattlesEl = $("#viewBattles"); if (viewBattlesEl) viewBattlesEl.hidden = v !== "battles";
   const chip125 = $("#chipMonth"); if (chip125) chip125.style.display = v === "month" ? "" : "none";
   /* Round 107: the contest strip belongs to the Watch feed only —
@@ -2262,6 +2340,11 @@ function syncFilterUI() {
   renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
+  /* Round 162: the lane toggle mirrors lane162 — pressed state
+     + the .on fill are re-asserted on every sync, so a data
+     refresh can never leave the chip lying about the board. */
+  const laneBtn162 = $("#laneToggle162");
+  if (laneBtn162) { laneBtn162.setAttribute("aria-pressed", String(lane162)); laneBtn162.classList.toggle("on", lane162); laneBtn162.onclick = () => { lane162 = !lane162; syncFilterUI(); renderAll2(); }; }
   // Round 62 (2026-11-08): the shared sport control mirrors the
   // current view's sport (Month reads monthSport, the other views
   // allSport) — the fallbacks above have already run by here.
@@ -3530,10 +3613,25 @@ function setSportPick(sport) {
   // select needs no click wiring (its value is read at submit).
   if (form.elements.sport) form.elements.sport.value = sport || "";
 }
+/* Round 162: the milestone pick — the same quick-pick shape as
+   the division toggle (buttons write a hidden field), with one
+   difference: NOTHING is pre-selected and tapping the lit chip
+   again clears it, because the question is skippable and
+   "untagged" is a real answer. The hidden momentKind field is
+   what FormData carries; the server validates against its
+   allowlist, so a hand-built payload can never store junk. */
+function setMomentPick162(kind) {
+  const form = $("#uploadForm"); if (!form || !form.elements.momentKind) return;
+  const next162 = form.elements.momentKind.value === kind ? "" : (kind || "");
+  form.elements.momentKind.value = next162;
+  $$("[data-moment-pick]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.momentPick === next162 && next162 !== "")));
+}
+window.syncMomentPick162 = () => { const form = $("#uploadForm"); if (form && form.elements.momentKind) form.elements.momentKind.value = ""; $$("[data-moment-pick]").forEach((b) => b.setAttribute("aria-pressed", "false")); };
+$$("[data-moment-pick]").forEach((b) => b.addEventListener("click", () => setMomentPick162(b.dataset.momentPick)));
 $$("[data-div-pick]").forEach((b) => b.addEventListener("click", () => setDivPick(b.dataset.divPick)));
 // After a successful submit the form resets; re-sync the toggle and
 // the sport dropdown with the reset field values (Boys, no sport).
-window.syncQuickPicks = () => { setDivPick("boys"); setSportPick(""); };
+window.syncQuickPicks = () => { setDivPick("boys"); setSportPick(""); if (window.syncMomentPick162) window.syncMomentPick162(); };
 
 /* ---------------- upload + athlete prompt ---------------- */
 /* Round 145 (2026-11-13, Emil's own ask): the upload button
@@ -3914,6 +4012,8 @@ function renderOwnerQueue157() {
         return bits.length ? `<br>Parent/guardian (owner only): ${bits.join("<br>")}` : `<br><span style="color:var(--muted)">No parent/guardian contact on file — can't be featured as a winner.</span>`; })()}
       ${h.guardian_consent_at ? `<br>Guardian consent ✓ ${esc(new Date(h.guardian_consent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }))}` : ""}
       ${h.story_consent ? `<br><span class="tagchip">⭐ Story OK — may feature as a Hype Story</span>${h.story_text ? `<br>“What made this moment matter?” ${esc(h.story_text)}` : ""}` : (h.story_text ? `<br><span style="color:var(--muted)">Story note (no story permission given):</span> ${esc(h.story_text)}` : "")}
+      <br><label class="moment-set162">Moment tag: <select class="moment-select162" aria-label="Milestone tag for this play" onchange="setMomentKind162(${h.id}, this.value)"><option value="">None</option>${Object.entries(typeof MOMENT_LABELS162 !== "undefined" ? MOMENT_LABELS162 : {}).map(([k, l]) => `<option value="${k}"${h.moment_kind === k ? " selected" : ""}>${l}</option>`).join("")}</select></label>${h.moment_kind && typeof momentChipInline162 === "function" ? ` ${momentChipInline162(h)}` : ""}
+      ${h.guardian_email ? `<br>Guardian email: <b>${esc(h.guardian_email)}</b>` : `<br><label class="moment-set162">Guardian email: <input type="email" id="gemail162-${h.id}" placeholder="parent/guardian email" size="26" autocomplete="off"> <button type="button" class="mini-btn" onclick="setGuardianEmail162(${h.id})">Save</button></label> <span style="color:var(--muted)">— none on file; attach one so this family can find the play in My Plays.</span>`}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("");
@@ -3924,7 +4024,7 @@ function renderOwnerQueue157() {
 }
 
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const flEl155 = $("#fastLane155"); if (flEl155) flEl155.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const flEl155 = $("#fastLane155"); if (flEl155) flEl155.innerHTML = ""; const msEl162 = $("#momentSpotlight162"); if (msEl162) msEl162.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
@@ -4027,7 +4127,31 @@ async function loadOwner() {
       textAlerts156 = tr155.textAlerts156 || null;
       renderFastLane155();
     } catch { const flEl = $("#fastLane155"); if (flEl) flEl.innerHTML = "<p>Could not load the fast-lane list.</p>"; }
+    // Moment That Mattered (owner only, Round 162): the current
+    // pick + the picker list. Own try, same pattern as above.
+    try {
+      const ss162 = await api("/api/owner/spotlight-state");
+      renderSpotlightPanel162(ss162);
+    } catch { const msEl = $("#momentSpotlight162"); if (msEl) msEl.innerHTML = "<p>Could not load the spotlight.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
+}
+/* Round 162: the panel's Moment That Mattered section — the
+   current pick (name, title, kind chip, when, by whom) with
+   Remove, then every pickable play (approved, story or tag)
+   with its Feature button. The pick already live wears a note
+   instead of a second Feature button (re-setting is a no-op
+   the API would happily log — better to not offer it). */
+function renderSpotlightPanel162(state) {
+  const el = $("#momentSpotlight162"); if (!el) return;
+  const cur = state && state.current ? state.current : null;
+  const picker = (state && state.picker) || [];
+  const curHtml = cur
+    ? `<div class="queue-item"><b>Now featuring:</b> ${esc(cur.player_name || "")} — ${esc(cur.title)}${cur.moment_label ? ` ${esc(cur.moment_label)}` : ""}<br><span style="color:var(--muted)">Set ${cur.set_at ? esc(new Date(cur.set_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })) : ""}${cur.set_by ? ` by ${esc(cur.set_by)}` : ""}${cur.status !== "approved" ? ` — <span class="tagchip warn">not live right now (${esc(cur.status)}) — the homepage card is hidden until it's approved again</span>` : ""}</span><div class="qa"><button type="button" class="mini-btn" onclick="setSpotlight162(null)">Remove</button></div></div>`
+    : `<p style="color:var(--muted)">No Moment That Mattered is set — the homepage card stays hidden until you feature one.</p>`;
+  const pickerHtml = picker.length
+    ? picker.map((r) => `<div class="queue-item"><b>${esc(r.player_name || "")}</b> — ${esc(r.title)}${r.moment_label ? ` ${esc(r.moment_label)}` : ""}<br><span style="color:var(--muted)">${r.has_story ? (r.story_consent ? "Has a story — consent given, it can be quoted on the card." : "Has a story — NO story consent, the card shows name + moment only.") : "No story — featured on name + moment."}</span><div class="qa">${cur && cur.play_id === r.id ? `<span class="tagchip">⭐ Currently featured</span>` : `<button type="button" class="mini-btn" onclick="setSpotlight162(${r.id})">Feature</button>`}</div></div>`).join("")
+    : `<p style="color:var(--muted)">Nothing to feature yet — plays appear here once they're approved and carry a story or a milestone tag.</p>`;
+  el.innerHTML = curHtml + pickerHtml;
 }
 /* Round 152: named owner passcodes — the Owner access block.
    ownerTokens152 caches the metadata list (NEVER a value or a
@@ -4164,6 +4288,24 @@ window.setSample = async (id, status, sample) => { await api(`/api/highlights/${
    The server clears every other play when one is set, so at most
    one play ever carries the Best Celebration badge. */
 window.setCelebration = async (id, on) => { await api(`/api/highlights/${id}/celebration`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ spotlight: !!on }) }); loadOwner(); loadData(); };
+/* Round 162: the queue card's milestone select — the same
+   one-call owner action shape as setCelebration: POST the new
+   kind ("" clears), then refresh the panel AND the board (the
+   chip + the lane read the same payload). A refused call (the
+   API's 400 for a hand-built kind) surfaces as the plain alert
+   the other queue actions use, and nothing re-renders. */
+window.setMomentKind162 = async (id, value) => { try { await api("/api/owner/moment-kind", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, kind: value || null }) }); } catch (e) { alert(e.message); return; } loadOwner(); loadData(); };
+/* Round 162: the Moment That Mattered pick — Feature / Remove
+   from the panel section both land here; null clears. The
+   homepage card re-renders off the same loadData refresh. */
+window.setSpotlight162 = async (playId) => { try { await api("/api/owner/spotlight", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ playId }) }); } catch (e) { alert(e.message); return; } loadOwner(); loadData(); };
+/* Round 162 (Feature 3): attach a guardian email to a play
+   that was posted phone-only — the queue row's inline input.
+   The endpoint validates the shape and answers in plain
+   words; a refusal alerts and leaves the panel exactly as it
+   was, a success re-renders queue + board (the play's
+   prize-eligibility/contact state reads the same payload). */
+window.setGuardianEmail162 = async (id) => { const inp = document.getElementById("gemail162-" + id); const email = inp ? inp.value.trim() : ""; if (!email) { alert("Type the guardian's email first."); return; } try { await api("/api/owner/guardian-email", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, email }) }); } catch (e) { alert(e.message); return; } loadOwner(); loadData(); };
 window.deletePlay = async (id) => {
   /* Round 145: an APPROVED (live) play never deletes from the
      bare confirm — it takes the dedicated dialog below, which
