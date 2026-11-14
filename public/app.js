@@ -3635,16 +3635,49 @@ function storageHtml149(so) {
    the duplicate-group actions look plays up here (status, votes,
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
-async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const flEl155 = $("#fastLane155"); if (flEl155) flEl155.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
-  try {
-    const q = await api("/api/owner/queue");
-    ownerQueue145 = q.queue;
-    /* Round 150: a fresh queue load prunes the batch selection —
-       ids that are no longer pending (acted on, trashed, gone)
-       fall out of the set before the cards re-render. */
-    pruneBatchSel150(q.queue);
-    $("#ownerStatus").textContent = "Owner access active on this device.";
+/* ================================================================
+   Round 157 — the Moderation queue gains a New | All filter
+   (Emil, 2026-11-14: "We should have a filter for new videos
+   and then all videos. It's confusing right now when you see
+   all videos by default."). A segmented pill bar (the Round
+   141 idiom: one dark bar, the active pill filled lime) sits
+   at the top of the queue:
+     New — PENDING plays only, the count on the pill. This is
+       the DEFAULT view: the panel opens on the work, not the
+       archive, and with nothing waiting it reads as one calm
+       "🎉 All caught up — no new plays waiting" line.
+     All — exactly the list the queue has always rendered:
+       same plays, same order, same cards, same detail.
+   The switch is a pure re-render of the queue this panel
+   already loaded (ownerQueue145) — nothing is re-fetched and
+   nothing is re-ordered. The choice is panel state only
+   (queueView157): never persisted, so a fresh page load
+   always opens on New. Switching views CLEARS the Round 150
+   batch selection and its tally line — a selection made
+   against one list never silently applies to the other
+   (predictable beats clever). Batch actions and Review mode
+   are untouched: in New view the head's pending set IS the
+   whole list; in All view the head receives liveQueue146
+   exactly as before. renderOwnerQueue157 below IS the render
+   loadOwner has always done (the Round 145 duplicate
+   grouping, the Round 146 trash split, the Round 150 cards +
+   head), lifted out of loadOwner so the filter can re-run it
+   on demand; loadOwner still owns the fetch, the selection
+   prune, and every other panel section.
+   ================================================================ */
+let queueView157 = "new";
+function queueFilterHtml157(pendCount) {
+  return `<div class="qfilter157" role="group" aria-label="Queue view"><button type="button" aria-pressed="${queueView157 === "new"}" onclick="setQueueView157('new')">New (${pendCount})</button><button type="button" aria-pressed="${queueView157 === "all"}" onclick="setQueueView157('all')">All</button></div>`;
+}
+window.setQueueView157 = (v) => {
+  const next157 = v === "all" ? "all" : "new";
+  if (next157 === queueView157) return;
+  queueView157 = next157;
+  batchSel150.clear();
+  batchMsg150 = "";
+  renderOwnerQueue157();
+};
+function renderOwnerQueue157() {
     /* Round 145: duplicate grouping. Pending plays that share a
        normalized athlete name + title (trim, collapse whitespace,
        lowercase) are copies of one clip — the crash-retry pile-up
@@ -3655,13 +3688,13 @@ async function loadOwner() {
        touched. */
     const norm145 = (s) => String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
     const pendGroups145 = new Map();
-    for (const h of q.queue) {
+    for (const h of ownerQueue145) {
       if (h.status !== "pending") continue;
       const key = norm145(h.player_name) + "|" + norm145(h.title);
       if (!pendGroups145.has(key)) pendGroups145.set(key, []);
       pendGroups145.get(key).push(h);
     }
-    const liveKeys145 = new Set(q.queue.filter((h) => h.status === "approved").map((h) => norm145(h.player_name) + "|" + norm145(h.title)));
+    const liveKeys145 = new Set(ownerQueue145.filter((h) => h.status === "approved").map((h) => norm145(h.player_name) + "|" + norm145(h.title)));
     const emittedGroups145 = new Set();
     const groupHeader145 = (h) => {
       const key = norm145(h.player_name) + "|" + norm145(h.title);
@@ -3673,15 +3706,19 @@ async function loadOwner() {
     };
     /* Round 146: trashed plays leave the queue list entirely —
        they render in the Trash section below instead. (The
-       grouping above reads q.queue but only ever groups pending
+       grouping above reads ownerQueue145 but only ever groups pending
        rows, so a trashed copy can never join a delete-all group.) */
-    const liveQueue146 = q.queue.filter((h) => h.status !== "trashed");
-    const trashRows146 = q.queue.filter((h) => h.status === "trashed");
+    const liveQueue146 = ownerQueue145.filter((h) => h.status !== "trashed");
+    /* Round 157: the view's rows — New keeps only the pendings,
+       All keeps the whole live list; the order is untouched
+       either way, and All renders exactly what it always has. */
+    const pendRows157 = liveQueue146.filter((h) => h.status === "pending");
+    const viewRows157 = queueView157 === "all" ? liveQueue146 : pendRows157;
     /* Round 150: the cards render into a variable first — the
        queue head (Select all + Review mode + the batch bar) is
        prepended below, and each PENDING card carries a batch
        checkbox whose state comes from batchSel150. */
-    const queueCards150 = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}${h.fast_laned_at ? ` — <span class="tagchip">⚡ Fast lane</span>` : ""} — ${h.voteCount} votes
+    const queueCards150 = viewRows157.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}${h.fast_laned_at ? ` — <span class="tagchip">⚡ Fast lane</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -3692,7 +3729,24 @@ async function loadOwner() {
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
       <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("");
-    $("#queue").innerHTML = queueHead150(liveQueue146) + (queueCards150 || "<p>Queue is empty.</p>");
+    const body157 = queueView157 === "new" && !pendRows157.length
+      ? `<p class="queue-empty157">🎉 All caught up — no new plays waiting</p>`
+      : (queueCards150 || "<p>Queue is empty.</p>");
+    $("#queue").innerHTML = queueFilterHtml157(pendRows157.length) + queueHead150(viewRows157) + body157;
+}
+
+async function loadOwner() {
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const flEl155 = $("#fastLane155"); if (flEl155) flEl155.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
+  try {
+    const q = await api("/api/owner/queue");
+    ownerQueue145 = q.queue;
+    /* Round 150: a fresh queue load prunes the batch selection —
+       ids that are no longer pending (acted on, trashed, gone)
+       fall out of the set before the cards re-render. */
+    pruneBatchSel150(q.queue);
+    $("#ownerStatus").textContent = "Owner access active on this device.";
+    renderOwnerQueue157();
+    const trashRows146 = q.queue.filter((h) => h.status === "trashed");
     /* Round 146: the Trash section. Poster thumb, title, athlete,
        when it was trashed + the status a Restore lands on, and
        the whole days left before the auto-purge — with Restore
