@@ -3446,3 +3446,30 @@ footer{padding-bottom:36px}
 .qfilter157 button{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0;border-radius:999px;color:#8f8f86;font:inherit;font-weight:800;font-size:14.5px;line-height:1.2;padding:7px 16px;min-height:36px;cursor:pointer;white-space:nowrap}
 .qfilter157 button[aria-pressed="true"]{background:var(--volt);color:var(--volt-ink)}
 .queue-empty157{color:var(--muted);font-size:15px;margin:6px 0 2px}
+
+/* Round 161 (2026-11-14): the Add to Home Screen hint bar.
+   A slim brand card docked at the bottom of the screen. The
+   Post a Play pill owns the bottom-right corner, so while the
+   hint is up (body.a2hs-open161) the pill rides ABOVE it —
+   they never overlap; when the iOS walkthrough expands
+   (body.a2hs-steps161) the pill rides higher still. The bar
+   itself is hidden by the [hidden] attribute until app.js
+   decides this visit has earned it. */
+.a2hs161{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:56;display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:10px 12px;box-shadow:0 12px 32px rgba(0,0,0,.55)}
+.a2hs161[hidden]{display:none}
+.a2hs-crest161{width:34px;height:34px;border-radius:8px;flex:0 0 auto}
+.a2hs-text161{flex:1 1 110px;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.a2hs-text161 strong{font-size:14.5px;font-weight:800;color:var(--white)}
+.a2hs-text161 span{font-size:12.5px;font-weight:600;color:var(--muted)}
+.a2hs-btn161{flex:0 0 auto;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:9px 18px;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+.a2hs-btn161:active{transform:scale(.97)}
+.a2hs-x161{flex:0 0 auto;background:transparent;border:0;color:var(--muted);font-size:22px;line-height:1;padding:4px 6px;cursor:pointer}
+.a2hs-steps161{flex:1 1 100%;border-top:1px solid var(--line);padding-top:8px}
+.a2hs-steps161[hidden]{display:none}
+.a2hs-steps161 p{margin:2px 0;font-size:13.5px;font-weight:600;color:var(--white)}
+body.a2hs-open161 .float-submit{bottom:calc(18px + 118px + env(safe-area-inset-bottom,0px))}
+body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-bottom,0px))}
+@media (max-width:480px){
+  body.a2hs-open161 .float-submit{bottom:calc(14px + 118px + env(safe-area-inset-bottom,0px))}
+  body.a2hs-steps161 .float-submit{bottom:calc(14px + 200px + env(safe-area-inset-bottom,0px))}
+}
