@@ -10,6 +10,7 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import zlib from "node:zlib";
 import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import { DatabaseSync } from "node:sqlite";
@@ -27,6 +28,14 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 // They are never listed on any public endpoint.
 const HYPEFRAME_DIR = path.join(DATA_DIR, "hype-frames");
 fs.mkdirSync(HYPEFRAME_DIR, { recursive: true });
+// Round 165 (2026-11-14): Hype Reel downloads live under DATA_DIR
+// for the same reason — a reel is a family's own copy of their
+// play's video, generated on demand, cached here, and served ONLY
+// through the guardian-gated reel endpoint below (never a public
+// URL). Inside BACKUP_FILE_DIRS, so the nightly backup carries
+// the reels alongside the Hype Frame prints.
+const REEL_DIR = path.join(DATA_DIR, "reels");
+fs.mkdirSync(REEL_DIR, { recursive: true });
 // Round 128: cap on an order's composed print PNG (decoded bytes).
 // Studio compositions run ~170KB; 5MB is generous headroom without
 // letting one order payload park a huge file on the data disk.
@@ -74,9 +83,22 @@ const assistHitsByIp = new Map();
 const NOTIFY_RATE_LIMIT = 30;             // notify signups per IP per window
 const NOTIFY_RATE_WINDOW_MS = 10 * 60 * 1000;
 const notifyHitsByIp = new Map();
-// Backup file downloads may only ever serve files inside these two
-// data subdirectories (the DB is served by its own snapshot endpoint).
-const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR];
+// Hype Reel guard (Round 165, see POST /api/highlights/:id/reel):
+// a reel request can mean a full ffmpeg generation, so it gets
+// the lookup-style per-IP cap — far above a family's real use
+// (a few plays, a download each), far below anything that could
+// keep the single serialized encoder busy or fill the disk.
+// Generation itself is further fenced inside r165EnsureReel:
+// one in-flight build per play, and a 30s cooldown after a
+// failed build so a broken file can't be hammered.
+const REEL_RATE_LIMIT = 30;               // reel requests per IP per window
+const REEL_RATE_WINDOW_MS = 10 * 60 * 1000;
+const reelHitsByIp = new Map();
+// Backup file downloads may only ever serve files inside these
+// data subdirectories (the DB is served by its own snapshot
+// endpoint). Round 165: reels/ joins the list — cached Hype
+// Reels are part of what a restore should bring back.
+const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR, REEL_DIR];
 
 
 // ---- Pending-approval email notification (zero-dependency SMTP) ----
@@ -670,6 +692,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN fast_laned_at TEXT"); } catch {
    at both write paths (upload + the owner's retro-tag) by
    momentKind162 below; never trusted raw. */
 try { db.exec("ALTER TABLE highlights ADD COLUMN moment_kind TEXT"); } catch {}
+/* Round 165 (2026-11-14): the Hype Reel cache record — when a
+   play's branded reel was generated and WHICH media_url it was
+   built from. The cache at DATA_DIR/reels/<id>.mp4 is reused
+   only while reel_source still equals the play's media_url;
+   plays' media never changes after approval in this product,
+   so in practice the first generation is the last. */
+try { db.exec("ALTER TABLE highlights ADD COLUMN reel_generated_at TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN reel_source TEXT DEFAULT ''"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -1919,6 +1949,356 @@ async function r124RunMigration() {
     console.log("[r124] media migration complete");
   } catch (e) { console.error("[r124] migration error:", e.message); }
 }
+/* ================= Round 165 (2026-11-14): Hype Reels =================
+   A guardian downloads a branded MP4 of their own athlete's
+   approved play — the actual video file, made for sharing to
+   social: the play's own (Round 124-normalized) clip bookended
+   by a branded sting — a ~1.2s intro card (black, gold crest,
+   athlete name + play title) and a ~1.5s outro card (crest +
+   "YOUR MOMENT. YOUR HYPE." + highlighthype.com) — built by ONE
+   ffmpeg invocation per reel, always through the Round 138
+   serializer (never a parallel ffmpeg process), encoded to the
+   house spec: H.264 / yuv420p / AAC / faststart at the source's
+   own geometry, never upscaled.
+
+   THE BRAND TREATMENT ON THE CLIP ITSELF IS A WATERMARK, not a
+   lower-third — a deliberate tooling call. The pipeline's
+   ffmpeg (ffmpeg-static: the same binary in dev, the suites
+   and production) ships WITHOUT the drawtext filter, so ffmpeg
+   cannot burn text in at all; and a name band needs text over
+   moving video at every geometry. The crest watermark needs
+   only `overlay`: the flat gold crest at ~55% opacity in the
+   bottom-right corner, sized off the frame's width, identical
+   for portrait and landscape, and it can never collide with
+   the action the way a caption band can. The sting cards DO
+   carry the name and title — rendered as transparent PNGs by
+   the small bitmap-font renderer below and composited with
+   the same overlay filter. The glyph table is embedded data
+   (DejaVu Sans Bold, extracted at 96px when this round was
+   built): no font files, no new dependencies, so the sting
+   renders identically on the Alpine production image.
+
+   CACHING: a reel generates on the guardian's first request
+   and is then served from DATA_DIR/reels/<playId>.mp4.
+   highlights.reel_source records the media_url it was built
+   from; the cache is reused only while that still matches.
+   AUTHORIZATION IS NOT HERE: this block builds and fetches
+   files; who may have one is decided by the endpoint below
+   (the guardian email-hash match from /api/athletes/lookup). */
+const R165_INTRO_SEC = 1.2;
+const R165_OUTRO_SEC = 1.5;
+const R165_GOLD = [212, 175, 55];      // #D4AF37 — sampled from the crest's own pixels
+const R165_WHITE = [255, 255, 255];
+const R165_SOFT = [217, 217, 217];
+const R165_CREST_PATH = path.join(__dirname, "public", "crest-watermark.png"); // 560×625 flat gold crest, transparent
+/* Embedded bitmap font — DO NOT hand-edit the table. Glyph
+   record: [advance, w, h, dx, dy, base64] in 96px units; the
+   base64 is the glyph's ink mask, 1 bit per pixel, rows packed
+   MSB-first; (dx, dy) places the ink's top-left relative to
+   the pen's baseline origin. Extracted from DejaVu Sans Bold
+   so the sting carries real type, not a system-font gamble. */
+const R165_FONT = {"px":96,"asc":90,"desc":23,"glyphs":{" ":[33.42,0,0,0,0,""],"!":[43.78,18,70,13,-70,"//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+f/+f/+f/+f/+f/+f/+f/8f/8P/8P/8P/8P/8P/8P/8P/4P/4H/4H/4H/4AAAAAAAAAAAAAAAAAAAAA//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+//+A="],"\"":[50.02,32,26,9,-70,"/+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB///4Af//+AH///gB/8="],"#":[80.44,68,69,6,-69,"AAAAP/gAf+AAAAAD/wAH/gAAAAA/8AD/4AAAAAf/AA/+AAAAAH/wAP/AAAAAB/4AD/wAAAAAf+AB/8AAAAAP/gAf/AAAAAD/4AH/gAAAAA/8AB/4AAAAAP/AA/+AAAAAH/wAP/gAAAAB/8AD/wAAAAAf+AA/8AAAAAH/gAf/AAAAAD/4AH/wAAAAA/+AB/4AAAAAP/AAf+AAA//////////wP/////////8D//////////A//////////wP/////////8D//////////A//////////wP/////////8D//////////A//////////wAAH/gAP/AAAAAB/4AD/wAAAAAf+AB/8AAAAAP/gAf/AAAAAD/wAH/gAAAAA/8AB/4AAAAAP/AA/+AAAAAH/wAP/gAAAAB/4AD/wAAAAAf+AA/8AAAAAH/gAf/AAAAAD/4AH/wAAAAA/8AB/4AAB//////////gf/////////4H/////////+B//////////gf/////////4H/////////+B//////////gf/////////4H/////////+B//////////gAAf/AA/+AAAAAH/wAP/AAAAAB/4AD/wAAAAAf+AA/8AAAAAP/gAf/AAAAAD/4AH/gAAAAA/8AB/4AAAAAP/AAf+AAAAAH/wAP/gAAAAB/8AD/wAAAAAf+AA/8AAAAAH/gAP/AAAAAD/4AH/wAAAAA/+AB/4AAAAAP/AAf+AAAAAD/wAH/gAAAAB/8AD/4AAAAAf/AA/8AAAAA="],"$":[66.8,54,87,7,-73,"AAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAf/+AAAAAP////AAAB/////+AAH//////gAf//////gA///////gB///////gD///////gH///////gH///////gP///////gP//x/B//gf//B/AB/gf/+B/AAHgf/8B/AAAgf/8B/AAAAf/4B/AAAAf/4B/AAAAf/8B/AAAAf/8B/AAAAf/+B/AAAAf//B/AAAAf//5/AAAAf////AAAAf////8AAAP/////wAAP/////+AAH//////wAD//////8AB//////+AA///////gAf//////gAH//////wAB//////4AAP/////4AAA/////8AAAD////8AAAB////+AAAB/D//+AAAB/A//+AAAB/Af/+AAAB/AP/+AAAB/AP/+AAAB/AP/+AAAB/AP/+QAAB/AP/+cAAB/AP/+fAAB/AP/+f4AB/Af/+f/AB/A//8f/8B/D//8f///////8f///////4f///////wf///////wf///////gf///////AP//////8AB//////4AAP/////AAAB////4AAAAB//8AAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAAAAB/AAAAA"],"%":[96.19,91,73,3,-72,"AAP/AAAAAAf/AAAAB//8AAAAAP/AAAAD///gAAAAP/gAAAD///8AAAAH/gAAAD////AAAAH/gAAAD////wAAAH/wAAAD////8AAAD/wAAAD////+AAAD/4AAAB//B//gAAB/4AAAB//AP/4AAB/4AAAA//AD/8AAB/8AAAA//AB/+AAA/8AAAAf/gAf/gAA/+AAAAP/gAP/wAAf+AAAAP/wAH/4AAf+AAAAH/4AB/8AAf/AAAAD/8AA/+AAP/AAAAB/+AAf/AAP/gAAAA//AAP/gAH/gAAAAf/gAH/wAH/gAAAAP/wAD/4AH/wAAAAH/4AB/8AD/wAAAAD/8AA/+AD/4AAAAB/+AA//AB/4AAAAAf/AAf/gB/4AAAAAP/wAP/wA/8AAAAAH/4AP/wA/8AAAAAB/+AH/4A/+AAAAAA//gH/8Af+AAAAAAP/4P/8Af+AAAAAAH////8AP/AAAAAAB////+AP/AAAAAAAf///+AP/gAAAAAAH///+AH/gAAAAAAB///+AH/gAAAAAAAf//8AD/wAB/4AAAD//4AD/wAH//wAAAH/gAD/4AP//+AAAAAAAB/4Af///gAAAAAAB/4Af///8AAAAAAA/8Af////AAAAAAA/8Af////gAAAAAA/+AP////4AAAAAAf+AP/8H/+AAAAAAf+AH/4B//AAAAAAP/AH/8Af/wAAAAAP/AD/8AH/4AAAAAP/gD/8AD/8AAAAAH/gB/+AA//AAAAAH/gA//AAf/gAAAAD/wAf/gAP/wAAAAD/wAP/wAH/4AAAAD/4AH/wAD/8AAAAB/4AD/4AB/+AAAAB/8AB/8AA//AAAAA/8AA/+AAf/gAAAA/8AAf/gAP/wAAAA/+AAP/wAH/4AAAAf+AAH/4AD/8AAAAf/AAD/8AB/+AAAAP/AAB/+AB/+AAAAP/AAAf/gA//AAAAP/gAAP/wA//gAAAH/gAAD/8A//gAAAH/wAAB//g//wAAAD/wAAAf////wAAAD/wAAAP////wAAAD/4AAAD////wAAAB/4AAAA////wAAAB/8AAAAH///wAAAA/8AAAAB///wAAAA/8AAAAAP//gAAAA/+AAAAAA/8AAA"],"&":[83.72,75,73,5,-72,"AAAAH/8AAAAAAAAAP///gAAAAAAAH////wAAAAAAD/////gAAAAAB/////8AAAAAAf/////gAAAAAH/////8AAAAAB//////gAAAAAP/////8AAAAAD//////gAAAAAf/////8AAAAAH//+Af/gAAAAA///AAP8AAAAAH//wAAPgAAAAB//8AAAcAAAAAP//gAAAAAAAAB//8AAAAAAAAAP//gAAAAAAAAB//8AAAAAAAAAP//wAAAAAAAAA//+AAAAAAAAAH//4AAAAAAAAA///AAAAAAAAAD//8AAAAAAAAAf//wAAAAAAAAB///AAAAAAAAAP//8AAAAAAAAA///gAAAAAAAAP//+AAAAAAAAH///4AAAAAAAB////gAAH/+AAf///+AAA//wAH////4AAH/+AB/////gAA//wAf////+AAP/+AH/////4AB//wB//////gAP/+Af/////8AB//gD//4///wAP/8A//+D///AD//gH//wP//8Af/8B//8A///wD//AP//AD///A//4B//4AP//8H//Af//AA///x//wD//wAD///f/+Af/+AAP/////wD//wAA/////8Af/+AAD/////gD//wAAf////4Af/+AAB/////AD//wAAH////wAf//AAAf///8AD//4AAB////gAf//gAAH///4AD//8AAAf//+AAP//wAAB///gAB///AAAP//+AAP//+AAD///4AA///4AB////AAH///4B////8AAf/////////wAB//////////AAP/////////8AA//////////wAD//////////AAP/////////8AAf/////8///wAB/////+D///AAD/////AP//4AAH////gB///gAAH///gAH//+AAAD/+AAAAAAAA=="],"'":[29.39,12,26,9,-70,"/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+/+"],"(":[43.88,29,86,8,-73,"AAP/8AA//wAB//gAH/+AAP/8AA//wAB//gAH//AAf/8AA//4AD//gAH//AAP/8AA//4AB//wAH//AAP/+AA//8AB//wAD//gAP//AAf/8AA//4AD//wAH//gAP/+AA//8AB//4AD//wAH//AAP/+AA//8AB//4AD//wAH//gAP//AAf/+AA//4AD//wAH//gAP//AAf/+AA//8AB//4AD//wAH//gAP//AAf/+AA//8AA//8AB//4AD//wAH//gAP//AAf/+AAf/8AA//4AB//4AD//wAH//gAH//AAP//AAf/+AAf/8AA//4AB//4AB//wAD//gAH//gAH//AAP/+AAP/+AAf/8AAf/4AA//4AB//wAB//wAD//gAD//AAD//AAH/+AAH/+AAP/8AAP/8AAf/4AAf/4"],")":[43.88,29,86,7,-73,"f/4AA//wAA//wAB//wAB//gAD//gAD//AAH//AAH/+AAP/+AAP/8AAf/8AA//4AA//4AB//wAB//wAD//gAH//AAH//AAP/+AAf/+AAf/8AA//4AB//4AD//wAD//gAH//AAP//AAf/+AA//8AA//4AB//4AD//wAH//gAP//AAf/+AA//8AB//4AB//wAD//gAH//gAP//AAf/+AA//8AB//4AD//wAH//AAP/+AA//8AB//4AD//wAH//gAP//AAf/+AA//8AB//wAH//gAP//AAf/+AA//4AB//wAH//gAP//AAf/8AA//4AD//wAH//AAP/+AA//8AB//wAD//gAP/+AAf/8AB//wAD//gAH/+AAf/8AA//wAD//gAH/+AAf/8AA//wAD//gAH/+AAf/4AA//wAA"],"*":[50.2,48,45,1,-72,"AAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAACAAP8AAQDgAP8AB4H4AP8AH4H+AP8Af8P/gP8B/8f/4P8H/+f/+P8P/+H//P8//4B//////gAf////+AAH////8AAB////wAAAf///AAAAH//8AAAAD//wAAAAH//8AAAAf///AAAB////wAAH////8AAf////+AB//////gH//P8//4f/8P8P/+f/4P8D/+P/gP8B/8H+AP8Af8H4AP8AH4DgAP8AB4CAAP8AAQAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAAAAAP8AAA"],"+":[80.44,61,61,10,-61,"AAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAf/////////v/////////3/////////7/////////9/////////+//////////f/////////v/////////3/////////7/////////9/////////+AAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAAAAP/gAAAAAAAH/wAAAAAAAD/4AAAAAAAB/8AAAAAAAA/+AAAAAAAAf/AAAAAA=="],",":[36.47,22,32,5,-18,"B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//D//4P//A//8D//gf/8B//wH/+Af/wD//AP/4A//AD/8Af/gB/8AH/wAf+AD/wAA=="],"-":[39.84,30,14,5,-34,"//////////////////////////////////////////////////////////////////////A="],".":[36.47,18,18,9,-18,"f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//A="],"/":[35.06,36,79,0,-70,"AAAA/+AAAA/+AAAA/8AAAA/8AAAB/8AAAB/4AAAB/4AAAD/4AAAD/wAAAD/wAAAH/wAAAH/gAAAH/gAAAP/gAAAP/gAAAP/AAAAP/AAAAf/AAAAf+AAAAf+AAAA/+AAAA/8AAAA/8AAAB/8AAAB/4AAAB/4AAAD/4AAAD/wAAAD/wAAAH/wAAAH/wAAAH/gAAAH/gAAAP/gAAAP/AAAAP/AAAAf/AAAAf+AAAAf+AAAA/+AAAA/8AAAA/8AAAB/8AAAB/4AAAB/4AAAD/4AAAD/4AAAD/wAAAD/wAAAH/wAAAH/gAAAH/gAAAP/gAAAP/AAAAP/AAAAf/AAAAf+AAAAf+AAAA/+AAAA/8AAAA/8AAAB/8AAAB/8AAAB/4AAAB/4AAAD/4AAAD/wAAAD/wAAAH/wAAAH/gAAAH/gAAAP/gAAAP/AAAAP/AAAAf/AAAAf+AAAAf+AAAA/+AAAA/+AAAAA="],"0":[66.8,59,73,4,-72,"AAAA/+AAAAAAAf//wAAAAAH///8AAAAA////+AAAAH////+AAAAf/////AAAB//////AAAH//////AAAf//////AAB///////AAH//////+AAP//////+AA///wH//+AD//+AD//8AH//4AD//8Af//gAD//4A///AAH//4B//8AAH//wH//4AAP//wP//gAAf//gf//AAAf//B//+AAA//+D//8AAB//+H//wAAD//8P//gAAH//4///AAAH//x//+AAAP//j//8AAAf//n//4AAA///P//wAAB//+f//gAAD//8///AAAH//5//+AAAP//z//8AAAf//n//4AAA///P//wAAB//+f//gAAD//8///AAAH//5//+AAAP//z//8AAAf//n//4AAA///P//wAAB//+f//gAAD//8///AAAH//5//+AAAP//z//8AAAf//n//4AAA//+P//wAAB//8P//gAAH//4f//gAAP//w///AAAf//h//+AAA//+B//8AAB//8D//4AAH//4H//4AAP//wH//wAAf//AP//wAB//+Af//gAH//4Af//gAP//wA///gB///AA///wH//+AA///////4AB///////gAB///////AAB//////8AAB//////wAAB//////AAAB/////8AAAB/////gAAAA////+AAAAAf///wAAAAAH//8AAAAAAA/+AAAAA="],"1":[66.8,51,70,10,-70,"AAP//8AAAA////gAAD////8AAD/////gAAf////8AAD/////gAAf////8AAD/////gAAf////8AAD/////gAAf////8AAD/////gAAf////8AAD/+P//gAAf4B//8AADgAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAAAAP//gAAAAB//8AAD///////+f///////z///////+f///////z///////+f///////z///////+f///////z///////+f///////z///////+f///////z///////+A"],"2":[66.8,52,72,7,-72,"AAB//gAAAAH///8AAAP////+AAH/////+AB//////8AH//////8Af//////4B///////wH///////gf///////B///////8H///////4f/8Af///h/8AAf///H/AAAf//8fgAAA///x4AAAB///mAAAAH//+QAAAAP//4AAAAA///gAAAAB//+AAAAAH//4AAAAAf//gAAAAB//+AAAAAH//4AAAAAf//gAAAAD//8AAAAAP//wAAAAA///AAAAAH//4AAAAAf//gAAAAD//8AAAAAf//wAAAAD//+AAAAAf//wAAAAD//+AAAAAf//4AAAAD///AAAAAf//4AAAAD///AAAAAf//4AAAAD///AAAAAf//4AAAAH///AAAAA///4AAAAH//+AAAAA///wAAAAH//+AAAAA///wAAAAH//+AAAAA///wAAAAH//+AAAAA///wAAAAH//+AAAAA///wAAAAP//8AAAAB///gAAAAP//8AAAAB///gAAAAH///////+f///////5////////n///////+f///////5////////n///////+f///////5////////n///////+f///////5////////n///////+"],"3":[66.8,54,73,6,-72,"AAD//4AAAAD////wAAB/////+AAH//////gAH//////4AH//////8AH//////+AH///////AH///////gH///////wH///////wH///////wH/4AP///4H+AAB///4HgAAAf//4GAAAAP//4AAAAAP//4AAAAAH//4AAAAAH//4AAAAAH//4AAAAAH//4AAAAAH//4AAAAAH//4AAAAAH//4AAAAAP//wAAAAAP//wAAAAAf//gAAAAB///AAAAAP///AAA/////+AAA/////4AAA/////gAAA////+AAAA////8AAAA/////AAAA/////wAAA/////8AAA/////+AAA//////AAA//////gAA//////wAAAAf///4AAAAB///4AAAAAf//8AAAAAP//8AAAAAH//8AAAAAD//+AAAAAD//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAD//+AAAAAD//+QAAAAH//+8AAAAP//8/AAAAf//8/8AAB///8//wAP///4////////4////////w////////g////////g////////A///////8A///////4A///////wA///////AAP/////4AAAf////AAAAAP//AAAAA=="],"4":[66.8,59,70,4,-70,"AAAAD///AAAAAAP//+AAAAAAf//8AAAAAB///4AAAAAH///wAAAAAP///gAAAAA////AAAAAD///+AAAAAH///8AAAAAf///4AAAAB////wAAAAD////gAAAAP////AAAAA////+AAAAB////8AAAAH////4AAAAf/3//wAAAA//v//gAAAD/+f//AAAAP/4//+AAAAf/h//8AAAB//D//4AAAH/8H//wAAAP/wP//gAAA//gf//AAAD/+A//+AAAP/4B//8AAAf/wD//4AAB//AH//wAAH/8AP//gAAP/4Af//AAA//gA//+AAD/+AB//8AAH/8AD//4AAf/wAH//wAB//AAP//gAD/+AAf//AAP/4AA//+AA//gAB//8AB//AAD//4AH/8AAH//wAf/wAAP//gA//gAAf//AB/+AAA//+AD/////////3/////////v/////////f////////+/////////9/////////7/////////3/////////v/////////f////////+/////////9/////////7/////////wAAAAD//4AAAAAAH//wAAAAAAP//gAAAAAAf//AAAAAAA//+AAAAAAB//8AAAAAAD//4AAAAAAH//wAAAAAAP//gAAAAAAf//AAAAAAA//+AAAAAAB//8AAAAAAD//4AAA=="],"5":[66.8,54,71,7,-70,"H///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH///////AH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//AAAAAAH//H/4AAAH/////gAAH/////8AAH//////AAH//////wAH//////4AH//////8AH//////+AH///////AH///////gH///////wH///////wH/4Af///4H+AAD///4HgAAA///8EAAAAP//8AAAAAP//8AAAAAH//8AAAAAD//+AAAAAD//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAB//+AAAAAD//+AAAAAD//+4AAAAH//8+AAAAP//8/gAAAP//8/4AAA///4//AAD///4//8Af///w////////w////////g////////A////////A///////+A///////4A///////wAP//////gAD/////+AAAf////4AAAB////AAAAAD//gAAAA"],"6":[66.8,57,73,5,-72,"AAAAH/+AAAAAAP///wAAAAP////wAAAH/////gAAD/////8AAA//////gAAf/////8AAH//////gAB//////8AAf//////gAH//////8AB///////gAP///gB/8AD///gAA/gA///wAAA8AH//8AAAAgB//+AAAAAAP//gAAAAAD//8AAAAAAf//AAAAAAD//4AAAAAA//+AAAAAAH//wAAAAAA//8AAAAAAP//gAAAAAB//8Af+AAAP//g///AAB//4f///AAP//P///8AD///////4Af///////gD///////+Af///////4D////////gf///////+D////////wf////////D///+A///4f///AB///j///wAH//8f//8AAf//z///gAB//+f//4AAP//z///AAA//+f//4AAH//z///AAA///P//wAAH//5//+AAA///P//wAAH//5//+AAA///P//wAAH//4//+AAA//+H//4AAH//w///AAA//+H//4AAH//wf//AAB//+D//8AAP//gP//gAD//8B//+AA///gH//4AP//4A///wH///AD///////wAP//////8AB///////gAH//////4AAf/////+AAB//////gAAH/////4AAAP////8AAAA/////AAAAB////gAAAAB///gAAAAAA//AAAAA="],"7":[66.8,54,70,6,-70,"////////+////////+////////+////////+////////+////////+////////+////////+////////+////////+////////+////////+////////8AAAAAD//8AAAAAH//4AAAAAH//4AAAAAH//wAAAAAP//wAAAAAP//gAAAAAf//gAAAAAf//AAAAAA///AAAAAA///AAAAAB//+AAAAAB//+AAAAAD//8AAAAAD//8AAAAAD//4AAAAAH//4AAAAAH//wAAAAAP//wAAAAAP//gAAAAAf//gAAAAAf//gAAAAA///AAAAAA///AAAAAB//+AAAAAB//+AAAAAB//8AAAAAD//8AAAAAD//4AAAAAH//4AAAAAH//wAAAAAP//wAAAAAP//wAAAAAf//gAAAAAf//gAAAAA///AAAAAA///AAAAAA//+AAAAAB//+AAAAAB//8AAAAAD//8AAAAAD//4AAAAAH//4AAAAAH//wAAAAAP//wAAAAAP//wAAAAAP//gAAAAAf//gAAAAAf//AAAAAA///AAAAAA//+AAAAAB//+AAAAAB//8AAAAAD//8AAAAAD//4AAAAAH//4AAAAAH//4AAAAAH//wAAAAA="],"8":[66.8,56,73,5,-72,"AAAH//AAAAAA////gAAAB/////AAAB/////8AAB//////wAA//////+AAf//////wAP//////+AH///////wD///////8A////////gP///////4H///gP///B///gA///wf//gAH//8H//4AA///D//8AAH//w///AAB//8P//wAAf//B//8AAH//wf//AAB//8H//wAAf//B//8AAH//wf//AAB//4D//4AA//+A//+AAf//gH//4AP//wB///gP//4AP//////8AB//////+AAH//////AAA//////gAAD/////gAAAH////AAAAH////8AAAH/////wAAH//////AAH//////4AD///////gB///////8A///4D///AP//wAH//4H//4AA///B//8AAH//w//+AAB//+P//gAAP//n//wAAD//5//8AAA//+f//AAAH//3//wAAB//9//8AAAf//f//AAAH//3//wAAB//9//8AAA///f//AAAP//3//4AAD//9//+AAB//+P//wAAf//j//+AAP//4///wAH//+P///gP///B////////wf///////4D///////+Af///////AD///////gAf//////wAD//////4AAf/////8AAB/////8AAAH////8AAAAP///4AAAAAH//AAAA=="],"9":[66.8,57,73,4,-72,"AAAD/8AAAAAAH//+AAAAAH///8AAAAD////4AAAB/////wAAAf/////AAAH/////8AAB//////4AAf//////AAH//////8AB///////wAP///////AD///gf//4A///gA///gH//4AD//8A//+AAP//wP//wAA//+B//8AAH//4P//gAAf//D//8AAD//4f//gAAf//j//4AAD//8f//AAAf//j//4AAD//8f//AAAf//z//4AAD//+f//AAAf//z//8AAD//+f//gAAf//z//8AAD//+f//gAA///x//+AAH///P//wAB///5///AAf///H//8AH///4///8D////D////////4f////////B////////4H////////A////////wD///////+AP///////wAf//////+AB////3//wAD///4//+AAH//4H//wAAD/4A//8AAAAAAH//gAAAAAB//8AAAAAAP//gAAAAAB//4AAAAAAf//AAAAAAD//4AAAAAA//+AAAAAAP//wAAAAAD//8AEAAAA///gA4AAAP//4AH4AAH///AA/8AH///wAH//////8AA///////AAH//////wAA//////8AAH//////AAA//////wAAH/////8AAA/////+AAAH/////gAAAf////gAAAAP///wAAAAAD//AAAAAA="],":":[38.39,18,53,10,-53,"f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//A"],";":[38.39,22,67,6,-53,"B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//B//8H//wf//B//8H//wf//B//8H//wf//B//8H//wf//B//8H//w//+D//wP//A//4H//Af/8B//gH/8A//wD/+AP/wA//AH/4Af/AB/8AP/gA/8AAA="],"<":[80.44,61,54,10,-57,"AAAAAAAAABAAAAAAAAAHgAAAAAAAAfwAAAAAAAB/4AAAAAAAD/8AAAAAAAP/+AAAAAAA///AAAAAAD///gAAAAAH///wAAAAAf///4AAAAB////8AAAAH////+AAAAf////8AAAA/////wAAAD/////AAAAP////8AAAA/////wAAAD/////AAAAH////8AAAAf////wAAAB/////AAAAH////8AAAAD////wAAAAB////AAAAAA///+AAAAAAf//4AAAAAAP//gAAAAAAH//gAAAAAAD//+AAAAAAB///4AAAAAA////gAAAAAf///+AAAAAP////4AAAAA/////gAAAAD////+AAAAAP////4AAAAB/////gAAAAH////+AAAAAf////4AAAAB/////gAAAAH////+AAAAA/////4AAAAD/////AAAAAP////gAAAAA////wAAAAAD///4AAAAAAf//8AAAAAAB//+AAAAAAAH//AAAAAAAAf/gAAAAAAAD/wAAAAAAAAP4AAAAAAAAA8AAAAAAAAACA=="],"=":[80.44,61,32,10,-46,"//////////f/////////v/////////3/////////7/////////9/////////+//////////f/////////v/////////3/////////7/////////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/////////7/////////9/////////+//////////f/////////v/////////3/////////7/////////9/////////+//////////f/////////g=="],">":[80.44,61,54,10,-57,"wAAAAAAAAAeAAAAAAAAAP4AAAAAAAAH/gAAAAAAAD/+AAAAAAAB//4AAAAAAA///AAAAAAAf//8AAAAAAP///wAAAAAH////AAAAAD////4AAAAB/////gAAAAH////+AAAAAf////4AAAAB/////gAAAAH////8AAAAA/////wAAAAD/////AAAAAP////8AAAAA/////wAAAAD////+AAAAAP////4AAAAA////8AAAAAD///+AAAAAAP///AAAAAAA///gAAAAAAD//wAAAAAAB//4AAAAAAH//8AAAAAAf//+AAAAAB////AAAAAH////gAAAAf////wAAAB/////AAAAH////+AAAAf////4AAAA/////gAAAD////+AAAAP////4AAAA/////wAAAD/////AAAAP////8AAAA/////wAAAAf////gAAAAP///+AAAAAH///4AAAAAD///gAAAAAB//+AAAAAAA//8AAAAAAAf/wAAAAAAAP/AAAAAAAAH8AAAAAAAADwAAAAAAAABgAAAAAAAAAA=="],"?":[55.69,44,70,6,-70,"AAf/4AAAH///4AAf////wAf/////AH/////4B//////gf/////8H//////B//////4f//////H//////x//////+f/wD///n/AAP//5+AAB//+eAAAP//mAAAD//4AAAA//+AAAAH//gAAAD//4AAAA//+AAAAP//gAAAH//4AAAB//+AAAA///AAAAf//wAAAP//4AAAH//8AAAD///AAAB///gAAA///wAAAf//4AAAP//8AAAH//+AAAD///AAAB///gAAA///wAAAP//4AAAH//8AAAB//+AAAAf//AAAAP//wAAAD//4AAAA//+AAAAP//gAAAD//4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//gAAAD//4AAAA//+AAAAP//gAAAD//4AAAA//+AAAAP//gAAAD//4AAAA//+AAAAP//gAAAD//4AAAA//+AAAAP//gAAAD//4AAAA//+AAAAP//gAAAD//4AAA=="],"@":[96.0,84,84,6,-68,"AAAAAA//gAAAAAAAAAAP///gAAAAAAAAD////8AAAAAAAAP/////gAAAAAAA//////4AAAAAAD//////+AAAAAAP///////AAAAAA////////wAAAAB////////4AAAAD///gAf//8AAAAP//4AAA//+AAAAf//AAAAP//gAAA//8AAAAB//wAAB//wAAAAAf/wAAD//AAAAAAP/4AAD/+AAAAAAD/8AAH/4AAAAAAB/+AAP/wAAAAAAA//AAf/gAAAAAAAf/AAf/AAAAAAAAP/gA/+AAAAAAAAH/gA/8AAA/wAAAD/wB/4AAH/+D/wD/wB/4AAf//D/wB/4D/wAA///z/wA/4D/gAB///7/wA/4H/gAD///7/wA/8H/AAH/////wAf8H/AAP/////wAf8P/AAf/////wAf8P+AAf/4H//wAP+P+AA//gB//wAP+f8AA//AA//wAP+f8AA/+AAf/wAP+f8AB/+AAP/wAP+f8AB/8AAP/wAP+f8AB/8AAP/wAP+f4AB/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAP+/4AD/4AAH/wAf8/4AD/4AAH/wAf8f4AB/4AAH/wA/8f8AB/8AAP/wA/4f8AB/8AAP/wB/4f8AB/+AAP/wD/4f8AB/+AAf/wH/wf8AA//AA//wP/gP+AA//gB//wf/gP+AAf/4H//z//AP+AAf///////+AP/AAP///////8AH/AAH///////4AH/gAD///7///wAH/gAB///7///gAD/wAA///z//+AAD/4AAf//D//4AAB/4AAH/+D//AAAB/8AAA/wD/wAAAA/+AAAAAAAAAAAAf/AAAAAAAAAAAAf/gAAAAAAAAAAAP/wAAAAAAAAAAAH/4AAAAAACAAAAH/8AAAAAAGAAAAD//AAAAAAfAAAAB//gAAAAB/gAAAA//4AAAAD/gAAAAf/+AAAAf/wAAAAP//wAAD//4AAAAH///gA///4AAAAB////////wAAAAA////////gAAAAAP//////+AAAAAAH//////4AAAAAAB//////gAAAAAAAf////+AAAAAAAAD////4AAAAAAAAAf///AAAAAAAAAAA//gAAAAA"],"A":[74.3,74,70,0,-70,"AAAAP///AAAAAAAAD///wAAAAAAAB///+AAAAAAAAf///gAAAAAAAH///8AAAAAAAD////AAAAAAAA////wAAAAAAAP///+AAAAAAAH////gAAAAAAB////4AAAAAAA/////AAAAAAAP////wAAAAAAD////+AAAAAAB/////gAAAAAAf////4AAAAAAH/////AAAAAAD/////wAAAAAA//+//8AAAAAAP//P//gAAAAAH//z//4AAAAAB//8f/+AAAAAA//+H//wAAAAAP//h//8AAAAAD//4P//gAAAAB//8D//4AAAAAf//A//+AAAAAH//wH//wAAAAD//4B//8AAAAA//+Af//AAAAAf//gD//4AAAAH//wA//+AAAAB//8AP//wAAAA///AB//8AAAAP//gAf//AAAAD//4AH//4AAAB//+AA//+AAAAf//AAP//gAAAH//wAD//8AAAD//4AAf//AAAA//+AAH//4AAAf//gAA//+AAAH//wAAP//gAAB//8AAD//8AAA///AAAf//AAAP////////wAAD////////+AAB/////////gAAf////////4AAP/////////AAD/////////wAA/////////+AAf/////////gAH/////////4AB//////////AA//////////wAP/////////8AH//////////gB//+AAAAH//4Af//gAAAA///AP//wAAAAP//wD//8AAAAD//8A///AAAAAf//gf//gAAAAH//4H//4AAAAB//+B//8AAAAAP//w///AAAAAD//8P//wAAAAA///n//4AAAAAH//5//+AAAAAB//+f//gAAAAAP//w"],"B":[73.17,59,70,8,-70,"f/////gAAA//////+AAB///////gAD///////4AH///////4AP///////4Af///////4A////////4B////////4D////////4H////////wP////////gf//gAH///g///AAD///B//+AAD//+D//8AAD//8H//4AAH//4P//wAAP//4f//gAAf//w///AAA///B//+AAB//+D//8AAD//8H//4AAH//4P//wAAP//wf//gAA///A///AAD//+B//+AAf//4D////////wH////////AP///////8Af///////wA///////+AB///////4AD///////8AH///////+AP///////+Af///////+A////////+B////////+D//8AAf//+H//4AAP//8P//wAAH//8f//gAAH//4///AAAP//5//+AAAP//z//8AAAf//n//4AAA///P//wAAB//+f//gAAD//8///AAAH//5//+AAAP//z//8AAAf//n//4AAA///P//wAAD//+f//gAAH//8///AAAf//5//+AAD///z//8AAf///H////////+P////////4f////////w/////////B////////8D////////wH////////AP///////8Af///////gA///////8AB///////AAD//////AAAAA=="],"C":[70.45,61,73,4,-72,"AAAAAf/8AAAAAAH///8AAAAAf////wAAAA//////AAAD//////4AAD//////+AAH///////AAH///////gAH///////wAP///////4AP///////8AP///////+AH////////AH////AB//gH///8AAD/wH///4AAAf4D///wAAAB8D///wAAAAeB///wAAAADB///wAAAAAA///wAAAAAA///wAAAAAAf//4AAAAAAP//4AAAAAAP//8AAAAAAH//8AAAAAAD//+AAAAAAB///AAAAAAB///AAAAAAA///gAAAAAAf//wAAAAAAP//4AAAAAAH//8AAAAAAD//+AAAAAAB///AAAAAAA///AAAAAAAf//gAAAAAAP//wAAAAAAH//8AAAAAAD//+AAAAAAB///AAAAAAA///gAAAAAAf//wAAAAAAP//4AAAAAAH//8AAAAAAB///AAAAAAA///gAAAAAAf//wAAAAAAP//8AAAAAAD//+AAAAAAB///gAAAAAA///wAAAAAAP//8AAAAAAH///AAAAAAB///wAAAADA///8AAAAHgP///AAAAHwH///4AAAf4B////AAA/8Af///8AH/+AH////////AD////////gA////////wAP///////4AB///////8AAf//////+AAH///////AAA///////gAAP//////gAAB//////AAAAH////8AAAAAf///wAAAAAAf/8AAA="],"D":[79.69,67,70,8,-70,"f////4AAAAAP/////+AAAAH//////8AAAD///////wAAB///////+AAA////////wAAf///////+AAP////////gAH////////4AD////////+AB/////////gA/////////4Af////////+AP//wAP////gH//4AAf///4D//8AAB///+B//+AAAP///A///AAAD///wf//gAAA///4P//wAAAP//+H//4AAAD///D//8AAAA///h//+AAAAf//4///AAAAH//8f//gAAAD//+P//wAAAA///n//4AAAAf//z//8AAAAP//5//+AAAAH//8///AAAAB//+f//gAAAA///P//wAAAAf//3//4AAAAP//7//8AAAAH//9//+AAAAD//+///AAAAB///f//gAAAA///v//wAAAAf//3//4AAAAP//7//8AAAAH//5//+AAAAD//8///AAAAD//+f//gAAAB///P//wAAAA///n//4AAAAf//z//8AAAAf//x//+AAAAP//4///AAAAP//8f//gAAAH//8P//wAAAH//+H//4AAAH///D//8AAAH///B//+AAAH///g///AAAP///gf//gAAP///wP//wAA////wH//4AH////wD/////////wB/////////wA/////////wAf////////wAP////////wAH////////wAD////////wAB////////gAA////////AAAf//////+AAAP//////4AAAH//////AAAAD/////AAAAAAA="],"E":[65.58,51,70,8,-70,"f///////z///////+f///////z///////+f///////z///////+f///////z///////+f///////z///////+f///////z///////+f///////z//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD///////4f///////D///////4f///////D///////4f///////D///////4f///////D///////4f///////D///////4f///////D///////4f//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD////////f///////7////////f///////7////////f///////7////////f///////7////////f///////7////////f///////7////////A"],"F":[65.58,50,70,8,-70,"f///////3///////9////////f///////3///////9////////f///////3///////9////////f///////3///////9////////f///////3//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf///////H///////x///////8f///////H///////x///////8f///////H///////x///////8f///////H///////x///////8f///////H//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAH//4AAAAB//+AAAAAf//gAAAAA"],"G":[78.8,68,73,4,-72,"AAAAAP//AAAAAAAB////wAAAAAH/////wAAAAH//////gAAAH///////AAAH///////4AAH///////+AAD////////gAB////////4AA////////+AA/////////gAP////////4AH////////+AD////wAP//gB////AAAH/4A////AAAAP+AP///AAAAA/gH///gAAAAD4B///wAAAAAOA///4AAAAAAgP//8AAAAAAAH//+AAAAAAAB///gAAAAAAAf//wAAAAAAAP//8AAAAAAAD//+AAAAAAAA///gAAAAAAAP//4AAAAAAAH//8AAAAAAAB///AAAAAAAAf//wAAAAAAAH//8AAAAAAAB///AAAAAAAAf//wAAD////3//8AAA////9//+AAAP////f//gAAD////3//4AAA////9//+AAAP////f//wAAD////3//8AAA////9///AAAP////f//wAAD////3//8AAA////9///AAAP////P//4AAAAH//z//+AAAAB//8///gAAAAf//P//8AAAAH//x///AAAAB//8f//4AAAAf//H//+AAAAH//w///wAAAB//8P//+AAAAf//B///wAAAH//wf//+AAAB//8D///wAAAf//A////AAAH//wH///8AAD//8A////8AH///AH/////////wB/////////8AP/////////AB/////////wAH////////8AA/////////AAH////////gAAf///////gAAD///////gAAAP//////AAAAAf////+AAAAAA////4AAAAAAAf/+AAAA"],"H":[80.34,64,70,8,-70,"f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f/////////9//////////3//////////f/////////9//////////3//////////f/////////9//////////3//////////f/////////9//////////3//////////f/////////9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//9//+AAAAf//3//4AAAB///f//gAAAH//8="],"I":[35.72,19,70,8,-70,"f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//9//+///f//v//3//7//8A="],"J":[35.72,33,89,-6,-70,"AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AA///AAH//4AB///AAP//4AB//+AAf//wAD//+AA///wAP//8AD///gD///8f////D////4f///+D////wf///8D////Af///wD///8Af//+AD///gAf//gAD//gAAf/AAAAA="],"K":[74.39,70,70,8,-70,"f//gAAAP//+B//+AAAB///wH//4AAAP//+Af//gAAB///wB//+AAAP//+AH//4AAB///wAf//gAAP//+AB//+AAB///wAH//4AAP//+AAf//gAB///wAB//+AAP//+AAH//4AB///wAAf//gAP//+AAB//+AB///wAAH//4AP//+AAAf//gB///wAAB//+AP//+AAAH//4B///wAAAf//gP//+AAAB//+B///wAAAH//4P//+AAAAf//h///wAAAB//+P//+AAAAH//5///wAAAAf//v//+AAAAB//////wAAAAH/////+AAAAAf/////wAAAAB/////+AAAAAH/////wAAAAAf////+AAAAAB/////wAAAAAH////+AAAAAAf////4AAAAAB/////gAAAAAH/////gAAAAAf/////AAAAAB/////+AAAAAH/////8AAAAAf/////4AAAAB//////wAAAAH//////gAAAAf//////AAAAB//+///+AAAAH//5///8AAAAf//j///4AAAB//+H///wAAAH//4P///gAAAf//gf///AAAB//+A///+AAAH//4B///8AAAf//gD///4AAB//+AH///wAAH//4AP///gAAf//gAf///AAB//+AA///+AAH//4AB///8AAf//gAD///4AB//+AAH///wAH//4AAP///gAf//gAAf///AB//+AAA///+AH//4AAB///8Af//gAAD///4B//+AAAH///wH//4AAAP///gf//gAAAf///B//+AAAA///+H//4AAAB///8f//gAAAD///4A=="],"L":[61.17,51,70,8,-70,"f//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD//8AAAAAf//gAAAAD////////f///////7////////f///////7////////f///////7////////f///////7////////f///////7////////f///////7////////A"],"M":[95.53,79,70,8,-70,"f///AAAAAP///v///gAAAAP///3///4AAAAH///7///8AAAAH///9////AAAAD///+////gAAAD////f///4AAAB////v///8AAAA////3///+AAAA////7////gAAAf///9////wAAAf///+////8AAAP////f///+AAAP////v////AAAH////3////wAAD////7////4AAD////9////+AAB////+/////AAB/////f////wAA/////v////4AA/////3//3/8AAf/7//7//7//AAP/9//9//9//gAP/8//+//+f/4AH/+f//f//P/8AH/+P//v//j//AD//H//3//x//gD//D//7//4f/wB//h//9//8P/8A//w//+//+H/+A//wf//f//B//gf/4P//v//g//wf/4H//3//wP/4P/8D//7//4H/+H/8B//9//8B//H/+A//+//+A//z//Af//f//Af/7//AP//v//gH////gH//3//wD////gD//7//4A////wB//9//8Af///wA//+//+AP///4Af//f//AD///8AP//v//gB///8AH//3//wAf//+AD//7//4AP//+AB//9//8AD///AA//+//+AB///gAf//f//AA///gAP//v//gAP//wAH//3//wAH//wAD//7//4AB//4AB//9//8AA//4AA//+//+AAP/8AAf//f//AAH/+AAP//v//gAD/+AAH//3//wAA//AAD//7//4AAAAAAB//9//8AAAAAAA//+//+AAAAAAAf//f//AAAAAAAP//v//gAAAAAAH//3//wAAAAAAD//7//4AAAAAAB//9//8AAAAAAA//+//+AAAAAAAf//f//AAAAAAAP//v//gAAAAAAH//3//wAAAAAAD//7//4AAAAAAB//8A="],"N":[80.34,64,70,8,-70,"f//4AAAD//9///wAAAP//3///AAAA///f//+AAAD//9///4AAAP//3///wAAA///f///AAAD//9///+AAAP//3///4AAA///f///wAAD//9////gAAP//3///+AAA///f///8AAD//9////wAAP//3////gAA///f///+AAD//9////8AAP//3////wAA///f////gAD//9////+AAP//3////8AA///f////wAD//9/////gAP//3//3/+AA///f//f/8AD//9//8//wAP//3//z//gA///f//H//AD//9//8f/8AP//3//w//4A///f//D//gD//9//8H//AP//3//wf/8A///f//A//4D//9//8B//gP//3//wH//A///f//AP/8D//9//8A//4P//3//wB//g///f//AH//D//9//8AP/8P//3//wA//4///f//AB//j//9//8AH//P//3//wAP/+///f//AA//7//9//8AB/////3//wAH/////f//AAP////9//8AAf////3//wAB/////f//AAD////9//8AAP////3//wAAf////f//AAB////9//8AAD////3//wAAP////f//AAAf///9//8AAB////3//wAAD////f//AAAP///9//8AAAf///3//wAAB////f//AAAD///9//8AAAP///3//wAAAf///f//AAAA///9//8AAAD///3//wAAAH///f//AAAAf//8="],"O":[81.61,73,73,4,-72,"AAAAA//wAAAAAAAAP///wAAAAAAA/////AAAAAAD/////4AAAAAH//////AAAAAH//////4AAAAP//////+AAAAP///////wAAAP///////8AAAP////////AAAP////////wAAP////////8AAP/////////AAP///4A////gAH///wAD///4AH///gAAf//+AH///AAAH///AD///AAAB///wD///gAAAf//4B///gAAAH//+B///gAAAD///A///wAAAA///gf//wAAAAP//4f//4AAAAH//8P//4AAAAD//+H//8AAAAA///j//+AAAAAf//x//+AAAAAP//5///AAAAAH//8///gAAAAB//+f//wAAAAA///P//4AAAAAf//3//8AAAAAP//7//+AAAAAH//9//+AAAAAD//+///AAAAAB///f//gAAAAA///v//wAAAAAf//3//4AAAAAP//7//+AAAAAH//9///AAAAAD//+///gAAAAB///f//wAAAAA///P//4AAAAAf//n//8AAAAAf//x//+AAAAAP//4///gAAAAH//8f//wAAAAD//+P//4AAAAD//+H//+AAAAB///B///AAAAA///g///wAAAA///gf//4AAAAf//wH//+AAAAf//4D///gAAAf//4A///wAAAf//8Af//8AAAf//8AH///gAAf//+AB///8AA///+AA////gD///+AAP/////////AAD/////////AAA/////////AAAP////////AAAD////////AAAA////////AAAAP//////+AAAAB//////+AAAAAf/////8AAAAAD/////4AAAAAAP////wAAAAAAA////AAAAAAAAA//wAAAAAA=="],"P":[70.36,59,70,8,-70,"f/////wAAA///////AAB///////gAD///////4AH///////4AP///////8Af///////8A////////8B////////8D////////8H////////4P////////4f////////w///AAP///x//+AAH///j//8AAD///H//4AAD///P//wAAH//+f//gAAH//8///AAAP//5//+AAAP//z//8AAAf//n//4AAA///P//wAAB//+f//gAAD//8///AAAH//5//+AAAf//z//8AAA///n//4AAD///P//wAAH//+f//gAAf//4///AAD///x//+AAf///j////////+H////////8P////////wf////////g////////+B////////4D////////gH///////+AP///////wAf///////AA///////wAB//////+AAD/////+AAAH//4AAAAAAP//wAAAAAAf//gAAAAAA///AAAAAAB//+AAAAAAD//8AAAAAAH//4AAAAAAP//wAAAAAAf//gAAAAAA///AAAAAAB//+AAAAAAD//8AAAAAAH//4AAAAAAP//wAAAAAAf//gAAAAAA///AAAAAAB//+AAAAAAD//8AAAAAAH//4AAAAAAP//wAAAAAAf//gAAAAAA///AAAAAAB//+AAAAAAD//8AAAAAAAA=="],"Q":[81.61,73,86,4,-72,"AAAAA//wAAAAAAAAP///wAAAAAAA/////AAAAAAD/////4AAAAAH//////AAAAAH//////4AAAAP///////AAAAP///////wAAAP///////8AAAP////////AAAP////////wAAP////////8AAP/////////AAP///4A////gAH///wAD///4AH///gAAf//+AH///AAAH///AD///AAAB///wD///gAAAf//4B///gAAAH//+A///gAAAD///A///wAAAA///gf//wAAAAP//4P//4AAAAH//8P//4AAAAD//+H//8AAAAA///j//+AAAAAf//x//+AAAAAP//5///AAAAAH//8///gAAAAB//+f//wAAAAA///P//4AAAAAf//3//8AAAAAP//7//+AAAAAH//9//+AAAAAD//+///AAAAAB///f//gAAAAA///v//wAAAAAf//3//4AAAAAP//7//+AAAAAH//9///AAAAAD//+///gAAAAB///f//wAAAAA///P//4AAAAAf//n//8AAAAAf//x//+AAAAAP//4///gAAAAH//8f//wAAAAD//+P//4AAAAD//+H//+AAAAB///B///AAAAA///g///gAAAA///gf//4AAAAf//wH//+AAAAf//4D///AAAAf//4A///wAAAf//8Af//8AAAf//8AH///gAAf//8AD///4AA///+AA////gD///+AAP////////+AAD/////////AAA/////////AAAP////////AAAD////////AAAA///////+AAAAP//////+AAAAB//////+AAAAAf/////8AAAAAD/////4AAAAAAP////8AAAAAAA/////AAAAAAAA////gAAAAAAAAD//4AAAAAAAAA//+AAAAAAAAAP//gAAAAAAAAD//4AAAAAAAAA//+AAAAAAAAAP//gAAAAAAAAH//4AAAAAAAAB//8AAAAAAAAAf//AAAAAAAAAH//wAAAAAAAAB//8AAAAAAAAAf//AAAAAAAAAH//wA="],"R":[73.92,64,70,8,-70,"f/////AAAAB//////8AAAH//////+AAAf//////+AAB///////8AAH///////8AAf///////4AB////////wAH////////AAf///////+AB////////4AH////////wAf////////AB//+AB///8AH//4AA///4Af//gAB///gB//+AAD//+AH//4AAP//4Af//gAAf//gB//+AAB//+AH//4AAH//4Af//gAAf//gB//+AAB//+AH//4AAH//4Af//gAAf//gB//+AAB//8AH//4AAP//wAf//gAA///AB//+AAH//4AH//4AA///gAf//gAf//8AB////////gAH///////8AAf///////gAB///////8AAH///////AAAf//////wAAB//////8AAAH//////8AAAf//////8AAB///////4AAH///////wAAf///////gAB////////AAH//4A///+AAf//gA///4AB//+AA///wAH//4AB///gAf//gAD//+AB//+AAP//8AH//4AAf//wAf//gAB///gB//+AAD//+AH//4AAH//8Af//gAAf//wB//+AAA///gH//4AAD//+Af//gAAH//8B//+AAAf//wH//4AAA///gf//gAAD//+B//+AAAH//8H//4AAAf//wf//gAAA///h//+AAAD//+H//4AAAH//8f//gAAAf//x//+AAAA///n//4AAAD//+f//gAAAH//8="],"S":[69.14,57,73,6,-72,"AAAP/+AAAAAAf///8AAAAf////+AAAP//////AAH//////8AB///////gAf//////8AH///////gB///////8Af///////gD///////8A////////gH///////8B///4AH//gP//4AAB/8B//8AAAA/gf//AAAAA8D//4AAAABAf/+AAAAAAD//wAAAAAAf/+AAAAAAD//wAAAAAAf//AAAAAAD//4AAAAAAf//gAAAAAD///AAAAAAf//+AAAAAB////AAAAAP////wAAAB/////8AAAH/////8AAA//////8AAD//////8AAf//////4AB///////gAH//////+AAf//////4AB///////gAD//////+AAH//////4AAP//////AAAP/////8AAAH/////gAAAD////8AAAAA////wAAAAA///+AAAAAB///wAAAAAD//+AAAAAAP//wAAAAAB//+AAAAAAP//wAAAAAA//+AAAAAAH//xAAAAAA//+eAAAAAP//z8AAAAB//+f4AAAAf//j/4AAAH//8f/4AAB///j//+AB///8f////////D////////4f///////+D////////wf///////8D////////Af///////wD///////8AH///////AAH//////gAAH/////wAAAB////wAAAAAP//AAAAA="],"T":[65.48,65,70,0,-70,"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+AAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAAAAAP//wAAAAAAAf//gAAAAAAA///AAAAAAAB//+AAAAAAAD//8AAAAAAAH//4AAAA="],"U":[77.95,62,71,8,-70,"f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//4AAAH//5//+AAAB//+f//gAAAf//n//8AAAP//4///AAAD//8P//wAAA///D//+AAAf//w///gAAH//8H//8AAD//+B///gAB///gf//8AA///4D///4B///8A/////////AH////////gA////////wAP///////8AB///////+AAP///////AAB///////gAAP//////wAAA//////wAAAD/////wAAAAP////wAAAAAf///gAAAAAAP/8AAAAA="],"V":[74.3,74,70,0,-70,"f//gAAAAAP//3//4AAAAAH//5///AAAAAB//+P//wAAAAA///j//8AAAAAP//wf//gAAAAD//8H//4AAAAB//+B//+AAAAAf//gP//wAAAAH//4D//8AAAAD//8A///AAAAA///AH//4AAAAP//wB//+AAAAH//4Af//gAAAB//+AD//8AAAA///AA///AAAAP//wAH//4AAAD//8AB//+AAAB//+AAf//gAAAf//gAD//8AAAH//4AA///AAAD//8AAP//wAAA///AAB//+AAAP//gAAf//gAAH//4AAD//4AAB//+AAA///AAAf//AAAP//wAAP//wAAB//8AAD//8AAAf//gAB//+AAAH//4AAf//gAAA///AAH//4AAAP//wAD//8AAAB//8AA///AAAAf//gAP//gAAAH//4AH//4AAAA//+AB//+AAAAP//wAf//AAAAD//8AP//wAAAAf//AD//8AAAAH//4A//+AAAAB//+Af//gAAAAP//wH//wAAAAD//8D//8AAAAAf//A///AAAAAH//4P//gAAAAB//+H//4AAAAAP//h//+AAAAAD//8f//AAAAAA///P//wAAAAAH//z//4AAAAAB//+//+AAAAAAP/////gAAAAAD/////wAAAAAA/////8AAAAAAH/////AAAAAAB/////gAAAAAAf////4AAAAAAD////+AAAAAAA/////AAAAAAAP////wAAAAAAB////4AAAAAAAf///+AAAAAAAD////gAAAAAAA////wAAAAAAAP///8AAAAAAAB////AAAAAAAAf///gAAAAAAAH///4AAAAAAAA///8AAAAAAAAP///AAAAA"],"W":[105.89,101,70,2,-70,"f//AAAA///AAAA//+///AAAB//+AAAD//9//+AAAD//8AAAH//x//8AAAP//4AAAP//j//4AAAf//4AAAf//H//wAAA///wAAB//+P//wAAB///gAAD//4P//gAAH///AAAH//wf//AAAP///AAAP//g//+AAAf//+AAA///B//+AAA///8AAB//8B//8AAB///4AAD//4D//4AAH///4AAH//wH//wAAP///wAAP//gP//wAAf///gAA//+AP//gAA////AAB//8Af//AAD////AAD//4A//+AAH///+AAH//wB//+AAP/3/8AAf//gD//8AAf/n/4AA//+AD//4AB//P/wAB//8AH//wAD/+f/wAD//4AP//wAH/8//gAP//wAf//gAP/x//AAf//AAf//AA//h/+AA//+AA//+AB//D/+AB//8AB//8AD/+H/8AH//4AD//8AH/4P/4AP//gAD//4AP/wP/wAf//AAH//wA//gf/wA//+AAP//gB//A//gD//8AAf//gD/8B//AH//wAAf//AH/4B/+AP//gAA//+Af/wD/+Af//AAB//8A//gH/8A//+AAD//8B/+AP/4D//8AAD//4D/8AP/wH//wAAH//wP/4Af/gP//gAAP//gf/wA//gf//AAAf//g//gB//B//+AAA///B/+AB/+D//4AAA//+H/8AD/8H//wAAB//8P/4AH/8P//gAAD//4f/wAP/4///AAAH//4//AAf/x//8AAAH//x/+AAf/j//4AAAP//n/8AA//n//wAAAf//P/4AB//f//gAAA///f/gAD/+//+AAAA//+//AAD/9//8AAAB////+AAH////4AAAD////8AAP////wAAAH////wAAf////gAAAH////gAAf///+AAAAP////AAA////8AAAAf///+AAB////4AAAA////4AAD////wAAAA////wAAD////AAAAB////gAAH///+AAAAD////AAAP///8AAAAH///+AAAf///4AAAAP///4AAAf///gAAAAP///wAAA////AAAAAf///gAAB///+AAAAA////AAAD///8AAAAB///8AAAD///wAAAAB///4AAAH///gAAAAD///wAAAP///AAAAAH///gAAAf//+AAAAAP//+AAAA///8AAA="],"X":[74.02,72,70,1,-70,"P//4AAAAH//8H//8AAAAP//4H//8AAAAP//wD//+AAAAf//wB///AAAA///gA///AAAB///AA///gAAB///AAf//wAAD//+AAP//wAAH//8AAP//4AAH//8AAH//8AAP//4AAD//8AAf//wAAD//+AAf//wAAB///AA///gAAA///AB///AAAA///gB///AAAAf//wD//+AAAAP//4H//8AAAAP//4H//8AAAAH//8P//4AAAAD//+f//wAAAAD//+f//wAAAAB//////gAAAAA//////AAAAAA/////+AAAAAAf////+AAAAAAP////8AAAAAAP////4AAAAAAH////4AAAAAAD////wAAAAAAB////gAAAAAAB////gAAAAAAA////AAAAAAAAf//+AAAAAAAAf//+AAAAAAAA////AAAAAAAA////AAAAAAAB////gAAAAAAD////wAAAAAAD////wAAAAAAH////4AAAAAAP////8AAAAAAP////8AAAAAAf////+AAAAAA//////AAAAAB//////AAAAAB//////gAAAAD//+f//wAAAAH//8P//wAAAAH//8P//4AAAAP//4H//8AAAAf//wD//+AAAAf//wD//+AAAA///gB///AAAB///AA///gAAB///AA///gAAD//+AAf//wAAH//8AAP//4AAH//8AAP//4AAP//4AAH//8AAf//wAAD//+AAf//gAAD//+AA///gAAB///AB///AAAA///gB//+AAAAf//gD//+AAAAf//wH//8AAAAP//4H//4AAAAH//4P//4AAAAH//8f//wAAAAD//+"],"Y":[69.52,72,70,-1,-70,"///wAAAAH//+f//4AAAAH//8P//4AAAAP//8P//8AAAAf//4H//+AAAAf//wD//+AAAA///wD///AAAA///gB///gAAB///gA///gAAD///AA///wAAD//+AAf//4AAH//+AAP//4AAP//8AAP//8AAP//4AAH//8AAf//4AAD//+AA///wAAD///AA///gAAB///AB///gAAA///gD///AAAA///wD//+AAAAf//wH//+AAAAP//4H//8AAAAP//8P//4AAAAH//8f//4AAAAD//+f//wAAAAD//////gAAAAB//////gAAAAA//////AAAAAA/////+AAAAAAf////+AAAAAAf////8AAAAAAP////4AAAAAAH////4AAAAAAH////wAAAAAAD////gAAAAAAB////gAAAAAAB////AAAAAAAA///+AAAAAAAAf//+AAAAAAAAf//8AAAAAAAAP//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAAAAAAH//4AAAA"],"Z":[69.61,62,70,4,-70,"f/////////H/////////x/////////8f/////////H/////////x/////////8f/////////H/////////x/////////8f/////////H/////////x/////////8f////////+AAAAAAH///AAAAAAB///gAAAAAA///4AAAAAAf//8AAAAAAP//+AAAAAAH///AAAAAAB///gAAAAAA///wAAAAAAf//8AAAAAAP//+AAAAAAH///AAAAAAD///gAAAAAA///wAAAAAAf//8AAAAAAP//+AAAAAAH///AAAAAAD///gAAAAAA///wAAAAAAf//8AAAAAAP//+AAAAAAH///AAAAAAD///gAAAAAB///wAAAAAAf//4AAAAAAP//+AAAAAAH///AAAAAAD///gAAAAAB///wAAAAAAf//4AAAAAAP//+AAAAAAH///AAAAAAD///gAAAAAB///wAAAAAA///4AAAAAAP//8AAAAAAH///AAAAAAD///gAAAAAB///wAAAAAA///4AAAAAAP//8AAAAAAH///AAAAAAD///gAAAAAB///wAAAAAA///4AAAAAAf/////////n/////////7/////////+//////////v/////////7/////////+//////////v/////////7/////////+//////////v/////////7/////////+//////////g"],"[":[43.88,30,86,8,-73,"////+////+////+////+////+////+////+////+////+////+////+//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA//8AA////+////+////+////+////+////+////+////+////+////+////+A="],"\\":[35.06,36,79,0,-70,"/+AAAA/+AAAAf+AAAAf+AAAAf/AAAAP/AAAAP/AAAAP/gAAAH/gAAAH/gAAAH/wAAAD/wAAAD/wAAAD/4AAAB/4AAAB/4AAAB/8AAAB/8AAAA/8AAAA/8AAAA/+AAAAf+AAAAf+AAAAf/AAAAP/AAAAP/AAAAP/gAAAH/gAAAH/gAAAH/wAAAD/wAAAD/wAAAD/4AAAD/4AAAB/4AAAB/4AAAB/8AAAA/8AAAA/8AAAA/+AAAAf+AAAAf+AAAAf/AAAAP/AAAAP/AAAAP/gAAAH/gAAAH/gAAAH/wAAAH/wAAAD/wAAAD/wAAAD/4AAAB/4AAAB/4AAAB/8AAAA/8AAAA/8AAAA/+AAAAf+AAAAf+AAAAf/AAAAP/AAAAP/AAAAP/gAAAP/gAAAH/gAAAH/gAAAH/wAAAD/wAAAD/wAAAD/4AAAB/4AAAB/4AAAB/8AAAA/8AAAA/8AAAA/+AAAA/+A="],"]":[43.88,30,86,6,-73,"f////f////f////f////f////f////f////f////f////f////f////AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//AAP//f////f////f////f////f////f////f////f////f////f////f////A="],"^":[80.44,62,26,9,-70,"AAAAf/gAAAAAAAP/8AAAAAAAH//gAAAAAAD//8AAAAAAB///gAAAAAA///8AAAAAAf///gAAAAAP///8AAAAAH////gAAAAD////8AAAAB/////gAAAAf////8AAAAP//P//gAAAH//h//8AAAD//wH//gAAB//wA//8AAA//4AH//gAAf/8AAf/8AAP/8AAD//gAH/+AAAP/8AD//AAAB//AB//AAAAP/4A//gAAAA//Af/gAAAAH/4P/wAAAAA//H/4AAAAAD/4A=="],"_":[48.0,48,9,0,14,"////////////////////////////////////////////////////////////////////////"],"`":[48.0,27,18,4,-77,"f/wAB//AAH/8AAf/gAB/+AAH/4AAf/AAB/8AAH/wAAf/AAD/4AAP/gAA/+AAD/4AAP/AAA/8AAD/wAAP/A=="],"a":[64.78,54,56,4,-55,"AAD//8AAAAP////4AAB//////AAB//////wAB//////4AB//////+AB///////AB///////AB///////gB///////wB///////wB/+AB///4B/AAAP//4BwAAAD//8BAAAAB//8AAAAAB//8AAAAAA//8AAAAAA//+AAAAAA//+AAAAAA//+AAAAAA//+AAA/////+AAf/////+AD//////+AP//////+A///////+B///////+D///////+H///////+P///////+P///////+f//+AA//+f//wAA//+f//gAA//+f//AAA//+///AAA//+//+AAA//+//+AAA//+//+AAB//+//+AAB//+//+AAD//+///AAH//+///gAP//+f//wAf//+f//8D///+f///////+P///////+P///////+H////+//+D////8//+D////4//+A////w//+Af///g//+AP//+A//+AD//4A//+AAP/AAAAA"],"b":[68.72,57,74,8,-73,"//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AB/4AAH//wB//4AA//+A///wAH//wf///gA//+H///+AH//x////4A//+f////gH//3////+A////////4H////////A////////8H////////w////gf//+H///gAf//4///4AB///H//+AAH//4///wAA///n//8AAD//8///AAAf//n//4AAB//+///AAAP//3//4AAB//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+///AAAP//3//4AAB//+///AAAP//3//4AAD//8///gAAf//n//+AAH//8///wAA///H///AAP//4///8AD///H///8D///w////////+H////////g////////4H////////A//+/////wH//z////8A//+P////AH//w////wA//+D///8AH//wH//+AA//+AP//AAAAAAAP/AAAA"],"c":[56.91,47,56,4,-55,"AAAB//gAAAA///+AAAP////gAB/////gAP/////AA/////+AH/////8Af/////4B//////wH//////gf//////A//////+D///8Af8P///AAH4f//8AADx///gAABj//+AAAAH//8AAAAf//wAAAA///AAAAB//+AAAAD//8AAAAH//wAAAAf//gAAAA///AAAAB//+AAAAD//8AAAAH//4AAAAP//wAAAAf//gAAAA///AAAAB//+AAAAD//8AAAAD//4AAAAH//4AAAAP//wAAAAf//gAAAA///gAAAA///gAAAB///AAAAD///AAADD///gAAOH///gAB8H///4A/4H//////wP//////gP//////AP/////+AP/////8AP/////4AH/////wAH/////gAD/////AAB////8AAAf///AAAAD//AA="],"d":[68.72,57,74,4,-73,"AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAA/4AD//4AA//8Af//AAf//4D//4AP///gf//AD////D//4A////8f//AP////z//4D/////f//A////////4P////////B////////4f////////D///gP///4///wAf///H//8AA///5///AAH///P//wAAf//5//+AAB///f//gAAP//7//8AAA///f//gAAH//7//4AAA///f//AAAH//7//4AAA//////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf//f//AAAH//7//4AAA///f//AAAH//7//8AAA///f//gAAH//7//8AAB///P//wAAP//5//+AAD///P//4AA///4///gAH///H//+AD///4f//8B////D////////4P////////B////////4H////////Af////7//4B////+f//AH////j//4Af///4f//AB///8D//4AD///Af//AAH//gD//4AAH/AAAAAA"],"e":[65.11,57,56,4,-55,"AAAB/+AAAAAAH///AAAAAD////AAAAD////+AAAA/////4AAAf/////wAAH//////AAB//////8AAf//////wAH///////AB///////8AP//+B///gD//+AB//+A///gAH//wH//4AAf//B//+AAB//4P//gAAP//h//8AAB//8f//AAAH//j//4AAA//+f//AAAH//z//4AAA//+f////////3////////+/////////3////////+/////////3////////+/////////3////////+/////////3////////+//+AAAAAAD//wAAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//8AAAAAAP//gAAAAAB//+AAAAAIP//wAAAAHA///AAAAD4H//+AAAD/Af//4AAD/4B///4AP//AP///////4A////////AD///////4AP///////AA///////4AD///////AAH//////4AAP/////8AAAf////8AAAAf///wAAAAAP/+AAA"],"f":[41.77,42,73,1,-73,"AAAD///AAAf///AAD////AAH////AAf////AAf////AA/////AB/////AB/////AD/////AD/////AD//+AAAH//4AAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAf/////8f/////8f/////8f/////8f/////8f/////8f/////8f/////8f/////8f/////8f/////8f/////8AH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAAH//wAAA"],"g":[68.72,57,76,4,-55,"AAA/4AAAAAAA//8AAAAAAf//4D//4AP///gf//AD////D//4A////8f//AP////z//4D/////f//A////////4P////////B////////4f////////D///gP///4///wAf///H//8AB///5///AAH///P//wAAf//5//+AAB///f//gAAP//7//8AAA///f//gAAH//7//4AAA///f//AAAH//7//4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD//7//4AAAf//f//AAAH//7//4AAA///f//gAAH//7//8AAA///f//gAAP//5//+AAB///P//wAAf//5///AAH///H//8AB///4///wAf///D///gP///4f////////B////////4P////////A////////4D/////f//AP////z//4A////8f//AD////D//4AP///gf//AAf//4D//4AA//8Af/+AAA/4AH//wAAAAAA//+AAAAAAH//wAAAAAB//+AAAAAAP//gAAAAAD//8AQAAAAf//gDgAAAH//4AfAAAD///AD/AAA///wAf/gB///+AD///////gAf//////4AD//////+AAf//////gAD//////4AAf/////+AAD//////AAAf/////wAAB/////wAAAA////wAAAAAH//AAAAA="],"h":[68.34,53,73,8,-73,"//+AAAAAB//8AAAAAD//4AAAAAH//wAAAAAP//gAAAAAf//AAAAAA//+AAAAAB//8AAAAAD//4AAAAAH//wAAAAAP//gAAAAAf//AAAAAA//+AAAAAB//8AAAAAD//4AAAAAH//wAAAAAP//gAAAAAf//AAAAAA//+AA/4AB//8Af/+AD//4D///AH//wP///gP//h////gf//H////g//+f////h//9/////D////////H///////+P///////+f///////8////////9////A///7///4Af//3///AAf//v//8AAf//f//4AA//////gAB//////AAB/////8AAD/////4AAH/////wAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA//+A=="],"i":[32.91,17,73,8,-73,"///////////////////////////////////////8AAAAAAAAAAAAAAAAD/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+A"],"j":[32.91,29,94,-4,-73,"AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf//AA//+AB//8AD//4AH//wAP//gAf/+AB//8AD//4AP//wA///gD//+P///8f///w////h///+D///8H///wP///Af//4A///gB//8AD/+AAA="],"k":[63.84,58,73,8,-73,"//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAAAAA//+AAAAAAD//4AAAAAAP//gAAP//4//+AAB///D//4AAP//4P//gAB///A//+AAP//4D//4AB///AP//gAP//4A//+AB///AD//4AP//4AP//gB///AA//+AP//4AD//4B///AAP//gP//wAA//+B//+AAD//4P//wAAP//h//+AAA//+P//wAAD//5//+AAAP//v//wAAA/////+AAAD/////wAAAP////+AAAA/////wAAAD////+AAAAP////wAAAA/////gAAAD/////AAAAP////+AAAA/////8AAAD/////4AAAP/////wAAA//////gAAD//7///AAAP//n//+AAA//+P//8AAD//4f//4AAP//g///wAA//+B///gAD//4D///AAP//gH//+AA//+AP//8AD//4Af//4AP//gA///wA//+AB///gD//4AH//+AP//gAP//8A//+AAf//4D//4AA///wP//gAB///g//+AAD///D//4AAH//+P//gAAP//8//+AAAf//4A="],"l":[32.91,17,73,8,-73,"//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+A"],"m":[100.03,86,55,7,-55,"AAAAA/wAAAH/AAAAAAB//gAAf/+AB//8B//+AAf//4Af//B///4AP///AH//w////AH///8B//8f///4D////Af//P////B////4H//3////w/////B///////+f////4f///////v////+H/////////////h/////////////8f/////////////H///4H////g///x///4A////gD//+f//8AH///wAf//n//+AA///4AH//5///AAP//8AA//+f//wAD///AAP//n//4AA///gAD//5//+AAP//4AA//+f//gAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//n//wAAf//AAB//5//8AAH//wAAf/+f//AAB//8AAH//gA=="],"n":[68.34,53,55,8,-55,"AAAAA/4AAAAAAf/+AD//4D///AH//wP///gP//h////gf//H////g//+f////h//9/////D////////H///////+P///////+f///////8////////9////A///7///4Af//3///AAf//v//8AAf//f//4AA//////gAB//////AAB/////8AAD/////4AAH/////wAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA//+A="],"o":[65.95,58,56,4,-55,"AAAD//AAAAAAD///wAAAAB////4AAAAf////4AAAD/////wAAA//////wAAH//////gAA///////AAH//////+AA///////8AH///////4A////////wD///wP///Af//4AH//+B///AAP//4P//4AAf//w///AAA///D//8AAD//8f//gAAH//5//+AAAf//n//4AAB//+f//AAAD//5//8AAAP//v//wAAA//////AAAD/////8AAAP/////wAAA//////AAAD/////8AAAP/////wAAA//////AAAD/////8AAAP/////wAAA///f//AAAD//5//8AAAP//n//4AAB//+f//gAAH//5//+AAAf//j//8AAD//8P//wAAP//w///gAB///B///AAP//4H//+AB///gP///Af//8A////////wB///////+AD///////wAH//////+AAP//////wAAf/////+AAA//////wAAA/////+AAAB/////gAAAB////4AAAAA///8AAAAAAP/8AAAA=="],"p":[68.72,57,75,8,-55,"AAAAB/4AAAAAAB//4AA//+A///wAH//wf///gA//+H///+AH//x////4A//+f////gH//3////+A////////4H////////A////////8H////////w////gf//+H///gAf//4///4AB///H//+AAH//4///wAA///n//8AAD//8///AAAf//n//4AAB//+///AAAP//3//4AAB//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+//+AAAH//3//wAAA//+///AAAP//3//4AAB//+///AAAP//3//4AAD//8///gAAf//n//+AAH//8///wAA///H///AAP//4///8AD///H///8D///w////////+H////////g////////4H////////A//+/////wH//z////8A//+P////AH//w////wA//+D///8AH//wH//+AA//+AP//AAH//wAP/AAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAH//wAAAAAA//+AAAAAAAA=="],"q":[68.72,57,75,4,-55,"AAA/4AAAAAAA//8AAAAAAf//4D//4AP///gf//AD////D//4A////8f//AP////z//4D/////f//A////////4P////////B////////4f////////D///gP///4///wAf///H//8AA///5///AAH///P//wAAf//5//+AAB///f//gAAP//7//8AAA///f//gAAH//7//4AAA///f//AAAH//7//4AAA//////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf/////AAAD/////4AAAf//f//AAAH//7//4AAA///f//AAAH//7//8AAA///f//gAAH//7//8AAB///P//wAAP//5//+AAD///P//4AA///4///gAH///H//+AD///4f//8B////D////////4P////////B////////4H////////Af////7//4B////+f//AH////j//4Af///4f//AB///8D//4AD///Af//AAH//gD//4AAH/AAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//4A=="],"r":[47.34,40,55,8,-55,"AAAAB/4AAAA//v//gP/+//+B//7//4f//v//j//+//+f//7//5///v//v//+//////7//////v/////+//////7////AHv///wAC///8AAD///gAAP//8AAA///wAAD//+AAAP//wAAA///AAAD//8AAAP//wAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAD//4AAAP//gAAA//+AAAA="],"s":[57.14,49,56,4,-55,"AAB//wAAAAf///4AAA/////4AB//////AD//////gD//////wD//////4D//////8B//////+B///////A///////gf//gA//wf//AAA/4P//AAAD8H//AAAAOD//gAAABB//wAAAAA//4AAAAAf/+AAAAAP//gAAAAH//8AAAAD///+AAAA/////AAAf/////AAP/////8AD//////gA//////4Af//////AH//////wA//////4AP/////+AA//////AAD/////wAAH////4AAAA///8AAAAB//+AAAAAf//AAAAAH//wAAAAB//4AAAAA//8gAAAAf/+cAAAAf/+PwAAAP//H/AAAf//j//AA///x///////w///////4f//////4P//////8H//////8D//////8B//////8A//////4AH/////wAAH////AAAAB//4AAA=="],"t":[45.89,43,67,1,-67,"AH//gAAAD//wAAAB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAAB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAP/////////////////////////////////////////////////////////////////////////////////////wB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAAB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAAB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAAB//4AAAA//8AAAAf/+AAAAP//AAAAH//gAAAD//wAAAB//8AAAA//+AAAAf//AAAAP//wAAAH//8AAAD/////AB/////gAf////wAP////4AD////8AB////+AAf////AAP////gAB////wAAf///4AAD///8AAAH//+AA=="],"u":[68.34,54,54,7,-53,"//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+f//AAA//+f//AAB//+f//AAB//+f//AAD//+f//AAD//+f//gAH//+f//gAP//+f//4Af//+f//8D///+P///////+P///////+P///////+H///////+H///////+D////+//+B////8//+B////4//+A////w//+AP///g//+AH//+A//+AB//4A//+AAP/AAAAAA="],"v":[62.58,61,53,1,-53,"f/+AAAAf//P//gAAAP//n//wAAAP//h//4AAAH//w//+AAAD//wP//AAAD//4H//wAAB//8D//4AAA//8A//8AAA//+Af//AAAf/+AH//gAAP//AD//wAAP//gB//8AAH//gAf/+AAD//wAP//AAD//4AH//wAB//4AB//4AB//8AA//8AA//8AAP//AAf/+AAH//gAf//AAD//4AP//AAA//8AH//gAAf/+AH//gAAH//gD//wAAD//wB//4AAB//4B//4AAAf/+A//8AAAP//Af/8AAAD//gf/+AAAB//4P//AAAA//8P//AAAAP/+H//gAAAH//j//gAAAD//z//wAAAA//9//4AAAAf/+//4AAAAH////8AAAAD////+AAAAB////+AAAAAf////AAAAAP////AAAAAD////gAAAAB////wAAAAA////wAAAAAP///4AAAAAH///4AAAAAB///8AAAAAA///+AAAAAAf//+AAAAAAH///AAAAAAD///AAAAAAB///gAAAAAAf//wAAAA"],"w":[88.69,83,53,3,-53,"f/+AAD//AAA//8//8AAH//AAB//5//4AAP/+AAH//z//4AAf/8AAP//D//wAB//4AAf/+H//gAD//4AA//8P//AAH//wAD//4f/+AAP//gAH//gf/+AA///AAP//A//8AB///AAf/+B//4AD//+AB//8D//wAH//8AD//wD//wAf//4AH//gH//gA///4AP//AP//AB///wA//+Af/+AD///gB//4Af/+AP///AD//wA//8Af///AH//gB//4A/+/+AP//AD//wB/9/8A//8AD//wH/z/4B//4AH//gP/j/4D//wAP//Af/H/wH//AAP/+A/+P/gf/+AAf/+D/4f/A//8AA//8H/wf/B//4AB//4P/g/+D//gAB//wf/B/8P//AAD//x/8D/4f/+AAH//j/4H/4//8AAP//H/wH/x//wAAP/+P/gP/n//gAAf/+/+Af/P//AAA//9/8A//f/+AAB//7/4A/+//4AAB////wB////wAAD////gD////gAAH///+AH////AAAP///8AH///8AAAP///4AP///4AAAf///wAf///wAAA////AA////gAAB///+AA///+AAAB///8AB///8AAAD///4AD///4AAAH///gAH///gAAAH///AAH///AAAAP//+AAP//+AAAAf//8AAf//8AAAA///wAA///wAAAA///gAA///gAAAB///AAB///AAAAD//+AAD//+AAA=="],"x":[61.92,60,53,1,-53,"P//gAAD//8P//wAAD//4H//4AAH//4D//8AAP//wB//8AAP//gB//+AAf//AA///AA///AAf//AA//+AAP//gB//8AAP//wD//8AAH//wH//4AAD//4H//wAAB//8P//gAAB//8f//gAAA//+f//AAAAf////+AAAAf////8AAAAP////8AAAAH////4AAAAD////wAAAAD////gAAAAB////gAAAAA////AAAAAAf//+AAAAAAf//+AAAAAAP//8AAAAAAP//8AAAAAAf//+AAAAAA////AAAAAA////AAAAAB////gAAAAD////wAAAAH////wAAAAH////4AAAAP////8AAAAf////+AAAAf////+AAAA//+f//AAAB//8f//gAAD//8P//wAAD//4H//wAAH//wD//4AAP//wD//8AAf//gB//+AAf//AA//+AA//+AA///AB//+AAf//gD//8AAP//gD//4AAH//wH//4AAH//4P//wAAD//8P//gAAB//8f//gAAB//+A="],"y":[62.58,60,74,1,-53,"//+AAAAf//f//AAAAf/+f//AAAA//+P//AAAA//+P//gAAA//8H//gAAB//8H//wAAB//4H//wAAB//4D//wAAD//4D//4AAD//wB//4AAD//wB//4AAH//gB//8AAH//gA//8AAH//gA//+AAP//AAf/+AAP//AAf/+AAP//AAP//AAf/+AAP//AAf/+AAP//gAf/8AAH//gA//8AAH//gA//8AAD//wA//4AAD//wB//4AAB//4B//4AAB//4B//wAAB//4D//wAAA//8D//gAAA//8D//gAAAf/+H//gAAAf/+H//AAAAP/+H//AAAAP//P//AAAAP//P/+AAAAH//P/+AAAAH////8AAAAD////8AAAAD////8AAAAB////4AAAAB////4AAAAB////wAAAAA////wAAAAA////wAAAAAf///gAAAAAf///gAAAAAf///gAAAAAP///AAAAAAP///AAAAAAH//+AAAAAAH//+AAAAAAD//+AAAAAAD//8AAAAAAD//8AAAAAAB//8AAAAAAB//4AAAAAAB//4AAAAAAB//wAAAAAAB//wAAAAAAD//wAAAAAAD//gAAAAAAH//gAAAAAAP//AAAAAAA///AAAAAH///+AAAAAH///+AAAAAH///8AAAAAH///8AAAAAH///4AAAAAH///wAAAAAH///gAAAAAH///AAAAAAH//8AAAAAAH//wAAAAAAH/+AAAAAA"],"z":[55.88,48,53,4,-53,"f//////+f//////+f//////+f//////+f//////+f//////+f//////+f//////+f//////+f//////+f//////+f//////+AAAAH//+AAAAH//8AAAAP//4AAAAf//wAAAA///gAAAB///AAAAD//+AAAAH//8AAAAP//4AAAAf//wAAAA///gAAAB///AAAAD//+AAAAH//8AAAAP//4AAAAf//wAAAA///gAAAB///gAAAD///AAAAH//+AAAAH//8AAAAP//4AAAAf//wAAAA///gAAAB///AAAAD//+AAAAH//8AAAAP//4AAAAf//wAAAA///////+///////+///////+///////+///////+///////+///////+///////+///////+///////+///////+///////+"],"{":[68.34,45,89,12,-73,"AAAAD//wAAAH//+AAAD///wAAB///+AAAf///wAAH///+AAB////wAAP///+AAD////wAAf///+AAD////wAA///4AAAH//4AAAA//+AAAAH//wAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAD//4AAAAf//AAAAH//4AAAD//+AAAB///wAA////8AAH////gAA////4AAH///8AAA///+AAAH///gAAA////gAAH///+AAA////4AAH////gAA////+AAAB///wAAAB///AAAAH//4AAAAf//AAAAD//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//gAAAA//8AAAAH//wAAAA//+AAAAH//4AAAA///4AAAH////wAAf///+AAD////wAAP///+AAB////wAAH///+AAAf///wAAB///+AAAD///wAAAH//+AAAAD//w"],"|":[35.06,11,96,12,-73,"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"],"}":[68.34,45,89,12,-73,"//8AAAAH//+AAAA///+AAAH///4AAA////gAAH///+AAA////4AAH////gAA////8AAH////wAA////+AAAA///wAAAB//+AAAAH//wAAAAf//AAAAD//4AAAAf//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//gAAAB//8AAAAP//wAAAA///AAAAH//8AAAA///8AAAD////wAAP///+AAA////wAAD///+AAAH///wAAAf//+AAAP///wAAH///+AAB////wAAf///+AAD////wAA///8AAAH//8AAAB//+AAAAP//wAAAB//8AAAAP//gAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAP//AAAAB//4AAAAf//AAAAD//4AAAAf//AAAAH//4AAAB//+AAAA///wAA////+AAH////wAA////8AAH////gAA////4AAH///+AAA////gAAH///4AAA///+AAAH//+AAAA//+AAAAA"],"~":[80.44,61,21,10,-41,"AAAAAAAAAAAAAAAAAAAAgAH/gAAAAAwA///AAAAA4B///8AAAB8D////gAAD+H////+AAH/H/////8Af/v/////////3/////////7/////////9/////////+//////////f/wD//////P/AAH////+H8AAAf///8D8AAAB///4B4AAAAH//wA4AAAAAP+AAQAAAAAAAAAAAAAAAAAAAAA="],"\u2018":[36.47,22,30,9,-70,"AB/4AH/gA/+AH/4Af/AD/8Af/wB/+AP/4B//gH/+A//wD//Af/8D//gP/+B//4H//gf/+B//4H//gf/+B//4H//gf/+B//4H//gf/+B//4H//gA="],"\u2019":[36.47,21,30,6,-70,"B//4P//B//4P//B//4P//B//4P//B//4P//B//4P//B//4P//D//wf/8D//gf/4H/+A//wH/8B//AP/4B/+AP/wD/8Af/AD/4A/+AH/gAA=="],"\u201c":[63.09,46,30,9,-70,"AB/4AB/4AH/gAP/gA/+AA/+AH/4AH/wAf/AA//AD/8AD/8Af/wAf/gB/+AD/+AP/4AP/4B//gB//gH/+AH/8A//wA//wD//AH//Af/8Af/4D//gD//gP/+Af/+B//4B//4H//gH//gf/+Af/+B//4B//4H//gH//gf/+Af/+B//4B//4H//gH//gf/+Af/+B//4B//4H//gH//gf/+Af/+B//4B//4H//gH//gA="],"\u201d":[63.09,46,30,8,-70,"A//4B//4D//gH//gP/+Af/+A//4B//4D//gH//gP/+Af/+A//4B//4D//gH//gP/+Af/+A//4B//4D//gH//gP/+Af/+A//4B//4H//gH//gf/+Af/+B//wB//wH/+AP/+A//4A//4D//AD//AP/8AP/4A//gB//gH/8AH/8Af/wAf/gB/+AD/+AP/wAP/wA//AA/+AD/4AD/4AP/AAf/AB/8AB/4AH/gAH/gAA="],"\u2013":[48.0,38,12,5,-32,"////////////////////////////////////////////////////////////////////////////"],"\u2014":[96.0,86,12,5,-32,"////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////"],"\u00b7":[36.47,18,18,9,-42,"f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//f//A="],"\u2026":[96.0,82,18,7,-18,"f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+f/+AAH//gAB//5//4AAf/+AAH//n//gAB//4AAf/+A="],"\u2022":[61.36,35,34,13,-53,"AAP8AAAD//AAAf//gAD///gAP///gA////gD////gH////gf////B/////D////+H////+f////8/////5/////z/////n/////v/////f////8/////5/////z/////j/////H////8H////4P////gP////Af///8Af///wAf///AAf//8AAP//wAAH/+AAAB/gAA="],"\u2605":[86.06,74,71,6,-70,"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAAAAAAAAAAAAwAAAAAAAAAAAMAAAAAAAAAAAHgAAAAAAAAAAB4AAAAAAAAAAAeAAAAAAAAAAAPwAAAAAAAAAAD8AAAAAAAAAAA/AAAAAAAAAAAf4AAAAAAAAAAH+AAAAAAAAAAB/gAAAAAAAAAA/8AAAAAAAAAAP/AAAAAAAAAAD/wAAAAAAAAAB/+AAAAAAAAAAf/gAAAAAAAAAH/4AAAAAAAAAB//AAAAAAAAAA//wAAAAAAAAAP/8AAAAAAAAAD//gAAAAAAAAB//4AAAAAAAAAf/+AAAAAAAAAH//wAAAAf///////////j///////////wf//////////4B//////////4AP/////////8AB/////////+AAH////////+AAA/////////AAAD////////gAAAf///////gAAAD///////wAAAAP//////wAAAAB//////4AAAAAP/////8AAAAAA/////8AAAAAAH////+AAAAAAA/////AAAAAAAH////gAAAAAAD////8AAAAAAA/////AAAAAAAP////wAAAAAAH////+AAAAAAB/////gAAAAAAf////4AAAAAAP/////AAAAAAD/////wAAAAAA/////8AAAAAAf//P//gAAAAAH//h//4AAAAAB//gH/+AAAAAA//wA//wAAAAAP/4AH/8AAAAAD/4AAf/AAAAAB/8AAD/4AAAAAf+AAAP+AAAAAH+AAAB/gAAAAB/AAAAP8AAAAA/AAAAA/AAAAAPgAAAAHwAAAADwAAAAA+AAAABwAAAAADgAAAAYAAAAAAYAAAAEAAAAAABAAAAAAAAAAAAAAA"],"\u2665":[86.06,70,70,8,-70,"AAP4AAAAfwAAAH/8AAAP/4AAB//8AAD//4AAP//4AAf//wAB///wAD///gAP///gAf///AB////AD///+AP///+Af///8B////4B////4H////wP////g/////g/////D////+H////8f////4f////5/////z/////n/////P////+f////8/////5///////////3///////////f//////////9///////////n//////////+f//////////5///////////n//////////+f//////////4///////////D//////////8P//////////wf/////////+B//////////4D//////////gP/////////8Af/////////wB/////////+AD/////////wAH/////////AAf////////4AA/////////AAB////////4AAD////////AAAH///////8AAAP///////gAAA///////8AAAB///////gAAAD//////8AAAAH//////gAAAAP/////+AAAAA//////wAAAAB/////+AAAAAD/////wAAAAAH////+AAAAAAP////wAAAAAA/////AAAAAAB////4AAAAAAD////AAAAAAAH///4AAAAAAAP///AAAAAAAAf//4AAAAAAAB///gAAAAAAAD//8AAAAAAAAH//gAAAAAAAAP/8AAAAAAAAAf/gAAAAAAAAB/8AAAAAAAAAD/wAAAAAAAAAH+AAAAAAAAAAPwAAAAAAAAAAeAAAAAAAAAAAwAAAAAAAAAACAAAAAAA=="],"\u00e0":[64.78,54,78,4,-77,"AD/+AAAAAAB/+AAAAAAA//AAAAAAA//gAAAAAAf/wAAAAAAP/wAAAAAAH/4AAAAAAD/8AAAAAAB/+AAAAAAA/+AAAAAAAf/AAAAAAAP/gAAAAAAH/wAAAAAAD/wAAAAAAB/4AAAAAAA/8AAAAAAAf+AAAAAAAP+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//8AAAAP////4AAB//////AAB//////wAB//////4AB//////+AB///////AB///////AB///////gB///////wB///////wB/+AB///4B/AAAP//4BwAAAD//8BAAAAB//8AAAAAB//8AAAAAA//8AAAAAA//+AAAAAA//+AAAAAA//+AAAAAA//+AAA/////+AAf/////+AD//////+AP//////+A///////+B///////+D///////+H///////+P///////+P///////+f//+AA//+f//wAA//+f//gAA//+f//AAA//+///AAA//+//+AAA//+//+AAA//+//+AAB//+//+AAB//+//+AAD//+///AAH//+///gAP//+f//wAf//+f//8D///+f///////+P///////+P///////+H////+//+D////8//+D////4//+A////w//+Af///g//+AP//+A//+AD//4A//+AAP/AAAAAA="],"\u00e1":[64.78,54,78,4,-77,"AAAAAB//AAAAAAD/+AAAAAAH/8AAAAAAP/4AAAAAAP/wAAAAAAf/gAAAAAA//AAAAAAA/+AAAAAAB/8AAAAAAD/4AAAAAAH/wAAAAAAH/gAAAAAAP/AAAAAAAf+AAAAAAA/8AAAAAAA/4AAAAAAB/wAAAAAAD/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//8AAAAP////4AAB//////AAB//////wAB//////4AB//////+AB///////AB///////AB///////gB///////wB///////wB/+AB///4B/AAAP//4BwAAAD//8BAAAAB//8AAAAAB//8AAAAAA//8AAAAAA//+AAAAAA//+AAAAAA//+AAAAAA//+AAA/////+AAf/////+AD//////+AP//////+A///////+B///////+D///////+H///////+P///////+P///////+f//+AA//+f//wAA//+f//gAA//+f//AAA//+///AAA//+//+AAA//+//+AAA//+//+AAB//+//+AAB//+//+AAD//+///AAH//+///gAP//+f//wAf//+f//8D///+f///////+P///////+P///////+H////+//+D////8//+D////4//+A////w//+Af///g//+AP//+A//+AD//4A//+AAP/AAAAAA="],"\u00e8":[65.11,57,78,4,-77,"AB//AAAAAAAH/8AAAAAAAf/wAAAAAAB/+AAAAAAAH/4AAAAAAAf/gAAAAAAB/+AAAAAAAH/wAAAAAAAf/AAAAAAAB/8AAAAAAAH/wAAAAAAAf+AAAAAAAB/4AAAAAAAH/gAAAAAAAf8AAAAAAAD/wAAAAAAAP/AAAAAAAA/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/+AAAAAAH///AAAAAD////AAAAD////+AAAA/////4AAAf/////wAAH//////AAB//////8AAf//////wAH///////AB///////8AP//+B///gD//+AB//+A///gAH//wH//4AAf//B//+AAB//4P//gAAP//h//8AAB//8f//AAAH//j//4AAA//+f//AAAH//z//4AAA//+f////////3////////+/////////3////////+/////////3////////+/////////3////////+/////////3////////+//+AAAAAAD//wAAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//8AAAAAAP//gAAAAAB//+AAAAAIP//wAAAAHA///AAAAD4H//+AAAD/Af//4AAD/4B///4AP//AP///////4A////////AD///////4AP///////AA///////4AD///////AAH//////4AAP/////8AAAf////8AAAAf///wAAAAAP/+AAAA=="],"\u00e9":[65.11,57,78,4,-77,"AAAAAA//gAAAAAAP/4AAAAAAB/+AAAAAAAf/gAAAAAAH/4AAAAAAB/+AAAAAAAP/wAAAAAAD/8AAAAAAA//AAAAAAAH/wAAAAAAB/8AAAAAAAf/AAAAAAAH/wAAAAAAA/8AAAAAAAP/AAAAAAAD/wAAAAAAA/8AAAAAAAH/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB/+AAAAAAH///AAAAAD////AAAAD////+AAAA/////4AAAf/////wAAH//////AAB//////8AAf//////wAH///////AB///////8AP//+B///gD//+AB//+A///gAH//wH//4AAf//B//+AAB//4P//gAAP//h//8AAB//8f//AAAH//j//4AAA//+f//AAAH//z//4AAA//+f////////3////////+/////////3////////+/////////3////////+/////////3////////+/////////3////////+//+AAAAAAD//wAAAAAAf//AAAAAAD//4AAAAAAf//AAAAAAD//8AAAAAAP//gAAAAAB//+AAAAAIP//wAAAAHA///AAAAD4H//+AAAD/Af//4AAD/4B///4AP//AP///////4A////////AD///////4AP///////AA///////4AD///////AAH//////4AAP/////8AAAf////8AAAAf///wAAAAAP/+AAAA=="],"\u00ed":[32.91,30,77,8,-77,"AAD/+AAH/8AAP/4AAf/wAAf/gAA//AAB/+AAD/8AAD/4AAH/wAAP/gAAf/AAAf+AAA/8AAB/4AAB/wAAD/gAAH/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AA//+AAA=="],"\u00f3":[65.95,58,78,4,-77,"AAAAAA//gAAAAAAH/8AAAAAAAf/gAAAAAAD/8AAAAAAAf/gAAAAAAD/8AAAAAAAP/gAAAAAAB/8AAAAAAAP/wAAAAAAB/+AAAAAAAH/wAAAAAAA/+AAAAAAAH/wAAAAAAA/+AAAAAAAD/wAAAAAAAf+AAAAAAAD/wAAAAAAAP+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/8AAAAAAP///AAAAAH////gAAAB/////gAAAP/////AAAD//////AAAf/////+AAD//////8AAf//////4AD///////wAf///////gD////////AP///A///8B///gAf//4H//8AA///g///gAB///D//8AAD//8P//wAAP//x//+AAAf//n//4AAB//+f//gAAH//5//8AAAP//n//wAAA//+///AAAD/////8AAAP/////wAAA//////AAAD/////8AAAP/////wAAA//////AAAD/////8AAAP/////wAAA//////AAAD//9//8AAAP//n//wAAA//+f//gAAH//5//+AAAf//n//4AAB//+P//wAAP//w///AAA///D//+AAH//8H//8AA///gf//4AH//+A///8B///wD////////AH///////4AP///////AAf//////4AA///////AAB//////4AAD//////AAAD/////4AAAH////+AAAAH////gAAAAD///wAAAAAA//wAAAA="],"\u00fa":[68.34,54,78,7,-77,"AAAAAD/+AAAAAAD/8AAAAAAH/8AAAAAAP/4AAAAAAf/wAAAAAAf/gAAAAAA//AAAAAAB/+AAAAAAD/8AAAAAAD/4AAAAAAH/wAAAAAAP/gAAAAAAf/AAAAAAAf+AAAAAAA/8AAAAAAB/4AAAAAAB/wAAAAAAD/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+f//AAA//+f//AAB//+f//AAB//+f//AAD//+f//AAD//+f//gAH//+f//gAP//+f//4Af//+f//8D///+P///////+P///////+P///////+H///////+H///////+D////+//+B////8//+B////4//+A////w//+AP///g//+AH//+A//+AB//4A//+AAP/AAAAAA="],"\u00f1":[68.34,53,77,8,-77,"AAB+AAfwAAAP/AA/gAAA//gB/AAAD//wD8AAAH//wP4AAAf//4/wAAA/////gAAB/D//+AAAH8B//8AAAP4B//wAAAfwA//AAAA/gA/8AAAB/AAfgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP+AAAAAAH//gA//+A///wB//8D///4D//4f///4H//x////4P//n////4f//f////w////////x////////j////////n////////P////////f///wP//+///+AH//9///wAH//7///AAH//3//+AAP/////4AAf/////wAAf/////AAA/////+AAB/////8AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP/////AAAf////+AAA/////8AAB/////4AAD/////wAAH/////gAAP//gA=="],"\u00fc":[68.34,54,75,7,-74,"AA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAA/+Af/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+//+AAA//+f//AAA//+f//AAB//+f//AAB//+f//AAD//+f//AAD//+f//gAH//+f//gAP//+f//4Af//+f//8D///+P///////+P///////+P///////+H///////+H///////+D////+//+B////8//+B////4//+A////w//+AP///g//+AH//+A//+AB//4A//+AAP/AAAAAA"],"\u00e7":[56.91,47,74,4,-55,"AAAB//gAAAA///+AAAP////gAB/////gAP/////AA/////+AH/////8Af/////4B//////wH//////gf//////A//////+D///8Af8P///AAH4f//8AADx///gAABj//+AAAAH//8AAAAf//wAAAA///AAAAB//+AAAAD//8AAAAH//wAAAAf//gAAAA///AAAAB//+AAAAD//8AAAAH//4AAAAP//wAAAAf//gAAAA///AAAAB//+AAAAD//8AAAAD//4AAAAH//4AAAAP//wAAAAf//gAAAA///gAAAA///gAAAB///AAAAD///AAADD///gAAOH///gAB8H///4A/4H//////wP//////gP//////AP/////+AP/////8AP/////4AH/////wAH/////gAD/////AAB////8AAAf///AAAAD//AAAAAAfwAAAAAAfwAAAAAAfwAAAAAA/gAAAAAA/gAAAAAB/AAAAAAD/AAAAAAH+AAAAAAP8AAAAAA/4AAABgD/wAAAD///gAAAH///AAAAP//8AAAAf//4AAAA///gAAAB//8AAAAAf/AAA"]}};
+const R165_GLYPHS = {};
+for (const [ch165, g165] of Object.entries(R165_FONT.glyphs)) {
+  R165_GLYPHS[ch165] = { adv: g165[0], w: g165[1], h: g165[2], dx: g165[3], dy: g165[4], bits: g165[5] ? Buffer.from(g165[5], "base64") : null };
+}
+// Text hygiene for the sting: keep only characters the font
+// carries, fold any whitespace to a plain space, collapse runs,
+// cap the length. Anything exotic a family typed simply doesn't
+// reach the card — the play's title elsewhere is untouched.
+function r165SanitizeText(s, max) {
+  let out = "";
+  for (const ch of String(s || "")) {
+    if (/\s/.test(ch)) { if (out && !out.endsWith(" ")) out += " "; continue; }
+    if (R165_GLYPHS[ch]) out += ch;
+    if (out.length >= max) break;
+  }
+  return out.trim();
+}
+function r165MeasureText(text, px) {
+  const s = px / R165_FONT.px;
+  let w = 0;
+  for (const ch of text) { const g = R165_GLYPHS[ch] || R165_GLYPHS["?"]; if (g) w += g.adv * s; }
+  return w;
+}
+// Greedy word wrap at a pixel size. Returns the lines, or null
+// when the text needs more than maxLines even wrapped (the
+// caller's fit loop then shrinks the size and tries again). A
+// single word wider than the card is hard-truncated with an
+// ellipsis rather than spilling off the frame.
+function r165WrapText(text, px, maxW, maxLines) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const trial = cur ? cur + " " + w : w;
+    if (r165MeasureText(trial, px) <= maxW) { cur = trial; continue; }
+    if (cur) lines.push(cur);
+    if (r165MeasureText(w, px) > maxW) {
+      let t = w;
+      while (t.length > 1 && r165MeasureText(t + "…", px) > maxW) t = t.slice(0, -1);
+      cur = t + "…";
+    } else cur = w;
+    if (lines.length > maxLines) return null;
+  }
+  if (cur) lines.push(cur);
+  return lines.length > maxLines ? null : lines;
+}
+// Lay out a stack of text items (each {text, px, rgb, maxLines,
+// gap}) starting at a first baseline, shrinking the whole stack
+// until it fits above maxBottom. Returns [{text, px, rgb,
+// baselineY}] or null when it cannot fit even shrunk — the
+// caller then falls back to fewer items (a crest-only card is
+// always a valid sting).
+function r165FitLines(items, maxW, topBaseline, maxBottom) {
+  let scale = 1;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    let y = topBaseline;
+    const out = [];
+    let ok = true, bottom = topBaseline;
+    for (const it of items) {
+      const px = Math.max(15, Math.round(it.px * scale));
+      const lines = r165WrapText(it.text, px, maxW, it.maxLines);
+      if (!lines) { ok = false; break; }
+      for (const line of lines) { out.push({ text: line, px, rgb: it.rgb, baselineY: Math.round(y) }); bottom = y + px * 0.35; y += px * 1.3; }
+      y += Math.round((it.gap || 0) * scale);
+    }
+    if (ok && bottom <= maxBottom) return out;
+    scale *= 0.86;
+  }
+  return null;
+}
+function r165GlyphBit(g, x, y) { const i = y * g.w + x; return (g.bits[i >> 3] >> (7 - (i & 7))) & 1; }
+// Draw one centered line into an RGBA frame buffer with
+// alpha-over compositing; the glyph masks are sampled with a
+// 2×2 coverage estimate so scaled text keeps softened edges.
+function r165DrawLine(buf, W, H, text, cx, baselineY, px, rgb) {
+  const s = px / R165_FONT.px;
+  let penX = cx - r165MeasureText(text, px) / 2;
+  for (const ch of text) {
+    const g = R165_GLYPHS[ch] || R165_GLYPHS["?"];
+    if (!g) continue;
+    if (g.bits) {
+      const ox = penX + g.dx * s, oy = baselineY + g.dy * s;
+      const x0 = Math.max(0, Math.floor(ox)), y0 = Math.max(0, Math.floor(oy));
+      const x1 = Math.min(W - 1, Math.ceil(ox + g.w * s)), y1 = Math.min(H - 1, Math.ceil(oy + g.h * s));
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          const sx = (x - ox) / s, sy = (y - oy) / s;
+          let cov = 0;
+          for (let oy2 = 0; oy2 < 2; oy2++) for (let ox2 = 0; ox2 < 2; ox2++) {
+            const gx = Math.min(g.w - 1, Math.max(0, Math.floor(sx + ox2 * 0.5)));
+            const gy = Math.min(g.h - 1, Math.max(0, Math.floor(sy + oy2 * 0.5)));
+            cov += r165GlyphBit(g, gx, gy);
+          }
+          cov /= 4;
+          if (cov <= 0) continue;
+          const i = (y * W + x) * 4;
+          const sa = cov, da = buf[i + 3] / 255, oa = sa + da * (1 - sa);
+          if (oa <= 0) continue;
+          buf[i] = Math.round((rgb[0] * sa + buf[i] * da * (1 - sa)) / oa);
+          buf[i + 1] = Math.round((rgb[1] * sa + buf[i + 1] * da * (1 - sa)) / oa);
+          buf[i + 2] = Math.round((rgb[2] * sa + buf[i + 2] * da * (1 - sa)) / oa);
+          buf[i + 3] = Math.round(oa * 255);
+        }
+      }
+    }
+    penX += g.adv * s;
+  }
+}
+// A full-frame transparent PNG carrying exactly the card's text
+// (the crest itself is composited by ffmpeg from the brand
+// asset, so this layer is text only). The encoder is core zlib
+// plus hand-rolled chunks — the app's zero-dependency rule
+// holds for images too.
+const R165_CRC_TABLE = (() => { const t = new Int32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c; } return t; })();
+function r165Crc32(buf) { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = R165_CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function r165PngChunk(type, data) {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+  const td = Buffer.concat([Buffer.from(type, "ascii"), data]);
+  const crc = Buffer.alloc(4); crc.writeUInt32BE(r165Crc32(td));
+  return Buffer.concat([len, td, crc]);
+}
+function r165EncodePng(rgba, w, h) {
+  const raw = Buffer.alloc((w * 4 + 1) * h);
+  for (let y = 0; y < h; y++) { raw[y * (w * 4 + 1)] = 0; rgba.copy(raw, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4); }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6; // 8-bit RGBA
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), r165PngChunk("IHDR", ihdr), r165PngChunk("IDAT", zlib.deflateSync(raw, { level: 6 })), r165PngChunk("IEND", Buffer.alloc(0))]);
+}
+function r165CardPng(W, H, lines) {
+  const buf = Buffer.alloc(W * H * 4);
+  for (const ln of lines) r165DrawLine(buf, W, H, ln.text, W / 2, ln.baselineY, ln.px, ln.rgb);
+  return r165EncodePng(buf, W, H);
+}
+// The probe facts a reel build needs: the Round 124 video info
+// plus whether an audio stream exists (the concat graph must
+// know — a silent clip gets generated silence in its place).
+function r165MediaFacts(probe) {
+  const info = r124VideoInfo(probe);
+  if (!info) return null;
+  const hasAudio = (probe.streams || []).some((s) => s.codec_type === "audio");
+  return { ...info, hasAudio };
+}
+// Build one reel into outAbs. Never throws for content
+// problems — returns {ok:false, status, message} so the
+// endpoint can answer plainly; a throw is reserved for the
+// truly unexpected and the caller turns it into a 500.
+async function r165BuildReelNow(bins, row, srcAbs, outAbs, workDir) {
+  const facts = r165MediaFacts(await r124Probe(bins, srcAbs));
+  if (!facts || !(facts.duration > 0) || !facts.width || !facts.height)
+    return { ok: false, status: 422, message: "We couldn't read that video well enough to make its reel." };
+  // Display geometry: Round 124 files carry their rotation in
+  // the pixels, but a legacy rotated file decodes rotated in
+  // the graph too, so the cards are built at DISPLAY size.
+  const quarterTurn = ((facts.rotation % 180) + 180) % 180 !== 0;
+  let W = quarterTurn ? facts.height : facts.width;
+  let H = quarterTurn ? facts.width : facts.height;
+  W -= W % 2; H -= H % 2;
+  if (W < 160 || H < 160) return { ok: false, status: 422, message: "That video is too small to make a reel from." };
+  const dur = facts.duration;
+  const maxTextW = Math.round(W * 0.88);
+  const crestW = Math.max(96, Math.min(460, Math.round(Math.min(W, H) * 0.44)));
+  const crestH = Math.round(crestW * 625 / 560);
+  const namePx = Math.max(26, Math.min(100, Math.round(Math.min(W * 0.088, H * 0.14))));
+  // ---- intro card: crest centered at 35% height, name + title under it ----
+  const introCrestBottom = Math.round(H * 0.35 + crestH / 2);
+  const introItems = [
+    { text: r165SanitizeText(athleteDisplayName(row.player_name) || row.player_name || "", 60), px: namePx, rgb: R165_WHITE, maxLines: 2, gap: Math.round(H * 0.012) },
+    { text: r165SanitizeText(row.title || "", 90), px: Math.round(namePx * 0.54), rgb: R165_SOFT, maxLines: 2, gap: 0 },
+  ].filter((it) => it.text);
+  let introLines = r165FitLines(introItems, maxTextW, Math.round(introCrestBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
+  if (!introLines && introItems.length > 1) introLines = r165FitLines([introItems[0]], maxTextW, Math.round(introCrestBottom + H * 0.055 + namePx * 0.75), Math.round(H * 0.96));
+  if (!introLines) introLines = [];
+  // ---- outro card: crest at 33%, the slogan in gold, the address under it ----
+  const outroCrestBottom = Math.round(H * 0.33 + crestH / 2);
+  const sloganPx = Math.max(20, Math.min(74, Math.round(W * 0.064)));
+  let outroLines = r165FitLines([
+    { text: "YOUR MOMENT. YOUR HYPE.", px: sloganPx, rgb: R165_GOLD, maxLines: 1, gap: Math.round(H * 0.014) },
+    { text: "highlighthype.com", px: Math.round(sloganPx * 0.62), rgb: R165_WHITE, maxLines: 1, gap: 0 },
+  ], maxTextW, Math.round(outroCrestBottom + H * 0.05 + sloganPx * 0.75), Math.round(H * 0.96)) || [];
+  const introPng = path.join(workDir, "intro.png");
+  const outroPng = path.join(workDir, "outro.png");
+  fs.writeFileSync(introPng, r165CardPng(W, H, introLines));
+  fs.writeFileSync(outroPng, r165CardPng(W, H, outroLines));
+  // ---- the one ffmpeg graph: card + watermarked clip + card ----
+  // Every overlay carries shortest=1: the crest and the card
+  // text ride in as -loop 1 stills, which never reach EOF on
+  // their own — without shortest, framesync keeps the overlay
+  // (and so the whole concat) alive forever on those endless
+  // inputs even though every main input is finite (bisected
+  // and proven in this round's smoke work: a bare overlay ran
+  // 1,500+ frames on a 2s clip; shortest=1 stops at exactly
+  // the main's last frame).
+  const wmW = Math.max(44, Math.round(W * 0.115));
+  const wmM = Math.max(10, Math.round(Math.min(W, H) * 0.032));
+  const fc = [
+    "[4:v]split=2[r165bgA][r165bgB]",
+    "[1:v]format=rgba,split=3[r165cA][r165cW][r165cB]",
+    `[r165cA]scale=${crestW}:-2[r165cAi]`,
+    `[r165bgA]trim=end=${R165_INTRO_SEC},setpts=PTS-STARTPTS[r165bgAt]`,
+    `[r165bgAt][r165cAi]overlay=(main_w-overlay_w)/2:(main_h*0.35-overlay_h/2):shortest=1[r165iv0]`,
+    "[r165iv0][2:v]overlay=0:0:shortest=1,setsar=1,format=yuv420p,fps=30[r165introV]",
+    `[0:v]scale=${W}:${H},setsar=1,format=yuv420p,fps=30[r165base]`,
+    `[r165cW]scale=${wmW}:-2,format=rgba,colorchannelmixer=aa=0.55[r165cWi]`,
+    `[r165base][r165cWi]overlay=main_w-overlay_w-${wmM}:main_h-overlay_h-${wmM}:shortest=1[r165clipV]`,
+    `[r165cB]scale=${crestW}:-2[r165cBi]`,
+    `[r165bgB]trim=end=${R165_OUTRO_SEC},setpts=PTS-STARTPTS[r165bgBt]`,
+    "[r165bgBt][r165cBi]overlay=(main_w-overlay_w)/2:(main_h*0.33-overlay_h/2):shortest=1[r165ov0]",
+    "[r165ov0][3:v]overlay=0:0:shortest=1,setsar=1,format=yuv420p,fps=30[r165outroV]",
+    "[r165introV][r165clipV][r165outroV]concat=n=3:v=1:a=0[r165v]",
+    // (the silence split is 2-way when the clip brings its own
+    // audio — an unconnected split output fails the whole graph)
+    facts.hasAudio ? "[5:a]asplit=2[r165sA][r165sB]" : "[5:a]asplit=3[r165sA][r165sB][r165sC]",
+    `[r165sA]atrim=end=${R165_INTRO_SEC},asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[r165introA]`,
+    `[r165sB]atrim=end=${R165_OUTRO_SEC},asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[r165outroA]`,
+    facts.hasAudio
+      ? "[0:a:0]aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[r165clipA]"
+      : `[r165sC]atrim=end=${dur.toFixed(3)},asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo[r165clipA]`,
+    "[r165introA][r165clipA][r165outroA]concat=n=3:v=0:a=1[r165a]",
+  ].join(";");
+  const args = ["-y",
+    "-i", srcAbs,
+    "-loop", "1", "-framerate", "30", "-i", R165_CREST_PATH,
+    "-loop", "1", "-framerate", "30", "-i", introPng,
+    "-loop", "1", "-framerate", "30", "-i", outroPng,
+    "-f", "lavfi", "-i", `color=c=black:s=${W}x${H}:r=30`,
+    "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+    "-filter_complex", fc,
+    "-map", "[r165v]", "-map", "[r165a]",
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "21", "-preset", "veryfast", "-threads", "2",
+    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outAbs];
+  const { err, stderr } = await r124Run(bins.ffmpeg, args, 600000);
+  if (err) { console.error(`[r165] reel build failed for play ${row.id}:`, err.message, String(stderr || "").slice(-300)); return { ok: false, status: 500, message: "The reel maker hit a snag — please try again in a bit." }; }
+  // Verify before caching: a real H.264 file whose length is
+  // the clip plus the sting (a generous window — fps rounding
+  // and audio priming shift the edges slightly).
+  const chk = r165MediaFacts(await r124Probe(bins, outAbs));
+  if (!chk || chk.codec !== "h264" || Math.abs(chk.duration - (dur + R165_INTRO_SEC + R165_OUTRO_SEC)) > 1.0) {
+    console.error(`[r165] reel for play ${row.id} failed verification (codec=${chk && chk.codec}, duration=${chk && chk.duration}, expected ~${dur + R165_INTRO_SEC + R165_OUTRO_SEC})`);
+    return { ok: false, status: 500, message: "The reel maker hit a snag — please try again in a bit." };
+  }
+  return { ok: true };
+}
+// The builder always takes its turn behind the Round 138
+// serializer — the reel is the third (and only other) ffmpeg
+// call site, beside the transcode and the poster grab.
+async function r165BuildReel(bins, row, srcAbs, outAbs, workDir) {
+  return r138SerializeFfmpeg(() => r165BuildReelNow(bins, row, srcAbs, outAbs, workDir));
+}
+// Cache + in-flight bookkeeping for the endpoint. The cache
+// check comes FIRST (a cached reel serves even when the disk
+// guard below would refuse a fresh build); a build for a play
+// is shared by every concurrent requester of that play; and a
+// failed build starts a 30-second cooldown so a broken file
+// cannot be hammered through the serialized encoder.
+const reelInflight165 = new Map();   // playId -> Promise<absPath>
+const reelFailAt165 = new Map();     // playId -> ms of last failed build
+function r165CachedPath(row) {
+  if (!row.reel_generated_at || (row.reel_source || "") !== (row.media_url || "")) return null;
+  const f = path.join(REEL_DIR, `${row.id}.mp4`);
+  try { return fs.statSync(f).isFile() && fs.statSync(f).size > 0 ? f : null; } catch { return null; }
+}
+async function r165EnsureReel(row) {
+  const id = row.id;
+  const hit = r165CachedPath(row);
+  if (hit) return hit;
+  if (reelInflight165.has(id)) return reelInflight165.get(id);
+  if (Date.now() - (reelFailAt165.get(id) || 0) < 30000)
+    throw Object.assign(new Error("The reel maker stumbled on this one a moment ago — give it a few seconds and try again."), { status: 503 });
+  const p = (async () => {
+    // Generation is the expensive, disk-writing path, so it
+    // answers to the same free-space floor as uploads (the
+    // Round 128/149 guard). Cached reels never reach here.
+    if (storageIsFull()) throw Object.assign(new Error("Storage is full right now — new reels are paused until there's room. Try again later."), { status: 507 });
+    const bins = await r124ResolveBins();
+    if (!bins) throw Object.assign(new Error("Reels aren't available right now — the video tools are offline."), { status: 503 });
+    const fresh = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+    if (!fresh) throw Object.assign(new Error("Play not found."), { status: 404 });
+    const srcAbs = path.join(UPLOAD_DIR, path.basename(fresh.media_url || ""));
+    const workDir = fs.mkdtempSync(path.join(REEL_DIR, `.build-${id}-`));
+    const tmpAbs = path.join(workDir, "reel.mp4");
+    try {
+      const built = await r165BuildReel(bins, fresh, srcAbs, tmpAbs, workDir);
+      if (!built.ok) { reelFailAt165.set(id, Date.now()); throw Object.assign(new Error(built.message), { status: built.status || 500 }); }
+      const finalAbs = path.join(REEL_DIR, `${id}.mp4`);
+      fs.renameSync(tmpAbs, finalAbs);
+      db.prepare("UPDATE highlights SET reel_generated_at=datetime('now'), reel_source=? WHERE id=?").run(fresh.media_url, id);
+      reelFailAt165.delete(id);
+      return finalAbs;
+    } finally {
+      try { fs.rmSync(workDir, { recursive: true, force: true }); } catch {}
+    }
+  })();
+  reelInflight165.set(id, p);
+  try { return await p; } finally { reelInflight165.delete(id); }
+}
+function r165SendFile(res, id, abs) {
+  const st = fs.statSync(abs);
+  res.writeHead(200, { "content-type": "video/mp4", "content-disposition": `attachment; filename="highlighthype-reel-${id}.mp4"`, "content-length": st.size, "cache-control": "private, no-store" });
+  return fs.createReadStream(abs).pipe(res);
+}
 // One-time owner-directed retro-entry (Round 130, 2026-11-13):
 // Emil directed that the board's first two real plays — id 50
 // (Charlotte) and id 51 (Janine), both posted BEFORE the upload
@@ -2115,6 +2495,16 @@ function lookupRateLimited(req) {
   if (hits.length >= LOOKUP_RATE_LIMIT) { lookupHitsByIp.set(ip, hits); return true; }
   hits.push(now);
   lookupHitsByIp.set(ip, hits);
+  return false;
+}
+// Same per-IP pattern for Hype Reel requests (see constants).
+function reelRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (reelHitsByIp.get(ip) || []).filter((t) => now - t < REEL_RATE_WINDOW_MS);
+  if (hits.length >= REEL_RATE_LIMIT) { reelHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  reelHitsByIp.set(ip, hits);
   return false;
 }
 // Same per-IP pattern for the site stats counter (see constants).
@@ -2468,10 +2858,58 @@ const server = http.createServer(async (req, res) => {
           team: r.team || "",
           status: r.status,
           inContest: r.status === "approved" ? !!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, period) : false,
+          // Round 165: a reel exists only for an approved play
+          // with a local video file — My Plays renders the
+          // "Get the reel" button from this flag, and the reel
+          // endpoint re-checks the same rule server-side.
+          canReel: r.status === "approved" && r.media_kind === "file" && String(r.mime || "").startsWith("video/"),
           created_at: r.created_at,
         }));
       }
       return sendJson(res, 200, { ok: true, athletes, plays });
+    }
+
+    // ---- Round 165: Hype Reel download (guardian-only) ----
+    // POST /api/highlights/:id/reel { email } → the branded MP4
+    // itself (attachment), generated on first request and then
+    // served from the DATA_DIR/reels cache. The authorization
+    // is the My Plays rule itself, in hash form: the email
+    // rides in the POST body (never a URL, so it lands in no
+    // log or history), the server hashes it with the very
+    // expression the upload insert stores (sha(normIdentity)),
+    // and it must equal THIS play's notify_email_hash — the
+    // same match /api/athletes/lookup makes before it will
+    // show the guardian their plays. No match: 403, no file,
+    // no generation, nothing cached. A play with no guardian
+    // email on file can never match, so it can never be reeled
+    // by a stranger — or by anyone online. Eligibility mirrors
+    // the lookup's canReel flag: approved plays with a local
+    // video file only; pending / trashed / image / link plays
+    // are refused in plain words. The reel rides under /api/,
+    // so the service worker passes it through untouched.
+    const reelMatch165 = p.match(/^\/api\/highlights\/(\d+)\/reel$/);
+    if (reelMatch165 && req.method === "POST") {
+      if (reelRateLimited(req)) return sendJson(res, 429, { ok: false, message: "Too many reel requests from this connection right now — please try again in a little while." });
+      let reelBody165 = {};
+      try { reelBody165 = JSON.parse((await readBody(req)).toString("utf8") || "{}"); } catch { reelBody165 = {}; }
+      const row165 = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(reelMatch165[1]));
+      if (!row165) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      const givenHash165 = reelBody165.email ? sha(normIdentity(reelBody165.email)) : "";
+      if (!givenHash165 || !row165.notify_email_hash || givenHash165 !== row165.notify_email_hash)
+        return sendJson(res, 403, { ok: false, message: "That email doesn't match the one used to post this play — try the one you posted with." });
+      if (row165.status !== "approved")
+        return sendJson(res, 400, { ok: false, message: "Only a play that's live on the board can be made into a reel." });
+      if (row165.media_kind !== "file" || !String(row165.mime || "").startsWith("video/") || !String(row165.media_url || "").startsWith("/uploads/"))
+        return sendJson(res, 400, { ok: false, message: "This play doesn't have a video file to make a reel from." });
+      const reelSrcAbs165 = path.join(UPLOAD_DIR, path.basename(row165.media_url));
+      if (!fs.existsSync(reelSrcAbs165))
+        return sendJson(res, 400, { ok: false, message: "That play's video file can't be found right now." });
+      try {
+        const reelFile165 = await r165EnsureReel(row165);
+        return r165SendFile(res, row165.id, reelFile165);
+      } catch (e) {
+        return sendJson(res, e.status || 500, { ok: false, message: e.message || "The reel couldn't be made right now." });
+      }
     }
 
     // ---- Site stats: count an event (aggregate only) ----
@@ -3513,6 +3951,7 @@ const server = http.createServer(async (req, res) => {
       } catch { /* statfs unavailable here: nulls — the meter degrades to uploads-only numbers */ }
       const uploadsBytes = walkDataFiles(UPLOAD_DIR).reduce((a, f) => a + f.size, 0);
       const hypeFramesBytes = walkDataFiles(HYPEFRAME_DIR).reduce((a, f) => a + f.size, 0);
+      const reelsBytes = walkDataFiles(REEL_DIR).reduce((a, f) => a + f.size, 0); // Round 165: cached Hype Reels ride the same meter
       const dbBytes = fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0;
       const mediaBytes149 = (row) => {
         if (!row || row.media_kind !== "file" || !row.media_url) return 0;
@@ -3527,7 +3966,7 @@ const server = http.createServer(async (req, res) => {
         if (b > 0) sized149.push({ id: r.id, player_name: r.player_name, title: r.title, status: r.status, bytes: b });
       }
       sized149.sort((a, b) => b.bytes - a.bytes);
-      return sendJson(res, 200, { ok: true, totalBytes, freeBytes, usedBytes, usedPct, uploadsBytes, dbBytes, hypeFramesBytes, pendingCount, pendingBytes, biggest: sized149.slice(0, 8) });
+      return sendJson(res, 200, { ok: true, totalBytes, freeBytes, usedBytes, usedPct, uploadsBytes, dbBytes, hypeFramesBytes, reelsBytes, pendingCount, pendingBytes, biggest: sized149.slice(0, 8) });
     }
     // Round 100: Celebration Spotlight toggle (owner only). Setting
     // it on one play clears every other play — a single active
