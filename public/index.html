@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=167" />
+<link rel="stylesheet" href="styles.css?v=168" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -2039,7 +2039,15 @@
   <div class="wrap">
     <div class="foot-stack">
       <a class="brand" href="#top" style="margin-bottom:12px">
-        <img class="footer-lockup" src="/logo-lockup-gold.jpg" alt="HighlightHype — Your moment. Your hype." width="860" height="590" />
+        <!-- Round 168 (2026-11-14): the footer lockup src carries
+             a ?v= cache-bust pin — bump it whenever
+             logo-lockup-gold.jpg is graded or replaced in place.
+             Round 167 graded the file in place with no pin here,
+             and returning browsers kept serving the pre-grade
+             footer for up to 24h (static images answer
+             Cache-Control: public, max-age=86400). The header
+             logo's ?v=119 pin is the model. -->
+        <img class="footer-lockup" src="/logo-lockup-gold.jpg?v=168" alt="HighlightHype — Your moment. Your hype." width="860" height="590" />
       </a>
       <div>@HighlightHype_Official</div>
       <!-- Round 60 (2026-11-08, Emil's mock): the footer closes
@@ -2120,6 +2128,6 @@
   </div>
 </div>
 
-<script src="app.js?v=167"></script>
+<script src="app.js?v=168"></script>
 </body>
 </html>
