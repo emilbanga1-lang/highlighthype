@@ -18,10 +18,25 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=149" />
+<link rel="stylesheet" href="styles.css?v=150" />
 </head>
 <body>
-<!-- Round 150 (2026-11-13): swipe review mode + batch actions
+<!-- Round 151 (2026-11-13): watch counts on the videos + the
+     fuller owner stats view — Phase 6 of the owner-panel
+     program. Every public play payload now carries viewCount:
+     the all-time play_open sum POST /api/track already records
+     when a play opens (the board + contest payloads compute it
+     with ONE grouped query). It renders quietly — a ▶ poster
+     chip on board tiles and the featured card (only once a
+     play has been watched), a spelled-out views line in the
+     watch view (always, zeroes included), a suffix on the
+     Month/Fame row sport line and the Battles mini meta — one
+     formatter everywhere (exact under 1,000, then 1.2k). The
+     Owner Site stats section fills its gaps from the same
+     /api/owner/stats payload: a Battle picks card, the 30-day
+     series as a CSS bar strip with per-day tooltips, and the
+     Hype Stories total above its per-episode lines. Pins ?v=150.
+     Round 150 (2026-11-13): swipe review mode + batch actions
      in the Owner queue — Phase 5 of the owner-panel program.
      Every pending queue card gains a Select checkbox (a
      duplicate-group header's checkbox covers all its copies,
@@ -1890,6 +1905,6 @@
   </div>
 </div>
 
-<script src="app.js?v=149"></script>
+<script src="app.js?v=150"></script>
 </body>
 </html>
