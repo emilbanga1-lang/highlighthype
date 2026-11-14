@@ -684,11 +684,18 @@ ${consentText(row) ? `<p>${escHtml(consentText(row))}</p>` : ""}${row.story ? `<
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
 }
-function moderateDeletedPage(title, token) {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Play deleted</title></head>
+/* Round 147 (2026-11-13): the email link's delete lands here
+   now — it is a Trash move (trashPlay146), not a permanent
+   delete, and the page says so: the play can be restored
+   from the Owner panel's Trash for 7 days. (Round 13's
+   version of this page announced a permanent deletion;
+   →146 logged that delete as a 'purge'.) */
+function moderateTrashedPage147(title, token) {
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Play moved to Trash</title></head>
 <body style="font-family:system-ui,sans-serif;max-width:720px;margin:24px auto;padding:0 16px">
-<h1>Play deleted</h1>
-<p><b>${escHtml(title)}</b> was permanently deleted — its uploaded file, votes, contest entries and any Hype Frame requests went with it.</p>
+<h1>Play moved to Trash</h1>
+<p><b>${escHtml(title)}</b> was moved to the Trash — it is off the board and out of the contest, but nothing was deleted: its uploaded file, votes and any Hype Frame requests are all kept.</p>
+<p>Changed your mind? It can be restored from the Owner panel's Trash section within 7 days. After 7 days in the Trash it is deleted for good automatically.</p>
 <p><a href="/moderate-queue?token=${escHtml(token)}">← Back to the moderation queue</a></p>
 <p style="color:#666">Private beta only: anyone with this link can approve or decline. Do not forward it.</p>
 </body></html>`;
@@ -700,6 +707,9 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
   // no Owner-token device, no six separate deletes. Delete carries a
   // required "Yes, delete permanently" checkbox: the browser's own
   // validation blocks an unticked submit (zero-JS, no dialogs).
+  // →147: the Delete is a move to Trash now — the checkbox reads
+  // "Yes, move to Trash" and the button "Move to Trash", with the
+  // same required-checkbox arming.
   const liveItems = liveRows.length ? liveRows.map((r) => `
     <div style="border:1px solid #ccc;padding:12px;margin:12px 0">
       <b>${escHtml(r.title)}</b> — ${escHtml(r.sport)}${r.player_name ? ` — ${escHtml(r.player_name)}` : ""}${r.is_sample ? " — ⭐ SAMPLE PLAY" : ""} — Play ID ${r.id}${consentText(r) ? `<br>${escHtml(consentText(r))}` : ""}
@@ -711,8 +721,8 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
       <form method="POST" action="/moderate" style="display:inline;margin-left:12px">
         <input type="hidden" name="id" value="${r.id}"><input type="hidden" name="token" value="${escHtml(token)}">
         <input type="hidden" name="action" value="delete">
-        <label style="font-size:18px"><input type="checkbox" name="confirm" value="yes" required> Yes, delete permanently</label>
-        <button type="submit" style="font-size:18px;padding:12px 20px">Delete</button>
+        <label style="font-size:18px"><input type="checkbox" name="confirm" value="yes" required> Yes, move to Trash</label>
+        <button type="submit" style="font-size:18px;padding:12px 20px">Move to Trash</button>
       </form>
     </div>`).join("") : "<p>Nothing is live on the board right now.</p>";
   const items = rows.length ? rows.map((r) => `
@@ -1457,6 +1467,9 @@ function logModeration146(playId, action, actor, detail) {
 // pre-146 inline copies (owner DELETE is now a trash move; the
 // /moderate delete and the R145 cleanup route keep their own) are
 // statement-identical to this helper.
+// →147: the /moderate delete no longer keeps its own copy — it is
+// a trashPlay146 move like the owner DELETE. Only the R145 cleanup
+// route keeps its own permanent cascade now.
 function permanentDeletePlay146(id) {
   const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
   if (row && row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
@@ -2479,30 +2492,29 @@ const server = http.createServer(async (req, res) => {
       // same emailed link. It works for a play of ANY status (its
       // whole purpose is removing approved ones) and mirrors the
       // owner DELETE /api/highlights/:id cleanup EXACTLY (below).
+      // →147: the owner DELETE is a Trash move, and this delete
+      // mirrors THAT now — see the branch below.
       if (!["approve", "approve_sample", "hide", "delete"].includes(action)) return sendHtml(res, 400, "<h1>Invalid action</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       const status = action === "hide" ? "hidden" : "approved";
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
       if (!before) return sendHtml(res, 404, "<h1>Play not found</h1><p><a href=\"/\">← HighlightHype home</a></p>");
       if (action === "delete") {
-        // Cleanup mirrored statement-for-statement from the owner
-        // DELETE route (same route file, below): the uploaded media
-        // file goes, every Hype Frame print image for the play goes,
-        // then the order rows, the play row, its votes and its
-        // contest entries. Same try/catch-tolerant unlinks.
-        if (before.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(before.media_url))); } catch {} }
-        for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(id)) {
-          try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
-        }
-        db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(id);
-        db.prepare("DELETE FROM highlights WHERE id=?").run(id);
-        db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
-        db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
-        // Round 146: the emailed-queue delete stays PERMANENT (the
-        // Round 13 form, armed by its required checkbox) — but a
-        // permanent delete is exactly what the moderation log
-        // exists to record, so it lands there as a manual purge.
-        logModeration146(id, "purge", "owner", `permanent delete via the email moderation link: "${before.title}"`);
-        return sendHtml(res, 200, moderateDeletedPage(before.title, token));
+        // Round 147 (2026-11-13): the email link's delete is a
+        // Trash move now — the same trashPlay146 semantics as the
+        // Owner view's delete: the status flips (pre-trash status
+        // remembered), the current period's contest entry goes,
+        // and votes, files and Hype Frame orders are all KEPT, so
+        // the play restores whole from the Owner panel's Trash
+        // any time within 7 days. trashPlay146 writes the
+        // moderation-log entry itself: action 'trash', actor
+        // 'owner' (this surface's actor, as →146 set it), detail
+        // carrying the email-link channel via the via-label.
+        // (Round 13 →146 this branch ran the permanent cascade
+        // inline and logged a 'purge'; permanent delete now
+        // lives only in the Trash's Delete forever + auto-purge
+        // and in the R145 operator cleanup route.)
+        trashPlay146(before, "owner", "via the email moderation link");
+        return sendHtml(res, 200, moderateTrashedPage147(before.title, token));
       }
       if (action === "approve_sample") db.prepare("UPDATE highlights SET status=?, is_sample=1 WHERE id=?").run(status, id);
       else db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
