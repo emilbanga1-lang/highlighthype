@@ -120,13 +120,20 @@ function smtpSend({ host, port, user, pass, from, to, subject, body }) {
     })();
   });
 }
+// The ONE moderation-link builder. The pending-approval email
+// (notifyPending) and the Round 156 owner text alert both mint
+// their per-play link here, so the link in the email and the
+// link in the text for the same play are byte-identical by
+// construction — same path, same id, same shared token.
+function moderateLinkFor(id) {
+  try { return `https://highlighthype.com/moderate?id=${id}&token=${moderateToken()}`; } catch { return ""; }
+}
 function notifyPending(title, sport, id, review) {
   const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
   if (!user || !pass) return;
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   const reviewLine = review ? `\nPre-review: ${review.verdict}${review.flags.length ? " — " + review.flags.join("; ") : " — no flags found"}\n(Pre-review is a first-pass check only. It does NOT approve the play — you still approve or hide it in Owner view.)\n` : "";
-  let modLink = "";
-  try { modLink = `https://highlighthype.com/moderate?id=${id}&token=${moderateToken()}`; } catch {}
+  const modLink = moderateLinkFor(id);
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new play pending approval — ${title}`,
     body: `A new play is waiting for approval on highlighthype.com.\n\nTitle: ${title}\nSport: ${sport}\nPlay ID: ${id}\n${reviewLine}\nView it and approve or decline here (works on any device, no Owner token needed):\n${modLink}\n\nOr open Owner view on the device where you claimed ownership: https://highlighthype.com/#owner\n\nPrivate beta only: anyone with the moderation link can approve or decline. Do not forward it.\n` })
@@ -160,6 +167,62 @@ function sendText(to, body) {
 function notifyGuardianText(row, body) {
   if (!row || !row.guardian_phone || !row.text_consent) return;
   sendText(row.guardian_phone, body).catch(() => {});
+}
+
+// ---- Owner text alerts (Round 156, 2026-11-14) ----
+// When a new play lands in the review queue, the owners get a
+// text carrying the play's moderation link — Emil explicitly
+// chose the link IN the text (2026-11-14), knowing anyone
+// holding it can moderate; it is the same token link the
+// pending email carries (moderateLinkFor, above), and like
+// that email it is never to be forwarded. Recipients come
+// from OWNER_ALERT_PHONES in Render (comma-separated — Emil
+// pastes his number and Dyanna's). The numbers live ONLY in
+// that env var: no API or panel payload ever carries them —
+// the status helper below reports counts and booleans only.
+// Sending rides the same env-gated Twilio plumbing as the
+// guardian texts: until TWILIO_* is set, each send is the
+// usual logged no-op; until OWNER_ALERT_PHONES is set, the
+// whole feature is silent.
+function ownerAlertPhones156() {
+  const out = [];
+  for (const part of String(process.env.OWNER_ALERT_PHONES || "").split(",")) {
+    const entry = part.trim();
+    if (!entry) continue;
+    const digits = entry.replace(/\D/g, "");
+    let norm = "";
+    if (digits.length === 10) norm = "+1" + digits; // plain US number
+    else if (digits.length === 11 && digits.startsWith("1")) norm = "+" + digits; // US with country code
+    else if (entry.startsWith("+") && digits.length >= 7 && digits.length <= 15) norm = "+" + digits; // already international
+    if (norm && !out.includes(norm)) out.push(norm);
+  }
+  return out;
+}
+function twilioConfigured156() {
+  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
+}
+function ownerTextAlertStatus156() {
+  const phones = ownerAlertPhones156();
+  const twilio = twilioConfigured156();
+  return { configured: phones.length > 0, numbers: phones.length, twilio, on: phones.length > 0 && twilio };
+}
+// Fire-and-forget by contract: called AFTER the pending
+// insert, so a texting problem can never delay or fail the
+// upload response. sendText itself never throws (it resolves
+// false and logs), and its log line masks each recipient to
+// the last two digits, the same as the guardian path. The
+// body keeps to plain GSM-safe characters (hyphen, straight
+// quotes) so a typical alert fits in two SMS segments.
+function notifyOwnerTextAlert156({ id, playerName, title, sport }) {
+  try {
+    const phones = ownerAlertPhones156();
+    if (!phones.length) return;
+    const athlete156 = athleteDisplayName(playerName) || String(playerName || "").trim() || "A guardian";
+    const title156 = String(title || "").replace(/["\r\n]+/g, "'").replace(/\s+/g, " ").trim().slice(0, 60);
+    const body = `HighlightHype: new play waiting - ${athlete156}: "${title156}" (${sport}). Review: ${moderateLinkFor(id)}`;
+    console.log(`[r156] owner text alert: play ${id} -> ${phones.length} number(s)`);
+    for (const to of phones) { sendText(to, body).catch(() => {}); }
+  } catch (e) { console.error("notifyOwnerTextAlert156 failed:", e.message); }
 }
 
 // ---- Agent pre-review (first-pass check, NOT an approval) ----
@@ -2314,6 +2377,14 @@ const server = http.createServer(async (req, res) => {
         if (laneRow155) autoEnterOnApproval130(laneRow155);
       } else {
         notifyPending(title, sport, newPlayId, review);
+        // Round 156: the owners' text alert rides the same
+        // pending insert. The Round 145 dedupe answered much
+        // earlier (nothing was inserted, nothing texts), and
+        // the fast-lane branch above never reaches this line
+        // (a laned play is covered by the panel's strip), so
+        // exactly one alert round goes out per genuinely new
+        // queue arrival.
+        notifyOwnerTextAlert156({ id: newPlayId, playerName: fields.playerName || "", title, sport });
       }
       // Round 121: the response carries the athlete's HH tag so the
       // client can show it on the post-success screen ("save it!") —
@@ -2835,7 +2906,10 @@ const server = http.createServer(async (req, res) => {
         WHERE h.status='approved' AND h.fast_laned_at IS NOT NULL AND h.fast_laned_at<>''
         ORDER BY h.fast_laned_at DESC, h.id DESC LIMIT 10`).all()
         .map((r) => ({ id: r.id, title: r.title, athlete: r.player_name ? athleteDisplayName(r.player_name) : "", athlete_tag: r.athlete_tag || "", fast_laned_at: r.fast_laned_at, label: r.lane_label || "" }));
-      return sendJson(res, 200, { ok: true, guardians: guardians155, recent: recent155 });
+      // Round 156: the text-alert status rides this payload —
+      // counts and booleans ONLY (see ownerTextAlertStatus156);
+      // the configured numbers themselves never leave the env.
+      return sendJson(res, 200, { ok: true, guardians: guardians155, recent: recent155, textAlerts156: ownerTextAlertStatus156() });
     }
     if (p === "/api/owner/trusted" && req.method === "POST") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
