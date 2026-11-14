@@ -906,6 +906,16 @@ function crownsFor105(id) {
 // Pairs / Winner Stays results are session play — nothing about them
 // is persisted per play, so they count nothing here.
 function playViews105(id) { return db.prepare("SELECT COALESCE(SUM(count),0) c FROM stat_events WHERE kind='play_open' AND key=?").get(String(id)).c; }
+// Round 151: the same play_open sums for a whole payload in ONE
+// grouped query — a Map of play id (number) -> all-time opens.
+// The list endpoints (board, contest) build this once and hand
+// it to publicHighlight, so a 30-play board costs one stat query
+// instead of thirty. Single-play call sites keep playViews105.
+function playViewCounts151() {
+  const m = new Map();
+  for (const r of db.prepare("SELECT key, SUM(count) c FROM stat_events WHERE kind='play_open' GROUP BY key").all()) m.set(Number(r.key), r.c);
+  return m;
+}
 function battleWins105(id) { return db.prepare("SELECT COUNT(*) c FROM daily_battles WHERE finalized=1 AND winner_id=?").get(id).c; }
 // Picker streaks (Feature 4). Identity is the existing voter token;
 // picks are the daily_battle_picks rows the pick route already
@@ -1051,7 +1061,7 @@ function badgesFor(row) {
   return out;
 }
 
-function publicHighlight(row, voterToken = "") {
+function publicHighlight(row, voterToken = "", viewsMap151 = null) {
   // Public shape is an explicit ALLOWLIST (hardening, 2026-11-04): only
   // the fields the client renders are returned. The old spread-minus-
   // three also leaked internal columns — above all `review`, the agent
@@ -1067,6 +1077,15 @@ function publicHighlight(row, voterToken = "") {
   // same name+team group, so it appears exactly when disambiguation is
   // needed and stays out of the way otherwise.
   const collision = athleteCollision(row.athlete_group || "");
+  // Round 151: the play's all-time watch count, computed ONCE
+  // here and carried under both names — `views` (Round 105's My
+  // Highlights numbers) and `viewCount` (Round 151's public
+  // surfaces: board tiles, the watch view, the Month rows). List
+  // endpoints pass the grouped map (playViewCounts151); other
+  // call sites fall back to the single-play sum. Same counter
+  // either way — the stat_events 'play_open' rows POST /api/track
+  // already records when a play is opened.
+  const views151 = viewsMap151 ? (viewsMap151.get(row.id) || 0) : playViews105(row.id);
   return {
     id: row.id,
     title: row.title,
@@ -1118,7 +1137,8 @@ function publicHighlight(row, voterToken = "") {
     // Round 105 numbers (Feature 3): rendered on My Highlights
     // cards — this month's votes, all-time views, Daily wins.
     votesMonth: monthlyVoteCount(row.id, currentPeriod()),
-    views: playViews105(row.id),
+    views: views151,
+    viewCount: views151,
     battleWins: battleWins105(row.id),
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
@@ -2044,7 +2064,8 @@ const server = http.createServer(async (req, res) => {
       if (division !== "all") rows = rows.filter((r) => (r.division || "coed") === division || (r.division || "coed") === "coed");
       if (team !== "all") rows = rows.filter((r) => slugify(r.team) === team || (r.team || "").toLowerCase() === team.toLowerCase());
       if (search) rows = rows.filter((r) => [r.title, r.player_name, r.story].join(" ").toLowerCase().includes(search));
-      rows = rows.map((r) => publicHighlight(r, voter));
+      const viewCounts151 = playViewCounts151(); // Round 151: one grouped query for the whole board
+      rows = rows.map((r) => publicHighlight(r, voter, viewCounts151));
       if (sort === "top") rows.sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
       else if (sort === "oldest") rows.sort((a, b) => a.id - b.id);
       else rows.sort((a, b) => b.id - a.id);
@@ -2377,8 +2398,9 @@ const server = http.createServer(async (req, res) => {
       // endpoint, but even a legacy/hand-made entry row for a sample
       // must never surface on the month board or the podium — the
       // query itself excludes them.
+      const viewCounts151 = playViewCounts151(); // Round 151: one grouped query for the whole contest board
       const rows = db.prepare(`SELECT h.* FROM contest_entries e JOIN highlights h ON h.id=e.highlight_id
-        WHERE e.period=? AND h.status='approved' AND COALESCE(h.is_sample,0)=0`).all(period).map((r) => ({ ...publicHighlight(r, voter), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: prizeEligibleFor(r) }));
+        WHERE e.period=? AND h.status='approved' AND COALESCE(h.is_sample,0)=0`).all(period).map((r) => ({ ...publicHighlight(r, voter, viewCounts151), voteCount: monthlyVoteCount(r.id, period), isWinner: r.id === winnerId, prizeEligible: prizeEligibleFor(r) }));
       rows.sort((a, b) => b.voteCount - a.voteCount || a.id - b.id);
       const sportCounts = {};
       for (const r of rows) sportCounts[r.sport] = (sportCounts[r.sport] || 0) + 1;
