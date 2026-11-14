@@ -3370,3 +3370,14 @@ footer{padding-bottom:36px}
 .stats-bars151{display:flex;align-items:flex-end;gap:2px;height:64px;margin:10px 0 4px;border-bottom:1px solid var(--line2)}
 .stats-bar151{flex:1 1 0;min-width:2px;background:var(--volt);border-radius:2px 2px 0 0;opacity:.85}
 .stats-bars-cap151{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+
+/* ================================================================
+   Round 152 (2026-11-13) — named owner passcodes (Phase 7a).
+   The Owner access block reuses the queue-item card; the only
+   new furniture is the once-only reveal: a gold-edged box (gold
+   = owner/contest colour, never lime) whose passcode reads big
+   and mono so it can be copied or read aloud without mistakes.
+   ================================================================ */
+.access152-reveal{border:1px solid var(--gold);background:var(--card2);border-radius:10px;padding:12px 14px;margin:12px 0}
+.access152-code{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.access152-code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px;font-weight:700;letter-spacing:.03em;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px}
