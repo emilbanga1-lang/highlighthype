@@ -2910,7 +2910,7 @@ try {
   assert(css129.includes(".hf-strip126{flex-direction:column") && css129.includes(".hf-strip-film126{flex:none;width:100%}") && css129.includes(".hf-strip-stepsline126{display:block"), "r129 css: the strip stacks — column layout, film full width, steps line always shown — →148: the rules stand in the file but the Round 148 block (later in the cascade) overrides them back to the compact horizontal band; see §56");
   // (e) Asset pins: v131 for Round 129; bumped to v132 by
   // Round 132 (→132), and to v133 by Round 133 (→133).
-  assert(home.includes('href="styles.css?v=164"') && home.includes('src="app.js?v=164"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+  assert(home.includes('href="styles.css?v=165"') && home.includes('src="app.js?v=165"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
   /* ---- 43. Round 132 (2026-11-13): Emil's live Month-tab
      review. (a) The panel is decluttered in index.html: under
@@ -3332,7 +3332,7 @@ try {
   assert(convertNow138.includes('"-threads", "2"') && convertNow138.includes('"-c:v", "libx264"') && convertNow138.includes('"-pix_fmt", "yuv420p"') && convertNow138.includes('"-movflags", "+faststart"') && convertNow138.includes('"-crf", "23"'), "r138 threads: the transcode command carries -threads 2 with the output spec untouched (libx264/yuv420p/faststart/crf 23)");
   assert(serverJs138.includes("return r138SerializeFfmpeg(() => r124ConvertNow(bins, inFile, outFile));"), "r138 wiring: r124Convert routes through the serializer");
   assert(serverJs138.includes("return r138SerializeFfmpeg(() => r124MakePosterNow(bins, videoFile, posterFile, atSec));"), "r138 wiring: r124MakePoster routes through the serializer");
-  assert((serverJs138.split("r124Run(bins.ffmpeg").length - 1) === 2, "r138 wiring: ffmpeg is spawned from exactly two places — the serialized ConvertNow and MakePosterNow bodies");
+  assert((serverJs138.split("r124Run(bins.ffmpeg").length - 1) === 3, "r138 wiring: ffmpeg is spawned from exactly two places — the serialized ConvertNow and MakePosterNow bodies — →165: three places now; the Hype Reel builder (r165BuildReelNow) is the third call site and it too runs only inside r138SerializeFfmpeg (Round 165)");
   const serSrc138 = serverJs138.slice(serverJs138.indexOf("let r138FfmpegQueue"), serverJs138.indexOf("async function r124Convert("));
   const ctx138 = vm.createContext({ console, setTimeout });
   vm.runInContext(serSrc138 + "\n;this.__ser138 = r138SerializeFfmpeg;", ctx138);
@@ -4188,7 +4188,7 @@ try {
     assert(!appJs.includes("function lbRowHtml134"), "r147 wiring: lbRowHtml134 is retired — one contest row renderer remains");
     assert(appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml")).includes("fameRowHtml134(h, i)"), "r147 wiring: renderMonth renders the This Month rows through fameRowHtml134");
     assert(serverJs.includes('trashPlay146(before, "owner", "via the email moderation link")') && serverJs.includes("function moderateTrashedPage147") && serverJs.includes("Yes, move to Trash"), "r147 wiring: the /moderate delete branch is the trashPlay146 move, the result page is moderateTrashedPage147, and the queue checkbox speaks Trash");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server behavior ----
     const PORT55 = 3494, base55 = `http://localhost:${PORT55}`;
@@ -4373,7 +4373,7 @@ try {
     assert(css148.includes(".final{scroll-margin-top:76px}") && css148.includes(".final h2{line-height:1}"), "r148 cta: the final headline gets line-height 1 and the board's scroll-margin, so its italic ink never rides at the sticky header's edge");
     assert(home.includes('<link rel="preload" as="image" href="/hero-poster.jpg" fetchpriority="high">') && home.includes('poster="/hero-poster.jpg"'), "r148 hero: the hero video's poster (the brand still) is preloaded at high priority and still on the element — first paint has the still, autoplay/mute untouched");
     assert(css148.includes("#playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:absolute;inset:0;width:100%;height:100%;object-fit:cover}") && css148.includes("#playDetailBody .upnext-thumb .vfill{display:none}"), "r148 upnext: portrait clips cover-crop the 16:9 Up Next thumb and the blurred clone is hidden in the rail");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
   }
 
   /* ============ §57 Round 149 — the Owner panel storage meter ====
@@ -4395,7 +4395,7 @@ try {
     assert(appJs.includes("Storage unavailable right now"), "r149 wiring: a failed storage fetch degrades to the 'Storage unavailable right now' note in the block");
     assert(home.includes('id="ownerStorage149"'), "r149 wiring: the storage block div sits in the Site stats section");
     assert(css.includes(".storage-bar149") && css.includes(".storage-fill149.warn149") && css.includes(".storage-fill149.crit149"), "r149 wiring: the meter styles ship (bar, gold warn fill, red crit fill)");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server behavior ----
     const PORT57 = 3495, base57 = `http://localhost:${PORT57}`;
@@ -4486,7 +4486,7 @@ try {
     for (const idAttr of ["reviewModal150", "reviewCard150", "reviewMedia150", "reviewMeta150", "reviewProgress150", "reviewApprove150", "reviewTrash150", "reviewUndo150", "reviewDone150", "reviewTint150"]) assert(home.includes(`id="${idAttr}"`), `r150 wiring: the review overlay markup carries #${idAttr}`);
     assert(home.includes("All caught up"), "r150 wiring: the review overlay carries the 'All caught up' empty state");
     assert(css.includes(".review150") && css.includes(".batch-bar150") && css.includes(".queue-head150") && css.includes(".review-tint150") && css.includes(".qsel150"), "r150 wiring: the batch + review styles ship");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Client behavior: the real block in a vm ----
     const escCap150 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -4691,7 +4691,7 @@ try {
     assert(appJs.includes("stats-bars151") && appJs.includes("stats-bar151") && appJs.includes("stats-bars-cap151") && appJs.includes("busiest day:"), "r151 wiring: the owner stats daily series renders as a CSS bar strip with tooltips + a busiest-day caption");
     assert(appJs.includes("Battle picks · all time") && appJs.includes("total watch"), "r151 wiring: the stats cards gain Battle picks and the Hype Stories total line");
     assert(css.includes(".views-chip151") && css.includes(".stats-bar151") && css.includes(".watch-views151") && css.includes(".feat-views151"), "r151 wiring: the Round 151 styles ship");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Formatter behavior: the real client block in a vm ----
     const fStart151 = appJs.indexOf("function fmtCount151");
@@ -4789,7 +4789,7 @@ try {
     assert(home.includes('id="ownerAccess152"'), "r152 wiring: the Owner access block mounts in the panel");
     assert(appJs.includes("function renderOwnerAccess152") && appJs.includes("window.mintPasscode152") && appJs.includes("window.revokePasscode152") && appJs.includes("shown only once"), "r152 wiring: the block renders, mints and revokes, with the once-only reveal");
     assert(css.includes(".access152-reveal") && css.includes(".access152-code"), "r152 wiring: the Round 152 styles ship");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server behavior ----
     const j60 = async (b, p, opts = {}) => { const r = await fetch(b + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
@@ -4928,7 +4928,7 @@ try {
     const info153 = appJs.slice(appJs.indexOf("function tileInfoHtml"), appJs.indexOf("function tileHtml"));
     assert(!info153.includes("humanAge(") && !info153.includes("h.division") && !info153.includes('|| "all-time"'), "r153 wiring: the card meta no longer renders division, age, or 'all-time' wording (code-level: no humanAge call, no division read, no all-time fallback)");
     assert(css61.includes(".tile-head153{") && css61.includes(".tile-avatar153{") && css61.includes(".meta-name153{min-width:0;overflow:hidden;text-overflow:ellipsis") && css61.includes(".meta-rest153{flex:0 0 auto") && css61.includes(".vote-pill153") && css61.includes("background:var(--volt)"), "r153 wiring: styles.css carries the head row, the avatar disc, the name-only ellipsis (rest segment flex-fixed), and the volt lime pill");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Behavior: the real render chain in a vm ----
     const escCap153 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5019,7 +5019,7 @@ try {
     assert(css.includes(".btl-player video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover"), "r154 css: the base big-player rule is unchanged — landscape keeps 16:9 exactly as before");
     const css154 = css.slice(css.indexOf("Round 154"));
     assert(!css154.includes(".btl-mini"), "r154 scope: the Round 154 CSS block touches no battle mini — their posters already render fine");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
     // (c) Behavior: the REAL markBtlStage154 + syncBtlPlayer113
     // against fake players/boxes, incl. the poster race guard.
     const IMG_DIMS154 = { "/uploads/poster-p.jpg": { w: 720, h: 1280 }, "/uploads/poster-l.jpg": { w: 960, h: 444 } };
@@ -5115,7 +5115,7 @@ try {
     assert(appJs.includes("h.fast_laned_at") && appJs.includes("⚡ Fast lane"), "r155 wiring: queue cards wear the ⚡ Fast lane chip from the owner payload's marker");
     assert(appJs.includes("!j.deduped && !!j.fastLaned") && appJs.includes("fastLaned155"), "r155 wiring: the upload success screen routes a fast-laned answer to its live variant");
     assert(serverJs.includes("fast_laned_at: r.fast_laned_at || \"\""), "r155 wiring: the owner queue payload carries the marker (owner-only)");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server behavior ----
     const { createHash: createHash63 } = await import("node:crypto");
@@ -5301,7 +5301,7 @@ try {
     assert((createSlice156.split("notifyOwnerTextAlert156({").length - 1) === 1 && createSlice156.indexOf("notifyOwnerTextAlert156({") > createSlice156.indexOf("autoEnterOnApproval130(laneRow155)"), "r156 trigger: exactly one alert call, in the pending else-branch AFTER the fast-lane block — dedupes (answered earlier) and laned plays can never reach it");
     assert(serverJs.includes("textAlerts156: ownerTextAlertStatus156()"), "r156 wiring: the counts-only status rides the owner trusted payload");
     assert(appJs.includes("function textAlertLine156") && appJs.includes("Text alerts: on") && appJs.includes("Text alerts: off") && appJs.includes("textAlerts156 = tr155.textAlerts156"), "r156 wiring: the panel renders the status line from the trusted payload (on/off forms)");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Shared helpers ----
     const { pathToFileURL: p2u64 } = await import("node:url");
@@ -5460,7 +5460,7 @@ try {
     assert(block157.includes("🎉 All caught up — no new plays waiting"), "r157 wiring: the New view's empty-state copy ships");
     assert(block157.includes('queueView157 === "all" ? liveQueue146 : pendRows157'), "r157 wiring: All takes liveQueue146 itself (the pre-157 list, untouched); New takes the pending subset");
     assert(css.includes(".qfilter157") && css.includes('.qfilter157 button[aria-pressed="true"]') && css.includes(".queue-empty157"), "r157 wiring: the pill bar styles ship — active pill filled lime via aria-pressed, the Round 141 look");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Client behavior: the real blocks in a vm ----
     const escCap157 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5573,7 +5573,7 @@ try {
     const ap139 = appJs.slice(appJs.indexOf("function hhApply139(place)"), appJs.indexOf("function hhSettle139()"));
     assert(ap139.includes("switchView(") && ap139.includes("showPanel(") && ap139.includes("hidePlayDetail()"), "r158 wiring: popstate restores (hhApply139) route through the same swept functions — Back is a view change");
     assert(appJs.includes("function attachChromeFade143") && appJs.includes("function markBtlStage154") && appJs.includes("function syncBtlPlayer113"), "r158 wiring: Round 143 chrome fade + Round 154 stage marking untouched");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Behavior: real code slices in vms ----
     const helpersSrc158 = appJs.slice(i158, appJs.indexOf("function hidePlayDetail()"));
@@ -5685,7 +5685,7 @@ try {
     assert(appJs.includes("function sourcesHtml159") && appJs.includes("const refs = sourcesHtml159(st.sources);"), "r159 wiring: the Owner stats render the sources block under 'Where visitors came from'");
     assert(appJs.includes("No visits recorded yet — sources appear here as people arrive."), "r159 wiring: the honest empty-state line ships (counting starts this round, nothing backfilled)");
     assert(css159.includes(".stats-sub159"), "r159 wiring: the block's sub-head style ships in styles.css");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server classification behavior (real helpers, vm) ----
     const helpersSrc159 = serverJs159.slice(serverJs159.indexOf("const VISIT_SEARCH_HOSTS159"), serverJs159.indexOf("function recordVisitSource159"));
@@ -5878,7 +5878,7 @@ try {
     assert(startSlice160.indexOf("const q160") > startSlice160.indexOf("armFirstTap125();"), "r160 wiring: the retry runs inside the refusal handler, after the mute + arm (not as a parallel start)");
     assert(!startSlice160.includes("hhStorageSet"), "r160 wiring: the start path never writes storage — the fallback cannot overwrite the saved hh_music preference");
     assert(heroSlice160.includes('hhStorageSet("hh_music", v.muted ? "off" : "on")'), "r160 wiring: the badge tap remains the ONLY writer of the sound preference");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
     // ---- §66 re-verified, unmodified ----
     const helpers66r = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
     assert(helpers66r.includes("function pauseMediaIn158") && !helpers66r.includes("heroVideo"), "r160/§66 recheck: the Round 158 sweep helpers stand unmodified and still never name the hero");
@@ -6019,10 +6019,10 @@ try {
     assert(home.includes('id="a2hsBar161"') && home.includes('id="a2hsBtn161"') && home.includes('id="a2hsX161"') && home.includes('id="a2hsSteps161"'), "r161 wiring: the hint bar markup (bar / button / dismiss / steps) ships, hidden by default");
     assert(home.includes("Add HighlightHype to your Home Screen") && home.includes("Add to Home Screen"), "r161 wiring: the bar's line + the walkthrough's second step ship");
     assert(css161.includes(".a2hs161{") && css161.includes("body.a2hs-open161 .float-submit") && css161.includes("body.a2hs-steps161 .float-submit"), "r161 wiring: the bar styles ship, including the pill-lift rules that keep it clear of Post a Play");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Service worker pins ----
-    assert(swSrc161.includes('const HH_SW_VERSION = "r164-v164";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161) — →163: r163-v162 (Round 163) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164)");
+    assert(swSrc161.includes('const HH_SW_VERSION = "r165-v165";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161) — →163: r163-v162 (Round 163) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165)");
     assert(swSrc161.includes('"hh-static-" + HH_SW_VERSION'), "r161 sw: the cache name derives from HH_SW_VERSION — one bump invalidates every old cache");
     assert(swSrc161.includes('url.pathname.startsWith("/api/")') && swSrc161.includes('url.pathname.startsWith("/moderate")') && swSrc161.includes('url.pathname.startsWith("/uploads/")'), "r161 sw: /api, /moderate and /uploads pass through untouched");
     assert(swSrc161.includes("mp4|webm|mov|m4v") && swSrc161.includes('url.origin !== self.location.origin') && swSrc161.includes('request.method !== "GET"'), "r161 sw: video files, cross-origin requests and non-GETs pass through untouched");
@@ -6137,7 +6137,7 @@ try {
     assert(appJs.includes("No firsts or milestones yet — they'll show up here as families post them."), "r162 wiring: the empty-lane line ships verbatim");
     assert(appJs.includes("💛 MOMENT THAT MATTERED") && appJs.includes("function renderSpotlight162()"), "r162 wiring: the homepage card renderer + its eyebrow ship");
     assert(css162.includes(".moment-chip162{") && css162.includes(".lane-chip162.on{") && css162.includes(".moment-card162{"), "r162 wiring: the chip, lane and card styles ship");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r162 wiring: asset pins bumped to ?v=161 — →163: now ?v=162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r162 wiring: asset pins bumped to ?v=161 — →163: now ?v=162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
 
     // ---- Server validator (the REAL momentKind162, vm) ----
     const mkSrc162 = serverJs162.slice(serverJs162.indexOf("const MOMENT_KINDS162"), serverJs162.indexOf("function publicHighlight"));
@@ -6352,8 +6352,8 @@ try {
     const helpers163 = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
     assert(!helpers163.includes("feat"), "r163 wiring: the Round 158 sweep itself is UNTOUCHED — it still skips the muted featured player; the round's pauses live outside it");
     assert(css163.includes(".feat-media134.feat-playing163 .feat-disc134"), "r163 wiring: the play disc steps aside while the showcase is playing");
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r163 wiring: asset pins bumped to ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164)");
-    assert(sw163.includes('const HH_SW_VERSION = "r164-v164";'), "r163 wiring: the SW version constant rides the pin (r163-v162) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r163 wiring: asset pins bumped to ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
+    assert(sw163.includes('const HH_SW_VERSION = "r165-v165";'), "r163 wiring: the SW version constant rides the pin (r163-v162) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165)");
 
     // ---- Behavior: real slices in a vm ----
     const escCap163 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -6547,9 +6547,9 @@ try {
     assert(appJs.includes('$$("[data-moment-pick]").forEach((b) => b.addEventListener("click", () => setMomentPick162(b.dataset.momentPick)))') && appJs.includes("form.elements.momentKind.value = next162"), "r163b wiring: the click binding + hidden-field write are byte-for-byte the Round 162 behavior");
 
     // Pins ride along (→163b).
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r163b wiring: asset pins bumped to ?v=163 — →164: now v164 (Round 164)");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r163b wiring: asset pins bumped to ?v=163 — →164: now v164 (Round 164) — →165: now v165 (Round 165)");
     const sw163b = await text("/sw.js");
-    assert(sw163b.includes('const HH_SW_VERSION = "r164-v164";'), "r163b wiring: the SW version constant rides the pin (r163b-v163) — →164: now r164-v164 (Round 164)");
+    assert(sw163b.includes('const HH_SW_VERSION = "r165-v165";'), "r163b wiring: the SW version constant rides the pin (r163b-v163) — →164: now r164-v164 (Round 164) — →165: r165-v165 (Round 165)");
   }
 
   /* ============ §73 Round 164 — guardian trending nudges ====
@@ -6565,9 +6565,9 @@ try {
      now164 seam) so the window edges are reachable. ======== */
   {
     // ---- Wiring (main-server payloads + sources) ----
-    assert(home.includes('app.js?v=164') && home.includes('styles.css?v=164'), "r164 wiring: asset pins bumped to ?v=164");
+    assert(home.includes('app.js?v=165') && home.includes('styles.css?v=165'), "r164 wiring: asset pins bumped to ?v=164 — →165: now v165 (Round 165)");
     const sw164src = await text("/sw.js");
-    assert(sw164src.includes('const HH_SW_VERSION = "r164-v164";'), "r164 wiring: the SW version constant rides the pin (r164-v164)");
+    assert(sw164src.includes('const HH_SW_VERSION = "r165-v165";'), "r164 wiring: the SW version constant rides the pin (r164-v164) — →165: r165-v165 (Round 165)");
     const serverSrc164 = fs.readFileSync(path.join(root, "server.js"), "utf8");
     assert(serverSrc164.includes('"/api/nudge/unsubscribe"') && serverSrc164.includes("evaluateNudges164") && serverSrc164.includes("maybeSendRally164") && serverSrc164.includes("nudge_optouts"), "r164 wiring: the unsubscribe route, the two evaluators and the opt-out table ship in server.js");
     assert(appJs.includes("nudgesHtml164") && appJs.includes("Trending nudges (this month)"), "r164 wiring: the Owner stats panel renders the nudges block");
@@ -6753,6 +6753,150 @@ try {
       const anonStats164 = await j("/api/owner/stats");
       assert(anonStats164.status === 403, "r164 owner view: stats stay owner-gated");
     } finally { child164.kill(); try { fs.rmSync(tmp164, { recursive: true, force: true }); } catch {} }
+  }
+
+  /* ============ §74 Round 165 — Hype Reel =================
+     A guardian downloads a branded MP4 of their own athlete's
+     APPROVED file-video play from My Plays: the play's clip
+     bookended by a 1.2s intro card (gold crest + athlete name
+     + play title) and a 1.5s outro card (crest + "YOUR MOMENT.
+     YOUR HYPE." + highlighthype.com), with the crest watermarked
+     bottom-right at 55% alpha during the clip itself. Cards are
+     rendered by an embedded bitmap font into PNGs ffmpeg
+     composites — this ffmpeg build has no drawtext, and the
+     production image ships no fonts. Generation is on demand
+     through the SAME Round 138 serializer as uploads (the
+     builder is r124Run's third call site — §47's count moved
+     2 → 3), then cached at DATA_DIR/reels/<id>.mp4 with
+     reel_generated_at / reel_source on the highlights row;
+     repeat requests serve the cache. Authorization is the
+     lookup's own rule: the email rides in the POST body and
+     sha(normIdentity(email)) must equal the play's
+     notify_email_hash — no match: 403, no file, no generation.
+     Live behavior runs on this section's own side server (the
+     §70 pattern). The storage guard has no test seam (statfs
+     cannot be driven from outside), so it is asserted by
+     wiring only: r165EnsureReel consults storageIsFull()
+     before any generation. ================================== */
+  {
+    // ---- Wiring (main-server sources) ----
+    const serverSrc165 = fs.readFileSync(path.join(root, "server.js"), "utf8");
+    assert(serverSrc165.includes("reelMatch165") && serverSrc165.includes("r165EnsureReel") && serverSrc165.includes("reel_generated_at") && serverSrc165.includes("reel_source"), "r165 wiring: the gated reel route, the ensure/cache helper and the reel state columns ship in server.js");
+    assert(serverSrc165.includes("r138SerializeFfmpeg(() => r165BuildReelNow"), "r165 wiring: the reel builder runs ONLY inside the Round 138 ffmpeg serializer — never a parallel ffmpeg");
+    assert(serverSrc165.includes("BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR, REEL_DIR]"), "r165 wiring: cached reels live in a backup-covered data folder, like the Hype Frame prints");
+    const ensure165At = serverSrc165.indexOf("async function r165EnsureReel");
+    const send165At = serverSrc165.indexOf("function r165SendFile");
+    assert(ensure165At > -1 && send165At > ensure165At && serverSrc165.slice(ensure165At, send165At).includes("storageIsFull()"), "r165 wiring: generation is gated by the same 200MB-free storage guard as uploads (wiring assert — the guard has no external seam)");
+    assert(appJs.includes("getReel165") && appJs.includes("🎬 Get the reel") && appJs.includes("canReel"), "r165 wiring: My Plays renders the reel button from the lookup's canReel flag, via getReel165");
+    const sw165src = await text("/sw.js");
+    assert(sw165src.includes('url.pathname.startsWith("/api/")'), "r165 wiring: the service worker passes /api/ through untouched, so the gated reel download is never cached");
+
+    // ---- Live HTTP: side server with real ffmpeg ----
+    const PORT165 = 3503, base165 = `http://localhost:${PORT165}`;
+    const tmp165 = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r165-"));
+    // Three DISTINCT clips: the Round 145 upload dedupe collapses
+    // identical bytes inside 30 minutes (and a lavfi recipe can
+    // collide with a boot-seeded sample), so each play gets its
+    // own hue-shifted variant — same 2s shape, different bytes.
+    const mkClip165 = (name, hue) => {
+      const f = path.join(tmp165, name);
+      execFileSync("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x240:rate=30:duration=2", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-vf", `hue=h=${hue}`, "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-c:a", "aac", "-shortest", "-movflags", "+faststart", f]);
+      return f;
+    };
+    const clip165 = mkClip165("fixture165.mp4", 25);
+    const clipB165 = mkClip165("fixture165b.mp4", 60);
+    const clipC165 = mkClip165("fixture165c.mp4", 120);
+    const probe165 = (f) => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-show_format", "-of", "json", f]).toString());
+    const srcDur165 = Number(probe165(clip165).format.duration);
+    assert(srcDur165 > 1.8 && srcDur165 < 2.2, `r165 setup: the fixture clip probes at ~2s (${srcDur165})`);
+    const child165 = spawn(process.execPath, ["server.js"], { cwd: root, env: { ...process.env, PORT: String(PORT165), DATA_DIR: tmp165, OWNER_TOKEN: "env-main-secret-165" }, stdio: "pipe" });
+    const j165 = async (p, opts = {}) => { const r = await fetch(base165 + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
+    const ownerH165 = { "content-type": "application/json", "x-owner-token": "env-main-secret-165" };
+    const db165 = (fn) => { let lastErr; for (let i = 0; i < 20; i++) { try { const d = new DatabaseSync(path.join(tmp165, "highlighthype.db")); try { return fn(d); } finally { d.close(); } } catch (e) { lastErr = e; Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); } } throw lastErr; };
+    const reelPost165 = async (id, email) => { const r = await fetch(`${base165}/api/highlights/${id}/reel`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(email === undefined ? {} : { email }) }); return { status: r.status, headers: r.headers, buf: Buffer.from(await r.arrayBuffer()) }; };
+    for (let i = 0; i < 50; i++) { try { await fetch(base165 + "/api/health"); break; } catch { await wait(200); } }
+    try {
+      const up165 = async (fields, buf, filename, mime) => {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+        fd.append("file", new Blob([buf], { type: mime }), filename);
+        return j165("/api/highlights", { method: "POST", body: fd });
+      };
+      const approve165 = async (id) => { const ap = await j165(`/api/highlights/${id}/status`, { method: "POST", headers: ownerH165, body: JSON.stringify({ status: "approved" }) }); assert(ap.body.status === "approved", "r165 setup: approval lands"); };
+      const mkVideo165 = async (fields, buf, approve = true) => {
+        const u = await up165({ sport: "baseball", division: "boys", guardianConsent: "on", ...fields }, buf, "clip.mp4", "video/mp4");
+        assert(u.status === 201, `r165 setup: video upload lands (${JSON.stringify(u.body).slice(0, 120)})`);
+        if (approve) await approve165(u.body.id);
+        return u.body.id;
+      };
+      const V1 = await mkVideo165({ title: "Reel One", playerName: "Ria165", notifyEmail: "reelg1@example.com" }, fs.readFileSync(clip165));
+      const V2 = await mkVideo165({ title: "Reel Two", playerName: "Rob165", notifyEmail: "reelg2@example.com" }, fs.readFileSync(clipB165));
+      const PEND165 = await mkVideo165({ title: "Reel Pending", playerName: "Pam165", notifyEmail: "reelpend@example.com" }, fs.readFileSync(clipC165), false);
+      const imgUp165 = await up165({ sport: "soccer", division: "girls", guardianConsent: "on", title: "Reel Image", playerName: "Ivy165", notifyEmail: "reelimg@example.com" }, uniqPng(png), "play.png", "image/png");
+      assert(imgUp165.status === 201, "r165 setup: image upload lands");
+      const IMG165 = imgUp165.body.id;
+      await approve165(IMG165);
+      const linkUp165 = await j165("/api/highlights", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: "Reel Link", sport: "soccer", playerName: "Liv165", notifyEmail: "reellink@example.com", videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", guardianConsent: "true" }) });
+      assert(linkUp165.status === 201, `r165 setup: link upload lands (${JSON.stringify(linkUp165.body).slice(0, 120)})`);
+      const LINK165 = linkUp165.body.id;
+      await approve165(LINK165);
+
+      // ---- My Plays flags: the button exists only where the
+      // endpoint would honor it ----
+      const lookup165 = async (email) => (await j165("/api/athletes/lookup?email=" + encodeURIComponent(email))).body;
+      const flag165 = async (email, id) => { const lk = await lookup165(email); const p = (lk.plays || []).find((x) => x.id === id); assert(!!p, `r165 lookup: play ${id} is listed for its guardian`); return p.canReel; };
+      assert(await flag165("reelg1@example.com", V1) === true, "r165 my-plays: an approved file-video play carries canReel — its row gets the 🎬 button");
+      assert(await flag165("reelpend@example.com", PEND165) === false, "r165 my-plays: a PENDING video play carries no canReel — no button");
+      assert(await flag165("reelimg@example.com", IMG165) === false, "r165 my-plays: an approved IMAGE play carries no canReel — no button");
+      assert(await flag165("reellink@example.com", LINK165) === false, "r165 my-plays: an approved LINK play carries no canReel — no button");
+
+      // ---- Authorization first: wrong email and no email are
+      // refused BEFORE anything is generated or written ----
+      const reelsDir165 = path.join(tmp165, "reels");
+      const reelFile165 = (id) => path.join(reelsDir165, `${id}.mp4`);
+      const wrong165 = await reelPost165(V2, "reelg1@example.com");
+      assert(wrong165.status === 403 && !wrong165.buf.toString("latin1").includes("ftyp"), "r165 auth: another guardian's email gets a plain 403 — no file bytes");
+      assert(!fs.existsSync(reelFile165(V2)), "r165 auth: the refused request created NO cached reel and ran NO generation");
+      const anon165 = await reelPost165(V2, undefined);
+      assert(anon165.status === 403, "r165 auth: an anonymous request (no email) is 403");
+      assert(!fs.existsSync(reelFile165(V2)), "r165 auth: still nothing on disk for the stranger's play");
+
+      // ---- The happy path: generate, download, verify ----
+      const gen165 = await reelPost165(V1, "reelg1@example.com");
+      assert(gen165.status === 200, `r165 generate: the guardian's first request succeeds (${gen165.status}: ${gen165.buf.toString("utf8", 0, 160)})`);
+      assert((gen165.headers.get("content-type") || "").includes("video/mp4"), "r165 generate: the download is video/mp4");
+      assert((gen165.headers.get("content-disposition") || "").includes(`highlighthype-reel-${V1}.mp4`), "r165 generate: the download carries the attachment filename — and no guessable public URL exists");
+      assert(gen165.buf.subarray(4, 8).toString("latin1") === "ftyp", "r165 generate: the bytes are a real MP4 (ftyp box)");
+      const dl165 = path.join(tmp165, "downloaded165.mp4");
+      fs.writeFileSync(dl165, gen165.buf);
+      const rp165 = probe165(dl165);
+      const rv165 = rp165.streams.find((s) => s.codec_type === "video"), ra165 = rp165.streams.find((s) => s.codec_type === "audio");
+      assert(rv165 && rv165.codec_name === "h264" && ra165 && ra165.codec_name === "aac", "r165 generate: the reel is H.264 + AAC");
+      assert(Math.abs(Number(rp165.format.duration) - (srcDur165 + 2.7)) <= 0.6, `r165 generate: duration is the clip + the 1.2s intro + the 1.5s outro (${Number(rp165.format.duration).toFixed(2)} ≈ ${(srcDur165 + 2.7).toFixed(2)})`);
+      assert(fs.existsSync(reelFile165(V1)) && fs.readFileSync(reelFile165(V1)).equals(gen165.buf), "r165 cache: the served bytes ARE the cached file under DATA_DIR/reels");
+      const rowV1 = db165((d) => d.prepare("SELECT reel_generated_at, reel_source, media_url FROM highlights WHERE id=?").get(V1));
+      assert(!!rowV1.reel_generated_at && rowV1.reel_source === rowV1.media_url, "r165 cache: the row records when the reel was made and the source it was built from");
+      const st165 = await j165("/api/owner/storage", { headers: { "x-owner-token": "env-main-secret-165" } });
+      assert(st165.body.reelsBytes > 0, "r165 storage: the owner storage meter now counts cached reels");
+
+      // ---- Second request: the cache, byte for byte, with no
+      // second generation (the recorded timestamp cannot move) ----
+      const again165 = await reelPost165(V1, "reelg1@example.com");
+      assert(again165.status === 200 && again165.buf.equals(gen165.buf), "r165 cache: the second request serves byte-identical bytes");
+      const rowV1b = db165((d) => d.prepare("SELECT reel_generated_at FROM highlights WHERE id=?").get(V1));
+      assert(rowV1b.reel_generated_at === rowV1.reel_generated_at, "r165 cache: reel_generated_at is unchanged — no second ffmpeg run happened");
+
+      // ---- Refusals: right guardian, wrong kind of play ----
+      const pend165 = await reelPost165(PEND165, "reelpend@example.com");
+      assert(pend165.status === 400 && !fs.existsSync(reelFile165(PEND165)), "r165 refuse: a pending play (even for its own guardian) gets a plain refusal and no file");
+      const img165 = await reelPost165(IMG165, "reelimg@example.com");
+      assert(img165.status === 400 && !fs.existsSync(reelFile165(IMG165)), "r165 refuse: an image play has no video to reel — refused cleanly");
+      const link165 = await reelPost165(LINK165, "reellink@example.com");
+      assert(link165.status === 400 && !fs.existsSync(reelFile165(LINK165)), "r165 refuse: a link/embed play has no local file — refused cleanly");
+      const get165r = await fetch(`${base165}/api/highlights/${V1}/reel`);
+      const get165buf = Buffer.from(await get165r.arrayBuffer());
+      assert(!(get165r.headers.get("content-type") || "").includes("video/mp4") && get165buf.subarray(4, 8).toString("latin1") !== "ftyp", "r165 refuse: a bare GET never serves the reel (it lands on the app shell, like any unknown path) — the gated POST is the only door");
+    } finally { child165.kill(); try { fs.rmSync(tmp165, { recursive: true, force: true }); } catch {} }
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
