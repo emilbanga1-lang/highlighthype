@@ -1203,20 +1203,49 @@ function r124FreezeAt(id, duration) {
   if (duration > 0) t = Math.min(t, Math.max(0, duration - 0.1));
   return t;
 }
+// Round 138 (2026-11-13): ffmpeg runs strictly one process at a
+// time, with a capped thread appetite. On 2026-11-13 18:33 ET
+// Render reported the (small Starter) instance exceeded its
+// memory limit and auto-restarted; this conversion path is the
+// app's only memory-hungry work, and nothing stopped two encodes
+// from overlapping — two uploads close together both convert
+// inline in their request handlers, and an upload could land
+// while the startup migration sweep was mid-conversion. Every
+// ffmpeg invocation (transcode AND poster grab) now takes its
+// turn behind this promise chain, so at most one ffmpeg process
+// exists at any moment. ffprobe is deliberately NOT gated: it is
+// brief and metadata-only. The chain can never jam — each link
+// settles fulfilled for the next waiter regardless of the task's
+// own outcome, and a failed conversion reports failure to its
+// caller exactly as before (best-effort rule untouched).
+let r138FfmpegQueue = Promise.resolve();
+function r138SerializeFfmpeg(task) {
+  const run = r138FfmpegQueue.then(task, task);
+  r138FfmpegQueue = run.then(() => undefined, () => undefined);
+  return run;
+}
 async function r124Convert(bins, inFile, outFile) {
+  return r138SerializeFfmpeg(() => r124ConvertNow(bins, inFile, outFile));
+}
+async function r124ConvertNow(bins, inFile, outFile) {
   // Autorotate is ffmpeg's default on decode, so a rotated phone
   // clip comes out with the rotation baked into the pixels and no
   // rotation metadata on the result. Height capped at 1280, never
   // upscaled; the width follows at an even number for yuv420p.
+  // Round 138: "-threads 2" caps the encoder's thread pool for
+  // the small shared instance — the output spec is unchanged.
   const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
     "-vf", "scale=-2:'if(gt(ih,1280),1280,trunc(ih/2)*2)'",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast",
-    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outFile];
+    "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", outFile];
   const { err, stderr } = await r124Run(bins.ffmpeg, args, 240000);
   if (err) { console.error("[r124] conversion failed:", err.message, stderr.slice(-300)); return false; }
   return true;
 }
 async function r124MakePoster(bins, videoFile, posterFile, atSec) {
+  return r138SerializeFfmpeg(() => r124MakePosterNow(bins, videoFile, posterFile, atSec));
+}
+async function r124MakePosterNow(bins, videoFile, posterFile, atSec) {
   const { err } = await r124Run(bins.ffmpeg, ["-y", "-ss", String(atSec), "-i", videoFile, "-frames:v", "1", "-q:v", "3", posterFile], 60000);
   if (err) { console.error("[r124] poster generation failed:", err.message); return false; }
   try { return fs.existsSync(posterFile) && fs.statSync(posterFile).size > 0; } catch { return false; }
