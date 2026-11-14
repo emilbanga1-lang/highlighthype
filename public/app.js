@@ -3586,7 +3586,7 @@ function storageHtml149(so) {
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const oaEl152 = $("#ownerAccess152"); if (oaEl152) oaEl152.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
@@ -3716,8 +3716,76 @@ async function loadOwner() {
       const mlEl = $("#modLog146");
       if (mlEl) mlEl.innerHTML = (ml.entries || []).length ? ml.entries.map((e) => `<p class="modlog146-row"><span style="color:var(--muted)">${esc(e.created_at)}</span> — <b>${esc(e.action)}</b> — ${esc(e.play_title || ("Play #" + e.play_id))} <span style="color:var(--muted)">(by ${esc(e.actor)}${e.detail ? ` — ${esc(e.detail)}` : ""})</span></p>`).join("") : "<p>No moderation actions recorded yet.</p>";
     } catch { const mlEl = $("#modLog146"); if (mlEl) mlEl.innerHTML = "<p>Could not load the moderation log.</p>"; }
+    // Owner access (owner only, Round 152): named passcodes —
+    // metadata list + mint form + the once-only reveal. Own try,
+    // same pattern; refreshOwnerAccess152 preserves a fresh
+    // reveal across the re-render.
+    try {
+      const tk152 = await api("/api/owner/tokens");
+      ownerTokens152 = tk152.tokens || [];
+      renderOwnerAccess152();
+    } catch { const oaEl = $("#ownerAccess152"); if (oaEl) oaEl.innerHTML = "<p>Could not load the passcode list.</p>"; }
   } catch (e) { $("#ownerStatus").textContent = "Owner access was refused on this device: " + e.message; }
 }
+/* Round 152: named owner passcodes — the Owner access block.
+   ownerTokens152 caches the metadata list (NEVER a value or a
+   hash — the API doesn't send them); passcodeReveal152 holds a
+   freshly minted plaintext only until it is dismissed, because
+   the server shows it exactly once. The block re-renders from
+   the cache so a reveal survives a list refresh. */
+let ownerTokens152 = [];
+let passcodeReveal152 = null;
+const fmtDate152 = (ts) => { if (!ts) return ""; const d = new Date(String(ts).replace(" ", "T") + "Z"); return isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); };
+function renderOwnerAccess152() {
+  const el = $("#ownerAccess152"); if (!el) return;
+  const rows = (ownerTokens152 || []).map((t) => `<div class="queue-item access152-item">
+    <b>${esc(t.name)}</b> — ${t.revoked ? `<span class="tagchip warn">Revoked</span>` : `<span class="tagchip">Active</span>`}<br>
+    <span style="color:var(--muted)">Created ${esc(fmtDate152(t.created_at))} · Last used ${t.last_used_at ? esc(fmtDate152(t.last_used_at)) : "never"}</span>
+    ${t.revoked ? "" : `<div class="qa"><button type="button" class="mini-btn" onclick="revokePasscode152(${t.id})">Revoke</button></div>`}
+  </div>`).join("");
+  el.innerHTML = `<p>Each person can have their own owner passcode — it goes in the same paste box above, on their own phone. If a phone is lost, revoke just that person's passcode here; the others keep working. Actions taken with a passcode appear in the moderation log under that name.</p>
+  ${rows || "<p>No named passcodes yet — the main owner token is the only way in.</p>"}
+  ${passcodeReveal152 ? `<div class="access152-reveal"><b>New passcode for ${esc(passcodeReveal152.name)} — shown only once:</b>
+    <p class="access152-code"><code id="revealCode152">${esc(passcodeReveal152.token)}</code> <button type="button" class="mini-btn" onclick="copyPasscode152()">Copy</button></p>
+    <p>Give this to ${esc(passcodeReveal152.name)} — it gets pasted into the owner box on their phone. It won't be shown again.</p>
+    <p><button type="button" class="mini-btn" onclick="dismissReveal152()">Done — hide it</button></p></div>` : ""}
+  <p><input id="mintName152" type="text" placeholder="Name — e.g. Dyanna" size="24" maxlength="40"> <button type="button" class="mini-btn" onclick="mintPasscode152()">Create passcode</button></p>
+  <p id="mintMsg152" style="color:var(--muted)"></p>`;
+}
+async function refreshOwnerAccess152() {
+  try { const tk = await api("/api/owner/tokens"); ownerTokens152 = tk.tokens || []; } catch {}
+  renderOwnerAccess152();
+}
+window.mintPasscode152 = async () => {
+  const inp = $("#mintName152"); const name = inp ? inp.value.trim() : "";
+  const msg = $("#mintMsg152");
+  if (!name) { if (msg) msg.textContent = "Type the person's name first."; return; }
+  try {
+    const r = await api("/api/owner/tokens", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+    passcodeReveal152 = { name: r.name, token: r.token };
+    await refreshOwnerAccess152();
+  } catch (e) { if (msg) msg.textContent = e.message; else alert(e.message); }
+};
+window.revokePasscode152 = async (id) => {
+  const t = (ownerTokens152 || []).find((x) => x.id === id);
+  const name = t ? t.name : "this";
+  if (!confirm(`Revoke ${name}'s passcode? Their phone loses owner access right away. This can't be undone — mint a fresh passcode to let them back in.`)) return;
+  try {
+    await api("/api/owner/tokens/revoke", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+    if (passcodeReveal152 && t && passcodeReveal152.name === t.name) passcodeReveal152 = null;
+    await refreshOwnerAccess152();
+  } catch (e) { alert(e.message); }
+};
+window.copyPasscode152 = async () => {
+  const code = $("#revealCode152"); if (!code) return;
+  const text = code.textContent;
+  try { await navigator.clipboard.writeText(text); } catch {
+    const range = document.createRange(); range.selectNodeContents(code);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    try { document.execCommand("copy"); } catch {}
+  }
+};
+window.dismissReveal152 = () => { passcodeReveal152 = null; renderOwnerAccess152(); };
 window.setStatus = async (id, status) => { await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) }); loadOwner(); loadData(); };
 // Sample flag (Round 7): rides the same status call — one tap in the
 // owner queue approves AND flags a play as a sample (or removes the
