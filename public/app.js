@@ -3554,10 +3554,14 @@ function storageHtml149(so) {
    contest entry) instead of re-fetching. */
 let ownerQueue145 = [];
 async function loadOwner() {
-  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; return; }
+  if (!ownerToken()) { $("#ownerStatus").textContent = "Not claimed on this device yet."; $("#queue").innerHTML = ""; $("#reports").innerHTML = ""; $("#ownerStats").innerHTML = ""; const dnEl = $("#dropNotify"); if (dnEl) dnEl.innerHTML = ""; const trEl146 = $("#trash146"); if (trEl146) trEl146.innerHTML = ""; const mlEl146 = $("#modLog146"); if (mlEl146) mlEl146.innerHTML = ""; const soEl149 = $("#ownerStorage149"); if (soEl149) soEl149.innerHTML = ""; /* Round 150: no owner, no review session or batch state. */ if (typeof closeReview150 === "function") closeReview150(true); batchSel150.clear(); batchMsg150 = ""; return; }
   try {
     const q = await api("/api/owner/queue");
     ownerQueue145 = q.queue;
+    /* Round 150: a fresh queue load prunes the batch selection —
+       ids that are no longer pending (acted on, trashed, gone)
+       fall out of the set before the cards re-render. */
+    pruneBatchSel150(q.queue);
     $("#ownerStatus").textContent = "Owner access active on this device.";
     /* Round 145: duplicate grouping. Pending plays that share a
        normalized athlete name + title (trim, collapse whitespace,
@@ -3583,7 +3587,7 @@ async function loadOwner() {
       if (!g || g.length < 2 || emittedGroups145.has(key)) return "";
       emittedGroups145.add(key);
       const ids = g.map((x) => x.id).join(",");
-      return `<div class="queue-item queue-group145"><b>${g.length} copies of '${esc(h.title)}' — ${esc(h.player_name || h.athlete_label || "no athlete")}</b>${liveKeys145.has(key) ? `<br><span>One copy is live on the board — the live play is not touched.</span>` : ""}<div class="qa"><button type="button" class="mini-btn" onclick="deletePendingGroup145('${ids}')">Delete all copies</button></div></div>`;
+      return `<div class="queue-item queue-group145"><b>${g.length} copies of '${esc(h.title)}' — ${esc(h.player_name || h.athlete_label || "no athlete")}</b>${liveKeys145.has(key) ? `<br><span>One copy is live on the board — the live play is not touched.</span>` : ""}<br><label class="qsel150"><input type="checkbox" data-qsel-group="${ids}" ${g.every((x) => batchSel150.has(x.id)) ? "checked" : ""} onchange="toggleBatchGroup150('${ids}', this.checked)"> Select all ${g.length} copies for batch actions</label><div class="qa"><button type="button" class="mini-btn" onclick="deletePendingGroup145('${ids}')">Delete all copies</button></div></div>`;
     };
     /* Round 146: trashed plays leave the queue list entirely —
        they render in the Trash section below instead. (The
@@ -3591,7 +3595,11 @@ async function loadOwner() {
        rows, so a trashed copy can never join a delete-all group.) */
     const liveQueue146 = q.queue.filter((h) => h.status !== "trashed");
     const trashRows146 = q.queue.filter((h) => h.status === "trashed");
-    $("#queue").innerHTML = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item"><b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
+    /* Round 150: the cards render into a variable first — the
+       queue head (Select all + Review mode + the batch bar) is
+       prepended below, and each PENDING card carries a batch
+       checkbox whose state comes from batchSel150. */
+    const queueCards150 = liveQueue146.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -3601,7 +3609,8 @@ async function loadOwner() {
       ${h.story_consent ? `<br><span class="tagchip">⭐ Story OK — may feature as a Hype Story</span>${h.story_text ? `<br>“What made this moment matter?” ${esc(h.story_text)}` : ""}` : (h.story_text ? `<br><span style="color:var(--muted)">Story note (no story permission given):</span> ${esc(h.story_text)}` : "")}
       ${h.review ? `<p>🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}
       ${h.ai ? `<p>🤖 AI: <b>${esc(h.ai.sport || "?")}</b> · ${esc(h.ai.division || "?")} · gate <b>${esc(h.ai.gate === "play" ? "pass" : h.ai.gate || "?")}</b>${typeof h.ai.confidence === "number" ? ` (${Math.round(h.ai.confidence * 100)}%)` : ""}${h.ai.reason ? ` — ${esc(h.ai.reason)}` : ""}<br><i>AI first pass — its suggestions were shown to the guardian, who could edit them. It never approves a play.</i></p>` : ""}
-      <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("") || "<p>Queue is empty.</p>";
+      <div class="qa"><button type="button" class="mini-btn" onclick="setStatus(${h.id},'approved')">Approve</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'hidden')">Hide</button><button type="button" class="mini-btn" onclick="setStatus(${h.id},'pending')">Back to review</button><button type="button" class="mini-btn" onclick="deletePlay(${h.id})">Delete</button>${h.isSample ? `<button type="button" class="mini-btn" onclick="setSample(${h.id},'${h.status}',false)">Remove sample mark</button>` : `<button type="button" class="mini-btn" onclick="setSample(${h.id},'approved',true)">Approve as Sample play</button>`}${h.status === "approved" && !h.isSample ? `<button type="button" class="mini-btn" onclick="setCelebration(${h.id},${h.celebration_spotlight ? "false" : "true"})">${h.celebration_spotlight ? "★ Celebration spotlight: ON — tap to remove" : "Celebration spotlight"}</button>` : ""}</div></div>`).join("");
+    $("#queue").innerHTML = queueHead150(liveQueue146) + (queueCards150 || "<p>Queue is empty.</p>");
     /* Round 146: the Trash section. Poster thumb, title, athlete,
        when it was trashed + the status a Restore lands on, and
        the whole days left before the auto-purge — with Restore
@@ -3764,6 +3773,271 @@ window.purgePlay146 = async (id) => {
   await api(`/api/highlights/${id}/purge`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
   loadOwner(); loadData();
 };
+/* ================================================================
+   Round 150 — swipe review mode + batch actions (Phase 5 of the
+   owner-panel program). Everything here is CLIENT-side: the
+   batch runner and the review session drive the EXISTING
+   per-play owner endpoints one play at a time — approve is
+   POST /api/highlights/:id/status {status:"approved"}, trash
+   is DELETE /api/highlights/:id (the Round 146 Trash move),
+   undo-of-a-trash is POST /api/highlights/:id/restore. No new
+   server endpoints, so moderation semantics + the moderation
+   log are exactly the ones the single-play buttons produce.
+   ================================================================ */
+const batchSel150 = new Set();
+let batchMsg150 = "";
+let batchBusy150 = false;
+function pendingIds150() {
+  return (ownerQueue145 || []).filter((h) => h.status === "pending").map((h) => h.id);
+}
+function pruneBatchSel150(queue) {
+  const pend = new Set((queue || []).filter((h) => h.status === "pending").map((h) => h.id));
+  for (const id of [...batchSel150]) if (!pend.has(id)) batchSel150.delete(id);
+}
+function batchBarHtml150() {
+  const n = batchSel150.size;
+  if (!n) return "";
+  const dis = batchBusy150 ? " disabled" : "";
+  return `<div class="batch-bar150"><b>${n} selected</b><button type="button" class="mini-btn" ${dis} onclick="runBatch150('approved')">Approve ${n} selected</button><button type="button" class="mini-btn" ${dis} onclick="runBatch150('trash')">Move ${n} to Trash</button><button type="button" class="mini-btn" ${dis} onclick="clearBatchSel150()">Clear</button><span class="batch-prog150" id="batchProg150"></span></div>`;
+}
+function queueHead150(rows) {
+  const pend = (rows || []).filter((h) => h.status === "pending");
+  const msg = `<p class="batch-msg150" id="batchMsg150">${esc(batchMsg150)}</p>`;
+  if (!pend.length) return batchMsg150 ? msg : "";
+  const allOn = pend.every((h) => batchSel150.has(h.id));
+  return `<div class="queue-head150"><label class="qsel150"><input type="checkbox" id="qselAll150" ${allOn ? "checked" : ""} onchange="toggleBatchAll150(this.checked)"> Select all pending (${pend.length})</label><button type="button" class="mini-btn" onclick="openReview150()">▶ Review mode</button></div><div id="batchBar150">${batchBarHtml150()}</div>${msg}`;
+}
+function syncBatchUi150() {
+  document.querySelectorAll(".qsel-box150").forEach((cb) => { cb.checked = batchSel150.has(Number(cb.dataset.qsel)); });
+  document.querySelectorAll("[data-qsel-group]").forEach((cb) => {
+    const ids = String(cb.dataset.qselGroup || "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    const on = ids.filter((id) => batchSel150.has(id)).length;
+    cb.checked = ids.length > 0 && on === ids.length;
+    cb.indeterminate = on > 0 && on < ids.length;
+  });
+  const all = $("#qselAll150");
+  if (all) {
+    const pend = pendingIds150();
+    const on = pend.filter((id) => batchSel150.has(id)).length;
+    all.checked = pend.length > 0 && on === pend.length;
+    all.indeterminate = on > 0 && on < pend.length;
+  }
+  const bar = $("#batchBar150"); if (bar) bar.innerHTML = batchBarHtml150();
+  const m = $("#batchMsg150"); if (m) m.textContent = batchMsg150;
+}
+window.toggleBatchSel150 = (id, on) => { if (on) batchSel150.add(Number(id)); else batchSel150.delete(Number(id)); syncBatchUi150(); };
+window.toggleBatchGroup150 = (idsCsv, on) => {
+  for (const s of String(idsCsv || "").split(",")) { const id = Number(s); if (!Number.isInteger(id) || id <= 0) continue; if (on) batchSel150.add(id); else batchSel150.delete(id); }
+  syncBatchUi150();
+};
+window.toggleBatchAll150 = (on) => {
+  for (const id of pendingIds150()) { if (on) batchSel150.add(id); else batchSel150.delete(id); }
+  syncBatchUi150();
+};
+window.clearBatchSel150 = () => { batchSel150.clear(); batchMsg150 = ""; syncBatchUi150(); };
+/* The batch runner: strictly sequential (one request in flight
+   at a time, in selection order), a live "Approving k of N…"
+   progress label, and ONE tally line at the end that names any
+   failures by play id. A batch trash takes ONE confirm for the
+   whole batch. Succeeded ids leave the selection; failed ids
+   stay selected so the owner can retry or use their cards. */
+window.runBatch150 = async (action) => {
+  if (batchBusy150) return;
+  const pend = new Set(pendingIds150());
+  const ids = [...batchSel150].filter((id) => pend.has(id));
+  if (!ids.length) { syncBatchUi150(); return; }
+  if (action === "trash" && !confirm(`Move ${ids.length} selected play${ids.length === 1 ? "" : "s"} to Trash? They leave the board right away and can be restored from the Trash for 7 days.`)) return;
+  batchBusy150 = true; syncBatchUi150();
+  const failed = [];
+  let done = 0;
+  for (let i = 0; i < ids.length; i++) {
+    const bp = $("#batchProg150");
+    if (bp) bp.textContent = action === "trash" ? `Moving ${i + 1} of ${ids.length} to Trash…` : `Approving ${i + 1} of ${ids.length}…`;
+    try {
+      if (action === "trash") await api(`/api/highlights/${ids[i]}`, { method: "DELETE" });
+      else await api(`/api/highlights/${ids[i]}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "approved" }) });
+      done++; batchSel150.delete(ids[i]);
+    } catch { failed.push(ids[i]); }
+  }
+  batchBusy150 = false;
+  batchMsg150 = action === "trash"
+    ? `${done} moved to Trash${failed.length ? ` — failed: ${failed.map((id) => "#" + id).join(", ")} (still selected; try those from their cards)` : ""}.`
+    : `${done} approved${failed.length ? ` — failed: ${failed.map((id) => "#" + id).join(", ")} (still selected; try those from their cards)` : ""}.`;
+  await loadOwner(); loadData();
+};
+/* ---------------- Round 150: review mode ----------------
+   The session walks a SNAPSHOT of the pending ids taken when
+   it opens, but every render and every action re-reads the
+   live queue data (ownerQueue145, refreshed before each
+   action): a play that was approved, trashed or deleted
+   elsewhere mid-session is skipped, never acted on blind.
+   Undo reverses a TRASH through the restore endpoint. There
+   is no un-approve endpoint, so after an approve the Undo
+   button disables and the note says where the undo lives —
+   the semantics stay honest. */
+const REVIEW_SWIPE_THRESHOLD150 = 90;
+let reviewState150 = null;
+async function refreshOwnerQueue150() {
+  const q = await api("/api/owner/queue");
+  ownerQueue145 = q.queue;
+  return q.queue;
+}
+function reviewMediaHtml150(h) {
+  if (!h) return "";
+  if (h.media_kind === "link_embed" && h.embed_url) return `<iframe src="${esc(h.embed_url)}" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen title="Embedded play"></iframe>`;
+  if (h.media_kind === "file" && /\.(jpe?g|png|gif|webp)$/i.test(h.media_url || "")) return `<img src="${esc(h.media_url)}" alt="">`;
+  if (h.media_kind === "link_watch") return `<p class="review-nomedia150">No inline preview for a linked clip — <a href="${esc(h.media_url || "#")}" target="_blank" rel="noopener">watch it at ${esc(h.host_label || "the source")} ↗</a> before deciding.</p>`;
+  if (h.media_url) return `<video src="${esc(h.media_url)}"${h.poster_url ? ` poster="${esc(h.poster_url)}"` : ""} playsinline preload="metadata"></video>`;
+  return `<p class="review-nomedia150">No preview available for this play.</p>`;
+}
+function resetReviewCard150() {
+  const card = $("#reviewCard150"); if (card) { card.style.transition = ""; card.style.transform = ""; }
+  const tint = $("#reviewTint150"); if (tint) tint.style.opacity = "0";
+}
+function renderReview150() {
+  const st = reviewState150; if (!st) return;
+  while (st.idx < st.list.length) {
+    const row = (ownerQueue145 || []).find((h) => h.id === st.list[st.idx]);
+    if (row && row.status === "pending") break;
+    st.idx++;
+  }
+  const done150 = st.idx >= st.list.length;
+  const prog = $("#reviewProgress150"); if (prog) prog.textContent = done150 ? "Done" : `${st.idx + 1} of ${st.list.length}`;
+  const card = $("#reviewCard150"); if (card) card.hidden = done150;
+  const done = $("#reviewDone150"); if (done) done.hidden = !done150;
+  const last = st.lastAction;
+  const undoBtn = $("#reviewUndo150"); if (undoBtn) undoBtn.disabled = !(last && last.action === "trash") || st.busy;
+  const apBtn = $("#reviewApprove150"); if (apBtn) apBtn.disabled = done150 || st.busy;
+  const trBtn = $("#reviewTrash150"); if (trBtn) trBtn.disabled = done150 || st.busy;
+  const actions = $("#reviewActions150");
+  if (actions) actions.hidden = done150 && !(last && last.action === "trash");
+  const note = $("#reviewNote150");
+  if (note) {
+    if (last && last.action === "approved") { note.hidden = false; note.textContent = "Approved — to undo, trash it from Live plays in the panel."; }
+    else note.hidden = true;
+  }
+  if (done150) { resetReviewCard150(); return; }
+  const h = (ownerQueue145 || []).find((x) => x.id === st.list[st.idx]);
+  const media = $("#reviewMedia150"); if (media) media.innerHTML = reviewMediaHtml150(h);
+  const meta = $("#reviewMeta150");
+  if (meta) meta.innerHTML = `<b class="review-athlete150">${esc(h.athlete_label || h.player_name || "No athlete")}</b><div class="review-title150">${esc(h.title)}</div><div class="review-sub150">${esc(cap(h.sport))} · ${esc(cap(h.division))}${h.isSample ? ` · <span class="tagchip">⭐ Sample play</span>` : ""} · Submitted ${esc(new Date(h.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }))}</div>${h.review ? `<p class="review-verdict150">🤖 Pre-review: <b>${esc(h.review.verdict)}</b>${h.review.flags && h.review.flags.length ? `<br>${h.review.flags.map((f) => "• " + esc(f)).join("<br>")}` : ""}<br><i>First-pass check only — it does not approve the play. Watch it yourself before approving.</i></p>` : ""}`;
+  resetReviewCard150();
+}
+window.openReview150 = () => {
+  const ids = pendingIds150();
+  if (!ids.length) return;
+  reviewState150 = { list: ids, idx: 0, lastAction: null, busy: false };
+  const m = $("#reviewModal150"); if (!m) { reviewState150 = null; return; }
+  m.hidden = false;
+  document.addEventListener("keydown", reviewKeys150);
+  renderReview150();
+};
+window.closeReview150 = (silent) => {
+  const m = $("#reviewModal150"); if (m) m.hidden = true;
+  reviewState150 = null;
+  reviewDrag150 = null;
+  document.removeEventListener("keydown", reviewKeys150);
+  if (!silent) { loadOwner(); loadData(); }
+};
+function reviewKeys150(e) {
+  if (!reviewState150) return;
+  if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName || "")) return;
+  if (e.key === "ArrowRight") { e.preventDefault(); reviewAct150("approved"); }
+  else if (e.key === "ArrowLeft") { e.preventDefault(); reviewAct150("trash"); }
+  else if (e.key === "Escape") { e.preventDefault(); closeReview150(); }
+}
+window.reviewAct150 = async (action) => {
+  const st = reviewState150; if (!st || st.busy) return;
+  const myIdx = st.idx;
+  const id = st.list[myIdx]; if (id == null) return;
+  st.busy = true;
+  try {
+    await refreshOwnerQueue150();
+    const row = (ownerQueue145 || []).find((h) => h.id === id);
+    if (!row || row.status !== "pending") { if (st.idx === myIdx) st.idx++; return; }
+    if (action === "trash") await api(`/api/highlights/${id}`, { method: "DELETE" });
+    else await api(`/api/highlights/${id}/status`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "approved" }) });
+    st.lastAction = { id, action, idx: myIdx };
+    if (st.idx === myIdx) st.idx++;
+  } catch (e) { alert(e.message); }
+  finally { st.busy = false; renderReview150(); }
+};
+window.reviewUndo150 = async () => {
+  const st = reviewState150; if (!st || st.busy) return;
+  const last = st.lastAction;
+  if (!last || last.action !== "trash") return;
+  st.busy = true; renderReview150();
+  try {
+    await api(`/api/highlights/${last.id}/restore`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    await refreshOwnerQueue150();
+    st.idx = last.idx;
+    st.lastAction = null;
+  } catch (e) { alert(e.message); }
+  finally { st.busy = false; renderReview150(); }
+};
+/* The swipe: pointer drag on the card — the card follows, a
+   green/red tint past the threshold names the action, release
+   at >= REVIEW_SWIPE_THRESHOLD150 px commits, anything less
+   springs back. Mouse drags run the same path (the rig drives
+   it that way). A real drag also swallows the click that would
+   otherwise toggle the video's play/pause on release. */
+let reviewDrag150 = null;
+let reviewSwallowClick150 = 0;
+function reviewDragStart150(e) {
+  const st = reviewState150;
+  if (!st || st.busy || st.idx >= st.list.length) return;
+  if (e.button != null && e.button !== 0) return;
+  reviewDrag150 = { id: e.pointerId, x0: e.clientX, dx: 0, moved: false };
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+}
+function reviewDragMove150(e) {
+  const d = reviewDrag150; if (!d || e.pointerId !== d.id) return;
+  d.dx = e.clientX - d.x0;
+  if (Math.abs(d.dx) > 8) d.moved = true;
+  const card = $("#reviewCard150"); if (!card) return;
+  card.style.transition = "none";
+  card.style.transform = `translateX(${d.dx}px)`;
+  const tint = $("#reviewTint150"), glyph = $("#reviewTintGlyph150");
+  if (tint) {
+    tint.style.opacity = String(Math.min(0.85, Math.abs(d.dx) / 140));
+    tint.classList.toggle("ok150", d.dx >= 0);
+    tint.classList.toggle("no150", d.dx < 0);
+  }
+  if (glyph) glyph.textContent = d.dx >= 0 ? "✓ APPROVE" : "🗑 TRASH";
+}
+function reviewDragEnd150(e) {
+  const d = reviewDrag150; if (!d || (e && e.pointerId !== d.id)) return;
+  reviewDrag150 = null;
+  if (d.moved) reviewSwallowClick150 = Date.now() + 300;
+  const card = $("#reviewCard150"); if (card) { card.style.transition = ""; card.style.transform = ""; }
+  const tint = $("#reviewTint150"); if (tint) tint.style.opacity = "0";
+  /* A pointercancel means the browser took the gesture over
+     (scroll, interruption) — that is a spring-back, never a
+     commit, however far the card had travelled. */
+  if (e && e.type === "pointercancel") return;
+  if (Math.abs(d.dx) >= REVIEW_SWIPE_THRESHOLD150) reviewAct150(d.dx > 0 ? "approved" : "trash");
+}
+const reviewCardEl150 = $("#reviewCard150");
+if (reviewCardEl150) {
+  reviewCardEl150.addEventListener("pointerdown", reviewDragStart150);
+  reviewCardEl150.addEventListener("pointermove", reviewDragMove150);
+  reviewCardEl150.addEventListener("pointerup", reviewDragEnd150);
+  reviewCardEl150.addEventListener("pointercancel", reviewDragEnd150);
+}
+const reviewMediaEl150 = $("#reviewMedia150");
+if (reviewMediaEl150) reviewMediaEl150.addEventListener("click", (e) => {
+  if (Date.now() < reviewSwallowClick150) return;
+  const v = e.target;
+  if (v && v.tagName === "VIDEO") {
+    try { if (v.paused) { const pr = v.play(); if (pr && typeof pr.catch === "function") pr.catch(() => {}); } else v.pause(); } catch {}
+  }
+});
+$("#reviewApprove150")?.addEventListener("click", () => reviewAct150("approved"));
+$("#reviewTrash150")?.addEventListener("click", () => reviewAct150("trash"));
+$("#reviewUndo150")?.addEventListener("click", () => reviewUndo150());
+$("#reviewExit150")?.addEventListener("click", () => closeReview150());
+$("#reviewClose150")?.addEventListener("click", () => closeReview150());
+
 const ownerBtnEl = $("#ownerBtn"); if (ownerBtnEl) ownerBtnEl.addEventListener("click", () => { showHome(); $("#ownerPanel").classList.remove("hidden"); loadOwner(); $("#ownerPanel").scrollIntoView({ behavior: "smooth", block: "start" }); });
 $("#saveTokenBtn").addEventListener("click", () => { const t = $("#tokenInp").value.trim(); if (!t) return alert("Paste an owner token first."); setOwnerToken(t); $("#tokenInp").value = ""; alert("Owner token saved on this device."); loadOwner(); });
 $("#claimBtn").addEventListener("click", async () => { try { const r = await api("/api/owner/claim", { method: "POST" }); setOwnerToken(r.token); alert("Owner claimed on this device. The token is saved in this browser."); loadOwner(); } catch (e) { alert(e.message); } });
