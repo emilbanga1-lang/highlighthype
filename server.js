@@ -4212,7 +4212,12 @@ const server = http.createServer(async (req, res) => {
     // ---- Static ----
     // Clean legal-page routes: /terms and /privacy serve the standalone
     // pages in public/ (also reachable directly as /terms.html etc.).
-    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p === "/terms" ? "terms.html" : p === "/privacy" ? "privacy.html" : p);
+    // Round 166 (2026-11-14): /demo joins them — the standalone
+    // showcase team page (public/demo.html), a public pitch link.
+    // The page is fully static fictional content: it loads no
+    // app.js, calls no API and emits no tracking, so this mapping
+    // is its only server footprint; nothing here reads the DB.
+    let filePath = path.join(__dirname, "public", p === "/" ? "index.html" : p === "/terms" ? "terms.html" : p === "/privacy" ? "privacy.html" : p === "/demo" ? "demo.html" : p);
     if (!filePath.startsWith(path.join(__dirname, "public")) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory())
       filePath = path.join(__dirname, "public", "index.html");
     const type = MIME[path.extname(filePath)] || "text/plain";
