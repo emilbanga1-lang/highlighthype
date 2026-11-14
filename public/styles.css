@@ -3518,3 +3518,19 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
 .moment-name162{margin:0;font-size:21px;line-height:1.15}
 .moment-title162{margin:3px 0 0;color:var(--muted);font-size:14.5px}
 .moment-story162{margin:10px 0 0;font-size:15.5px;line-height:1.45;color:#f2ead2}
+
+/* ---- Round 169 (2026-11-14): My Plays result rows go
+   STACKED. Rounds 121–168 rendered each guardian play as one
+   flex line (text flex:1 beside up to three .mini-btns); at
+   phone width the text collapsed to a one-word ribbon, the
+   status chips ballooned, and the last button overflowed the
+   row and the viewport — body scrollWidth 396 on a 390px
+   phone — which is what let /my-highlights pan left/right on
+   Dyanna's phone. The row is now a plain block (.queue-item
+   already is one): title + meta at full width, chips inline
+   at natural size, buttons in their own wrapping row. The
+   rules are scoped to .mine-play-row / .mine-play-actions so
+   the owner queue and the tag-lookup rows keep their layout. */
+.mine-play-main{overflow-wrap:break-word}
+.mine-play-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.mine-play-actions .mine-find-msg{flex:1 1 100%;margin:4px 0 0}
