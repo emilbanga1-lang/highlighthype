@@ -339,6 +339,15 @@
   .mine-find input{width:100%;margin-top:7px;background:#0d0d0d;border:1px solid var(--line2);border-radius:12px;color:#fff;font:inherit;font-size:15px;padding:13px 15px;transition:border-color .15s ease,box-shadow .15s ease}
   .mine-find input:focus{outline:none;border-color:var(--volt);box-shadow:0 0 0 3px rgba(200,255,0,.16)}
   .mine-find .btn{flex:0 1 auto}
+  /* Round 170 (2026-11-14): Dyanna's note — the Find my plays
+     button was a small pill sized to its text beside the inputs.
+     It is the panel's primary action, so ONLY this button
+     (.mine-find-btn) grows: taller and roomier on desktop, and
+     on phones it wraps onto its own full-width row under the
+     inputs as a proper thumb target. .btn globally untouched;
+     §79 guards these rules. */
+  .mine-find .mine-find-btn{min-height:48px;padding:14px 28px;font-size:16px}
+  @media (max-width:640px){ .mine-find .mine-find-btn{flex:1 1 100%;width:100%;min-height:52px;padding:15px 20px;font-size:17px} }
   #mineFindResults{margin-bottom:26px}
   #mineFindResults:empty{margin-bottom:0}
   .mine-find-msg{color:var(--muted);font-weight:600;font-size:15px;line-height:1.55}
