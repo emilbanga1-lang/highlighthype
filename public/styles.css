@@ -3234,3 +3234,8 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .dellive-btns145{display:flex;gap:10px;justify-content:flex-end;align-items:center;margin:18px 0 0}
 .dellive-red145{background:#d92d20;border:1px solid #d92d20;color:#fff}
 .dellive-red145:hover{background:#b42318;border-color:#b42318}
+/* Round 146: the Owner view's Trash rows + moderation log rows. */
+.trash146-item{display:flex;gap:14px;align-items:flex-start}
+.trash146-thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;border:1px solid var(--line2);flex:none}
+.trash146-body{flex:1;min-width:0}
+.modlog146-row{margin:6px 0;font-size:14px}
