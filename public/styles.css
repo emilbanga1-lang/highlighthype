@@ -3290,3 +3290,17 @@ footer{padding-bottom:36px}
 .final h2{line-height:1}
 #playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #playDetailBody .upnext-thumb .vfill{display:none}
+
+/* ================================================================
+   Round 149 (2026-11-13) — the Owner panel storage meter.
+   A slim bar over a breakdown line plus the biggest-files list,
+   in the panel's existing idiom (queue-item rows, tagchips,
+   stats-sub heads). Bar colour carries the warning: lime
+   normally, gold at >=75% full, red at >=90% — the 2026-11-13
+   disk-full incident stayed invisible until uploads failed.
+   ================================================================ */
+.storage-bar149{height:10px;border-radius:999px;background:var(--card2);border:1px solid var(--line2);overflow:hidden;margin:8px 0 4px}
+.storage-fill149{height:100%;background:var(--volt);border-radius:999px}
+.storage-fill149.warn149{background:var(--gold)}
+.storage-fill149.crit149{background:#ff5147}
+.storage-big149{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid var(--line)}
