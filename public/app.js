@@ -3986,6 +3986,30 @@ $("#uploadSuccessPlays")?.addEventListener("click", () => {
    no longer renders here). With nothing recorded yet the block
    says so plainly: counting starts with this round, nothing is
    backfilled. */
+/* Round 164: "Trending nudges" — renders the .nudges block of
+   GET /api/owner/stats: this period's guardian nudge sends by
+   kind, the rally state (window + guardians mailed), and the
+   last few sends from nudge_log. Counts are sends, not opens —
+   we don't track opens, so the block says exactly what it
+   knows. */
+function nudgesHtml164(n) {
+  const num = (x) => esc(Number(x || 0).toLocaleString("en-US"));
+  if (!n) return "<p>No nudge data yet.</p>";
+  const c = n.counts || {};
+  const r = n.rally || {};
+  let out = `<p>🏆 Took #1 — <b>${num(c.first)}</b> · Top 3 — <b>${num(c.top3)}</b> · Month-end rally — <b>${num(c.rally)}</b></p>`;
+  out += `<p>Month-end rally (${esc(n.period || "")}): ${r.inWindow ? `<b>window open</b> — voting ends ${esc(r.endsLabel || "")}` : `window opens <b>${esc(r.windowOpens || "")}</b> · voting ends ${esc(r.endsLabel || "")}`} · sent to <b>${num(r.sentGuardians)}</b> guardian${Number(r.sentGuardians || 0) === 1 ? "" : "s"}</p>`;
+  const rec = Array.isArray(n.recent) ? n.recent : [];
+  if (rec.length) {
+    const kind164 = { first: "🏆 took #1", top3: "🏆 entered Top 3", rally: "📣 month-end rally" };
+    out += rec.map((x) => {
+      const d = new Date(x.sent_at);
+      const when = isNaN(d) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      return `<p>${esc(x.athlete || "Athlete")} — ${esc(kind164[x.kind] || x.kind || "")} at #${num(x.rank)}${when ? ` · ${esc(when)}` : ""}</p>`;
+    }).join("");
+  } else out += "<p>No nudges sent yet this month.</p>";
+  return out;
+}
 function sourcesHtml159(src) {
   const num = (n) => esc(Number(n || 0).toLocaleString("en-US"));
   const s = src || {};
@@ -4031,6 +4055,7 @@ function statsHtml(st) {
     <h4 class="stats-sub">Most opened plays</h4>${top}
     <h4 class="stats-sub">Hype Stories</h4><p><b>${num(stories151.total)}</b> total watch${Number(stories151.total) === 1 ? "" : "es"}</p>${(stories151.byEpisode && stories151.byEpisode.length) ? stories151.byEpisode.map((e) => `<p>${esc(e.episode)} — ${num(e.opens)} watch${e.opens === 1 ? "" : "es"}</p>`).join("") : "<p>No story watches recorded yet.</p>"}
     <h4 class="stats-sub">Where visitors come from</h4>${refs}
+    <h4 class="stats-sub">Trending nudges (this month)</h4>${nudgesHtml164(st.nudges)}
     <p style="color:var(--muted)">Counts are daily totals only — no visitor is identified or followed. Counting started when this shipped; earlier visits were never recorded.</p>`;
 }
 /* Round 149: the storage meter block under Site stats, fed by
