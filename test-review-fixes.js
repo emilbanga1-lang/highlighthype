@@ -350,7 +350,7 @@ try {
      play from any view; (9) board videos autoplay. */
   assert(home.includes('href="/logo-header-gold.png?v=119"'), "logo preload points at the crest header lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art; Round 115: full-color rebuild, cache-busted ?v=118; Round 167: +10 gold grade in place, cache-busted ?v=119)");
   assert((home.split('src="/logo-header-gold.png?v=119"').length - 1) === 1, "header uses the horizontal crest lockup (Round 19; Round 97: right-sized copy; Round 114: metallic gold master art; Round 115: full-color rebuild, cache-busted ?v=118; Round 167: +10 gold grade in place, cache-busted ?v=119)");
-  assert(home.includes('src="/logo-lockup-gold.jpg?v=168"'), "footer uses the full lockup with tagline (Round 19; Round 65: Emil's metallic gold master) — →168: src now carries the ?v=168 cache-bust pin (Round 168; §77 guards it)");
+  assert(home.includes('src="/logo-lockup-gold.jpg?v=169"'), "footer uses the full lockup with tagline (Round 19; Round 65: Emil's metallic gold master) — →168: src now carries the ?v=168 cache-bust pin (Round 168; §77 guards it) — →169: pin now v169 (Round 169; §78 guards the crest pins too)");
   assert(home.includes('href="/favicon.ico"') && home.includes('href="/favicon.png"'), "favicon is the gold crest badge (Round 19)");
   const logoRes = await fetch(`${base}/logo-header-gold.png?v=119`);
   const logoBuf = Buffer.from(await logoRes.arrayBuffer());
@@ -2364,7 +2364,7 @@ try {
   // header badge) is retired by this decision - gold HH in the
   // footer is now the intended design; the header keeps the
   // flat crest-color badge.
-  assert(home.includes('src="/logo-lockup-gold.jpg?v=168"'), "Round 65: the footer uses Emil's metallic gold master lockup — →168: src now carries the ?v=168 cache-bust pin (Round 168; §77 guards it)");
+  assert(home.includes('src="/logo-lockup-gold.jpg?v=169"'), "Round 65: the footer uses Emil's metallic gold master lockup — →168: src now carries the ?v=168 cache-bust pin (Round 168; §77 guards it) — →169: pin now v169 (Round 169; §78 guards the crest pins too)");
   assert(home.includes('class="foot-stack"') && css.includes("footer .foot-stack{width:100%;text-align:center}"), "Round 65: the footer brand stack is centered");
   const goldBuf = Buffer.from(await (await fetch(base + "/logo-lockup-gold.jpg")).arrayBuffer());
   assert(goldBuf[0] === 0xff && goldBuf[1] === 0xd8 && goldBuf.length > 50000, "Round 65: the served gold lockup is a real JPEG");
@@ -2911,7 +2911,7 @@ try {
   assert(css129.includes(".hf-strip126{flex-direction:column") && css129.includes(".hf-strip-film126{flex:none;width:100%}") && css129.includes(".hf-strip-stepsline126{display:block"), "r129 css: the strip stacks — column layout, film full width, steps line always shown — →148: the rules stand in the file but the Round 148 block (later in the cascade) overrides them back to the compact horizontal band; see §56");
   // (e) Asset pins: v131 for Round 129; bumped to v132 by
   // Round 132 (→132), and to v133 by Round 133 (→133).
-  assert(home.includes('href="styles.css?v=168"') && home.includes('src="app.js?v=168"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+  assert(home.includes('href="styles.css?v=169"') && home.includes('src="app.js?v=169"'), "r129→148: asset pins are v147 — →149: now v148 (Round 149) — →150: now v149 (Round 150) — →151: now v150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
   /* ---- 43. Round 132 (2026-11-13): Emil's live Month-tab
      review. (a) The panel is decluttered in index.html: under
@@ -4189,7 +4189,7 @@ try {
     assert(!appJs.includes("function lbRowHtml134"), "r147 wiring: lbRowHtml134 is retired — one contest row renderer remains");
     assert(appJs.slice(appJs.indexOf("function renderMonth"), appJs.indexOf("function fameThumbHtml")).includes("fameRowHtml134(h, i)"), "r147 wiring: renderMonth renders the This Month rows through fameRowHtml134");
     assert(serverJs.includes('trashPlay146(before, "owner", "via the email moderation link")') && serverJs.includes("function moderateTrashedPage147") && serverJs.includes("Yes, move to Trash"), "r147 wiring: the /moderate delete branch is the trashPlay146 move, the result page is moderateTrashedPage147, and the queue checkbox speaks Trash");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r147 wiring: asset pins bumped to ?v=146 — →148: now ?v=147 (Round 148) — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server behavior ----
     const PORT55 = 3494, base55 = `http://localhost:${PORT55}`;
@@ -4374,7 +4374,7 @@ try {
     assert(css148.includes(".final{scroll-margin-top:76px}") && css148.includes(".final h2{line-height:1}"), "r148 cta: the final headline gets line-height 1 and the board's scroll-margin, so its italic ink never rides at the sticky header's edge");
     assert(home.includes('<link rel="preload" as="image" href="/hero-poster.jpg" fetchpriority="high">') && home.includes('poster="/hero-poster.jpg"'), "r148 hero: the hero video's poster (the brand still) is preloaded at high priority and still on the element — first paint has the still, autoplay/mute untouched");
     assert(css148.includes("#playDetailBody .upnext-thumb.is-vertical > video:not(.vfill){position:absolute;inset:0;width:100%;height:100%;object-fit:cover}") && css148.includes("#playDetailBody .upnext-thumb .vfill{display:none}"), "r148 upnext: portrait clips cover-crop the 16:9 Up Next thumb and the blurred clone is hidden in the rail");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r148 wiring: asset pins bumped to ?v=147 — →149: now ?v=148 (Round 149) — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
   }
 
   /* ============ §57 Round 149 — the Owner panel storage meter ====
@@ -4396,7 +4396,7 @@ try {
     assert(appJs.includes("Storage unavailable right now"), "r149 wiring: a failed storage fetch degrades to the 'Storage unavailable right now' note in the block");
     assert(home.includes('id="ownerStorage149"'), "r149 wiring: the storage block div sits in the Site stats section");
     assert(css.includes(".storage-bar149") && css.includes(".storage-fill149.warn149") && css.includes(".storage-fill149.crit149"), "r149 wiring: the meter styles ship (bar, gold warn fill, red crit fill)");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r149 wiring: asset pins bumped to ?v=148 — →150: now ?v=149 (Round 150) — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server behavior ----
     const PORT57 = 3495, base57 = `http://localhost:${PORT57}`;
@@ -4487,7 +4487,7 @@ try {
     for (const idAttr of ["reviewModal150", "reviewCard150", "reviewMedia150", "reviewMeta150", "reviewProgress150", "reviewApprove150", "reviewTrash150", "reviewUndo150", "reviewDone150", "reviewTint150"]) assert(home.includes(`id="${idAttr}"`), `r150 wiring: the review overlay markup carries #${idAttr}`);
     assert(home.includes("All caught up"), "r150 wiring: the review overlay carries the 'All caught up' empty state");
     assert(css.includes(".review150") && css.includes(".batch-bar150") && css.includes(".queue-head150") && css.includes(".review-tint150") && css.includes(".qsel150"), "r150 wiring: the batch + review styles ship");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r150 wiring: asset pins bumped to ?v=149 — →151: now ?v=150 (Round 151) — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Client behavior: the real block in a vm ----
     const escCap150 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -4692,7 +4692,7 @@ try {
     assert(appJs.includes("stats-bars151") && appJs.includes("stats-bar151") && appJs.includes("stats-bars-cap151") && appJs.includes("busiest day:"), "r151 wiring: the owner stats daily series renders as a CSS bar strip with tooltips + a busiest-day caption");
     assert(appJs.includes("Battle picks · all time") && appJs.includes("total watch"), "r151 wiring: the stats cards gain Battle picks and the Hype Stories total line");
     assert(css.includes(".views-chip151") && css.includes(".stats-bar151") && css.includes(".watch-views151") && css.includes(".feat-views151"), "r151 wiring: the Round 151 styles ship");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r151 wiring: asset pins bumped to ?v=150 — →152: now v151 (Round 152) — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Formatter behavior: the real client block in a vm ----
     const fStart151 = appJs.indexOf("function fmtCount151");
@@ -4790,7 +4790,7 @@ try {
     assert(home.includes('id="ownerAccess152"'), "r152 wiring: the Owner access block mounts in the panel");
     assert(appJs.includes("function renderOwnerAccess152") && appJs.includes("window.mintPasscode152") && appJs.includes("window.revokePasscode152") && appJs.includes("shown only once"), "r152 wiring: the block renders, mints and revokes, with the once-only reveal");
     assert(css.includes(".access152-reveal") && css.includes(".access152-code"), "r152 wiring: the Round 152 styles ship");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r152 wiring: asset pins bumped to ?v=151 — →153: now v152 (Round 153) — →154: now v153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server behavior ----
     const j60 = async (b, p, opts = {}) => { const r = await fetch(b + p, opts); const body = await r.json().catch(() => ({})); return { status: r.status, body }; };
@@ -4929,7 +4929,7 @@ try {
     const info153 = appJs.slice(appJs.indexOf("function tileInfoHtml"), appJs.indexOf("function tileHtml"));
     assert(!info153.includes("humanAge(") && !info153.includes("h.division") && !info153.includes('|| "all-time"'), "r153 wiring: the card meta no longer renders division, age, or 'all-time' wording (code-level: no humanAge call, no division read, no all-time fallback)");
     assert(css61.includes(".tile-head153{") && css61.includes(".tile-avatar153{") && css61.includes(".meta-name153{min-width:0;overflow:hidden;text-overflow:ellipsis") && css61.includes(".meta-rest153{flex:0 0 auto") && css61.includes(".vote-pill153") && css61.includes("background:var(--volt)"), "r153 wiring: styles.css carries the head row, the avatar disc, the name-only ellipsis (rest segment flex-fixed), and the volt lime pill");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r153 wiring: asset pins bumped to ?v=152 — →154: now ?v=153 (Round 154) — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Behavior: the real render chain in a vm ----
     const escCap153 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5020,7 +5020,7 @@ try {
     assert(css.includes(".btl-player video{display:block;width:100%;aspect-ratio:16/9;object-fit:cover"), "r154 css: the base big-player rule is unchanged — landscape keeps 16:9 exactly as before");
     const css154 = css.slice(css.indexOf("Round 154"));
     assert(!css154.includes(".btl-mini"), "r154 scope: the Round 154 CSS block touches no battle mini — their posters already render fine");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r154 wiring: asset pins bumped to ?v=153 — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
     // (c) Behavior: the REAL markBtlStage154 + syncBtlPlayer113
     // against fake players/boxes, incl. the poster race guard.
     const IMG_DIMS154 = { "/uploads/poster-p.jpg": { w: 720, h: 1280 }, "/uploads/poster-l.jpg": { w: 960, h: 444 } };
@@ -5116,7 +5116,7 @@ try {
     assert(appJs.includes("h.fast_laned_at") && appJs.includes("⚡ Fast lane"), "r155 wiring: queue cards wear the ⚡ Fast lane chip from the owner payload's marker");
     assert(appJs.includes("!j.deduped && !!j.fastLaned") && appJs.includes("fastLaned155"), "r155 wiring: the upload success screen routes a fast-laned answer to its live variant");
     assert(serverJs.includes("fast_laned_at: r.fast_laned_at || \"\""), "r155 wiring: the owner queue payload carries the marker (owner-only)");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r155 wiring: asset pins bumped to ?v=154 — →156: now ?v=155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server behavior ----
     const { createHash: createHash63 } = await import("node:crypto");
@@ -5302,7 +5302,7 @@ try {
     assert((createSlice156.split("notifyOwnerTextAlert156({").length - 1) === 1 && createSlice156.indexOf("notifyOwnerTextAlert156({") > createSlice156.indexOf("autoEnterOnApproval130(laneRow155)"), "r156 trigger: exactly one alert call, in the pending else-branch AFTER the fast-lane block — dedupes (answered earlier) and laned plays can never reach it");
     assert(serverJs.includes("textAlerts156: ownerTextAlertStatus156()"), "r156 wiring: the counts-only status rides the owner trusted payload");
     assert(appJs.includes("function textAlertLine156") && appJs.includes("Text alerts: on") && appJs.includes("Text alerts: off") && appJs.includes("textAlerts156 = tr155.textAlerts156"), "r156 wiring: the panel renders the status line from the trusted payload (on/off forms)");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r156 wiring: asset pins bumped to ?v=155 — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Shared helpers ----
     const { pathToFileURL: p2u64 } = await import("node:url");
@@ -5461,7 +5461,7 @@ try {
     assert(block157.includes("🎉 All caught up — no new plays waiting"), "r157 wiring: the New view's empty-state copy ships");
     assert(block157.includes('queueView157 === "all" ? liveQueue146 : pendRows157'), "r157 wiring: All takes liveQueue146 itself (the pre-157 list, untouched); New takes the pending subset");
     assert(css.includes(".qfilter157") && css.includes('.qfilter157 button[aria-pressed="true"]') && css.includes(".queue-empty157"), "r157 wiring: the pill bar styles ship — active pill filled lime via aria-pressed, the Round 141 look");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r157 wiring: asset pins bumped to ?v=156 (→157: ?v=157; →159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Client behavior: the real blocks in a vm ----
     const escCap157 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -5574,7 +5574,7 @@ try {
     const ap139 = appJs.slice(appJs.indexOf("function hhApply139(place)"), appJs.indexOf("function hhSettle139()"));
     assert(ap139.includes("switchView(") && ap139.includes("showPanel(") && ap139.includes("hidePlayDetail()"), "r158 wiring: popstate restores (hhApply139) route through the same swept functions — Back is a view change");
     assert(appJs.includes("function attachChromeFade143") && appJs.includes("function markBtlStage154") && appJs.includes("function syncBtlPlayer113"), "r158 wiring: Round 143 chrome fade + Round 154 stage marking untouched");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r158 wiring: asset pins bumped to ?v=157 (→159: ?v=158; →160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Behavior: real code slices in vms ----
     const helpersSrc158 = appJs.slice(i158, appJs.indexOf("function hidePlayDetail()"));
@@ -5686,7 +5686,7 @@ try {
     assert(appJs.includes("function sourcesHtml159") && appJs.includes("const refs = sourcesHtml159(st.sources);"), "r159 wiring: the Owner stats render the sources block under 'Where visitors came from'");
     assert(appJs.includes("No visits recorded yet — sources appear here as people arrive."), "r159 wiring: the honest empty-state line ships (counting starts this round, nothing backfilled)");
     assert(css159.includes(".stats-sub159"), "r159 wiring: the block's sub-head style ships in styles.css");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r159 wiring: asset pins bumped to ?v=158 (→160: ?v=159; →161: ?v=160; →162: ?v=161; →163: ?v=162) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server classification behavior (real helpers, vm) ----
     const helpersSrc159 = serverJs159.slice(serverJs159.indexOf("const VISIT_SEARCH_HOSTS159"), serverJs159.indexOf("function recordVisitSource159"));
@@ -5879,7 +5879,7 @@ try {
     assert(startSlice160.indexOf("const q160") > startSlice160.indexOf("armFirstTap125();"), "r160 wiring: the retry runs inside the refusal handler, after the mute + arm (not as a parallel start)");
     assert(!startSlice160.includes("hhStorageSet"), "r160 wiring: the start path never writes storage — the fallback cannot overwrite the saved hh_music preference");
     assert(heroSlice160.includes('hhStorageSet("hh_music", v.muted ? "off" : "on")'), "r160 wiring: the badge tap remains the ONLY writer of the sound preference");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r160 wiring: asset pins bumped to ?v=159 — →161: now ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
     // ---- §66 re-verified, unmodified ----
     const helpers66r = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
     assert(helpers66r.includes("function pauseMediaIn158") && !helpers66r.includes("heroVideo"), "r160/§66 recheck: the Round 158 sweep helpers stand unmodified and still never name the hero");
@@ -6020,10 +6020,10 @@ try {
     assert(home.includes('id="a2hsBar161"') && home.includes('id="a2hsBtn161"') && home.includes('id="a2hsX161"') && home.includes('id="a2hsSteps161"'), "r161 wiring: the hint bar markup (bar / button / dismiss / steps) ships, hidden by default");
     assert(home.includes("Add HighlightHype to your Home Screen") && home.includes("Add to Home Screen"), "r161 wiring: the bar's line + the walkthrough's second step ship");
     assert(css161.includes(".a2hs161{") && css161.includes("body.a2hs-open161 .float-submit") && css161.includes("body.a2hs-steps161 .float-submit"), "r161 wiring: the bar styles ship, including the pill-lift rules that keep it clear of Post a Play");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r161 wiring: asset pins bumped to ?v=160 — →162: now ?v=161 — →163: now ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Service worker pins ----
-    assert(swSrc161.includes('const HH_SW_VERSION = "r168-v168";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161) — →163: r163-v162 (Round 163) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r168-v168 (Round 168)");
+    assert(swSrc161.includes('const HH_SW_VERSION = "r169-v169";'), "r161 sw: the version constant HH_SW_VERSION carries the round + pin (r162-v161) — →163: r163-v162 (Round 163) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r169-v169 (Round 168) — →169: now v169 (Round 169)");
     assert(swSrc161.includes('"hh-static-" + HH_SW_VERSION'), "r161 sw: the cache name derives from HH_SW_VERSION — one bump invalidates every old cache");
     assert(swSrc161.includes('url.pathname.startsWith("/api/")') && swSrc161.includes('url.pathname.startsWith("/moderate")') && swSrc161.includes('url.pathname.startsWith("/uploads/")'), "r161 sw: /api, /moderate and /uploads pass through untouched");
     assert(swSrc161.includes("mp4|webm|mov|m4v") && swSrc161.includes('url.origin !== self.location.origin') && swSrc161.includes('request.method !== "GET"'), "r161 sw: video files, cross-origin requests and non-GETs pass through untouched");
@@ -6138,7 +6138,7 @@ try {
     assert(appJs.includes("No firsts or milestones yet — they'll show up here as families post them."), "r162 wiring: the empty-lane line ships verbatim");
     assert(appJs.includes("💛 MOMENT THAT MATTERED") && appJs.includes("function renderSpotlight162()"), "r162 wiring: the homepage card renderer + its eyebrow ship");
     assert(css162.includes(".moment-chip162{") && css162.includes(".lane-chip162.on{") && css162.includes(".moment-card162{"), "r162 wiring: the chip, lane and card styles ship");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r162 wiring: asset pins bumped to ?v=161 — →163: now ?v=162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r162 wiring: asset pins bumped to ?v=161 — →163: now ?v=162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Server validator (the REAL momentKind162, vm) ----
     const mkSrc162 = serverJs162.slice(serverJs162.indexOf("const MOMENT_KINDS162"), serverJs162.indexOf("function publicHighlight"));
@@ -6353,8 +6353,8 @@ try {
     const helpers163 = appJs.slice(appJs.indexOf("function hhSilence158"), appJs.indexOf("function hidePlayDetail()"));
     assert(!helpers163.includes("feat"), "r163 wiring: the Round 158 sweep itself is UNTOUCHED — it still skips the muted featured player; the round's pauses live outside it");
     assert(css163.includes(".feat-media134.feat-playing163 .feat-disc134"), "r163 wiring: the play disc steps aside while the showcase is playing");
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r163 wiring: asset pins bumped to ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
-    assert(sw163.includes('const HH_SW_VERSION = "r168-v168";'), "r163 wiring: the SW version constant rides the pin (r163-v162) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r168-v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r163 wiring: asset pins bumped to ?v=162 — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
+    assert(sw163.includes('const HH_SW_VERSION = "r169-v169";'), "r163 wiring: the SW version constant rides the pin (r163-v162) — →163b: r163b-v163 (Round 163b) — →164: r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r169-v169 (Round 168) — →169: now v169 (Round 169)");
 
     // ---- Behavior: real slices in a vm ----
     const escCap163 = appJs.match(/const esc = [\s\S]*?\nconst cap = [\s\S]*?;\n/)[0];
@@ -6548,9 +6548,9 @@ try {
     assert(appJs.includes('$$("[data-moment-pick]").forEach((b) => b.addEventListener("click", () => setMomentPick162(b.dataset.momentPick)))') && appJs.includes("form.elements.momentKind.value = next162"), "r163b wiring: the click binding + hidden-field write are byte-for-byte the Round 162 behavior");
 
     // Pins ride along (→163b).
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r163b wiring: asset pins bumped to ?v=163 — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r163b wiring: asset pins bumped to ?v=163 — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
     const sw163b = await text("/sw.js");
-    assert(sw163b.includes('const HH_SW_VERSION = "r168-v168";'), "r163b wiring: the SW version constant rides the pin (r163b-v163) — →164: now r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r168-v168 (Round 168)");
+    assert(sw163b.includes('const HH_SW_VERSION = "r169-v169";'), "r163b wiring: the SW version constant rides the pin (r163b-v163) — →164: now r164-v164 (Round 164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r169-v169 (Round 168) — →169: now v169 (Round 169)");
   }
 
   /* ============ §73 Round 164 — guardian trending nudges ====
@@ -6566,9 +6566,9 @@ try {
      now164 seam) so the window edges are reachable. ======== */
   {
     // ---- Wiring (main-server payloads + sources) ----
-    assert(home.includes('app.js?v=168') && home.includes('styles.css?v=168'), "r164 wiring: asset pins bumped to ?v=164 — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v168 (Round 168)");
+    assert(home.includes('app.js?v=169') && home.includes('styles.css?v=169'), "r164 wiring: asset pins bumped to ?v=164 — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
     const sw164src = await text("/sw.js");
-    assert(sw164src.includes('const HH_SW_VERSION = "r168-v168";'), "r164 wiring: the SW version constant rides the pin (r164-v164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r168-v168 (Round 168)");
+    assert(sw164src.includes('const HH_SW_VERSION = "r169-v169";'), "r164 wiring: the SW version constant rides the pin (r164-v164) — →165: r165-v165 (Round 165) — →166: r166-v166 (Round 166) — →167: r167-v167 (Round 167) — →168: now r169-v169 (Round 168) — →169: now v169 (Round 169)");
     const serverSrc164 = fs.readFileSync(path.join(root, "server.js"), "utf8");
     assert(serverSrc164.includes('"/api/nudge/unsubscribe"') && serverSrc164.includes("evaluateNudges164") && serverSrc164.includes("maybeSendRally164") && serverSrc164.includes("nudge_optouts"), "r164 wiring: the unsubscribe route, the two evaluators and the opt-out table ship in server.js");
     assert(appJs.includes("nudgesHtml164") && appJs.includes("Trending nudges (this month)"), "r164 wiring: the Owner stats panel renders the nudges block");
@@ -6938,7 +6938,7 @@ try {
       assert(demo166.includes(s166), `r166 content: plays and standings carry "${s166}"`);
     assert(demo166.includes('data-votes="47"') && demo166.includes('data-votes="39"') && demo166.includes('data-votes="33"') && demo166.includes('data-votes="21"') && demo166.includes('data-votes="18"'), "r166 content: the five vote pills carry the mock's counts (47/39/33/21/18)");
     assert((demo166.match(/<article class="tile">/g) || []).length === 5 && (demo166.match(/class="fame-row/g) || []).length === 5 && demo166.includes('class="fame-row top"'), "r166 content: five play cards and five standings rows, the #1 row gold-elevated");
-    assert(demo166.includes('src="/crest-watermark.png"'), "r166 content: the crest is the site's own /crest-watermark.png asset");
+    assert(demo166.includes('src="/crest-watermark.png?v=169"'), "r166 content: the crest is the site's own /crest-watermark.png asset — →169: the src now carries the ?v=169 cache-bust pin (Round 169; §78 guards all three demo crests)");
     const rCrest166 = await fetch(base + "/crest-watermark.png");
     assert(rCrest166.status === 200, "r166 content: the crest asset resolves on the same server");
     assert(!demoSrc166.includes('<img src="http'), "r166 isolation: no external images — every image is a same-origin asset");
@@ -6953,13 +6953,13 @@ try {
       assert(!demoSrc166.includes(bad166), `r166 isolation: demo.html never references ${bad166}`);
 
     // ---- SW posture: /demo rides the generic navigation rule ----
-    assert(swSrc166.includes('const HH_SW_VERSION = "r168-v168";'), "r166 wiring: the SW version constant rides the round pin (r167-v167) — →168: now r168-v168 (Round 168)");
+    assert(swSrc166.includes('const HH_SW_VERSION = "r169-v169";'), "r166 wiring: the SW version constant rides the round pin (r167-v167) — →168: now r169-v169 (Round 168) — →169: now v169 (Round 169)");
     assert(swSrc166.includes('if (request.mode === "navigate")') && swSrc166.includes("hhNetworkFirst161(request)"), "r166 sw: navigations stay network-first, so a /demo navigation is fetched fresh — never answered with a cached app shell while online");
     assert(!swSrc166.includes("/demo") && !swSrc166.includes("demo.html"), "r166 sw: /demo is not precached and gets no special-case handling");
 
     // ---- Existing surfaces unaffected ----
     const home166 = await text("/");
-    assert(home166.includes("Every Athlete Deserves The Hype") && home166.includes('src="app.js?v=168"'), "r166 smoke: the homepage still serves the app shell on the new pin — →168: pin now v168 (Round 168)");
+    assert(home166.includes("Every Athlete Deserves The Hype") && home166.includes('src="app.js?v=169"'), "r166 smoke: the homepage still serves the app shell on the new pin — →168: pin now v169 (Round 168) — →169: now v169 (Round 169)");
     assert((await text("/terms")).includes("Terms of Use") && (await text("/privacy")).includes("Privacy"), "r166 smoke: the sibling standalone routes are unaffected");
     assert((await text("/api/highlights")).length > 0, "r166 smoke: the live API still answers beside the demo route");
   }
@@ -7080,7 +7080,7 @@ try {
     const ico167 = fs.readFileSync(path.join(root, "public", "favicon.ico"));
     assert(ico167.readUInt16LE(2) === 1 && ico167.readUInt16LE(4) === 5, "r167 icons: favicon.ico keeps its shape — 5 PNG entries (16/24/32/48/64)");
     assert(sha167("logo-header-gold.png") === "043439b6f90dff2abe1b681d8edca2f5238d80010a7968249ee14190aaab8cc9" && sha167("logo-lockup-gold.jpg") === "9eae6e24a0938ceb484f06c8254c0aba15fdf659ae9ccfcec4d3360f84007a87", "r167 grade: the header + footer lockups carry the +10 gold grade (hue=h=10:s=0.95) in place (hashes pinned)");
-    assert(home.includes('src="app.js?v=168"') && home.includes('href="styles.css?v=168"'), "r167 wiring: asset pins are v167 — →168: now v168 (Round 168)");
+    assert(home.includes('src="app.js?v=169"') && home.includes('href="styles.css?v=169"'), "r167 wiring: asset pins are v167 — →168: now v169 (Round 168) — →169: now v169 (Round 169)");
   }
 
   /* ============ §77 Round 168 — footer lockup cache-bust ====
@@ -7095,7 +7095,33 @@ try {
      so dropping it in some future edit fails the suite. ===== */
   {
     assert(home.includes('src="/logo-lockup-gold.jpg?v='), "r168 footer: the footer lockup img src carries a cache-bust pin (logo-lockup-gold.jpg?v=…) — an in-place grade or replace of the file must bump it, or returning browsers serve the stale footer for up to 24h");
-    assert(home.includes('src="/logo-lockup-gold.jpg?v=168"'), "r168 footer: the footer lockup pin is the current round's (v168)");
+    assert(home.includes('src="/logo-lockup-gold.jpg?v=169"'), "r168 footer: the footer lockup pin is the current round's (v169) — →169: now v169 (Round 169)");
+  }
+
+  /* ============ §78 Round 169 — crest pins + stacked My Plays rows ====
+     Two repairs from Dyanna's phone (2026-11-14):
+     (1) Round 167 replaced public/crest-watermark.png in place
+     (flat → shiny) but the board backdrop img in index.html and
+     all three crest imgs in demo.html named it UNPINNED, and
+     static images answer Cache-Control: public, max-age=86400 —
+     the Round 168 footer failure, one asset over. Round 169
+     pins every crest src; dropping a pin fails here.
+     (2) The My Plays result row (guardianPlaysHtml121) was one
+     flex line — text flex:1 beside up to three buttons — and at
+     phone width the last button overflowed the viewport (body
+     scrollWidth 396 at 390px), letting /my-highlights pan
+     left/right. The row is now stacked: .mine-play-main full
+     width, buttons in a wrapping .mine-play-actions row. ===== */
+  {
+    const demoSrc169 = fs.readFileSync(path.join(root, "public", "demo.html"), "utf8");
+    assert(home.includes('src="/crest-watermark.png?v=169"'), "r169 crest: the board backdrop crest img carries the current round's pin (?v=169)");
+    assert(!home.includes('src="/crest-watermark.png"'), "r169 crest: no unpinned crest-watermark src remains in index.html");
+    assert((demoSrc169.match(/src="\/crest-watermark\.png\?v=169"/g) || []).length === 3, "r169 crest: all three demo.html crest imgs carry the ?v=169 pin");
+    assert(!demoSrc169.includes('src="/crest-watermark.png"'), "r169 crest: no unpinned crest-watermark src remains in demo.html");
+    assert(appJs.includes("mine-play-main") && appJs.includes("mine-play-actions"), "r169 my-plays: guardianPlaysHtml121 renders the stacked row (.mine-play-main + .mine-play-actions)");
+    assert(!appJs.includes('mine-play-row" style="display:flex'), "r169 my-plays: the old one-line flex result row is gone (it overflowed phone viewports)");
+    const css169 = fs.readFileSync(path.join(root, "public", "styles.css"), "utf8");
+    assert(css169.includes(".mine-play-actions{display:flex;flex-wrap:wrap"), "r169 my-plays: the actions row wraps (.mine-play-actions in styles.css)");
   }
 
   console.log("\nALL REVIEW-FIX CHECKS PASSED");
