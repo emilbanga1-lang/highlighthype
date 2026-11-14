@@ -493,6 +493,33 @@ db.exec(`CREATE TABLE IF NOT EXISTS owner_tokens(
   last_used_at TEXT,
   revoked_at TEXT
 );`);
+// Round 155 (2026-11-14): the trusted-family FAST LANE (Phase 7c
+// of the owner-panel program; Emil decided EMAIL-ONLY on
+// 2026-11-14 — a guardian email on this list is, by itself,
+// enough for that family's uploads to go live without waiting
+// in the queue). Only the SHA-256 of the normalized guardian
+// email is stored — the SAME normIdentity -> sha hash uploads
+// already compute into highlights.notify_email_hash, so matching
+// is hash-to-hash and no raw email ever lands in this table.
+// Rows are seeded ONLY by explicit owner action from the panel
+// (never auto-promoted); revoked_at retires a family on the very
+// next upload (the lane lookup only matches active rows);
+// last_used_at stamps each fast-laned upload. The email_hash
+// UNIQUE index keeps one row per family: re-adding a revoked
+// email reactivates that row in place rather than duplicating
+// it. highlights.fast_laned_at is the marker the panel's
+// "awaiting your look" strip reads.
+db.exec(`CREATE TABLE IF NOT EXISTS trusted_guardians(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email_hash TEXT NOT NULL DEFAULT '',
+  label TEXT NOT NULL DEFAULT '',
+  added_by TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_used_at TEXT,
+  revoked_at TEXT
+);`);
+try { db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_trusted_guardians_hash ON trusted_guardians(email_hash)"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN fast_laned_at TEXT"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -675,6 +702,36 @@ function ownerAuthorized(req) {
 function ownerActor152(req) {
   const id152 = ownerIdentity152(req);
   return id152 ? id152.actor : "owner";
+}
+// ---- Round 155: fast-lane helpers ----
+// trustedGuardianFor155 is the lane lookup: an ACTIVE
+// trusted_guardians row for this guardian email hash, or null.
+// Hash-to-hash only — the caller passes the same
+// sha(normIdentity(email)) the upload insert stores as
+// notify_email_hash, so panel-added and upload-side spellings
+// of one address (case, stray whitespace) meet on one hash.
+// Fail-closed: any error reads as "not trusted".
+function trustedGuardianFor155(emailHash) {
+  if (!emailHash) return null;
+  try { return db.prepare("SELECT id, label FROM trusted_guardians WHERE email_hash=? AND revoked_at IS NULL").get(emailHash) || null; } catch { return null; }
+}
+// aiGateBlocksLane155 mirrors the Upload Assist gate's own
+// stop rule (Round 99, app.js): the browser holds a submit
+// whose verdict is a CONFIDENT not_a_play (confidence >= 0.85);
+// the guardian's override of exactly that verdict re-files the
+// upload FOR OWNER REVIEW, with the sanitized gate recorded
+// as "override". Both shapes are gate-stopped uploads, and a
+// gate stop is never rescued by the fast lane — the play
+// inserts pending for a human, exactly as it did pre-155. Any
+// other verdict (play / unsure / low-confidence / no verdict
+// at all — the assist is inert without an API key) leaves the
+// lane decision to the allowlist alone.
+function aiGateBlocksLane155(aiJson) {
+  if (!aiJson) return false;
+  let v155 = null;
+  try { v155 = JSON.parse(aiJson); } catch { return false; }
+  if (!v155 || typeof v155 !== "object") return false;
+  return (v155.gate === "not_a_play" || v155.gate === "override") && Number(v155.confidence) >= 0.85;
 }
 // ---- Email moderation (private beta) ----
 // Why this exists: Owner view relies on a token in ONE browser's
@@ -2207,8 +2264,29 @@ const server = http.createServer(async (req, res) => {
       // Upload Assist (Round 99): the browser's AI result rides along
       // as an untrusted label (see sanitizeAiField) — display only.
       const aiJson = sanitizeAiField(fields.ai);
-      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin,media_hash)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,'pending',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, JSON.stringify(review), String(fields.team || "").trim(), String(fields.notifyEmail || "").trim(), String(fields.notifyEmail || "").trim() ? sha(normIdentity(String(fields.notifyEmail).trim())) : "", athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130, mediaHash145);
+      // Round 155 (2026-11-14): the trusted-family fast lane.
+      // ORDER IS A HARD RULE, in this exact sequence: (1) the
+      // Round 145 dedupe above already answered a same-bytes
+      // retry — unchanged, and earlier than everything here;
+      // (2) the Upload Assist garbage gate — enforced in the
+      // browser (Round 99) and mirrored here from the SANITIZED
+      // verdict via aiGateBlocksLane155: a gate-stopped upload
+      // is NEVER rescued by the lane, it files for owner review
+      // exactly as it always has; (3) only then does the
+      // guardian email hash meet the allowlist. A match inserts
+      // APPROVED with the fast_laned_at marker and, below, the
+      // standard approval side-effects; anything else stays
+      // pending, byte-for-byte the pre-155 behavior. The hash
+      // computed here is the very value the insert stores as
+      // notify_email_hash — one expression, so panel-added and
+      // upload-side spellings can never drift apart.
+      const notifyEmail155 = String(fields.notifyEmail || "").trim();
+      const guardianHash155 = notifyEmail155 ? sha(normIdentity(notifyEmail155)) : "";
+      const trusted155 = aiGateBlocksLane155(aiJson) ? null : trustedGuardianFor155(guardianHash155);
+      const insertStatus155 = trusted155 ? "approved" : "pending";
+      const fastLanedAt155 = trusted155 ? new Date().toISOString().replace("T", " ").slice(0, 19) : null;
+      const info = db.prepare(`INSERT INTO highlights(title,sport,division,play_type,player_name,story,media_kind,media_url,mime,embed_url,host_label,status,review,team,notify_email,notify_email_hash,athlete_id,athlete_tag,athlete_group,jersey,guardian_phone,text_consent,guardian_consent_at,story_consent,story_consent_at,ai_json,contest_optin,media_hash,fast_laned_at)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(title, sport, division, fields.playType || "", fields.playerName || "", fields.story || "", media_kind, media_url, mime, embed_url, host_label, insertStatus155, JSON.stringify(review), String(fields.team || "").trim(), notifyEmail155, guardianHash155, athlete.athlete_id, athlete.athlete_tag, athlete.athlete_group, String(fields.jersey || "").trim(), guardianPhone, textConsent, new Date().toISOString(), storyConsent, storyConsent ? new Date().toISOString() : "", aiJson, contestOptin130, mediaHash145, fastLanedAt155);
       const newPlayId = Number(info.lastInsertRowid);
       // Round 124: the media pipeline runs BEFORE the response —
       // a converted file and its poster are part of the finished
@@ -2218,11 +2296,29 @@ const server = http.createServer(async (req, res) => {
       if (uploadedName && file && (file.ctype || "").startsWith("video/")) await r124ProcessUpload(newPlayId, uploadedName);
       const rowNow = db.prepare("SELECT media_url, poster_url FROM highlights WHERE id=?").get(newPlayId);
       if (rowNow) { media_url = rowNow.media_url; }
-      notifyPending(title, sport, newPlayId, review);
+      if (trusted155) {
+        // Round 155: a fast-laned play runs the STANDARD approval
+        // side-effects — the same helpers in the same order as
+        // the owner status endpoint's pending->approved
+        // transition: the moderation log (here: actor
+        // fast-lane:<label>, written at insert time so the lane
+        // never leaves an unlogged live play), the guardian
+        // approval email, the guardian text, and the Round 130
+        // contest auto-entry on the post-insert row. The owner's
+        // notifyPending mail is NOT sent — nothing is pending.
+        try { db.prepare("UPDATE trusted_guardians SET last_used_at=datetime('now') WHERE id=?").run(trusted155.id); } catch {}
+        const laneRow155 = db.prepare("SELECT * FROM highlights WHERE id=?").get(newPlayId);
+        logModeration146(newPlayId, "approve", `fast-lane:${trusted155.label}`, `"${title}" went live via the fast lane — trusted guardian, no queue wait`);
+        if (laneRow155 && laneRow155.notify_email) notifyApproved(laneRow155.title, laneRow155.id, laneRow155.notify_email);
+        if (laneRow155) notifyGuardianText(laneRow155, `HighlightHype: good news — your play "${laneRow155.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${laneRow155.id}`);
+        if (laneRow155) autoEnterOnApproval130(laneRow155);
+      } else {
+        notifyPending(title, sport, newPlayId, review);
+      }
       // Round 121: the response carries the athlete's HH tag so the
       // client can show it on the post-success screen ("save it!") —
       // the tag is a public identifier, safe to hand back.
-      return sendJson(res, 201, { ok: true, id: newPlayId, status: "pending", athlete_tag: athlete.athlete_tag || "", media_url, poster_url: (rowNow && rowNow.poster_url) || "", message: "Thanks! Your play is in review and will appear once the owner approves it." });
+      return sendJson(res, 201, { ok: true, id: newPlayId, status: insertStatus155, fastLaned: !!trusted155, athlete_tag: athlete.athlete_tag || "", media_url, poster_url: (rowNow && rowNow.poster_url) || "", message: trusted155 ? "Your play is live on the board!" : "Thanks! Your play is in review and will appear once the owner approves it." });
     }
 
     // ---- Vote toggle ----
@@ -2663,7 +2759,11 @@ const server = http.createServer(async (req, res) => {
           // Round 146: Trash fields (owner-only, like the contest
           // entry above) — when the play was trashed, the status it
           // restores to, and whole days left before the auto-purge.
-          trashed_at: r.trashed_at || "", status_before_trash: r.status_before_trash || "", trash_days_left: trashDaysLeft146(r) };
+          trashed_at: r.trashed_at || "", status_before_trash: r.status_before_trash || "", trash_days_left: trashDaysLeft146(r),
+          // Round 155: the fast-lane marker (owner-only, like the
+          // fields above) — the queue card wears the ⚡ chip for a
+          // play that skipped the queue via a trusted guardian.
+          fast_laned_at: r.fast_laned_at || "" };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -2714,6 +2814,64 @@ const server = http.createServer(async (req, res) => {
       const already152 = !!row152.revoked_at;
       if (!already152) db.prepare("UPDATE owner_tokens SET revoked_at=datetime('now') WHERE id=?").run(id152);
       return sendJson(res, 200, { ok: true, id: id152, name: row152.name, revoked: true, alreadyRevoked: already152 });
+    }
+    // ---- Owner: trusted-family fast lane (Round 155; owner-authorized ONLY) ----
+    // The allowlist behind the upload fast lane (see the schema
+    // note at trusted_guardians). The list exposes METADATA only
+    // — label, created, last used, active/revoked — never an
+    // email and never a hash: the owner types the address once
+    // at add time and the server keeps only its hash. The GET
+    // also carries the "awaiting your look" strip: the most
+    // recent fast-laned plays that are STILL LIVE (status
+    // approved + marker set), newest first, capped at 10 — the
+    // owner's undo for any of them is the panel's ordinary
+    // Trash move (DELETE /api/highlights/:id, 7-day restorable).
+    if (p === "/api/owner/trusted" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const guardians155 = db.prepare("SELECT id, label, created_at, last_used_at, revoked_at FROM trusted_guardians ORDER BY id").all()
+        .map((r) => ({ id: r.id, label: r.label, created_at: r.created_at, last_used_at: r.last_used_at || null, revoked: !!r.revoked_at }));
+      const recent155 = db.prepare(`SELECT h.id, h.title, h.player_name, h.athlete_tag, h.fast_laned_at, t.label AS lane_label
+        FROM highlights h LEFT JOIN trusted_guardians t ON t.email_hash = h.notify_email_hash
+        WHERE h.status='approved' AND h.fast_laned_at IS NOT NULL AND h.fast_laned_at<>''
+        ORDER BY h.fast_laned_at DESC, h.id DESC LIMIT 10`).all()
+        .map((r) => ({ id: r.id, title: r.title, athlete: r.player_name ? athleteDisplayName(r.player_name) : "", athlete_tag: r.athlete_tag || "", fast_laned_at: r.fast_laned_at, label: r.lane_label || "" }));
+      return sendJson(res, 200, { ok: true, guardians: guardians155, recent: recent155 });
+    }
+    if (p === "/api/owner/trusted" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const email155 = String(body.email || "").trim();
+      const label155 = String(body.label || "").trim().replace(/\s+/g, " ");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email155)) return sendJson(res, 400, { ok: false, message: "That doesn't look like an email address — check it and try again." });
+      if (!label155) return sendJson(res, 400, { ok: false, message: "Give the family a label — e.g. \"The Millers — Hawks\"." });
+      if (label155.length > 60) return sendJson(res, 400, { ok: false, message: "That label is too long — 60 characters max." });
+      // Hashed with the uploads' own normalization, so the
+      // address the owner types here matches the address the
+      // guardian posts with, whatever the case or spacing.
+      const hash155 = sha(normIdentity(email155));
+      const existing155 = db.prepare("SELECT id, label, revoked_at FROM trusted_guardians WHERE email_hash=?").get(hash155);
+      if (existing155 && !existing155.revoked_at) return sendJson(res, 400, { ok: false, message: `That email is already on the fast lane as "${existing155.label}".` });
+      if (existing155) {
+        // Re-adding a REVOKED email reactivates its row in place
+        // (the UNIQUE hash rules out a second row): fresh label,
+        // the revoking stamp cleared, last-used reset so the
+        // panel reads like a fresh add.
+        db.prepare("UPDATE trusted_guardians SET label=?, added_by=?, revoked_at=NULL, last_used_at=NULL WHERE id=?").run(label155, ownerActor152(req), existing155.id);
+        return sendJson(res, 200, { ok: true, id: existing155.id, label: label155, reactivated: true });
+      }
+      const info155 = db.prepare("INSERT INTO trusted_guardians(email_hash, label, added_by) VALUES(?,?,?)").run(hash155, label155, ownerActor152(req));
+      return sendJson(res, 200, { ok: true, id: Number(info155.lastInsertRowid), label: label155, reactivated: false });
+    }
+    if (p === "/api/owner/trusted/revoke" && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
+      const id155 = Number(body.id);
+      if (!Number.isInteger(id155)) return sendJson(res, 400, { ok: false, message: "Which family should come off the list? Reload the panel and try again." });
+      const row155 = db.prepare("SELECT id, label, revoked_at FROM trusted_guardians WHERE id=?").get(id155);
+      if (!row155) return sendJson(res, 404, { ok: false, message: "That family isn't on the fast-lane list." });
+      const already155 = !!row155.revoked_at;
+      if (!already155) db.prepare("UPDATE trusted_guardians SET revoked_at=datetime('now') WHERE id=?").run(id155);
+      return sendJson(res, 200, { ok: true, id: id155, label: row155.label, revoked: true, alreadyRevoked: already155 });
     }
     // ---- Owner: Hype Frame requests (owner-authorized ONLY) ----
     // This is the only place order requests are listed, and the only place
