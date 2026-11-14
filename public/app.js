@@ -1405,6 +1405,18 @@ window.openPlayDetail = (id, opts = {}) => {
   }
   wrap.querySelector(".play-detail-back")?.focus();
 };
+/* Round 148 (2026-11-13): the Round 140 watch-chrome state is
+   declared HERE, above hidePlayDetail, on purpose. hidePlayDetail
+   runs during boot() on the page-sub routes (showPanel is called
+   by the boot router for /my-highlights, /how-it-works and
+   /stories), and its teardownWatchChrome140 call reads these —
+   when the declarations lived down in the Round 140 block (after
+   boot in source order) the read hit the `let` TDZ, threw, and
+   boot died before the panel toggled or loadData ran: the
+   sub-pages rendered as the bare board chrome over a black void.
+   The Round 140/143 functions themselves stay in their block. */
+let watchChromeVideo140 = null;
+let watchChromeOff140 = null;
 function hidePlayDetail() {
   teardownDetailAutoplay(); // Round 15: nothing advances in the background once closed
   if (typeof teardownWatchChrome140 === "function") teardownWatchChrome140(); // Round 140: no stray chrome fade timer past close
@@ -6106,8 +6118,15 @@ function wireWatch123(body, play) {
    fade, same restore on pause/tap. The Battles minis never
    carried native chrome (muted frame-grab previews), so
    there is nothing to fade on them. */
-let watchChromeVideo140 = null;
-let watchChromeOff140 = null;
+/* Round 148 (2026-11-13): watchChromeVideo140 / watchChromeOff140
+   are DECLARED up by hidePlayDetail (the detail-close state block
+   above it), not here — hidePlayDetail runs during boot() on the
+   page-sub routes (/my-highlights, /how-it-works, /stories) via
+   showPanel, long before execution reaches this Round 140 block,
+   and reading a `let` in its TDZ threw "Cannot access
+   'watchChromeOff140' before initialization", killing boot and
+   leaving those pages on the empty plays panel. The functions
+   stay here; only the declarations moved. */
 function teardownWatchChrome140() {
   if (watchChromeOff140) { try { watchChromeOff140(); } catch (e) { /* fine */ } watchChromeOff140 = null; }
   watchChromeVideo140 = null;
