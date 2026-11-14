@@ -979,12 +979,17 @@ function shortTitle(title) {
    the button reads as part of the clip block. The Sport ·
    Division sub-line leaves the featured card (the leaderboard
    rows, the Fame rows and the play view keep theirs), and the
-   stage itself adapts to the clip — see markFeatStage142. */
+   stage itself adapts to the clip — see markFeatStage142.
+   →163 (2026-11-14): the media itself is now a living muted
+   showcase (see the Round 163 block below) — the tap layer
+   calls featTap163 (sound on + the one counted watch, then
+   play/pause), NOT openPlayDetail; the play still opens from
+   its leaderboard row and everywhere else it always did. */
 function featCardHtml134(h) {
   const votes = h.voteCount;
   const name = firstNameOf(h);
   return `<article class="feat-card134" data-feat-id="${h.id}">
-    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
+    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();featTap163(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
       ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
@@ -1023,6 +1028,10 @@ function renderMonth() {
      Round 147 (2026-11-13): the rows are the Hall of Fame
      rows (fameRowHtml134) — same design, month numbers. */
   const feat134 = entries.length ? entries[0] : null;
+  /* Round 163: a rebuild retires the outgoing featured element
+     (a refresh may crown a new #1) — pause it explicitly before
+     its markup leaves, so no stale clip keeps playing. */
+  if (typeof featPause163 === "function") featPause163();
   $("#monthFeat").innerHTML = feat134 ? featCardHtml134(feat134) : "";
   /* Round 132 (2026-11-13): the contest is ONE combined board —
      the entry list ignores the Boys/Girls division entirely
@@ -1033,6 +1042,10 @@ function renderMonth() {
   const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
   $("#monthRows").innerHTML = filtered.map((h, i) => fameRowHtml134(h, i)).join("");
   hydrateDurPills();
+  /* Round 163: after every rebuild, if the Month view is the
+     one on screen, the (possibly new) #1's showcase starts —
+     featEnter163 gates on the live view itself. */
+  if (typeof featEnter163 === "function") featEnter163();
   $("#emptyState").style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): when the month has NO entries at all, the
      empty state explains what this board is — the real contest — and
@@ -1058,6 +1071,103 @@ function renderMonth() {
       strip.hidden = false;
     } else { strip.innerHTML = ""; strip.hidden = true; }
   }
+}
+/* Round 163 (2026-11-14, Emil): the Month FEATURED clip is a
+   living showcase — entering the Month view starts the current
+   #1's clip playing MUTED and LOOPING on its own. Round 133's
+   poster-rest retires for the featured card only; the rows,
+   the board tiles, Battles, the hero and every other surface
+   keep their behavior exactly. Three rules keep it honest:
+   (1) The autoplay is a SHOWCASE, not a watch — it never fires
+   play_open. A view counts only when a visitor taps the
+   player: the tap turns the sound ON and records exactly one
+   watch through the very call the play-open path uses
+   (trackEvent("play_open", id) — the Round 151 counter). Later
+   taps just play/pause, standard-player style; the watch
+   never double-counts on the same rendered card.
+   (2) Leaving the Month view PAUSES the featured player
+   explicitly. The trap: the Round 158 sweep deliberately
+   skips muted previews, and a muted playing showcase has
+   exactly that shape — so featPause163 rides the same choke
+   points as the sweep (switchView / showPanel /
+   openPlayDetail / hidePlayDetail / showStore) alongside it,
+   and the sweep's treatment of everything else is untouched.
+   (3) A refused play() (data-saver, low power) is swallowed —
+   the poster rests and the tap still works, the hero
+   controller's posture; no preference key is ever written
+   here. Whoever holds #1 is showcased — no play-specific
+   logic; renderMonth re-enters after every rebuild, so a
+   refresh that crowns a new #1 starts the NEW clip (the old
+   element is paused first, at the top of renderMonth). */
+function featVideo163() {
+  const host = $("#monthFeat");
+  if (!host || typeof host.querySelector !== "function") return null;
+  return host.querySelector("video:not(.vfill)");
+}
+function featSyncDisc163(v) {
+  try {
+    const host = v && typeof v.closest === "function" ? v.closest(".feat-media134") : null;
+    if (host && host.classList) host.classList.toggle("feat-playing163", !v.paused);
+  } catch (e) { /* the disc is decoration */ }
+}
+function featWire163(v) {
+  if (!v || typeof v.addEventListener !== "function") return;
+  if (v.dataset && v.dataset.featWired163 === "1") return;
+  try { v.dataset.featWired163 = "1"; } catch (e) { /* fine */ }
+  v.addEventListener("play", () => featSyncDisc163(v));
+  v.addEventListener("pause", () => featSyncDisc163(v));
+  featSyncDisc163(v);
+}
+function featEnter163() {
+  try {
+    if (typeof currentView === "undefined" || currentView !== "month") return;
+    if (typeof monthSub !== "undefined" && monthSub === "fame") return;
+    const view = $("#viewMonth");
+    if (view && view.hidden) return;
+    const v = featVideo163();
+    if (!v) return; // no #1 — or an image/embed #1: the tab's states carry it
+    featWire163(v);
+    v.muted = true; // the showcase is always muted — sound is the tap's gift
+    try { v.loop = true; } catch (e) { /* the markup already loops */ }
+    if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+    featSyncDisc163(v);
+  } catch (e) { /* the showcase is a bonus — it must never break the tab */ }
+}
+function featPause163() {
+  const v = featVideo163();
+  if (!v) return;
+  if (!v.paused) { try { v.pause(); } catch (e) { /* fine */ } }
+  featSyncDisc163(v);
+}
+/* The featured tap (Round 163): the featured media's tap layer
+   calls this instead of opening the play. The first tap on the
+   muted showcase turns the sound ON and records the one
+   counted watch (the play_open trackEvent, exactly as
+   openPlayDetail records an open). After that the player is
+   the visitor's: taps toggle play/pause. A featured play with
+   no playable video element (an image or embed #1) keeps the
+   pre-163 behavior — the tap opens the play. A plain function
+   declaration, not a window.* assignment: the renderMonth
+   code slices run in vm sandboxes with no window object, and
+   a declaration is inert there while still landing on the
+   global scope the inline onclick resolves in the browser. */
+function featTap163(id) {
+  const v = featVideo163();
+  if (!v) { openPlayDetail(id); return; }
+  featWire163(v);
+  if (v.muted) {
+    v.muted = false;
+    if (!(v.dataset && v.dataset.featCounted163 === "1")) {
+      try { if (v.dataset) v.dataset.featCounted163 = "1"; } catch (e) { /* fine */ }
+      if (typeof trackEvent === "function") trackEvent("play_open", id);
+    }
+    if (v.paused) { const p = v.play(); if (p && p.catch) p.catch(() => {}); }
+  } else if (v.paused) {
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+  } else {
+    try { v.pause(); } catch (e) { /* fine */ }
+  }
+  featSyncDisc163(v);
 }
 /* Hall of Fame thumbnails (Round 5, 2026-11-05): image plays keep
    their photo; video plays — uploaded files and direct link videos,
@@ -1578,6 +1688,9 @@ window.openPlayDetail = (id, opts = {}) => {
      detail's own player lives outside the panels and is
      untouched; muted board previews keep previewing. */
   if (typeof pauseMediaIn158 === "function") $$(".panel[data-panel]").forEach((p) => pauseMediaIn158(p, false));
+  /* Round 163: the featured showcase pauses behind the detail
+     too — it is muted, so the sweep above leaves it alone. */
+  if (typeof featPause163 === "function") featPause163();
   /* Round 139: the detail gets its OWN history entry, pushed
      with the #play- hash as its URL — browser Back closes the
      play onto the board beneath it, and the board's entry
@@ -1681,6 +1794,10 @@ function hidePlayDetail() {
      detail clip stops too; the next open re-renders the
      body anyway, so nothing here needs a resume path. */
   if (typeof pauseMediaIn158 === "function") pauseMediaIn158($("#playDetail"), true);
+  /* Round 163: the featured showcase is paused at this choke
+     point too — and it never resumes on its own here; the
+     next Month entry restarts it (featEnter163). */
+  if (typeof featPause163 === "function") featPause163();
   const wrap = $("#playDetail");
   if (wrap) wrap.hidden = true;
   document.body.classList.remove("detail-open");
@@ -1827,6 +1944,12 @@ function showPanel(name) {
      the studio, the story episode, the boards), the newly
      active panel's media untouched. */
   if (typeof pauseMediaIn158 === "function") $$(".panel[data-panel]").forEach((p) => { if (p.dataset.panel !== name) pauseMediaIn158(p, false); });
+  /* Round 163: a panel switch leaves the boards behind — the
+     featured showcase pauses with them; returning to the plays
+     panel re-enters it when Month is the live board view
+     (featEnter163 gates on that itself). */
+  if (name === "plays") { if (typeof featEnter163 === "function") featEnter163(); }
+  else if (typeof featPause163 === "function") featPause163();
   // Site stats: count the MAIN views only. Athlete pages and the
   // Hype Frame studio are steps inside a visit, not front doors, so
   // they are deliberately not counted as views.
@@ -1912,6 +2035,13 @@ function switchView(v) {
     const active158 = v === "all" ? "#viewAll" : v === "battles" ? "#viewBattles" : (fame ? "#viewFame" : "#viewMonth");
     ["#viewAll", "#viewMonth", "#viewFame", "#viewBattles"].forEach((sel) => { if (sel !== active158) pauseMediaIn158($(sel), false); });
   }
+  /* Round 163: the featured showcase rides the same switch —
+     entering the Month view starts it (muted + looping);
+     leaving for any other view pauses it EXPLICITLY, because
+     the sweep above skips muted previews by design and the
+     playing showcase has exactly that shape. */
+  if (v === "month" && !fame) { if (typeof featEnter163 === "function") featEnter163(); }
+  else if (typeof featPause163 === "function") featPause163();
   /* Round 139: a board-view switch is a place — record it. */
   if (typeof hhRecord139 === "function") hhRecord139();
 }
@@ -2101,6 +2231,11 @@ function showStore(target) {
   document.body.classList.add("store-open");
   window.scrollTo(0, 0);
   $$(".view-home video").forEach((v) => v.pause());
+  /* Round 163: the featured showcase pauses as the Store
+     opens — named explicitly at this choke point (the blanket
+     pause above already reaches it; the round keeps its
+     pause points explicit rather than incidental). */
+  if (typeof featPause163 === "function") featPause163();
   const sv = $("#swagVideo");
   if (sv) {
     // Round 9 (2026-11-05): the film HAS quiet sound again (Nicholas
@@ -2162,6 +2297,11 @@ function showHome() {
   // too, and nothing resumed them — after one Store visit the three
   // sport strips froze on their posters for the rest of the session.
   $$(".montage video").forEach((v) => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
+  /* Round 163: coming home from the Store re-enters the live
+     board view — if that is the Month view, its featured
+     showcase restarts muted alongside the hero (featEnter163
+     gates on the view itself). */
+  if (typeof featEnter163 === "function") featEnter163();
 }
 /* Round 48 (2026-11-08): the homepage Hype Frame film was
    click-to-play — playHfHomeFilm swapped its cover for the
