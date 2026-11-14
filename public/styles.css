@@ -3381,3 +3381,29 @@ footer{padding-bottom:36px}
 .access152-reveal{border:1px solid var(--gold);background:var(--card2);border-radius:10px;padding:12px 14px;margin:12px 0}
 .access152-code{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
 .access152-code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:17px;font-weight:700;letter-spacing:.03em;background:rgba(0,0,0,.35);padding:6px 10px;border-radius:8px}
+
+/* ================================================================
+   Round 153 (2026-11-14) — the HYBRID board card. The stage is
+   untouched; under it, the title block gains the YouTube
+   variant's avatar disc (initials on a name-hashed hue — an
+   identity mark, not a photo), the meta becomes ONE flex line
+   whose counts can never truncate (only the name segment may
+   ellipsis, and the font steps down so typical names fit at
+   phone width), and the Vote button becomes the variant's
+   solid lime pill: volt background, ink text; the voted state
+   flips to a volt outline wash, and the failure state keeps
+   its red — it must never read as a successful lime tap.
+   ================================================================ */
+.tile-head153{display:flex;gap:10px;align-items:flex-start}
+.tile-head-main153{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tile-avatar153{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.02em;color:#141414;background:hsl(var(--avh153,52) 82% 62%)}
+.tile-meta153{display:flex;align-items:baseline;white-space:nowrap;overflow:hidden;text-overflow:clip}
+#plays .tile-meta153{font-size:12.5px}
+.meta-name153{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta-rest153{flex:0 0 auto;white-space:nowrap}
+#plays .vote-chip-btn.vote-pill153,.tile .vote-chip-btn.vote-pill153{background:var(--volt);border-color:transparent;color:var(--volt-ink)}
+#plays .vote-chip-btn.vote-pill153 b,.tile .vote-chip-btn.vote-pill153 b{color:var(--volt-ink)}
+#plays .vote-chip-btn.vote-pill153.voted,.tile .vote-chip-btn.vote-pill153.voted{background:rgba(200,255,0,.10);border-color:var(--volt);color:var(--volt)}
+#plays .vote-chip-btn.vote-pill153.voted b,.tile .vote-chip-btn.vote-pill153.voted b{color:var(--volt)}
+#plays .vote-chip-btn.vote-pill153.vote-failed,.tile .vote-chip-btn.vote-pill153.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}
+#plays .vote-chip-btn.vote-pill153.vote-failed b,.tile .vote-chip-btn.vote-pill153.vote-failed b{color:#ffb9be}
