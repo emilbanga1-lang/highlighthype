@@ -7223,7 +7223,20 @@ try {
      only — the family LAST NAME appears nowhere on the
      page. Isolation mirrors /demo: standalone markup,
      self-contained CSS, no app assets, no /api, no
-     tracking — and no script at all.
+     tracking — and no script at all. Round 175:
+     reviewer-driven story edits, mapping confirmed by
+     Emil — two sentences cut ("The rim was lowered,
+     sure. But a dunk is a dunk." and "Read that again,
+     because it's the whole company."), the emotional-
+     scope paragraph moved up to immediately after the
+     family paragraph (so the mission band lands as a
+     conclusion, not a slogan), and the private-beta
+     paragraph deleted outright — no beta framing and
+     no Hawks mention anywhere on the page. Round 176:
+     the top bar's R173 stand-in (plain crest + typed
+     wordmark) replaced with the real header lockup
+     (/logo-header-gold.png?v=119) — Emil flagged the
+     mismatch on his phone; the footer crest stays.
      ==================================================== */
   {
     const aboutSrc173 = fs.readFileSync(path.join(root, "public", "about.html"), "utf8");
@@ -7236,8 +7249,13 @@ try {
     const aboutDirect173 = await text("/about.html");
     assert(aboutDirect173 === aboutSrc173, "r173 route: /about.html serves the same file directly, like /demo.html");
     assert(about173.includes('<meta name="robots" content="noindex" />'), "r173 posture: the prototype carries noindex until Emil approves launch");
+    // ---- Round 176: the top bar carries the REAL header logo (Emil flagged the R173 stand-in on his phone) ----
+    assert(about173.includes('<a class="about-brand173" href="/" aria-label="HighlightHype home"><img src="/logo-header-gold.png?v=119" alt="HighlightHype" width="1280" height="238" /></a>'), "r176 header: the About top bar carries the real header lockup — /logo-header-gold.png?v=119, the same art and pin as the main header (.brand-logo in index.html)");
+    assert(about173.includes(".about-brand173 img{height:30px;width:auto}"), "r176 header: the lockup is styled for the top bar — height 30px, width auto (~161px wide at the lockup's 1280x238 ratio)");
+    assert(!about173.includes("about-wordmark173"), "r176 header: the R173 typed-wordmark stand-in (about-wordmark173) appears nowhere on the page — the span and its CSS rules are both gone");
+    assert(about173.includes('<img src="/crest-watermark.png?v=169" alt="HighlightHype crest" />'), "r176 scope: the FOOTER crest on the About page is unchanged — Emil flagged the header only");
     // ---- the approved story, verbatim (the H1 is sentence-case in markup, uppercased by CSS — the /demo convention; body prose stays normal case) ----
-    for (const s173b of ["Our Story", "It started in the driveway", "It happened in the driveway. Just Nicholas, a basketball, and a hoop he'd been attacking all afternoon.", "Then — finally — he did it. His first dunk.", "There was nobody here to see it.", "The play of his life — and its only witness was the driveway.", "What if everyone could have seen that… and voted on how cool it was?", "it's the whole company. Post the play. Everybody watches. Everybody votes.", "it was a 9-year-old in a driveway", "His cousin Nicole dreamed up turning a kid's best frame into illustrated art.", "tagging out a runner sliding in at home", "and say that was cool.", "And not just the wins — all of it.", "The loss that stings for a week", "The underdog who refused to quit", "Sports are emotional — that's exactly why they matter.", "the tears and the lessons count right alongside the trophies", "Every athlete deserves the hype.", "you can mark what it was: a first ever, a personal best, a comeback — even a great effort in a game you lost.", "the moment matters as much as the highlight.", "Every play is reviewed by a real person before it goes live, and a parent or guardian is always in control.", "starting with Nicholas's own, the Plainview Hawks.", "Your kid's driveway moment is coming.", "Your moment. Your hype.", "HighlightHype — built by a baseball family in Plainview, NY."]) {
+    for (const s173b of ["Our Story", "It started in the driveway", "It happened in the driveway. Just Nicholas, a basketball, and a hoop he'd been attacking all afternoon.", "Then — finally — he did it. His first dunk.", "There was nobody here to see it.", "The play of his life — and its only witness was the driveway.", "What if everyone could have seen that… and voted on how cool it was?", "And the second his feet hit the pavement, he had the thought every kid who's ever made a great play has had:", "Post the play. Everybody watches. Everybody votes. That wasn't a business plan", "it was a 9-year-old in a driveway", "His cousin Nicole dreamed up turning a kid's best frame into illustrated art.", "tagging out a runner sliding in at home", "and say that was cool.", "And not just the wins — all of it.", "The loss that stings for a week", "The underdog who refused to quit", "Sports are emotional — that's exactly why they matter.", "the tears and the lessons count right alongside the trophies", "Every athlete deserves the hype.", "you can mark what it was: a first ever, a personal best, a comeback — even a great effort in a game you lost.", "the moment matters as much as the highlight.", "Every play is reviewed by a real person before it goes live, and a parent or guardian is always in control.", "Your kid's driveway moment is coming.", "Your moment. Your hype.", "HighlightHype — built by a baseball family in Plainview, NY."]) {
       assert(about173.includes(s173b), `r173b story: the page carries "${s173b}"`);
     }
     // ---- the R173 sectioned layout is GONE (headings, family list, eyebrow tags, old paragraphs) ----
@@ -7245,6 +7263,16 @@ try {
       assert(!about173.includes(gone173b), `r173b story: the old R173 copy/markup "${gone173b}" appears nowhere on the page`);
     }
     assert(about173.includes('href="https://highlighthype.com/#upload"') && about173.includes(">Post a Play</a>"), "r173 cta: Post a Play (lime) links to the app's #upload route");
+    // ---- Round 175: the two sentence cuts + the beta/Hawks deletion + the moved paragraph's order ----
+    for (const gone175 of ["rim was lowered", "Read that again", "Hawks", "private beta"]) {
+      assert(!about173.includes(gone175), `r175 cuts: "${gone175}" appears nowhere on the page`);
+    }
+    assert(!/beta/i.test(about173), "r175 cuts: no beta framing anywhere on the page — the word does not appear at all");
+    const iFam175 = about173.indexOf("cousin Nicole dreamed up");
+    const iEmo175 = about173.indexOf("The loss that stings for a week");
+    const iBig175 = about173.indexOf("driveway got bigger");
+    const iBand175 = about173.indexOf("Every athlete deserves the hype");
+    assert(iFam175 > -1 && iEmo175 > iFam175 && iBig175 > iEmo175 && iBand175 > iBig175, "r175 order: family paragraph → emotional-scope paragraph → the driveway got bigger → mission band");
     assert(about173.includes('href="/"') && about173.includes(">Watch Highlights</a>"), "r173 cta: Watch Highlights (ghost) links home");
     // ---- portrait ----
     assert(about173.includes('src="/about-nicholas.jpg?v=174"'), "r173b portrait: the hero references /about-nicholas.jpg with its ?v=174 pin");
