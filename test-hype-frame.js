@@ -100,8 +100,10 @@ try {
   assert(r.status === 400, "order without a guardian email is rejected (400)");
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { guardianEmail: "not-an-email" })) });
   assert(r.status === 400, "order with a malformed guardian email is rejected (400)");
-  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { image: "" })) });
-  assert(r.status === 400, "order without a print image is rejected (400)");
+  // →128: an order WITHOUT a print image is no longer rejected
+  // (400) — it is saved with the image marked missing. The case
+  // itself is asserted in §9 below, so this section's first valid
+  // order stays the owner list's only request in §4.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });
   assert(r.status === 201 && r.body.ok, "valid order request is created (201)");
   assert(r.body.status === "pending-guardian", "order starts as pending-guardian");
@@ -164,47 +166,48 @@ try {
   assert(home.includes('id="hfImageStyles"') && home.includes('data-hf-image-style="photo"') && home.includes('data-hf-image-style="avatar"') && appJs.includes("function hfPickImageStyle"), "Round 38: the Photo or Avatar picker is in the studio (Real photo / Avatar, Real photo default) — Twinkie's feature");
   assert(appJs.includes("imageStyle: hfState.imageStyle") && appJs.includes('hfPickImageStyle("photo")'), "the chosen image style rides on the order payload, reset to Real photo for each new play");
   assert(appJs.includes('Image: ${o.image_style'), "Owner view's Hype Frame list surfaces the image style (Avatar orders must be illustrated before printing)");
-  assert(home.includes("/swag/hf-poster-photo.webp") && home.includes("/swag/hf-poster-avatar.webp") && home.includes("Photo or Avatar — your pick"), "Round 39: the homepage Hype Frame section shows the concept poster both ways (photo + avatar) under the Photo-or-Avatar heading");
+  assert(!home.includes("/swag/hf-poster-photo.webp") && !home.includes("/swag/hf-poster-avatar.webp") && !home.includes("Photo or Avatar — your pick"), "Round 39→127: the concept-poster marketing section is OUT of the studio (Emil: the studio opens at the tool; the marketing lives in the Store feature) — the working Photo/Avatar picker above is the choice now");
   assert(css.includes(".hf-swipe-wide"), "Round 39/43: the posters present as one wide swipe card (the two-up pair grid retired in Round 43)");
   for (const pth of ["/swag/hf-poster-photo.webp", "/swag/hf-poster-avatar.webp"]) {
     const ir = await fetch(base + pth);
     assert(ir.status === 200 && (ir.headers.get("content-type") || "").includes("webp"), `Round 39: poster image serves (${pth})`);
   }
-  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 1, "Round 40/48/59: the STUDIO cream-hoodie example carries the avatar slide — the Store feature went single-photo in Round 59 per Emil's mock, and the homepage figure is the film cover since Round 48");
-  assert((home.match(/data-hf-swipe/g) || []).length === 2, "Round 43/48/52/59: two swipes page-wide, both in the studio (hoodie + poster Photo/Avatar) — the Store feature went single-photo in Round 59 per Emil's mock");
+  assert((home.match(/hf-example-hoodie-back-avatar\.webp/g) || []).length === 0, "Round 40/48/59→127: the studio hoodie example (and its avatar slide) is removed — the studio opens at the freeze tool now; the asset still serves (asserted below) for the Store feature");
+  assert((home.match(/data-hf-swipe/g) || []).length === 0, "Round 43/48/52/59→127: no Photo/Avatar swipes remain page-wide — both lived in the studio payoff stack, which Round 127 removed (the swipe initializer in app.js is inert without roots)");
   assert(appJs.includes("[data-hf-swipe]") && appJs.includes("data-hf-chip"), "Round 40: the swipe initializer wires the chips and scroll sync");
   assert(css.includes(".hf-swipe-track") && css.includes("scroll-snap-type"), "Round 40: the swipe track uses native scroll-snap");
   const avImg = await fetch(base + "/swag/hf-example-hoodie-back-avatar.webp");
   assert(avImg.status === 200 && (avImg.headers.get("content-type") || "").includes("webp"), "Round 40: the avatar hoodie example image serves");
   assert(!css.includes(".hf-example-hoodie{max-width:340px}"), "Round 41: the hoodie example card is no longer width-capped on phones — the examples stack shares one width (Emil's screenshot)");
-  assert(home.includes('class="hf-example hf-hero-fig"'), "Round 44: the homepage examples are ONE hero figure (the hoodie swipe) — the Round 42 solo grid grew into the concept hero");
-  const hfHomeSlice42 = home.slice(home.indexOf('id="hfExamplesHome"'), home.indexOf('id="mine"'));
-  assert(!hfHomeSlice42.includes("hf-example-lineup.jpg"), "Round 42: the garment-lineup card left the HOMEPAGE examples (its range story lives in the poster pair; the card remains in the studio)");
-  assert((home.match(/hf-example-lineup\.jpg/g) || []).length === 1, "Round 42: the lineup image appears exactly once on the page now (studio only)");
+  assert(!home.includes('hf-hero-fig'), "Round 44→125: the homepage examples' hero figure is GONE — Round 125 removes the homepage Hype Frame section entirely (the studio keeps its own examples)");
+  assert(home.indexOf('id="hfExamplesHome"') === -1, "Round 42→125/127: there is no homepage examples block, and the garment-lineup card left the studio too in Round 127 (studio opens at the tool)");
+  assert((home.match(/hf-example-lineup\.jpg/g) || []).length === 0, "Round 42→127: the lineup image is gone from the page (it lived only in the studio payoff stack; the file still serves for the Store feature)");
   assert(css.includes("#hfExamplesHome{") && css.includes("clamp(30px,5vw,44px)"), "Round 42: anchoring pass — the homepage Hype Frame block is a panelled place and its header sits at section scale");
-  assert(home.includes('class="hf-swipe hf-swipe-wide"') && !home.includes("hf-poster-pair"), "Round 43: the concept posters are one Photo/Avatar swipe card, not a stacked pair");
+  assert(!home.includes('class="hf-swipe hf-swipe-wide"') && !home.includes("hf-poster-pair"), "Round 43→127: the concept-poster swipe card is removed with the studio payoff stack (neither the swipe nor the old stacked pair remains)");
   assert((home.match(/class="hf-swipe hs-swipe"/g) || []).length === 0, "Round 52: the store cards no longer carry Front/Back swipes (Round 43's card swipes retired — front/back live on the product page; cards lead with the back)");
   assert(appJs.includes("e.stopPropagation()"), "Round 43/52: chip clicks still stop propagation where swipes remain (studio + Store Hype Frame feature)");
   assert(css.includes("hs-img-back"), "Round 52: the back-led card image class is styled (the Round 43 card-swipe box retired with the swipes)");
   assert(css.includes(".hero h1{font-family:\"Anton\",sans-serif;font-style:italic") && css.includes(".tile-grid > .tile-featured-slot > .tile{grid-column:1/-1}"), "Round 44/54: the concept's italic display system is in, and the board's featured play (inside .tile-featured-slot) renders full-width");
-  assert((home.match(/class="sp-pill" data-sp=/g) || []).length === 20, "Round 62: the sport pill bar carries All Sports + all 19 sports as pills (the Round 44 browse row's goToSportBoard buttons retired — goToSportBoard itself stays in app.js for the Fame jump and deep links)");
-  assert(appJs.includes("window.seeAllPlays") && appJs.includes('`Hype of the Month`'), "Round 44/53: See all plays has its handler, and the month view titles itself Hype of the Month — all-white since Round 53 (the mock's title has no gold word)");
+  const ddOpts190 = [...home.matchAll(/<option value="([a-z-]+)">/g)].length;
+  assert((home.match(/<option value=/g) || []).length >= 20 && home.includes('<select class="sport-select board-sport-select125" id="boardSportSelect"'), "Round 62→125: the board sport control is a DROPDOWN carrying All Sports + all 19 sports (the pill bar retired in Round 125 — goToSportBoard itself stays in app.js for the Fame jump and deep links)");
+  assert(appJs.includes("window.seeAllPlays") && appJs.includes('`Hype of the Month`'), "Round 44/53: See all plays has its handler, and the month view titles itself Hype of the Month — all-white since Round 53 (the mock's title has no gold word; Round 125 removed the static h2 the title used to mirror)");
   assert(home.includes("not just the MVP.") && home.includes("preserve big plays and memories.") && css.includes("padding-top:30px"), "Round 44: trust descriptions are one short sentence each, and the board gets more air above it");
   assert(appJs.includes('class="tile-disc"') && appJs.includes('class="tile-toprow"') && appJs.includes("📸 Frame</button>"), "Round 45: tiles take the concept's video style — centered play disc, italic title + Vote pill row, compact 📸 Frame button");
   assert(css.includes(".tile-disc{") && css.includes(".tile-title{font-style:italic"), "Round 45: the disc and the italic tile titles are styled");
   assert(appJs.includes("tile-featured-slot") && appJs.includes("tile-deck") && css.includes(".tile-featured-slot{display:contents}") && css.includes(".tile-deck{display:contents}"), "Round 54: boardHtml wraps the first tile in .tile-featured-slot and the rest in .tile-deck; on desktop both wrappers are display:contents so the grid is unchanged");
   assert(css.includes("@media (max-width:699px)") && css.includes(".tile-featured-slot{display:block") && css.includes(".tile-deck{display:flex") && css.includes("scroll-snap-type:x mandatory") && css.includes(".tile-deck > .tile{flex:0 0 47.5%"), "Round 54: on phones the featured play sits large and static on top and the rest run smaller in a two-up swipe deck under it (supersedes Round 46's single deck)");
-  assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="viewseg"') > -1 && home.indexOf('class="viewseg"') < home.indexOf('id="sportPills"') && home.indexOf('id="sportPills"') < home.indexOf('id="viewAll"') && home.indexOf('id="seeAllRow"') > home.indexOf('id="viewAll"'), "Round 47/62: the search box and All sports link stay gone; per Emil's board mock the view toggles now sit above the sport pill bar, the pills stay above the videos, and See all plays stays under the clips");
+  assert(!home.includes('id="allSearch"') && !home.includes("All sports →") && home.indexOf('class="viewseg"') > -1 && home.indexOf('class="viewseg"') < home.indexOf('id="boardSportSelect"') && home.indexOf('id="boardSportSelect"') < home.indexOf('id="viewAll"') && home.indexOf('id="seeAllRow"') > home.indexOf('id="viewAll"'), "Round 47/62→125: the search box and All sports link stay gone; the view toggles sit above the sport DROPDOWN, the dropdown stays above the videos, and See all plays stays under the clips");
   /* ---- Round 53: board atmosphere + mock copy. ---- */
   assert(home.includes('<div class="board-bg" aria-hidden="true"></div>') && css.includes("background:url(/board-bg.jpg?v=6)"), "Round 53 + Round 88: the board carries the stadium backdrop (a graded frame from Emil's B15 lineup shot; R88 warmed the grade and softened it over the graphite wash)");
-  assert(home.includes('<p id="boardIntro">Athletes post their plays. Your votes crown the winner.</p>'), "Round 53: the board intro is the mock's short line — the one-vote-per-person tail is off");
-  assert(home.includes('<h2 id="boardTitle">Hype of the Month</h2>'), "Round 53: the static board title matches the all-white month title");
+  assert(!home.includes('id="boardIntro"'), "Round 53→125: the board intro line left with the .sec-head block — the board opens straight at the contest line and filters now (Dyanna's board-first homepage)");
+  const playsSlice201 = home.slice(home.indexOf('data-panel="plays"'), home.indexOf('id="boardFilters"'));
+  assert(!home.includes('id="boardTitle"') && !playsSlice201.includes('class="sec-head"'), "Round 53→125: the board's static title and its .sec-head band are gone from the plays panel (other panels keep their own sec-heads; the Month view still titles itself in app.js)");
   /* ---- Round 55: Rep The Hype photo band; the swag film rests. ---- */
-  assert(home.includes('class="rep-band"') && home.includes("/swag/rep-hype-band.jpg") && home.includes("Shop the Drop →") && home.includes("rep-band-drop"), "Round 55: Rep The Hype is the mock's photo band — night-game photo, DROP 001 line, Shop the Drop link, whole band opens the Store");
+  assert(!home.includes('class="rep-band"') && home.includes('id="merchTeaser125"') && home.includes("Open the full store"), "Round 55→125→126: the Rep The Hype photo band retired — the homepage store entry is the price-free merch teaser now (products, names only, a full-store link; Round 126: the teaser notify form is gone and the sweatshirt cards default to their back view with the store's Front/Back switch)");
   assert(!home.includes("swag-film.mp4") && !home.includes('class="store-card"'), "Round 55: the Drop 001 swag film is off the home page (the file stays on the server for later, per Emil) and the old film card is gone");
   /* ---- Round 57: All Hypes + Hype Frame atmospheres. ---- */
   assert(home.includes('<div class="all-bg" aria-hidden="true"></div>') && css.includes("background:url(/all-bg.jpg)"), "Round 57: All Hypes carries the Rep The Hype stadium backdrop under a soft gradient (same night-game grade as the band)");
-  assert(home.includes('<div class="hf-bg" aria-hidden="true"></div>') && css.includes("background:url(/hf-bg.jpg)"), "Round 57: the homepage Hype Frame section carries the mock's warm floodlight-bokeh backdrop");
+  assert(!home.includes('class="hf-bg"'), "Round 57→125: the homepage Hype Frame section and its floodlight-bokeh backdrop are gone with the section (the studio carries its own atmosphere)");
   /* ---- Round 59: the store takes Emil's photo-74 mock. ---- */
   assert(["baseball","basketball","football","soccer","softball","volleyball"].every((sp) => home.includes("/swag/hs/night-" + sp + ".jpg")), "Round 59: all six hoodie cards lead with the worn night-shot photos (player from behind under the stadium lights, each sport's real back design) — Round 78: the desktop store hero reuses night-football, so the check is per-sport presence, not a raw count");
   assert(home.includes('/swag/street-sunset.jpg') && home.includes("Hot Pink returns for Drop 002."), "Round 59: the Drop 002 teaser shows the cleaned-up sunset Hot Pink photo with the mock's caption");
@@ -212,18 +215,18 @@ try {
   assert(home.includes('<a href="mailto:hello@highlighthype.com">Contact</a>'), "Round 60: the footer closes with the essential links only — Contact · Terms · Privacy under the lockup and handle");
   assert(!home.includes('class="beta-note"') && home.indexOf("owner-approved before it appears") > home.indexOf('id="guidelinesModal"'), "Round 61/62: the strip above the board is gone at Emil's direction — the rules text survives ONLY inside the Posting guidelines pop-up (Round 62), nowhere above the board");
   /* ---- Round 62: the board takes Emil's header mock. ---- */
-  assert(home.includes('id="sportPills"') && !home.includes('id="spMore"') && !home.includes('data-filter-btn') && home.indexOf('id="monthDivSeg"') < home.indexOf('id="boardFilters"') && home.indexOf('id="allDivSeg"') < home.indexOf('id="allFilters"'), "Round 67: pill bar scrolls sideways with no More button; no Filter buttons; each view's division seg sits visible in its board-tools row, ahead of the hidden machinery div");
+  assert(home.includes('id="boardSportSelect"') && !home.includes('id="sportPills"') && !home.includes('id="spMore"') && !home.includes('data-filter-btn') && home.indexOf('id="monthDivSeg"') < home.indexOf('id="boardFilters"') && home.indexOf('id="allDivSeg"') < home.indexOf('id="allFilters"'), "Round 67→125: the sport DROPDOWN replaced the pill bar (no More button, no Filter buttons); each view's division seg sits visible in its board-tools row, ahead of the hidden machinery div");
   assert(home.includes('id="guidelinesModal"') && home.includes("Posting guidelines") && appJs.includes("`${filtered.length} plays`"), "Round 62: the guidelines live behind their link (the four rules in a pop-up), and the All Hypes count reads 'N plays'");
   assert(appJs.includes('window.openGuidelines = () => { const m = $("#guidelinesModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };'), "Round 101: opening Posting guidelines hoists the modal to <body>, out of the transformed #plays stacking context that let Hype Stories paint over it");
-  assert(home.includes('id="hfFilmCover"') && home.includes("▶ See how it works") && home.includes('id="hfHomeFilm" data-click-play') && appJs.includes("function playHfHomeFilm()"), "Round 48: the homepage Hype Frame film is back under the cream-hoodie cover — a See how it works control, click-to-play inline, Create link directly below");
-  assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: sections wider and even per the mock — the Hype Frame figure spans its panel, and on phones one 16px gutter aligns every section (the HF panel drops its extra side inset)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=122"') && home.includes('src="app.js?v=122"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped to v=51) so phones stop serving stale cached copies");
-  assert((home.match(/onclick="openHfChoice\(\);return false"/g) || []).length === 3 && appJs.includes('closest("[data-hf-start]")'), "Round 103: every Hype Frame entry anchor carries a parse-time inline opener AND app.js delegates [data-hf-start] taps at document level — the Store hero CTA Emil found dead on his iPhone no longer depends on the one-time Round 86 addEventListener pass");
+  assert(!home.includes('id="hfFilmCover"') && !home.includes('id="hfHomeFilm"') && !appJs.includes("function playHfHomeFilm()"), "Round 48→125: the homepage Hype Frame film and its cream-hoodie cover left with the section — the hype-frame film still plays in the store + studio, and the mid-feed banner carries the concept on the homepage");
+  assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: the section-width rules stay in the stylesheet (harmless now that the homepage figure is gone — Round 125 removes markup, not the design system)");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=161"') && home.includes('src="app.js?v=161"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped along each round; v147 for Round 148, →148; v148 for Round 149; v149 for Round 150; →151: v150 for Round 151; →152: v151 for Round 152); →153: v152 for Round 153; →154: v153 for Round 154 so phones stop serving stale cached copies — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162)");
+  assert((home.match(/onclick="openHfChoice\(\);return false"/g) || []).length === 2 && appJs.includes('closest("[data-hf-start]")'), "Round 103→125: the two remaining Hype Frame entry anchors (store hero + Hype Girls door) carry the parse-time inline opener AND app.js delegates [data-hf-start] taps at document level — the homepage section's third anchor left with the section; the menu entry and the mid-feed banner wire in app.js");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
      serves the app at those paths. ---- */
   const menu51 = home.slice(home.indexOf('id="navMenu"'), home.indexOf("</nav>"));
-  assert(menu51.includes('href="/?view=all" id="menuAllHypes"') && menu51.includes('<a href="/my-highlights">My Highlights</a>') && menu51.includes('<a href="/how-it-works">How it works</a>') && menu51.includes('<a href="/stories">Hype Stories</a>') && menu51.includes('<a class="nav-swag" href="/store">'), "Round 51/108: the menu items are real page links (/?view=all, /my-highlights, /how-it-works, /store) — Round 108 added Hype Stories (/stories) as a fifth");
+  assert(menu51.includes('href="/?view=all" id="menuAllHypes"') && menu51.includes('<a href="/my-highlights">My Plays</a>') && menu51.includes('<a href="/how-it-works">How it works</a>') && menu51.includes('<a href="/stories">Hype Stories</a>') && menu51.includes('<a class="nav-swag" href="/store">'), "Round 51/108: the menu items are real page links (/?view=all, /my-highlights, /how-it-works, /store) — Round 108 added Hype Stories (/stories) as a fifth; Round 121 renamed My Highlights to My Plays (URL unchanged)");
   assert(!menu51.includes("data-store-link") && !menu51.includes('data-panel-btn="'), "Round 51: no in-page panel/store wiring remains in the menu — the links navigate for real");
   assert(appJs.includes('bootPath === "/my-highlights"') && appJs.includes('bootPath === "/how-it-works"') && appJs.includes('bootPath === "/store"') && appJs.includes('classList.add("page-sub")'), "Round 51: the boot router opens mine/how in page mode and the store at /store");
   assert(appJs.includes('location.href = "/"; return;'), "Round 51: goHome navigates for real from a sub-page instead of switching panels under the wrong URL");
@@ -257,7 +260,7 @@ try {
      name/jersey edits all flow through — so the thumbnail always
      tracks the current print style automatically. */
   assert(home.includes('id="hfFrozenWrap"') && home.includes('id="hfFrozenImg"'), "studio carries the freeze-confirmation block (wrapper + print image)");
-  assert(/<div class="hf-frozen" id="hfFrozenWrap" hidden>/.test(home), "the confirmation wrapper starts hidden (no empty box before the first freeze)");
+  assert(/<div class="hf-frozen" id="hfFrozenWrap" hidden/.test(home), "the confirmation wrapper starts hidden (no empty box before the first freeze) — →128: it also carries role/tabindex as the print lightbox's tap target");
   assert(home.includes("Your frozen frame — this is the print"), "confirmation caption: the thumbnail IS the print, not a garment mock");
   assert(/\.hf-frozen\[hidden\]\s*\{\s*display:\s*none/.test(css), "the wrapper's [hidden] state has an explicit display:none guard (the #hfPhoto lesson)");
   assert(css.includes(".hf-frozen img") && css.includes("max-height:180px"), "the confirmation thumbnail is compact (max-height 180px)");
@@ -323,10 +326,10 @@ try {
   assert(css.includes(".hf-color{") && css.includes(".hf-size{"), "picker styles present");
   // Studio opens with the payoff (Round 3 item 5): film + examples
   // BEFORE the studio card; the freeze flow follows unchanged.
-  assert(home.indexOf('class="hf-payoff"') > home.indexOf('id="hypeframe"') && home.indexOf('class="hf-payoff"') < home.indexOf('id="hfStudio"'), "the payoff block opens the studio (after the title, before the freeze card)");
-  assert(home.includes("This is what your moment becomes."), "payoff line present");
-  assert((home.match(/src="\/hype-frame-film\.mp4\?v=7"/g) || []).length === 3, "Round 48/58/83: the Hype Frame film plays in the studio payoff, under the homepage cover (click-to-play), AND in the store feature (Round 83, Emil) — srcs versioned (v=7: the video-first cut — her swing, the captured freeze, the hoodie, then the avatar morph with the choice captioned (FROM YOUR VIDEO / YOUR FRAME. YOUR HOODIE. / OR YOUR AVATAR. YOU CHOOSE.))");
-  assert(home.includes('class="hf-steps"') && home.includes("Your actual image — or your avatar") && home.includes("/swag/hf-hoodie-softball.jpg"), "Round 58: the four steps live under the homepage film as page text, and the film cover is her softball hoodie");
+  assert(!home.includes('class="hf-payoff"') && home.indexOf('id="hfStudio"') > home.indexOf('id="hypeframe"'), "Round 3→127: the payoff block no longer opens the studio — the freeze card is the studio's first major section (Emil: remove the marketing material from the frame flow)");
+  assert(!home.includes("This is what your moment becomes."), "Round 3→127: the payoff line is gone with its block");
+  assert((home.match(/src="\/hype-frame-film\.mp4\?v=7"/g) || []).length === 1, "Round 48/58/83→127: the Hype Frame film now plays ONLY in the store feature (Round 83, Emil) — the studio payoff copy left in Round 127 (the homepage feed strip builds its own film element from app.js) — src versioned (v=7: the video-first cut — her swing, the captured freeze, the hoodie, then the avatar morph with the choice captioned (FROM YOUR VIDEO / YOUR FRAME. YOUR HOODIE. / OR YOUR AVATAR. YOU CHOOSE.))");
+  assert(home.includes("hf-steps") && home.includes("Your actual image — or your avatar") && home.includes("/swag/hf-hoodie-softball.jpg"), "Round 58→125: the four steps live under the STORE film as page text now (the homepage film left with its section in Round 125), and the softball hoodie still illustrates the concept");
   // Size round-trips like the print side does.
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { size: "YL" })) });
   assert(r.status === 201, "order with a chosen size is created");
@@ -372,6 +375,76 @@ try {
   assert(appJs.includes('currentView === "month" && monthSub === "fame"'), "Round 95: a sport pill tapped in the All-time sub-view jumps to Watch filtered by that sport, like the old Fame tab");
   assert(appJs.includes("function btlMiniFrame") && appJs.includes("data-btl-media111") && appJs.includes("btlObtainMedia111") && appJs.includes("btlPlaceholderPoster111"), "Round 93/111: battle minis briefly play muted and freeze on a real frame instead of sitting black — since Round 111 they render as media slots filled with session-pooled <video> elements that always carry a poster (captured frame, else a branded placeholder)");
   assert(!home.includes('id="btlPoolNote"') && home.includes('id="quickSub111"') && home.includes("Practice matchup · Picks are just for fun") && !home.includes("Sample pool") && !home.includes('id="btlPractice"') && !home.includes("same-sport matchups"), "Round 92/102/111: the Daily keeps its one short practice label; the Battles pool note is retired in Round 111 — the Quick Battles sub-line is the single explainer, no fine print, no second note at the pick row");
+
+  /* ---- Round 127 (2026-11-13, Emil's phone review): the studio
+     opens at the tool, one tap picks a frame, and no play button
+     covers the frame. Behavioral proof (real taps in a browser)
+     lives in ~/workspace/.pwtest/rig127.mjs; these are the static
+     DOM/wiring facts. ---- */
+  const hfPanel127 = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('data-panel="how"'));
+  assert(!hfPanel127.includes("hf-payoff") && !hfPanel127.includes("hf-examples") && !hfPanel127.includes("hf-film") && !hfPanel127.includes("example finishes") && !hfPanel127.includes("concept poster"), "Round 127: the studio panel carries NO payoff stack — no film, no example finishes, no concept-poster section");
+  const hfHead127 = hfPanel127.indexOf('class="sec-head"'), hfCard127 = hfPanel127.indexOf('id="hfStudio"');
+  assert(hfHead127 !== -1 && hfCard127 > hfHead127 && !hfPanel127.slice(hfHead127, hfCard127).includes("<figure") && !hfPanel127.slice(hfHead127, hfCard127).includes("<video"), "Round 127: between the studio header and the freeze card there is nothing promotional — the freeze tool is the first major section");
+  assert(hfPanel127.includes('id="hfImageStyles"') && hfPanel127.includes('data-hf-image-style="avatar"') && hfPanel127.includes('id="hfSides"') && hfPanel127.includes('id="hfOrderForm"'), "Round 127: the working controls survive the cleanup — Photo/Avatar picker, Front/Back picker, order form");
+  assert(/<video id="hfVideo" playsinline preload="metadata"><\/video>/.test(home) && !/<video id="hfVideo"[^>]*\bcontrols\b/.test(home), "Round 127: the studio video has NO native controls (iOS's center play button covered the frame)");
+  assert(home.includes('id="hfVideoWrap127"') && home.includes('id="hfBigPlay127"') && home.includes('id="hfPlayBtn127"') && home.includes('id="hfTapFlash127"'), "Round 127: custom player chrome is in the markup (wrap, first-play overlay, scrub-row play/pause, tap flash)");
+  assert(appJs.includes("function hfTogglePlay127") && appJs.includes("function hfResetPlayer127") && appJs.includes("hfPlayed127") && appJs.includes('addEventListener("play"'), "Round 127: player chrome wiring — overlay retires on first play, surface toggles, per-play reset");
+  assert(css.includes(".hf-bigplay127") && css.includes(".hf-bigplay127[hidden]{display:none}") && css.includes(".hf-tapflash127") && css.includes(".hf-playbtn127"), "Round 127: player chrome styles ship, with the explicit [hidden] guard on the overlay");
+  assert(appJs.includes("function hfCapturePrint") && appJs.includes("hfTapToken127"), "Round 127: the capture choke point + tap token exist for one-tap frame picking");
+  const hfJump127 = appJs.slice(appJs.indexOf("function hfJumpToFrame"), appJs.indexOf("function hfFmtTime"));
+  assert(hfJump127.includes("hfCapturePrint()") && hfJump127.includes('addEventListener("seeked"'), "Round 127: hfJumpToFrame completes the pick — seek, then capture+compose on seeked (one tap = the frame is the print)");
+  assert(appJs.includes("Freeze a frame first"), "Round 127: the Freeze button path still guards orders (one-tap pick feeds the same frozen state)");
+
+  /* ---- 9. Round 128 (2026-11-13, Emil): tap the composed print
+     to see it big, and the order keeps its print image without
+     ever being LOST to a bad one. The lightbox's real-tap
+     behavior is proven in ~/workspace/.pwtest/rig128.mjs; these
+     are the static wiring facts + the order-endpoint contract.
+     Pre-128 the endpoint REJECTED (400) any order whose image
+     was missing/invalid and capped it at 25MB; now the cap is
+     5MB and every image problem degrades to "saved, image
+     missing" (print_image = ""), logged server-side. ---- */
+  assert(home.includes('id="hfLightbox128"') && home.includes('id="hfLightboxImg128"') && home.includes('id="hfLightboxClose128"'), "Round 128: the print lightbox is in the markup (overlay + enlarged image + close button)");
+  assert(home.includes("Tap to see it bigger") && home.includes("hf-frozen-zoom128"), "Round 128: the frozen confirmation carries the enlarge hint (⤢ chip) so the tap is discoverable");
+  assert(appJs.includes("function hfOpenLightbox128") && appJs.includes("function hfCloseLightbox128") && appJs.includes('addEventListener("click", hfOpenLightbox128)'), "Round 128: lightbox wiring — ONE click on the frozen print opens it (no second tap, per Emil's Round 127 fix)");
+  assert(appJs.includes("im.src = hfState.printDataUrl"), "Round 128: the lightbox reads the current composition at open time (reopening after a name/preset edit shows the new print)");
+  assert(css.includes(".hf-lightbox128") && css.includes(".hf-lightbox128[hidden]{display:none}"), "Round 128: lightbox styles ship with the explicit [hidden] guard");
+  assert(appJs.includes("Download print image") && appJs.includes('download="hypeframe-order-'), "Round 128: the Owner view carries a Download print image action per request, saved under the hypeframe-order-<id>.png name Emil's iPhone workflow expects");
+  // No image at all (the legacy client path): the order is SAVED.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { image: "" })) });
+  assert(r.status === 201 && r.body.imageSaved === false, "→128: an order without a print image is SAVED (201) with the image marked missing — pre-128 it was rejected (400)");
+  const noImgId = r.body.id;
+  // Malformed payloads: saved too, never a lost order.
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { image: "https://example.com/not-a-data-url.png" })) });
+  assert(r.status === 201 && r.body.imageSaved === false, "Round 128: an order with a malformed image payload is saved, image missing");
+  const badImgId = r.body.id;
+  const gifUrl = "data:image/png;base64," + Buffer.from("GIF89a-not-a-png").toString("base64");
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { image: gifUrl })) });
+  assert(r.status === 201 && r.body.imageSaved === false, "Round 128: an order with a non-PNG payload is saved, image missing");
+  // Oversized (over the 5MB cap, valid PNG magic): saved too.
+  const bigBuf = Buffer.alloc(5 * 1024 * 1024 + 1024, 7); Buffer.from([0x89, 0x50, 0x4e, 0x47]).copy(bigBuf, 0);
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { image: "data:image/png;base64," + bigBuf.toString("base64") })) });
+  assert(r.status === 201 && r.body.imageSaved === false, "Round 128: an order with an over-cap image is saved, image missing (5MB cap, →128 from 25MB)");
+  // Missing-image orders read back honestly; the download 404s.
+  r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
+  for (const id of [noImgId, badImgId]) {
+    const row = r.body.requests.find((q) => q.id === id);
+    assert(row && row.print_image === "", `Round 128: order ${id} is on file with print_image = "" (marked missing)`);
+    const dl = await fetch(base + `/api/owner/hype-frames/${id}/image`, { headers: { "x-owner-token": tok } });
+    assert(dl.status === 404, `Round 128: the download for a missing-image order 404s cleanly (order ${id})`);
+    const dlAnon = await fetch(base + `/api/owner/hype-frames/${id}/image`);
+    assert(dlAnon.status === 403, `Round 128: the download still requires owner auth (order ${id})`);
+  }
+  // With-image order: the owner download returns the EXACT bytes.
+  const pngBytes = Buffer.from(PNG.split(",")[1], "base64");
+  r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId)) });
+  assert(r.status === 201 && r.body.imageSaved === true, "Round 128: an order with a valid print image reports imageSaved");
+  const dlImg = await fetch(base + `/api/owner/hype-frames/${r.body.id}/image`, { headers: { "x-owner-token": tok } });
+  const dlBytes = Buffer.from(await dlImg.arrayBuffer());
+  assert(dlImg.status === 200 && dlBytes.equals(pngBytes), "Round 128: the owner download returns the EXACT bytes the studio submitted");
+  const dlCd = dlImg.headers.get("content-disposition") || "";
+  assert((dlImg.headers.get("content-type") || "").includes("image/png") && dlCd.includes("attachment") && dlCd.includes(`hypeframe-order-${r.body.id}.png`), "Round 128: the download is iPhone-clean — image/png + attachment disposition with the hypeframe-order-<id>.png filename (Emil grabs it on his phone for the avatar workflow)");
+
   console.log("\nALL HYPE FRAME CHECKS PASSED");
 } finally {
   child.kill();
