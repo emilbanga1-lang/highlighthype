@@ -11,10 +11,29 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=143" />
+<link rel="stylesheet" href="styles.css?v=144" />
 </head>
 <body>
-<!-- Round 143 (2026-11-13): the Round 140 chrome fade reaches
+<!-- Round 145 (2026-11-13): the crash-retry safeguards, all four
+     approved by Emil after the night the server crashes made
+     uploads look failed, retries piled up 34 duplicate pendings
+     (639MB), and the hand-cleanup deleted three LIVE plays by
+     mistake (restored exactly in Round 144). (1) Upload dedupe:
+     the server hashes the file bytes; a same-bytes retry within
+     30 minutes is answered from the original play, and the
+     success screen says so ("This clip is already in"). (2) The
+     upload button LOCKS on submit (Emil's own ask) — disabled,
+     "Posting your play…", dropzone locked, re-entry is a no-op;
+     an error hands it back for a retry. (3) The Owner queue
+     groups pending duplicates by athlete + title with one
+     "Delete all copies" action (the live play is never in a
+     group), and deleting a LIVE play takes a dedicated dialog
+     (below, #deleteLiveModal145) naming the play, its votes and
+     its contest entry, behind a red button — Cancel is the
+     default focus. (4) Server-side, a token-gated cleanup route
+     deletes ONLY still-pending, non-sample plays from an
+     approved id list. Pins ?v=144.
+     Round 143 (2026-11-13): the Round 140 chrome fade reaches
      Battles. Emil, in Quick Battles: "it's also delayed before
      the pause button goes away." The three Battles big players
      (#btlPlayer Quick, #dailyPlayer Daily, #runPlayer Battle
@@ -840,8 +859,12 @@
            #1 blocker was the old dead end: a wiped form and one
            line of text at the bottom. -->
       <div id="uploadSuccess" class="upload-success" hidden>
-        <p class="us-check">🎉 Your play is in!</p>
-        <ol class="us-steps">
+        <p class="us-check" id="uploadSuccessCheck">🎉 Your play is in!</p>
+        <!-- Round 145: the dedupe variant's status line — set by
+             showUploadSuccess121 when the server answered from an
+             earlier copy of the same clip (in review / live). -->
+        <p class="us-note" id="uploadSuccessStatus145" hidden></p>
+        <ol class="us-steps" id="uploadSuccessSteps">
           <li>The owner reviews it.</li>
           <li>Once approved, it's live on the board.</li>
           <li>If you left the contest box checked, it's in Hype of the Month once approved.</li>
@@ -1714,6 +1737,22 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=143"></script>
+<!-- ============ DELETE-A-LIVE-PLAY CONFIRMATION (Round 145:
+     deleting an APPROVED play from the Owner view takes this
+     dedicated dialog — it names the play, its all-time votes
+     and its contest entry, warns the video file goes too, and
+     only the red button deletes; Cancel carries the focus) ===
+     ============ -->
+<div class="dellive145" id="deleteLiveModal145" hidden role="dialog" aria-modal="true" aria-label="Delete a live play">
+  <div class="dellive-backdrop145" data-dellive-cancel></div>
+  <div class="dellive-panel145">
+    <h3>Delete this live play?</h3>
+    <p id="deleteLiveText145"></p>
+    <p class="dellive-warn145">Deleting it removes the play <b>and its video file</b> permanently.</p>
+    <p class="dellive-btns145"><button type="button" class="mini-btn" id="deleteLiveCancel145">Cancel</button> <button type="button" class="btn dellive-red145" id="deleteLiveConfirm145">Delete this live play</button></p>
+  </div>
+</div>
+
+<script src="app.js?v=144"></script>
 </body>
 </html>
