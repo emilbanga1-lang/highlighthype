@@ -11,10 +11,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=139" />
+<link rel="stylesheet" href="styles.css?v=140" />
 </head>
 <body>
-<!-- Round 139 (2026-11-13): in-app history. The app never
+<!-- Round 140 (2026-11-13): two fixes. (1) The play detail's
+     native player chrome never faded on Emil's iPhone — the
+     big center pause cluster sat on the picture for the whole
+     clip. app.js now manages the detail video's chrome the
+     standard-player way (wireWatchChrome140): while the clip
+     plays, the controls attribute drops ~2s in and the whole
+     native bar goes with it; pause, a tap on the bare picture,
+     or a mouse move brings it back. The controls themselves
+     are unchanged. (2) The board tabs (Watch / Battles /
+     Hype of the Month) sit centered as a group in their row
+     (styles.css: .viewseg justify-content).
+     Round 139 (2026-11-13): in-app history. The app never
      recorded history for its own view switches (no pushState,
      no popstate listener), while the Store is also a real
      /store page — so the first browser Back from anywhere in
@@ -1669,6 +1680,6 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=139"></script>
+<script src="app.js?v=140"></script>
 </body>
 </html>
