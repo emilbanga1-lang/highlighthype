@@ -3304,3 +3304,51 @@ footer{padding-bottom:36px}
 .storage-fill149.warn149{background:var(--gold)}
 .storage-fill149.crit149{background:#ff5147}
 .storage-big149{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid var(--line)}
+
+/* ================================================================
+   Round 150 (2026-11-13) — batch actions + swipe review mode in
+   the Owner queue (Phase 5). The queue furniture stays in the
+   panel idiom (mini-btns, muted labels); the review overlay
+   wears the delete-live dialog's layering (fixed, blurred dark
+   backdrop, card panel) stretched to a working surface: the
+   play card itself is the swipe target, so it carries the
+   drag transform + the approve/trash tint.
+   ================================================================ */
+.queue-head150{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.qsel150{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:var(--muted);cursor:pointer}
+.qsel150 input{width:17px;height:17px;accent-color:var(--volt);cursor:pointer}
+.batch-bar150{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.batch-prog150{color:var(--muted);font-size:13px}
+.batch-msg150{color:var(--gold);font-size:14px;margin:0 0 12px}
+.batch-msg150:empty{display:none}
+.review150{position:fixed;inset:0;z-index:120;display:flex;overflow-y:auto;padding:16px 0;background:rgba(0,0,0,.78);backdrop-filter:blur(4px)}
+.review150[hidden]{display:none}
+.review-panel150{position:relative;margin:auto;width:calc(100% - 24px);max-width:520px;background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:16px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.review-top150{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.review-prog150{font-family:"Anton",sans-serif;font-size:18px;letter-spacing:.04em}
+.review-card150{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000;touch-action:pan-y;transition:transform .18s ease;will-change:transform}
+.review-card150[hidden]{display:none}
+.review-media150 video,.review-media150 img{width:100%;max-height:52vh;display:block;background:#000}
+.review-media150 iframe{width:100%;aspect-ratio:16/9;border:0;display:block;background:#000}
+.review-nomedia150{padding:22px 16px;margin:0;color:var(--muted)}
+.review-meta150{padding:12px 14px;background:var(--card)}
+.review-athlete150{font-size:17px}
+.review-title150{font-weight:700;margin-top:2px}
+.review-sub150{color:var(--muted);font-size:13px;margin-top:3px}
+.review-verdict150{margin:10px 0 0;font-size:14px}
+.review-tint150{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Anton",sans-serif;font-size:34px;letter-spacing:.05em;opacity:0;pointer-events:none}
+.review-tint150.ok150{background:rgba(46,160,67,.5);color:#eaffea}
+.review-tint150.no150{background:rgba(217,45,32,.5);color:#ffe9e7}
+.review-note150{color:var(--gold);font-size:13.5px;margin:12px 0 0}
+.review-actions150{display:flex;gap:10px;align-items:stretch;margin-top:14px}
+.review-actions150[hidden]{display:none}
+.review-trash150{flex:1;background:#d92d20;border:1px solid #d92d20;color:#fff;padding:13px 10px;font-size:15px}
+.review-trash150:hover{background:#b42318;border-color:#b42318}
+.review-approve150{flex:1;background:var(--volt);border:1px solid var(--volt);color:var(--volt-ink);padding:13px 10px;font-size:15px}
+.review-approve150:hover{background:#d9ff4d;border-color:#d9ff4d}
+.review-undo150{align-self:center}
+.review-trash150[disabled],.review-approve150[disabled],.review-undo150[disabled]{opacity:.5;cursor:default}
+.review-done150{text-align:center;padding:26px 10px 10px}
+.review-done-big150{font-family:"Anton",sans-serif;font-size:24px;margin:0 0 6px}
+.review-close150{padding:11px 26px;margin-top:8px}
+.review-hint150{color:var(--muted2);font-size:12.5px;text-align:center;margin:12px 0 0}
