@@ -4531,6 +4531,9 @@ function btlWatch(slot, keepPaused) {
      button over nothing. */
   if (typeof btlSelNote118 === "function") btlSelNote118(player, p);
   if (typeof btlBigPoster118 === "function") btlBigPoster118(player, p);
+  /* Round 154: shape the stage for THIS side's clip before it
+     loads (poster signal; metadata sync confirms). */
+  if (typeof markBtlStage154 === "function") markBtlStage154(player, p);
   /* Round 117: if the element already carries this clip's src but
      sits in a media error state (a failed fetch leaves error set and
      a same-src tap would otherwise change nothing), force a fresh
@@ -4891,6 +4894,9 @@ function d100Watch(prefix, slot, play) {
      btlWatch rule, extended). */
   if (typeof btlSelNote118 === "function") btlSelNote118(player, play);
   if (typeof btlBigPoster118 === "function") btlBigPoster118(player, play);
+  /* Round 154: same per-side adaptive stage as the Quick
+     player (Daily Battle + Battle Run share this watch). */
+  if (typeof markBtlStage154 === "function") markBtlStage154(player, play);
   if (player.getAttribute("src") !== play.media_url || player.error) { player.src = play.media_url; player.load(); }
   /* Round 119: same black-intro offset seek as btlWatch. */
   if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
@@ -6102,6 +6108,10 @@ function syncBtlPlayer113(player) {
   if (old) old.remove();
   if (portrait) {
     box.classList.add("is-vertical");
+    /* Round 154: the tall stage rides the same metadata sync —
+       a portrait clip's stage adapts here even when no poster
+       signal arrived first. */
+    box.classList.add("btl-tall154");
     try {
       box.insertBefore(vfillClone113(player), player);
       /* Round 118: the fill is poster-only now — make sure it wears
@@ -6115,6 +6125,9 @@ function syncBtlPlayer113(player) {
     } catch (e) { /* mark alone still applies contain */ }
   } else {
     box.classList.remove("is-vertical");
+    /* Round 154: a landscape clip after a portrait one sheds
+       the tall stage too — the sync runs both ways. */
+    box.classList.remove("btl-tall154");
   }
 }
 function wireBtlPlayer113(id) {
@@ -6127,6 +6140,61 @@ function wireBtlPlayer113(id) {
 wireBtlPlayer113("btlPlayer");
 wireBtlPlayer113("dailyPlayer");
 wireBtlPlayer113("runPlayer");
+/* Round 154 (2026-11-14): the Battles big-player stage adapts
+   to the clip, the Round 142 featured-stage treatment brought
+   to Battles. Round 113 already CONTAINED a portrait clip in
+   the big player (no crop), but the video element kept its
+   fixed 16:9 aspect — the contained portrait rendered as a
+   skinny pillar-boxed strip in the middle of a wide stage
+   (Emil, on his phone: the Battles portrait problem the board
+   and Month tab no longer have). Now the stage itself adapts:
+   the .btl-player box gains .btl-tall154 and the styles.css
+   rule gives the video element a ~4:5 stage (640px height
+   cap, contain — the Round 113 blur fill backs it). Landscape
+   stays 16:9 exactly as before.
+   Orientation signal, in the Round 142 order: (1) the play's
+   SERVER poster — poster_url is the clip's own frame, so its
+   shape is the clip's shape — marks the stage at selection
+   time, BEFORE any metadata lands, so the stage never starts
+   in the wrong shape and jumps; (2) the video's own metadata,
+   confirmed both ways by syncBtlPlayer113 on every
+   loadedmetadata (it adds/removes .btl-tall154 in lockstep
+   with .is-vertical). Only the server poster is trusted for
+   the early mark — the banked-frame / branded-placeholder
+   fallbacks are not the clip's stored frame. Neither signal
+   → no mark → today's 16:9 stage (the fallback is the
+   pre-154 player, never a broken one). The poster probe is
+   token-guarded by media_url: a slow poster load for the
+   side the viewer already switched away from cannot re-mark
+   the stage for the new clip. Each big player is marked from
+   its own selection only — in a mixed-orientation matchup
+   the two sides adapt independently (the stage shows one
+   side at a time; switching sides re-marks it). */
+function markBtlStage154(player, play) {
+  if (!player || typeof player.closest !== "function") return;
+  const box = player.closest(".btl-player");
+  if (!box || !box.classList) return;
+  if (player.videoWidth > 0 && player.videoHeight > 0) {
+    if (player.videoHeight > player.videoWidth) box.classList.add("btl-tall154"); else box.classList.remove("btl-tall154");
+    return;
+  }
+  const forUrl = (play && play.media_url) || "";
+  /* The selection token stamps BEFORE the poster check: even a
+     poster-less new selection retires the previous side's
+     in-flight poster probe. */
+  try { player.dataset.btlStageUrl154 = forUrl; } catch (e) { /* the token is best-effort */ }
+  const poster = (play && play.poster_url) || "";
+  if (!poster) return;
+  try {
+    const img = new Image();
+    img.onload = () => {
+      try { if ((player.dataset.btlStageUrl154 || "") !== forUrl) return; } catch (e) { /* no token store — apply anyway */ }
+      if (img.naturalHeight > img.naturalWidth) box.classList.add("btl-tall154");
+      else if (img.naturalWidth > 0) box.classList.remove("btl-tall154");
+    };
+    img.src = poster;
+  } catch (e) { /* no Image in this context — metadata sync decides */ }
+}
 
 /* ---------------- Round 118 (2026-11-12): Battles big-player
    hardening. After Round 117's server Range fixes (verified live),
