@@ -3491,6 +3491,20 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
 .play-badges.moment-row162{margin-top:4px}
 .fame-info .moment-chip162{vertical-align:1px}
 .moment-seg162{flex-wrap:wrap}
+/* Round 163b (2026-11-14): Dyanna's spacing note — the upload
+   moment picker leaves the single .seg pill bar for a symmetrical
+   chip grid: 🌟 First Ever centered on its own top row (one
+   pair-chip wide, over the seam), the other four beneath it in
+   two even rows of equal-width chips. Layout only — the chips
+   keep their data-moment-pick values, aria-pressed selection
+   and the hidden momentKind wiring from Round 162. */
+.moment-pick163b{display:flex;flex-direction:column;gap:8px}
+.moment-row163b{display:flex;gap:8px}
+.moment-row-top163b{justify-content:center}
+.moment-pick163b button{flex:1 1 0;min-width:0;border:1px solid var(--line2);background:var(--card);color:var(--muted);font:inherit;font-weight:700;font-size:14.5px;padding:9px 10px;cursor:pointer;border-radius:999px;white-space:nowrap}
+.moment-row-top163b button{flex:0 1 calc(50% - 4px)}
+.moment-pick163b button[aria-pressed="true"]{background:#fff;color:#0a0a0a;border-color:#fff}
+@media (max-width:380px){ .moment-pick163b button{font-size:13.5px;padding:9px 6px} }
 .moment-set162{font-size:13px;color:var(--muted)}
 .moment-select162{background:#121317;color:#fff;border:1px solid var(--line2);border-radius:9px;padding:4px 8px;font:inherit;font-size:13px}
 .lane-row162{margin-top:10px}
