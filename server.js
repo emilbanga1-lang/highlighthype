@@ -456,6 +456,24 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN contest_optin INTEGER DEFAULT 0
 // never match, so only genuine same-bytes retries dedupe.
 try { db.exec("ALTER TABLE highlights ADD COLUMN media_hash TEXT"); } catch {}
 try { db.exec("CREATE INDEX IF NOT EXISTS idx_highlights_media_hash ON highlights(media_hash)"); } catch {}
+// Round 146 (2026-11-13): Trash + moderation log (Phase 2 of the
+// owner-panel program Emil approved the night of the accidental
+// deletions). status stays free text — 'trashed' is a new VALUE,
+// no constraint change. trashed_at stamps the move; status_before_
+// trash remembers where a Restore should land. moderation_log is
+// the append-only record of every moderation action (approve,
+// reject, trash, restore, purge, plus the backup channel's
+// delete-pending and restore-plays): who, what, which play, when.
+try { db.exec("ALTER TABLE highlights ADD COLUMN trashed_at TEXT"); } catch {}
+try { db.exec("ALTER TABLE highlights ADD COLUMN status_before_trash TEXT"); } catch {}
+db.exec(`CREATE TABLE IF NOT EXISTS moderation_log(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  play_id INTEGER,
+  action TEXT NOT NULL DEFAULT '',
+  actor TEXT NOT NULL DEFAULT '',
+  detail TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);`);
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -1417,6 +1435,77 @@ function r131RunMigration() {
   } catch (e) { console.error("[r131] migration error:", e.message); }
 }
 
+// ---- Round 146: Trash + moderation log helpers ----
+// logModeration146 is the ONE writer for moderation_log. It is
+// deliberately fail-silent: a logging error must never fail the
+// moderation action it records (every call site also stays outside
+// the action's own error handling). actor is 'owner' for the owner
+// surfaces (Owner view + email moderation links — named tokens are
+// Phase 7), 'backup-tool' for the BACKUP_TOKEN channel, 'system'
+// for the auto-purge.
+function logModeration146(playId, action, actor, detail) {
+  try {
+    db.prepare("INSERT INTO moderation_log(play_id, action, actor, detail) VALUES(?,?,?,?)")
+      .run(playId == null ? null : Number(playId), String(action || ""), String(actor || ""), String(detail || ""));
+  } catch (e) { console.error("[r146] moderation log write failed:", e.message); }
+}
+// permanentDeletePlay146 is the OLD owner-delete cascade, extracted
+// verbatim (media file, poster, Hype Frame print images + order
+// rows, the play row, its votes, its contest entries — same order,
+// same tolerant unlinks) for the two NEW permanent paths: the
+// Trash section's "Delete forever" and the 7-day auto-purge. The
+// pre-146 inline copies (owner DELETE is now a trash move; the
+// /moderate delete and the R145 cleanup route keep their own) are
+// statement-identical to this helper.
+function permanentDeletePlay146(id) {
+  const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+  if (row && row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
+  if (row && row.poster_url) { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.poster_url))); } catch {} }
+  for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(id)) {
+    try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
+  }
+  db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(id);
+  db.prepare("DELETE FROM highlights WHERE id=?").run(id);
+  db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
+  db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
+  return row;
+}
+// trashPlay146 moves a play to Trash: the status flips, the
+// pre-trash status is remembered for Restore, and the CURRENT
+// period's contest entry is removed so a trashed play can never
+// stand in the contest (standings derive from contest_entries;
+// /api/contest also filters status='approved', so the entry
+// removal is belt-and-braces for a later restore). Votes are KEPT
+// — a restore brings the play back whole; only a purge deletes
+// them. Media + poster files are KEPT (that is the point of
+// Trash). Returns true when the play was newly trashed.
+function trashPlay146(row, actor, viaLabel) {
+  if (!row || row.status === "trashed") return false;
+  db.prepare("UPDATE highlights SET status_before_trash=?, status='trashed', trashed_at=datetime('now') WHERE id=?").run(row.status, row.id);
+  db.prepare("DELETE FROM contest_entries WHERE highlight_id=? AND period=?").run(row.id, currentPeriod());
+  logModeration146(row.id, "trash", actor, `"${row.title}" — was ${row.status}, moved to Trash${viaLabel ? ` (${viaLabel})` : ""}`);
+  return true;
+}
+// r146PurgeExpiredTrash permanently deletes every play that has
+// sat in Trash for more than 7 days. Called at startup (in the
+// listen callback, with the other migrations) and at the top of
+// every Owner queue load, so the panel always shows the
+// post-purge state — the app has no daily-timer idiom to ride,
+// and these two triggers bound the worst case to the owner's
+// next queue look. One [r146] log line per run that purged.
+function r146PurgeExpiredTrash() {
+  try {
+    const rows = db.prepare("SELECT * FROM highlights WHERE status='trashed' AND trashed_at IS NOT NULL AND trashed_at < datetime('now','-7 days')").all();
+    if (!rows.length) return 0;
+    for (const r of rows) {
+      permanentDeletePlay146(r.id);
+      logModeration146(r.id, "purge", "system", `auto-purge after 7 days in Trash: "${r.title}"`);
+    }
+    console.log(`[r146] auto-purge: permanently deleted ${rows.length} play(s) trashed more than 7 days ago (${rows.map((r) => r.id).join(",")})`);
+    return rows.length;
+  } catch (e) { console.error("[r146] auto-purge error:", e.message); return 0; }
+}
+
 // ---- Backup endpoints (hardening, 2026-11-04) ----
 // Read-only off-site backup pull for Muse's nightly job. Auth is a
 // dedicated BACKUP_TOKEN env var (separate from the owner and
@@ -1670,6 +1759,9 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 500, { ok: false, message: `Restore failed and was rolled back: ${err.message}` });
         }
         console.log(`[r144] restore-plays: restored plays ${ids.join(",")} (${written.length} files written, ${votes.length} votes, ${entries.length} contest entries)`);
+        // Round 146: the restore lands in the moderation log, one
+        // row per play (the helper never throws).
+        for (const r of plays) logModeration146(r.id, "restore-plays", "backup-tool", `"${r.title || ""}" restored from backup (status ${r.status || "?"})`);
         return sendJson(res, 200, { ok: true, restored: ids, filesWritten: written.length, votes: votes.length, entries: entries.length });
       }
       // ---- Round 145: guarded cleanup of duplicate PENDING plays ----
@@ -1712,6 +1804,9 @@ const server = http.createServer(async (req, res) => {
           db.prepare("DELETE FROM highlights WHERE id=?").run(id);
           db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
           db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
+          // Round 146: the cleanup lands in the moderation log too
+          // — it is a permanent delete, and the log is the record.
+          logModeration146(id, "delete-pending", "backup-tool", `"${row.title}" — pending play permanently deleted by the guarded cleanup`);
           deleted145.push(id);
         }
         console.log(`[r145] delete-pending: deleted [${deleted145.join(",") || "none"}]; skipped ${skipped145.map((s) => `${s.id}:${s.reason}`).join(", ") || "none"}`);
@@ -2402,10 +2497,20 @@ const server = http.createServer(async (req, res) => {
         db.prepare("DELETE FROM highlights WHERE id=?").run(id);
         db.prepare("DELETE FROM votes WHERE highlight_id=?").run(id);
         db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(id);
+        // Round 146: the emailed-queue delete stays PERMANENT (the
+        // Round 13 form, armed by its required checkbox) — but a
+        // permanent delete is exactly what the moderation log
+        // exists to record, so it lands there as a manual purge.
+        logModeration146(id, "purge", "owner", `permanent delete via the email moderation link: "${before.title}"`);
         return sendHtml(res, 200, moderateDeletedPage(before.title, token));
       }
       if (action === "approve_sample") db.prepare("UPDATE highlights SET status=?, is_sample=1 WHERE id=?").run(status, id);
       else db.prepare("UPDATE highlights SET status=? WHERE id=?").run(status, id);
+      // Round 146: approvals and declines via the email link land
+      // in the moderation log (transitions only, like the owner
+      // status route — a re-post of the same state logs nothing).
+      if (status === "approved" && before.status !== "approved") logModeration146(id, "approve", "owner", `"${before.title}" approved via the email moderation link${action === "approve_sample" ? " (as a sample play)" : ""}`);
+      if (status === "hidden" && before.status !== "hidden") logModeration146(id, "reject", "owner", `"${before.title}" declined (hidden) via the email moderation link`);
       if (status === "approved" && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (status === "approved" && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       const after = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
@@ -2440,6 +2545,11 @@ const server = http.createServer(async (req, res) => {
     // ---- Owner moderation ----
     if (p === "/api/owner/queue" && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      // Round 146: the queue load is one of the two auto-purge
+      // triggers (startup is the other) — the panel always shows
+      // the post-purge Trash.
+      r146PurgeExpiredTrash();
+      const trashDaysLeft146 = (r) => { if (!r.trashed_at) return null; const t = Date.parse(String(r.trashed_at).replace(" ", "T") + "Z"); return isNaN(t) ? null : Math.max(0, 7 - Math.floor((Date.now() - t) / 86400000)); };
       const rows = db.prepare("SELECT * FROM highlights ORDER BY id DESC").all().map((r) => {
         let review = null; try { review = r.review ? JSON.parse(r.review) : null; } catch {}
         let ai = null; try { ai = r.ai_json ? JSON.parse(r.ai_json) : null; } catch {}
@@ -2454,9 +2564,23 @@ const server = http.createServer(async (req, res) => {
           // Round 145: the current period's contest entry, owner-only,
           // so the live-delete confirmation can say the play is
           // entered (and in which month) before the owner deletes it.
-          contest_entry_period: (db.prepare("SELECT period FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, currentPeriod()) || {}).period || "" };
+          contest_entry_period: (db.prepare("SELECT period FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, currentPeriod()) || {}).period || "",
+          // Round 146: Trash fields (owner-only, like the contest
+          // entry above) — when the play was trashed, the status it
+          // restores to, and whole days left before the auto-purge.
+          trashed_at: r.trashed_at || "", status_before_trash: r.status_before_trash || "", trash_days_left: trashDaysLeft146(r) };
       });
       return sendJson(res, 200, { queue: rows });
+    }
+    // ---- Owner: moderation log (Round 146; owner-authorized ONLY) ----
+    // The latest 50 moderation actions, newest first. play_title
+    // comes from a LEFT JOIN so an entry survives its play's purge
+    // (title null then; the detail text carries it).
+    if (p === "/api/owner/moderation-log" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const entries = db.prepare(`SELECT l.id, l.play_id, l.action, l.actor, l.detail, l.created_at, h.title AS play_title
+        FROM moderation_log l LEFT JOIN highlights h ON h.id = l.play_id ORDER BY l.id DESC LIMIT 50`).all();
+      return sendJson(res, 200, { entries });
     }
     // ---- Owner: Hype Frame requests (owner-authorized ONLY) ----
     // This is the only place order requests are listed, and the only place
@@ -2581,13 +2705,23 @@ const server = http.createServer(async (req, res) => {
       const body = JSON.parse((await readBody(req)).toString("utf8") || "{}");
       if (!["approved", "hidden", "pending"].includes(body.status)) return sendJson(res, 400, { ok: false, message: "Invalid status." });
       const before = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(statusMatch[1]));
-      db.prepare("UPDATE highlights SET status=? WHERE id=?").run(body.status, Number(statusMatch[1]));
+      // Round 146: re-statuing a TRASHED play (reachable only by a
+      // direct API call — the panel keeps trashed plays in the
+      // Trash section) clears its trash stamps in the same step, so
+      // a play can never sit live with a stale trashed_at behind it.
+      if (before && before.status === "trashed") db.prepare("UPDATE highlights SET status=?, trashed_at=NULL, status_before_trash=NULL WHERE id=?").run(body.status, Number(statusMatch[1]));
+      else db.prepare("UPDATE highlights SET status=? WHERE id=?").run(body.status, Number(statusMatch[1]));
       // Sample flag rides the same call (Round 7): { sample: true }
       // flags the play as a sample IN THE SAME STEP as the status
       // change, so "Approve as Sample play" is a single owner action;
       // { sample: false } removes the mark. Absent = flag untouched.
       const hasSample = Object.prototype.hasOwnProperty.call(body, "sample");
       if (hasSample) db.prepare("UPDATE highlights SET is_sample=? WHERE id=?").run(body.sample ? 1 : 0, Number(statusMatch[1]));
+      // Round 146: approvals and declines land in the moderation
+      // log (transitions only — a same-state re-post, e.g. a pure
+      // sample-flag change, logs nothing).
+      if (before && body.status === "approved" && before.status !== "approved") logModeration146(Number(statusMatch[1]), "approve", "owner", `"${before.title}" approved${hasSample && body.sample ? " (as a sample play)" : ""}`);
+      if (before && body.status === "hidden" && before.status !== "hidden") logModeration146(Number(statusMatch[1]), "reject", "owner", `"${before.title}" declined (hidden)`);
       if (body.status === "approved" && before && before.status !== "approved" && before.notify_email) notifyApproved(before.title, before.id, before.notify_email);
       if (body.status === "approved" && before && before.status !== "approved") notifyGuardianText(before, `HighlightHype: good news — your play "${before.title}" was approved and is now live! See it here: https://highlighthype.com/#play-${before.id}`);
       // Round 130: on a fresh approval, an opted-in play auto-enters
@@ -2600,16 +2734,53 @@ const server = http.createServer(async (req, res) => {
     const delMatch = p.match(/^\/api\/highlights\/(\d+)$/);
     if (delMatch && req.method === "DELETE") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      // Round 146: the owner delete is now a move to TRASH, not a
+      // permanent delete — the 2026-11-13 hand-cleanup deleted
+      // three LIVE plays by mistake, and a delete that cannot be
+      // undone is how that happens. The play leaves every public
+      // surface (its status is no longer approved/pending/hidden,
+      // and its current-period contest entry goes), but its files,
+      // votes and row stay put for 7 days: Restore (below) brings
+      // it back whole, "Delete forever" (below) and the auto-purge
+      // are the only permanent paths left on this surface. The
+      // R145 backup cleanup route keeps its permanent semantics —
+      // it is the operator tool for junk, not an owner gesture.
       const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(delMatch[1]));
-      if (row && row.media_kind === "file") { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.media_url))); } catch {} }
-      if (row && row.poster_url) { try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(row.poster_url))); } catch {} }
-      for (const o of db.prepare("SELECT print_image FROM hype_frame_orders WHERE highlight_id=?").all(Number(delMatch[1]))) {
-        try { fs.unlinkSync(path.join(HYPEFRAME_DIR, path.basename(o.print_image))); } catch {}
-      }
-      db.prepare("DELETE FROM hype_frame_orders WHERE highlight_id=?").run(Number(delMatch[1]));
-      db.prepare("DELETE FROM highlights WHERE id=?").run(Number(delMatch[1]));
-      db.prepare("DELETE FROM votes WHERE highlight_id=?").run(Number(delMatch[1]));
-      db.prepare("DELETE FROM contest_entries WHERE highlight_id=?").run(Number(delMatch[1]));
+      if (!row) return sendJson(res, 200, { ok: true, trashed: false });
+      const newly = trashPlay146(row, "owner", "");
+      return sendJson(res, 200, { ok: true, trashed: newly, alreadyTrashed: row.status === "trashed" });
+    }
+    // ---- Round 146: Trash restore + delete-forever (owner) ----
+    const restoreMatch146 = p.match(/^\/api\/highlights\/(\d+)\/restore$/);
+    if (restoreMatch146 && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(restoreMatch146[1]));
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (row.status !== "trashed") return sendJson(res, 400, { ok: false, message: "That play is not in the Trash." });
+      // The media file IS the play: a trashed play whose file has
+      // gone missing (a hand-cleaned disk, a partial backup) must
+      // not come back as a broken board entry — it stays trashed
+      // and the owner hears why. (A missing POSTER is not fatal:
+      // the board falls back to its placeholder behavior.)
+      if (row.media_kind === "file" && (!row.media_url || !fs.existsSync(path.join(UPLOAD_DIR, path.basename(row.media_url)))))
+        return sendJson(res, 409, { ok: false, message: "The play's video file is missing, so it can't be restored. It stays in the Trash." });
+      const backTo = ["approved", "pending", "hidden"].includes(row.status_before_trash || "") ? row.status_before_trash : "pending";
+      db.prepare("UPDATE highlights SET status=?, trashed_at=NULL, status_before_trash=NULL WHERE id=?").run(backTo, row.id);
+      // The contest entry is NOT recreated: trashing removed it,
+      // and re-entering is the guardian/owner's explicit call via
+      // the existing enter flow. The play's votes were kept, so a
+      // re-entry shows them again.
+      logModeration146(row.id, "restore", "owner", `"${row.title}" restored from Trash to ${backTo} (contest entry is not automatic)`);
+      return sendJson(res, 200, { ok: true, status: backTo });
+    }
+    const purgeMatch146 = p.match(/^\/api\/highlights\/(\d+)\/purge$/);
+    if (purgeMatch146 && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(purgeMatch146[1]));
+      if (!row) return sendJson(res, 404, { ok: false, message: "Play not found." });
+      if (row.status !== "trashed") return sendJson(res, 400, { ok: false, message: "Only a play in the Trash can be deleted forever — move it to Trash first." });
+      permanentDeletePlay146(row.id);
+      logModeration146(row.id, "purge", "owner", `manual delete-forever from Trash: "${row.title}"`);
       return sendJson(res, 200, { ok: true });
     }
 
@@ -2701,4 +2872,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); });
