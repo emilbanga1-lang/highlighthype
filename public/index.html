@@ -11,10 +11,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=142" />
+<link rel="stylesheet" href="styles.css?v=143" />
 </head>
 <body>
-<!-- Round 142 (2026-11-13): two tweaks from the review Emil
+<!-- Round 143 (2026-11-13): the Round 140 chrome fade reaches
+     Battles. Emil, in Quick Battles: "it's also delayed before
+     the pause button goes away." The three Battles big players
+     (#btlPlayer Quick, #dailyPlayer Daily, #runPlayer Battle
+     Run — persistent native-controls elements) are wired once
+     to the SAME helper the play detail uses (app.js
+     attachChromeFade143, shared with wireWatchChrome140):
+     playing → the native chrome drops ~2s in; pause / a pick
+     → it returns and stays; a tap on the faded picture brings
+     it back and re-arms the fade. Battles mechanics (tap-to-
+     play, picks, VS flow, streaks, crowns) are unchanged — only
+     when the chrome is visible. The Battles minis never carried
+     native chrome, so there is nothing to fade on them.
+     Round 142 (2026-11-13): two tweaks from the review Emil
      shared and endorsed ("Build both tweaks"). (1) The hero's
      second "Post a Play" button is OUT — it duplicated the
      header's lime pill; Watch Highlights is now the hero's only
@@ -1701,6 +1714,6 @@
   <img id="hfLightboxImg128" alt="Your frozen frame print, enlarged">
 </div>
 
-<script src="app.js?v=142"></script>
+<script src="app.js?v=143"></script>
 </body>
 </html>
