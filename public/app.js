@@ -3399,6 +3399,24 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
          truthful throughout — it shows the muted state until
          the sound is actually on. */
       v.muted = true; setIcon(); armFirstTap125();
+      /* Round 160 (2026-11-14, HOTFIX): the rejection must be
+         followed by a MUTED re-play, or the film never moves
+         on iOS. Safari evaluates the element's own autoplay
+         attempt with the muted state standing at load time —
+         muted=false here — and does not re-attempt when muted
+         flips afterwards; Chromium's muted-autoplay rescue
+         masked the gap on desktop, so the poster froze with a
+         muted badge on Emil's phone (hero frozen, badge muted,
+         2026-11-14 10:23) until a first tap rescued it through
+         armFirstTap125. The retry starts the film muted —
+         motion beats a frozen poster — WITHOUT writing
+         hh_music: the saved preference stays authoritative,
+         and the armed first-tap handler still turns the sound
+         on at the visitor's first interaction exactly as
+         before. If even muted autoplay is refused (Low Power
+         Mode), the second catch swallows and the first tap
+         remains the way in — no worse than before this round. */
+      const q160 = v.play(); if (q160 && q160.catch) q160.catch(() => {});
     });
     setIcon();
   };
