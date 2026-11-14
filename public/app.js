@@ -1341,7 +1341,19 @@ window.openPlayDetail = (id, opts = {}) => {
   wrap.hidden = false;
   wrap.scrollTop = 0; // an Up-next swap (Round 14) starts at the new play's top
   document.body.classList.add("detail-open");
-  if (!opts.keepHash) history.replaceState(null, "", `#play-${id}`);
+  /* Round 139: the detail gets its OWN history entry, pushed
+     with the #play- hash as its URL — browser Back closes the
+     play onto the board beneath it, and the board's entry
+     keeps its clean URL (a replaceState here rewrites the
+     BOARD entry's URL to #play-, and the renderAll hash route
+     would resurrect the play on the next data refresh).
+     Outside the settled in-app flow (boot deep links, hash
+     routes — keepHash) the old replace stands, now preserving
+     history.state so a snapshot survives the hash write. */
+  if (!opts.keepHash) {
+    const pushed139 = typeof hhNavPush139 === "function" && hhNavPush139(typeof hhPlace139 === "function" ? hhPlace139() : null, `#play-${id}`);
+    if (!pushed139) history.replaceState(history.state, "", `#play-${id}`);
+  }
   wrap.querySelector(".play-detail-back")?.focus();
 };
 function hidePlayDetail() {
@@ -1359,8 +1371,22 @@ function hidePlayDetail() {
    AFTER showPanel runs. */
 window.closePlayDetail = () => {
   const was = detailPlayId;
+  /* Round 139: when the current history entry is the one this
+     detail pushed, the on-screen Back IS the browser Back —
+     stepping back lands on the previous view through the same
+     popstate path (a later Forward reopens the play). A detail
+     on the visit's first entry (a shared #play- link) closes in
+     place instead: Back there must still leave the site. */
+  const st139 = (typeof history !== "undefined" && history.state && history.state.hh139) || null;
+  if (was != null && st139 && st139.pushed && st139.place && st139.place.detail === was
+      && typeof hhSettled139 !== "undefined" && hhSettled139
+      && !(typeof hhRestoring139 !== "undefined" && hhRestoring139)) {
+    history.back();
+    return;
+  }
   hidePlayDetail();
-  if (was != null && (location.hash === `#play-${was}` || location.hash === `#watch-${was}`)) history.replaceState(null, "", "#top");
+  if (was != null && (location.hash === `#play-${was}` || location.hash === `#watch-${was}`)) history.replaceState(history.state, "", "#top");
+  if (typeof hhRecord139 === "function") hhRecord139();
 };
 $$("[data-detail-close]").forEach((el) => el.addEventListener("click", () => window.closePlayDetail()));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && detailPlayId != null) window.closePlayDetail(); });
@@ -1428,7 +1454,13 @@ window.seeAllPlays = () => {
 /* ---------------- athlete collection ---------------- */
 window.openAthlete = async (athleteId) => {
   showPanel("athlete");
-  history.replaceState(null, "", `#athlete-${athleteId}`);
+  if (typeof hhSetAthlete139 === "function") hhSetAthlete139(athleteId);
+  /* Round 139: the athlete page gets its own history entry,
+     pushed with its #athlete- hash as the URL (the play
+     detail's pattern) — browser Back returns to the view the
+     visitor came from. Boot deep links keep the replace. */
+  const pushed139 = typeof hhNavPush139 === "function" && hhNavPush139(typeof hhPlace139 === "function" ? hhPlace139() : null, `#athlete-${athleteId}`);
+  if (!pushed139) history.replaceState(history.state, "", `#athlete-${athleteId}`);
   try {
     const d = await api(`/api/highlights?division=all&athlete_id=${encodeURIComponent(athleteId)}&voterToken=${voterToken}`);
     const plays = d.highlights || [];
@@ -1472,8 +1504,10 @@ function showPanel(name) {
   // they are deliberately not counted as views.
   const viewKey = { plays: "home", mine: "mine", how: "how" }[name];
   if (viewKey && typeof trackEvent === "function") trackEvent("view", viewKey);
+  /* Round 139: a panel switch is a place — record it. */
+  if (typeof hhRecord139 === "function") hhRecord139();
 }
-$$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
+$$("[data-panel-btn]").forEach((b) => b.addEventListener("click", () => { showHome(); closeMenu(false); if (location.hash.startsWith("#hype-frame")) history.replaceState(history.state, "", "#top"); showPanel(b.dataset.panelBtn); document.getElementById("deck")?.scrollIntoView({ behavior: "smooth" }); }));
 /* Round 51 (2026-11-08): #menuAllHypes is a real link (/?view=all)
    now — no click handler; the boot router applies the view. */
 /* Round 94 (2026-11-10, Emil): three tabs — Watch / Battles /
@@ -1536,6 +1570,8 @@ function switchView(v) {
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
   const bi125 = $("#boardIntro"); if (bi125) bi125.textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play with the contest box checked — it's in once approved. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
+  /* Round 139: a board-view switch is a place — record it. */
+  if (typeof hhRecord139 === "function") hhRecord139();
 }
 $$(".viewseg button").forEach((b) => b.addEventListener("click", () => { switchView(b.dataset.view); scrollBoardIntoView122(); }));
 /* Round 122 (2026-11-12): a board tab tap takes you TO the board.
@@ -1556,6 +1592,141 @@ function scrollBoardIntoView122() {
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(go); else go();
+}
+/* ================= Round 139 (2026-11-13): in-app history ====
+   Emil: "When on a page and I click the browser back button it
+   takes me to the swag store." The mechanism: this app never
+   called pushState and had no popstate listener — every in-app
+   view switch (board tabs, panels, the Store overlay, the
+   studio) mutated the DOM only, and the deep-link routes wrote
+   their hashes with replaceState, so in-app browsing recorded
+   NO history at all. The Store is also a real page (the header
+   and ☰ menu link plainly to /store, and coming home from it
+   is a real navigation), so a session that touched /store had
+   it sitting in the tab's history — and the first browser Back
+   from anywhere in the app popped straight back to it.
+   The fix is a small place model at the existing chokepoints:
+   switchView / showPanel / showStore / showHome schedule a
+   coalesced record (one push per user action, snapshotted from
+   live state at flush time); the three hash-writing opens
+   (play detail, athlete, studio) push their own entry
+   synchronously WITH their hash as the entry's URL, before a
+   replaceState can rewrite the previous entry's URL; popstate
+   re-applies the recorded place through the same functions.
+   While boot settles, records only re-snapshot the first entry
+   (replaceState) — Back from a fresh visit's first view still
+   leaves the site. Every legacy replaceState now preserves
+   history.state, so a snapshot survives a hash rewrite. */
+let hhSettled139 = false;
+let hhRestoring139 = false;
+let hhSuppressHash139 = false;
+let hhCurrentPlace139 = null;
+let hhRecordQueued139 = false;
+let hhStoreTarget139 = null;
+let hhAthleteId139 = null;
+function hhSetStoreTarget139(t) { hhStoreTarget139 = t || null; }
+function hhSetAthlete139(id) { hhAthleteId139 = id || null; }
+function hhPlace139(over) {
+  let panel = "plays";
+  try {
+    const act = document.querySelector(".panel.active");
+    if (act && act.dataset && act.dataset.panel) panel = act.dataset.panel;
+  } catch (e) { /* keep the default */ }
+  const place = {
+    panel,
+    view: typeof currentView === "string" && currentView ? currentView : "all",
+    msub: typeof monthSub === "string" && monthSub ? monthSub : "month",
+    store: !!(document.body && document.body.classList && document.body.classList.contains("store-open")),
+    storeTarget: hhStoreTarget139 || null,
+    detail: typeof detailPlayId === "number" ? detailPlayId : null,
+    hf: panel === "hypeframe" && typeof hfState !== "undefined" && hfState && hfState.play ? hfState.play.id : null,
+    athlete: panel === "athlete" ? hhAthleteId139 || null : null,
+  };
+  if (over) Object.assign(place, over);
+  return place;
+}
+function hhEq139(a, b) {
+  try { return JSON.stringify(a) === JSON.stringify(b); } catch (e) { return false; }
+}
+function hhRecord139() {
+  if (hhRecordQueued139) return;
+  hhRecordQueued139 = true;
+  const run = () => { hhRecordQueued139 = false; hhFlush139(); };
+  if (typeof queueMicrotask === "function") queueMicrotask(run);
+  else if (typeof Promise !== "undefined") Promise.resolve().then(run);
+  else run();
+}
+function hhFlush139() {
+  try {
+    if (hhRestoring139) { hhCurrentPlace139 = hhPlace139(); return; }
+    const place = hhPlace139();
+    if (!hhSettled139) {
+      history.replaceState({ hh139: { place, pushed: false } }, "");
+      hhCurrentPlace139 = place;
+      return;
+    }
+    if (hhCurrentPlace139 && hhEq139(place, hhCurrentPlace139)) return;
+    history.pushState({ hh139: { place, pushed: true } }, "");
+    hhCurrentPlace139 = place;
+  } catch (e) { /* history is an enhancement — never break navigation */ }
+}
+/* Synchronous push for the hash-writing opens: the entry must
+   exist BEFORE the open rewrites the hash, and it carries the
+   hash as its own URL, so the previous entry keeps its URL. */
+function hhNavPush139(place, url) {
+  try {
+    if (!place || !hhSettled139 || hhRestoring139) return false;
+    if (hhCurrentPlace139 && hhEq139(place, hhCurrentPlace139)) return false;
+    history.pushState({ hh139: { place, pushed: true } }, "", url);
+    hhCurrentPlace139 = place;
+    return true;
+  } catch (e) { return false; }
+}
+function hhApply139(place) {
+  hhRestoring139 = true;
+  hhSuppressHash139 = true;
+  setTimeout(() => { hhRestoring139 = false; hhSuppressHash139 = false; }, 0);
+  try {
+    if (place.store) showStore(place.storeTarget || null);
+    else showHome();
+    if (place.panel === "hypeframe" && place.hf != null) openHypeFrame(place.hf);
+    else if (place.panel === "athlete" && place.athlete) openAthlete(place.athlete);
+    else showPanel(place.panel);
+    if (place.panel === "plays") {
+      if (place.view === "month") setMonthSub(place.msub);
+      else { monthSub = place.msub === "fame" ? "fame" : "month"; switchView(place.view); }
+    }
+    if (place.detail != null) openPlayDetail(place.detail, { keepHash: true });
+    else if (typeof detailPlayId === "number") hidePlayDetail();
+  } catch (e) { /* a failed restore leaves the current view — never a blank page */ }
+  hhCurrentPlace139 = place;
+  hhRecord139();
+}
+function hhSettle139() {
+  if (hhSettled139) return;
+  hhSettled139 = true;
+  try {
+    const place = hhPlace139();
+    history.replaceState({ hh139: { place, pushed: false } }, "");
+    hhCurrentPlace139 = place;
+  } catch (e) { /* as above */ }
+}
+function hhBoot139() {
+  hhRecord139();
+  setTimeout(() => { hhSettle139(); }, 6000);
+}
+if (typeof window !== "undefined" && window && typeof window.addEventListener === "function") {
+  window.addEventListener("popstate", (e) => {
+    const st139 = e && e.state && e.state.hh139;
+    if (st139 && st139.place) { hhApply139(st139.place); return; }
+    /* A same-document entry without a Round 139 snapshot:
+       resync the tracker to the live view under the restoring
+       flag — a pop must never turn into a push. */
+    hhRestoring139 = true;
+    hhSuppressHash139 = true;
+    setTimeout(() => { hhRestoring139 = false; hhSuppressHash139 = false; }, 0);
+    hhRecord139();
+  });
 }
 /* Round 137 (2026-11-13): an msub tap re-parks the board,
    exactly like a board tab tap (Round 122 wiring, above).
@@ -1609,12 +1780,20 @@ function showStore(target) {
     : target === "hype-boys" ? document.getElementById("hsGridSection")
     : target ? document.getElementById(target) : null;
   if (storeTargetEl) scrollToStoreEl(storeTargetEl);
+  /* Round 139: entering the Store is a place — record it (and
+     remember the target so a history restore lands on the
+     same section). */
+  if (typeof hhSetStoreTarget139 === "function") hhSetStoreTarget139(target || null);
+  if (typeof hhRecord139 === "function") hhRecord139();
 }
 function showHome() {
   setStoreFocus(null);
+  /* Round 139: leaving the Store is a place change — record it
+     (the flush dedupes when the store wasn't open). */
+  if (typeof hhRecord139 === "function") hhRecord139();
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
-  if (location.hash === "#shop") history.replaceState(null, "", "#top");
+  if (location.hash === "#shop") history.replaceState(history.state, "", "#top");
   /* Round 125 (2026-11-13, Dyanna): returning home restarts the
      hero at the visitor's standing sound preference — music ON
      unless they muted it themselves (hh_music, kept by the
@@ -1674,7 +1853,7 @@ function goHome() {
      stayed on screen, so the tap read as dead there. */
   switchView("all");
   scrollBoardIntoView122();
-  if (location.hash.startsWith("#hype-frame")) history.replaceState(null, "", "#top");
+  if (location.hash.startsWith("#hype-frame")) history.replaceState(history.state, "", "#top");
 }
 $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); closeMenu(false); showStore(a.dataset.storeTarget || null); }));
 $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()));
@@ -1683,6 +1862,11 @@ $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()
    a beat later; goHome alone decides where a logo tap lands. */
 $$(".brand").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); goHome(); }));
 window.addEventListener("hashchange", () => {
+  /* Round 139: a hashchange that arrives with a history
+     traversal belongs to the popstate handler — the snapshot
+     being restored already describes the destination, and
+     re-routing the hash here would fight the restore. */
+  if (typeof hhSuppressHash139 !== "undefined" && hhSuppressHash139) return;
   if (location.hash === "#post") goSubmit();
   if (location.hash === "#shop") showStore();
   /* Round 108: same-page #stories navigation opens the panel. */
@@ -2339,7 +2523,12 @@ window.openHypeFrame = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || (CONTEST.entries || []).find((p) => p.id === id);
   if (!play) { alert("That play isn't on the board anymore."); return; }
   showHome(); closeMenu(false); showPanel("hypeframe");
-  history.replaceState(null, "", `#hype-frame-${id}`);
+  /* Round 139: the studio gets its own history entry, pushed
+     with its #hype-frame- hash as the URL (the play detail's
+     pattern) — browser Back returns to the view the visitor
+     came from. Boot deep links keep the replace. */
+  const pushed139 = typeof hhNavPush139 === "function" && hhNavPush139(typeof hhPlace139 === "function" ? hhPlace139({ hf: id }) : null, `#hype-frame-${id}`);
+  if (!pushed139) history.replaceState(history.state, "", `#hype-frame-${id}`);
   initHfStudio(play);
   // Round 127: the studio film that used to be restarted here is
   // gone with the payoff stack — the studio opens at the tool.
@@ -3319,7 +3508,7 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   // default landing-view rule in applyDefaultView.
   if (am || hm || /^#(?:play|watch)-\d+$/.test(location.hash)) bootHashTarget = true;
   syncFilterUI();
-  loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); });
+  loadData().then(() => { if (am) openAthlete(am[1]); if (hm) openHypeFrame(Number(hm[1])); if (typeof hhSettle139 === "function") hhSettle139(); });
   if (location.hash === "#shop") { bootHashTarget = true; showStore(); }
   /* Round 108: the pre-108 homepage anchor #stories (shared links,
      old bookmarks) lands on the Stories panel now that the section
@@ -3340,6 +3529,10 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   // boards, so it counts "home" here.
   trackReferrer();
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post", "#stories"].includes(location.hash)) trackEvent("view", "home");
+  /* Round 139: arm in-app history — the boot entry gets its
+     first snapshot now and settles when loadData lands (the
+     hook above), with a plain timer as the fallback. */
+  if (typeof hhBoot139 === "function") hhBoot139();
 })();
 
 /* ===== Rounds 62 + 67: board controls =====
