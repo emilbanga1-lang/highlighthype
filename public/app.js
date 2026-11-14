@@ -1454,6 +1454,13 @@ window.openPlayDetail = (id, opts = {}) => {
   wrap.hidden = false;
   wrap.scrollTop = 0; // an Up-next swap (Round 14) starts at the new play's top
   document.body.classList.add("detail-open");
+  /* Round 158: opening the watch view is a view change —
+     every panel falls silent behind the overlay (a battle
+     left playing, an unmuted board tile, the studio), so
+     the detail is the only thing that can make sound. The
+     detail's own player lives outside the panels and is
+     untouched; muted board previews keep previewing. */
+  if (typeof pauseMediaIn158 === "function") $$(".panel[data-panel]").forEach((p) => pauseMediaIn158(p, false));
   /* Round 139: the detail gets its OWN history entry, pushed
      with the #play- hash as its URL — browser Back closes the
      play onto the board beneath it, and the board's entry
@@ -1481,9 +1488,82 @@ window.openPlayDetail = (id, opts = {}) => {
    The Round 140/143 functions themselves stay in their block. */
 let watchChromeVideo140 = null;
 let watchChromeOff140 = null;
+/* Round 158 (2026-11-14, HOTFIX): the Battles audio leak —
+   Emil, watching Nicholas's clip in Battles, tapped over to
+   All videos and the battle kept playing; he could still hear
+   it. Root cause, verified in the rig on the unmodified tree:
+   NO view switch paused anything. switchView only toggled
+   `hidden` (a display:none video keeps playing, sound and
+   all), showPanel swapped panels the same way, and even
+   hidePlayDetail left the detail's own video running behind
+   the closed overlay. Seven driven paths leaked: Battles ->
+   All, Battles -> Month, Battles -> detail open, Daily ->
+   All, detail -> close, studio -> panel switch, detail ->
+   browser Back.
+   The invariant this round installs: ONLY THE VIEW YOU ARE
+   LOOKING AT CAN MAKE SOUND. One sweep, pauseMediaIn158,
+   called from every view-switch choke point — switchView
+   (board tabs), showPanel (panels), openPlayDetail /
+   hidePlayDetail (the watch overlay), btlPlayBig118 (a
+   battle starting silences its sibling players), showHome
+   (leaving the Store) — and browser Back rides the same
+   functions through hhApply139, so popstate is covered by
+   construction. PAUSE ONLY: currentTime and src are never
+   touched, nothing auto-resumes; returning to a view finds
+   its players paused where they were (the designed
+   exceptions stay designed: showHome still restarts the
+   hero when coming back from the Store, and the hero —
+   ambient home chrome under its own Round 125 controller
+   and the visitor's standing mute — lives outside every
+   swept root and is never swept).
+   What gets silenced inside a swept root (hhSilence158):
+   anything playing that is not muted, plus the dedicated
+   sound surfaces by structure — the .btl-player and
+   .watch-player videos and the studio / story / store /
+   feed films — muted or not, because those are watch
+   surfaces a visitor unmutes. Muted previews (board and
+   athlete tiles, battle minis, .vfill fills) are NOT
+   silenced: they make no sound, and pausing them would
+   freeze the board's living previews for no audible gain;
+   a tile a visitor deliberately unmuted is caught by the
+   not-muted rule like everything else.
+   Declared HERE, with the Round 148 state, on purpose:
+   hidePlayDetail and showPanel run during boot() on the
+   page-sub routes, and these helpers must resolve from any
+   call site in any order — plain function declarations, no
+   state, every call site typeof-guarded like the house
+   pattern, every element touch try/caught (the vm suites
+   drive these functions against partial DOMs). */
+function hhSilence158(el) {
+  try {
+    if (!el || el.paused) return false;
+    if (!el.muted) return true;
+    if (el.id === "hfVideo" || el.id === "storyVideo" || el.id === "swagVideo" || el.id === "hfStoreFilm" || el.id === "hfFeedFilm126") return true;
+    if (typeof el.closest === "function" && (el.closest(".btl-player") || el.closest(".watch-player") || el.closest("#playDetail"))) return true;
+    return false;
+  } catch (e) { return false; }
+}
+function pauseMediaIn158(root, force, exceptRoot) {
+  try {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+    root.querySelectorAll("video, audio").forEach((el) => {
+      try {
+        if (exceptRoot && typeof exceptRoot.contains === "function" && exceptRoot.contains(el)) return;
+        if (!force && !hhSilence158(el)) return;
+        if (typeof el.pause === "function") el.pause();
+      } catch (e) { /* one bad element never breaks a view switch */ }
+    });
+  } catch (e) { /* media hygiene is best-effort — navigation is not */ }
+}
 function hidePlayDetail() {
   teardownDetailAutoplay(); // Round 15: nothing advances in the background once closed
   if (typeof teardownWatchChrome140 === "function") teardownWatchChrome140(); // Round 140: no stray chrome fade timer past close
+  /* Round 158: closing the watch view stops its player —
+     the hidden overlay's video otherwise kept playing (and
+     sounding) behind the board. Force: a muted-but-playing
+     detail clip stops too; the next open re-renders the
+     body anyway, so nothing here needs a resume path. */
+  if (typeof pauseMediaIn158 === "function") pauseMediaIn158($("#playDetail"), true);
   const wrap = $("#playDetail");
   if (wrap) wrap.hidden = true;
   document.body.classList.remove("detail-open");
@@ -1625,6 +1705,11 @@ function showPanel(name) {
   hidePlayDetail();
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
+  /* Round 158: a panel switch is a view change — the panels
+     left behind fall silent (the studio's clip when leaving
+     the studio, the story episode, the boards), the newly
+     active panel's media untouched. */
+  if (typeof pauseMediaIn158 === "function") $$(".panel[data-panel]").forEach((p) => { if (p.dataset.panel !== name) pauseMediaIn158(p, false); });
   // Site stats: count the MAIN views only. Athlete pages and the
   // Hype Frame studio are steps inside a visit, not front doors, so
   // they are deliberately not counted as views.
@@ -1696,6 +1781,17 @@ function switchView(v) {
   /* Round 69 (2026-11-09, Emil): each board tab explains itself. */
   const bi125 = $("#boardIntro"); if (bi125) bi125.textContent = v === "month" ? (fame ? "The most-voted plays of all time." : "Post a play with the contest box checked — it's in once approved. Your votes crown the winner.") : v === "battles" ? "Two plays go head to head. Which Play Wins?" : "Watch plays from every sport.";
   if (v === "battles" && typeof initBattles === "function") initBattles();
+  /* Round 158: a board-tab switch is a view change — the
+     views left behind fall silent (Emil's Battles leak: the
+     big battle player kept sounding under All videos). The
+     newly active view's media is untouched: its muted
+     previews keep previewing, its featured clip keeps its
+     state. The hero is home chrome, outside every board
+     view, and is not swept here. */
+  if (typeof pauseMediaIn158 === "function") {
+    const active158 = v === "all" ? "#viewAll" : v === "battles" ? "#viewBattles" : (fame ? "#viewFame" : "#viewMonth");
+    ["#viewAll", "#viewMonth", "#viewFame", "#viewBattles"].forEach((sel) => { if (sel !== active158) pauseMediaIn158($(sel), false); });
+  }
   /* Round 139: a board-view switch is a place — record it. */
   if (typeof hhRecord139 === "function") hhRecord139();
 }
@@ -1919,6 +2015,13 @@ function showHome() {
   if (typeof hhRecord139 === "function") hhRecord139();
   if (!document.body.classList.contains("store-open")) return;
   document.body.classList.remove("store-open");
+  /* Round 158: leaving the Store silences the Store's own
+     films (the swag film, the store's Hype Frame film) —
+     showStore already pauses every home video on the way
+     in; this is the symmetric half. Force: neither film is
+     a preview, and showStore restarts the swag film muted
+     on entry by design. */
+  if (typeof pauseMediaIn158 === "function") pauseMediaIn158($("#shop"), true);
   if (location.hash === "#shop") history.replaceState(history.state, "", "#top");
   /* Round 125 (2026-11-13, Dyanna): returning home restarts the
      hero at the visitor's standing sound preference — music ON
@@ -6458,6 +6561,24 @@ function btlShowRetry118(player, show) {
 function btlPlayBig118(player, force) {
   if (!player) return;
   btlShowRetry118(player, false);
+  /* Round 158: a battle starting silences every other
+     audible player, so two sound-carrying players never
+     overlap — the sibling big players on this same screen
+     (a Daily left playing while a Quick battle starts),
+     and any watch / studio / story player left running
+     elsewhere. The target's own box (its blur fill rides
+     with it) is exempt; cross-view sources were already
+     silenced by the view sweeps on the way here, this is
+     the same-screen catch. Every battle play funnels
+     through this one hardened path, so the sweep lives
+     here and nowhere else needs it. */
+  if (typeof pauseMediaIn158 === "function") {
+    const box158 = typeof player.closest === "function" ? player.closest(".btl-player") : null;
+    pauseMediaIn158($("#viewBattles"), false, box158);
+    pauseMediaIn158($("#playDetail"), false);
+    pauseMediaIn158($("#hypeframe"), false);
+    pauseMediaIn158($("#stories"), false);
+  }
   const url = player.dataset.btlSelUrl118 || "";
   const reload = () => {
     if (url && player.getAttribute("src") !== url) { try { player.src = url; } catch (e) { /* best-effort */ } }
