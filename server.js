@@ -2691,6 +2691,44 @@ const server = http.createServer(async (req, res) => {
         },
       });
     }
+    // ---- Round 149: storage meter (owner-only) ----
+    // Born of the 2026-11-13 disk-full incident: the 1 GB disk
+    // silently filled with duplicate pending uploads until
+    // uploads started failing with "Storage is full." This
+    // endpoint reports the DATA_DIR mount (statfs), the uploads
+    // and hype-frames trees, the DB size, what the pending queue
+    // is holding, and the biggest media files — the Owner panel
+    // renders it as a meter so trouble is visible early. File
+    // sizes come from the filesystem (media_url → UPLOAD_DIR),
+    // never from a DB column.
+    if (p === "/api/owner/storage" && req.method === "GET") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      let totalBytes = null, freeBytes = null, usedBytes = null, usedPct = null;
+      try {
+        const s149 = fs.statfsSync(DATA_DIR);
+        totalBytes = Number(s149.blocks) * Number(s149.bsize);
+        freeBytes = Number(s149.bavail) * Number(s149.bsize);
+        usedBytes = totalBytes - freeBytes;
+        usedPct = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 1000) / 10 : 0;
+      } catch { /* statfs unavailable here: nulls — the meter degrades to uploads-only numbers */ }
+      const uploadsBytes = walkDataFiles(UPLOAD_DIR).reduce((a, f) => a + f.size, 0);
+      const hypeFramesBytes = walkDataFiles(HYPEFRAME_DIR).reduce((a, f) => a + f.size, 0);
+      const dbBytes = fs.existsSync(DB_PATH) ? fs.statSync(DB_PATH).size : 0;
+      const mediaBytes149 = (row) => {
+        if (!row || row.media_kind !== "file" || !row.media_url) return 0;
+        try { return fs.statSync(path.join(UPLOAD_DIR, path.basename(row.media_url))).size; } catch { return 0; }
+      };
+      const rows149 = db.prepare("SELECT id, player_name, title, status, media_url, media_kind FROM highlights").all();
+      let pendingCount = 0, pendingBytes = 0;
+      const sized149 = [];
+      for (const r of rows149) {
+        const b = mediaBytes149(r);
+        if (r.status === "pending") { pendingCount++; pendingBytes += b; }
+        if (b > 0) sized149.push({ id: r.id, player_name: r.player_name, title: r.title, status: r.status, bytes: b });
+      }
+      sized149.sort((a, b) => b.bytes - a.bytes);
+      return sendJson(res, 200, { ok: true, totalBytes, freeBytes, usedBytes, usedPct, uploadsBytes, dbBytes, hypeFramesBytes, pendingCount, pendingBytes, biggest: sized149.slice(0, 8) });
+    }
     // Round 100: Celebration Spotlight toggle (owner only). Setting
     // it on one play clears every other play — a single active
     // spotlight by construction. Approved non-sample plays only.
