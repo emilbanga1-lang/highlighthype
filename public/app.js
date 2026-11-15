@@ -342,7 +342,7 @@ function cardHtml(h, opts = {}) {
       </div>
       <div class="card-actions">
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-        ${h.isSample ? "" : enteredNow179(h.id) ? ENTERED_BTN179 : (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+        ${enterControl182(h, enteredNow179(h.id) ? ENTERED_BTN179 : "")}
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -791,6 +791,31 @@ function setEnterMsg(id, html) {
    disabled button, no handler, no prompt. */
 function enteredNow179(id) { return (CONTEST.entries || []).some((p) => p.id === id); }
 const ENTERED_BTN179 = `<button type="button" class="mini-btn" disabled>🏆 Entered ✓</button>`;
+/* Round 182 (2026-11-14): the contest-integrity states. A play
+   that has won a month is RETIRED — where the Enter control
+   would sit, it shows its winner state instead (the same words
+   as the Month board's winner badge, so the two surfaces agree).
+   A play whose athlete won LAST month shows the champions
+   sit-out state for this month. Both are disabled informational
+   controls like Entered ✓ — no handler, no prompt — rendered
+   from the server's payload flags (contestRetired /
+   contestSitOut); the server enforces both rules at every entry
+   path, so these are the honest face of a refusal that would
+   otherwise read as a broken button. Precedence in
+   enterControl182: retired first (a winner is a winner in every
+   month, its entry month included), then Entered ✓, then
+   sit-out, then the live Enter control with its Round 121
+   guardian-email gate. */
+const WINNER_BTN182 = `<button type="button" class="mini-btn" disabled>🏆 Hype of the Month winner</button>`;
+const SITOUT_BTN182 = `<button type="button" class="mini-btn" disabled>🏆 Champions sit out this month after a win — back next month</button>`;
+function enterControl182(h, enteredHtml) {
+  if (!h || h.isSample) return "";
+  if (h.contestRetired) return WINNER_BTN182;
+  if (enteredHtml) return enteredHtml;
+  if (h.contestSitOut) return SITOUT_BTN182;
+  if (!h.hasGuardianEmail && !ownerToken()) return "";
+  return `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`;
+}
 window.enterContest = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
   // Sample plays (Round 7): the Enter button is hidden on their cards;
@@ -798,6 +823,17 @@ window.enterContest = (id) => {
   // The server refuses samples too, with the same message.
   if (play && play.isSample) {
     setEnterMsg(id, `<p class="card-msg-text">Sample plays can't enter Hype of the Month.</p>`);
+    return;
+  }
+  // Round 182: the integrity states guard the flow itself too
+  // (a stale render could still carry a live button) — the same
+  // words the server answers with, said in place.
+  if (play && play.contestRetired) {
+    setEnterMsg(id, `<p class="card-msg-text">This play already won Hype of the Month — winning plays retire to the Hall of Fame and can't enter again.</p>`);
+    return;
+  }
+  if (play && play.contestSitOut) {
+    setEnterMsg(id, `<p class="card-msg-text">Champions sit out this month after a win — back next month.</p>`);
     return;
   }
   // Owner override: no form — api() sends the owner token and the
@@ -1324,7 +1360,12 @@ const reelsReady179 = new Set();
 const REEL_READY_LABEL179 = "🎬 Your reel is ready — tap to watch/download";
 function guardianPlaysHtml121(plays) {
   const chip = (p) => {
-    if (p.status === "approved") return `<span class="status-chip chip-live">✅ Live on the board</span>` + (p.inContest ? ` <span class="status-chip chip-contest">🏆 Entered in Hype of the Month</span>` : "");
+    // Round 182: after the entered chip, the integrity states —
+    // a retired winner and a sit-out month read as facts about
+    // the play, not as a missing Enter button. (A retired play
+    // that is somehow still entered keeps the entered chip:
+    // inContest is checked first, exactly as before.)
+    if (p.status === "approved") return `<span class="status-chip chip-live">✅ Live on the board</span>` + (p.inContest ? ` <span class="status-chip chip-contest">🏆 Entered in Hype of the Month</span>` : p.contestRetired ? ` <span class="status-chip chip-contest">🏆 Hype of the Month winner — retired to the Hall of Fame</span>` : p.contestSitOut ? ` <span class="status-chip chip-contest">🏆 Champions sit out this month — back next month</span>` : "");
     if (p.status === "pending") return `<span class="status-chip chip-review">⏳ In review</span>`;
     return `<span class="status-chip chip-off">Not on the board</span>`;
   };
@@ -1650,7 +1691,7 @@ function watchHtml107(h, entry) {
     </div>
     <div class="card-actions watch-actions">
       <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-      ${h.isSample ? "" : entry ? ENTERED_BTN179 : (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+      ${enterControl182(h, entry ? ENTERED_BTN179 : "")}
       <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
       ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
       <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
