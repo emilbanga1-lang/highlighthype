@@ -342,7 +342,7 @@ function cardHtml(h, opts = {}) {
       </div>
       <div class="card-actions">
         <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-        ${h.isSample || (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+        ${h.isSample ? "" : enteredNow179(h.id) ? ENTERED_BTN179 : (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
         <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -774,6 +774,15 @@ function setEnterMsg(id, html) {
     slot.hidden = !html;
   });
 }
+/* Round 179: is this play entered in the CURRENT contest? The
+   entries list is already on the client (it renders the Month
+   board), so the Enter control can show an entered state instead
+   of inviting entry again — the girl tester tapped Enter on an
+   already-entered play and got an email prompt, never an
+   "Entered ✓". The entered control is informational only: a
+   disabled button, no handler, no prompt. */
+function enteredNow179(id) { return (CONTEST.entries || []).some((p) => p.id === id); }
+const ENTERED_BTN179 = `<button type="button" class="mini-btn" disabled>🏆 Entered ✓</button>`;
 window.enterContest = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || CONTEST.entries.find((p) => p.id === id);
   // Sample plays (Round 7): the Enter button is hidden on their cards;
@@ -1298,6 +1307,13 @@ function renderFame() {
      returns the address itself.
    If both fields are filled, the tag wins — it's the more
    specific of the two. */
+/* Round 179: reel ready state — ids whose reel finished building
+   (or was already cached) this session, so a re-rendered My Plays
+   row keeps the ready label instead of reverting to "Get the
+   reel". The server also sends reelReady per play in the lookup
+   (a cache that predates this session). */
+const reelsReady179 = new Set();
+const REEL_READY_LABEL179 = "🎬 Your reel is ready — tap to watch/download";
 function guardianPlaysHtml121(plays) {
   const chip = (p) => {
     if (p.status === "approved") return `<span class="status-chip chip-live">✅ Live on the board</span>` + (p.inContest ? ` <span class="status-chip chip-contest">🏆 Entered in Hype of the Month</span>` : "");
@@ -1326,7 +1342,7 @@ function guardianPlaysHtml121(plays) {
     const actions = [
       p.status === "approved" && p.athlete_id ? `<button type="button" class="mini-btn" onclick="openAthlete('${esc(p.athlete_id)}')">See plays →</button>` : "",
       p.status === "approved" ? `<button type="button" class="mini-btn" onclick="sharePlay(${p.id}, this)">🔗 Share</button>` : "",
-      p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">🎬 Get the reel</button>` : "",
+      p.status === "approved" && p.canReel ? `<button type="button" class="mini-btn" onclick="getReel165(${p.id}, this)">${p.reelReady || reelsReady179.has(p.id) ? REEL_READY_LABEL179 : "🎬 Get the reel"}</button>` : "",
       p.inContest ? `<button type="button" class="mini-btn" onclick="withdrawContest130(${p.id}, this)">Withdraw from contest</button>` : "",
     ].filter(Boolean).join("");
     return `
@@ -1367,7 +1383,15 @@ window.withdrawContest130 = async (id, btn) => {
 window.getReel165 = async (id, btn) => {
   const email = ($("#mineEmail")?.value || "").trim();
   const label = "🎬 Get the reel";
-  if (btn) { btn.disabled = true; btn.textContent = "Making your reel… first one takes a few seconds"; }
+  /* Round 179: the button used to reset to "Get the reel" the
+     moment the download fired — after a long silent wait it read
+     as "nothing happened" (both youth testers). Now a finished
+     build lands on a READY state that stays: the label says the
+     reel is ready and tapping again re-serves it (the server
+     answers from its cache, so the second tap is fast). A play
+     already known ready skips the "Making…" label entirely. */
+  const wasReady179 = reelsReady179.has(id);
+  if (btn) { btn.disabled = true; if (!wasReady179) btn.textContent = "Making your reel… first one takes a few seconds"; }
   try {
     const r = await fetch(`/api/highlights/${id}/reel`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
     if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || "The reel couldn't be made right now."); }
@@ -1380,9 +1404,10 @@ window.getReel165 = async (id, btn) => {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    if (btn) { btn.disabled = false; btn.textContent = label; }
+    reelsReady179.add(id);
+    if (btn) { btn.disabled = false; btn.textContent = REEL_READY_LABEL179; }
   } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = label; btn.insertAdjacentHTML("afterend", `<p class="mine-find-msg">${esc(e.message)}</p>`); }
+    if (btn) { btn.disabled = false; btn.textContent = reelsReady179.has(id) ? REEL_READY_LABEL179 : label; btn.insertAdjacentHTML("afterend", `<p class="mine-find-msg">${esc(e.message)}</p>`); }
   }
 };
 $("#mineFind").addEventListener("submit", async (e) => {
@@ -1529,7 +1554,11 @@ function renderAll2() { /* All Hypes view */
   /* Round 162: an empty LANE gets its own honest line (no plays
      yet is a state, not a failed search); every other empty
      board keeps the generic line. */
-  emptyEl.textContent = laneOn162 && !filtered.length ? "No firsts or milestones yet — they'll show up here as families post them." : "No plays match — try a different board, sport, or search.";
+  /* Round 179: the empty-lane line names what the lane collects
+     (the heart kinds) and where Big Play lives instead — the
+     girl tester found a 🔥 Big Play tag on the board, opened
+     this lane, and read the old line as "nothing is tagged." */
+  emptyEl.textContent = laneOn162 && !filtered.length ? "No First Ever, Personal Best, Comeback, or Great Effort plays here yet — they show up as families tag their moments. 🔥 Big Play moments live on the main board." : "No plays match — try a different board, sport, or search.";
   const allTiles = filtered.map((h, i) => tileHtml(h, { rank: i + 1 }));
   /* Round 125→126: the mid-feed Hype Frame slot splices into
      the deck after the third tile of the filtered list (deck
@@ -1613,7 +1642,7 @@ function watchHtml107(h, entry) {
     </div>
     <div class="card-actions watch-actions">
       <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
-      ${h.isSample || (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
+      ${h.isSample ? "" : entry ? ENTERED_BTN179 : (!h.hasGuardianEmail && !ownerToken()) ? "" : `<button type="button" class="mini-btn" onclick="enterContest(${h.id}, this)">🏆 Enter this play</button>`}
       <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
       ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
       <button type="button" class="mini-btn" onclick="reportPlay(${h.id})">🚩 Report</button>
@@ -2550,7 +2579,16 @@ function syncFilterUI() {
      "other" division must not vanish from the dropdown. */
   const monthSports = sportsInData(CONTEST.entries || []);
   if (monthSport !== "all" && !monthSports.includes(monthSport)) monthSport = "all";
-  const allSports = sportsInData(ALL_PLAYS.filter((h) => divMatch(h, allDiv)));
+  /* Round 179 (2026-11-14, the girl tester's #1 fix): the board
+     sport list derives from ALL plays, exactly like the Round 132
+     month fix — it used to derive from the plays matching the
+     current DIVISION, so picking Softball and then tapping Boys
+     or Girls silently reset the sport to All Sports and showed
+     baseball. Sport and division now compose: changing one never
+     clears the other, and an empty combination is just an empty
+     board. The fallback below only fires when the sport has no
+     plays left ANYWHERE (its option is truly gone). */
+  const allSports = sportsInData(ALL_PLAYS);
   if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
   renderSportSelect($("#monthSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
   /* Round 134: the Hall of Fame's dropdown is the SAME shared
@@ -5142,13 +5180,15 @@ $$('a[href="/?view=all"]').forEach((a) => a.addEventListener("click", (e) => {
    champion only against a NEW challenger (never the clip it just
    beat — Emil's catch on the preview). Pairing prefers real
    same-sport Hype of the Month matchups, then same-sport sample
-   pairs, then mixed approved pairs. A pick casts a REAL vote only
-   when both contenders are current contest entries — via the same
-   vote endpoint the tiles use, and only when the voter has not
-   already voted for that play (a battle pick must never toggle a
-   vote OFF). Every pick also fires a battle_pick stat. Appended at
-   the end of app.js per the sandbox-slice rule; every element
-   lookup is guarded. */
+   pairs, then mixed approved pairs. Round 179 (2026-11-14,
+   Emil): battle picks are JUST FOR FUN — a pick records the
+   battle result and fires a battle_pick stat, and NEVER creates,
+   removes, or alters a Hype of the Month contest vote (Rounds
+   91–178 coupled a real-pair pick to a real vote, invisibly;
+   both testers flagged it as the site's #1 fairness issue).
+   Contest votes change only through the explicit Vote buttons.
+   Appended at the end of app.js per the sandbox-slice rule; every
+   element lookup is guarded. */
 const btl = { mode: "fresh", battle: 0, pairIdx: 0, flip: false, cur: { L: null, R: null }, watching: "L", champ: null, streak: 0, lastBeaten: null, picked: false, pairReal: false, built: false, deferMedia111: false };
 function btlPairs() {
   const bySport = (list) => { const m = new Map(); list.forEach((p) => { if (!m.has(p.sport)) m.set(p.sport, []); m.get(p.sport).push(p.id); }); return m; };
@@ -5182,14 +5222,18 @@ function btlMiniHTML(slot) {
      own Now watching tag is gone — the big player's banner is the
      single watching marker (the testers saw it said twice).
      Round 117: the Quick player's banner is retired too — the
-     .watching outline alone marks the clip in the big player. */
+     .watching outline alone marks the clip in the big player.
+     Round 179: NO winner crowns (crownsHtml105) on the minis —
+     a Quick matchup only ever renders UNPICKED, and pre-crowned
+     contenders read as "game already over" (both youth testers).
+     Crowns stay on the board, athlete pages and detail cards. */
   const letter = slot === "L" ? "A" : "B";
   return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
     <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${letter}</span>
     ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
     <span class="btl-stamp">👑 WINNER</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p></div>
   </article>`;
 }
 function btlRenderCount() {
@@ -5321,16 +5365,13 @@ async function btlPick(slot) {
   const skip = document.getElementById("btlSkip"); if (skip) skip.style.display = "none";
   const next = document.getElementById("btlNext"); if (next) next.classList.add("show");
   trackEvent("battle_pick", winnerId);
-  if (btl.pairReal) {
-    const w = findPlay(winnerId);
-    if (w && !w.hasVoted) {
-      w.hasVoted = true;
-      try {
-        await api(`/api/highlights/${winnerId}/vote`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ voterToken }) });
-        loadData().catch(() => {});
-      } catch { /* a failed vote never breaks the game */ }
-    }
-  }
+  /* Round 179: NO vote here anymore — a Quick Battle pick used
+     to post a real contest vote for the winner (when the pair
+     was real and the visitor hadn't voted yet), with nothing on
+     screen saying so. Decoupled at Emil's direction: battles are
+     just for fun; the Vote buttons are the only way a contest
+     vote changes. Battle results, percentages, streaks and
+     crowns below are untouched. */
   if (btl.mode === "stay") {
     btl.lastBeaten = loserId;
     if (btl.champ === winnerId) btl.streak++; else { btl.champ = winnerId; btl.streak = 1; }
@@ -5572,9 +5613,10 @@ function initBattles() {
    Daily Battle: ONE matchup per ET day (the same one the day's
    TikTok / Instagram "Which Play Wins?" post points at, deep link
    /?view=battles&daily=1). The split is hidden until you pick; the
-   pick is locked server-side (one per voter per day). A pick on a
-   real matchup also casts a normal contest vote (server-side,
-   never a toggle-off); practice (sample) picks cast nothing.
+   pick is locked server-side (one per voter per day). Round 179:
+   a pick — real or practice — casts NOTHING; battles are just
+   for fun and never touch contest votes (the Round 100–178
+   server-side vote coupling is removed).
    Battle Run: predict the crowd winner across five FINALIZED real
    Daily Battles you didn't play live; the end screen generates the
    share card (story 1080x1920 + feed 1080x1350) for Instagram /
@@ -5587,18 +5629,26 @@ function etTodayClient100() {
   const g = (t) => (parts.find((x) => x.type === t) || {}).value || "";
   return `${g("year")}-${g("month")}-${g("day")}`;
 }
-function d100MiniHTML(prefix, slot, p) {
+function d100MiniHTML(prefix, slot, p, opts) {
   if (!p) return "";
   /* Round 102: A/B letter chip (slot IS the letter here) and a
      Your pick tag that only the Daily card's .picked class
      reveals. Round 104: no Now watching tag on the mini — the big
-     player's banner is the single watching marker. */
+     player's banner is the single watching marker.
+     Round 179: winner crowns (crownsHtml105) render only when the
+     caller passes opts.crowns — an UNPICKED matchup wears none,
+     so the game never looks already decided (both youth testers
+     flagged the pre-crowned contenders). The Daily passes its
+     picked state (crowns return in the result state); Battle Run
+     passes false (its matchup is a guess until picked, and a
+     crown would leak the historical winner). */
+  const crowns179 = opts && opts.crowns && typeof crownsHtml105 === "function" ? crownsHtml105(p) : "";
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
     <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
-    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(p) : ""}</div>
+    <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${crowns179}</div>
   </article>`;
 }
 function d100Watch(prefix, slot, play) {
@@ -5620,17 +5670,22 @@ function d100Watch(prefix, slot, play) {
   /* Round 119: same black-intro offset seek as btlWatch. */
   if (typeof btlSeekOffset119 === "function") btlSeekOffset119(player);
   const label = document.getElementById(prefix + "NowLabel");
-  if (label) label.textContent = "Now watching: " + play.title + (typeof crownSuffix105 === "function" ? crownSuffix105(play) : "");
+  /* Round 179: the watching label's crown suffix follows the
+     same rule as the minis — it names a contender's crown only
+     once the matchup is picked (Daily, after your pick); on an
+     unpicked matchup (and always in Battle Run) it stays off. */
+  const crownOk179 = prefix === "daily" && typeof d100 !== "undefined" && d100.daily && !!d100.daily.yourPick;
+  if (label) label.textContent = "Now watching: " + play.title + (crownOk179 && typeof crownSuffix105 === "function" ? crownSuffix105(play) : "");
   if (typeof btlPlayBig118 === "function") btlPlayBig118(player, false); else { try { player.play(); } catch { /* autoplay refusal is fine */ } }
 }
-function d100WireMatchup(prefix, plays, onWatch) {
+function d100WireMatchup(prefix, plays, onWatch, opts) {
   const matchup = document.getElementById(prefix + "Matchup");
   if (!matchup) return;
   /* Round 111: same pooled-media path as the Quick Battles render
      (Daily + Battle Run media is always eager — it is either the
      top card or a run the visitor just started). */
   if (typeof btlRetireMatchup111 === "function") btlRetireMatchup111(matchup);
-  matchup.innerHTML = d100MiniHTML(prefix, "A", plays.A) + '<div class="btl-vs">VS</div>' + d100MiniHTML(prefix, "B", plays.B);
+  matchup.innerHTML = d100MiniHTML(prefix, "A", plays.A, opts) + '<div class="btl-vs">VS</div>' + d100MiniHTML(prefix, "B", plays.B, opts);
   if (typeof btlInstallMedia111 === "function") btlInstallMedia111(matchup, { eager: true });
   matchup.querySelectorAll(".btl-mini").forEach((el) => {
     el.addEventListener("click", () => onWatch(el.dataset.slot));
@@ -5691,7 +5746,9 @@ async function loadDaily100() {
   if (strip) strip.hidden = true;
   if (practice) practice.hidden = !r.practice;
   if (dateEl) dateEl.textContent = r.date;
-  d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); });
+  /* Round 179: crowns ride the minis only once the visitor has
+     picked (the result state) — never on the unpicked matchup. */
+  d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); }, { crowns: !!r.yourPick });
   const pickA = document.getElementById("dailyPickA"), pickB = document.getElementById("dailyPickB");
   const split = document.getElementById("dailySplit");
   const anotherRow = document.getElementById("dailyAnotherRow");
@@ -5729,7 +5786,7 @@ async function loadDaily100() {
       if (wmA) wmA.classList.toggle("watching", wSlot === "A");
       if (wmB) wmB.classList.toggle("watching", wSlot === "B");
       const wLabel = document.getElementById("dailyNowLabel");
-      if (wLabel) { const wp = wSlot === "A" ? r.a : r.b; wLabel.textContent = "Now watching: " + wp.title + (typeof crownSuffix105 === "function" ? crownSuffix105(wp) : ""); }
+      if (wLabel) { const wp = wSlot === "A" ? r.a : r.b; wLabel.textContent = "Now watching: " + wp.title + (r.yourPick && typeof crownSuffix105 === "function" ? crownSuffix105(wp) : ""); }
     }
   }
   if (d100.scrollDaily) {
@@ -5812,7 +5869,9 @@ function runRender100() {
   st.picked = false;
   const step = document.getElementById("runStep");
   if (step) step.textContent = `Matchup ${st.idx + 1} of ${st.matchups.length} · ${m.date} — who won the crowd?`;
-  d100WireMatchup("run", { A: m.a, B: m.b }, (slot) => d100Watch("run", slot, slot === "A" ? m.a : m.b));
+  /* Round 179: no crowns on a Run matchup — it is unpicked by
+     design, and a crown chip would leak the historical winner. */
+  d100WireMatchup("run", { A: m.a, B: m.b }, (slot) => d100Watch("run", slot, slot === "A" ? m.a : m.b), { crowns: false });
   const pA = document.getElementById("runPickA"), pB = document.getElementById("runPickB");
   if (pA) { pA.disabled = false; pA.textContent = "👑 This one won"; }
   if (pB) { pB.disabled = false; pB.textContent = "👑 This one won"; }
@@ -6226,11 +6285,20 @@ function renderStreak105() {
     if (!r || !r.available) { line.hidden = true; line.textContent = ""; }
     else if (r.practice && r.yourPick) { line.textContent = "Practice pick — streaks start with the first real Daily Battle."; line.hidden = false; }
     else if (r.practice) { line.textContent = "Practice matchup — streaks start with the first real Daily Battle."; line.hidden = false; }
+    /* Round 179: a fresh pick with no finalized days behind it
+       never presents a bare "Your streak: 0" as the reward (both
+       youth testers read it as "my pick didn't count") — confirm
+       the pick and say when it counts instead. A streak of 1+
+       keeps the count line below. */
+    else if (r.yourPick && n === 0) { line.textContent = "✓ Pick locked in — tonight's winner is crowned at day's end; your streak counts finalized days."; line.hidden = false; }
     else if (r.yourPick) { line.textContent = `Your streak: ${n} 🔥 — pick tomorrow's winner to keep it going`; line.hidden = false; }
     else { line.textContent = "Pick today's winner to start your streak 🔥"; line.hidden = false; }
   }
   const stripStreak = document.getElementById("dailyStripStreak");
-  if (stripStreak) stripStreak.textContent = r && r.available && !r.practice && r.yourPick ? ` · 🔥 ${r.streak ? (r.streak.current || 0) : 0}` : "";
+  /* Round 179: the collapsed strip carries the count only once
+     it is 1+ — a "· 🔥 0" chip is the same bare-zero problem in
+     miniature. */
+  if (stripStreak) stripStreak.textContent = r && r.available && !r.practice && r.yourPick && (r.streak ? (r.streak.current || 0) : 0) >= 1 ? ` · 🔥 ${r.streak ? (r.streak.current || 0) : 0}` : "";
   const block = document.getElementById("dailyTop105"), list = document.getElementById("dailyTopList");
   if (block && list) {
     const top = r && Array.isArray(r.topPickers) ? r.topPickers : [];
@@ -6249,13 +6317,50 @@ if (typeof loadDaily100 === "function") {
   };
 }
 
+/* Round 179 (2026-11-14): the first Quick Battle of a session
+   must not be today's Daily Battle pair re-dealt — both youth
+   testers hit the identical matchup back-to-back and read it as
+   copy-paste. The Daily payload lands AFTER the first Quick deal
+   (initBattles deals, then loadDaily100 fetches), so the check
+   rides loadDaily100: the first time a daily payload is on hand
+   and Battles is built with an untouched deal showing, if the
+   dealt pair IS the daily pair (either order) and another real
+   pair exists, advance one pair and re-deal. Once per session;
+   a challenge landing (?challenge=) deals its pair on purpose
+   and is never overridden; a pick already made locks the deal. */
+let btlDailyChecked179 = false;
+function btlAvoidDailyPair179() {
+  if (btlDailyChecked179) return;
+  if (typeof btl === "undefined" || !btl.built || btl.picked) return;
+  const d = (typeof d100 !== "undefined" && d100.daily) || null;
+  if (!d) return; // daily not loaded yet — a later load re-checks
+  btlDailyChecked179 = true;
+  if (!d.available || !d.a || !d.b) return; // no daily today — nothing to avoid
+  try { if (new URLSearchParams(location.search).get("challenge")) return; } catch { /* no URL to read — proceed */ }
+  if (!btl.cur || !btl.cur.L || !btl.cur.R) return;
+  if (!((btl.cur.L === d.a.id && btl.cur.R === d.b.id) || (btl.cur.L === d.b.id && btl.cur.R === d.a.id))) return;
+  const { pairs } = btlPairs();
+  if (!pairs || pairs.length < 2) return; // no alternative pair exists — unavoidable
+  btl.pairIdx = (btl.pairIdx + 1) % pairs.length;
+  btlDealFresh();
+  btlRender();
+}
+if (typeof loadDaily100 === "function") {
+  const origLoadDaily179 = loadDaily100;
+  loadDaily100 = async function (...args) {
+    const out = await origLoadDaily179.apply(this, args);
+    try { btlAvoidDailyPair179(); } catch { /* a re-deal must never break the Daily */ }
+    return out;
+  };
+}
+
 /* Feature 2: challenge a friend — the share carries THIS matchup's
    two play ids; the landing (below) rebuilds the exact pair in
    the Fresh Pairs stage. navigator.share where the device offers
    it, copy-link fallback with inline feedback (the dailyShare100
-   pattern). Pick rules on the landing are the stock ones: a real
-   pair (both plays are live contest entries) casts real votes via
-   btlPick; anything else is practice. */
+   pattern). Pick rules on the landing are the stock ones — and
+   since Round 179 every battle pick is just for fun: no pick,
+   challenge pairs included, ever casts a contest vote. */
 async function btlShare105() {
   const L = typeof btl !== "undefined" && btl.cur ? btl.cur.L : null;
   const R = typeof btl !== "undefined" && btl.cur ? btl.cur.R : null;
