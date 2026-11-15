@@ -7244,6 +7244,17 @@ try {
      Story marked aria-current. The page's one inline
      script is the menu toggle, so the r173 "no script at
      all" guard below now reads "no external script".
+     Round 178: two more Emil cuts — "for the moment
+     that mattered most" leaves the what-it-is paragraph
+     (all the moments matter; crowning one above the
+     rest contradicts the brand), and "The dunk in the
+     driveway, with no witnesses at all." leaves the
+     every-kid list (the dunk is already the whole
+     origin story — naming it again is too much). NOTE:
+     "somebody's dunk in the driveway" in the driveway-
+     got-bigger paragraph is a different construction
+     and stays untouched; the r178 absence guard below
+     targets the deleted sentence.
      ==================================================== */
   {
     const aboutSrc173 = fs.readFileSync(path.join(root, "public", "about.html"), "utf8");
@@ -7293,6 +7304,11 @@ try {
     const iBig175 = about173.indexOf("driveway got bigger");
     const iBand175 = about173.indexOf("Every athlete deserves the hype");
     assert(iFam175 > -1 && iEmo175 > iFam175 && iBig175 > iEmo175 && iBand175 > iBig175, "r175 order: family paragraph → emotional-scope paragraph → the driveway got bigger → mission band");
+    // ---- Round 178: two cuts — no moment crowned above the rest, and the dunk named once (in the origin story) ----
+    assert(!/mattered most/i.test(about173), "r178 cuts: \"mattered most\" appears nowhere on the page — all the moments matter, none crowned above the rest");
+    assert(!about173.includes("The dunk in the driveway, with no witnesses at all."), "r178 cuts: the every-kid list no longer re-names the dunk — the sentence \"The dunk in the driveway, with no witnesses at all.\" is gone");
+    assert(about173.includes("with one athlete crowned every month. And because a play is never just a play"), "r178 cuts: the what-it-is sentence now ends at \"crowned every month.\" and the paragraph continues untouched");
+    assert(about173.includes("buried in a camera roll by Monday morning. Those moments don't need a stadium."), "r178 cuts: the buzzer-beater now leads straight into \"Those moments don't need a stadium.\"");
     assert(about173.includes('href="/"') && about173.includes(">Watch Highlights</a>"), "r173 cta: Watch Highlights (ghost) links home");
     // ---- portrait ----
     assert(about173.includes('src="/about-nicholas.jpg?v=174"'), "r173b portrait: the hero references /about-nicholas.jpg with its ?v=174 pin");
