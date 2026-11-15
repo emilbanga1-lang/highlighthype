@@ -1054,6 +1054,63 @@ function moderateQueuePage(rows, token, message = "", liveRows = []) {
 }
 function sendHtml(res, code, html) { res.writeHead(code, { "content-type": "text/html; charset=utf-8" }); res.end(html); }
 function currentPeriod() { return new Date().toISOString().slice(0, 7); } // YYYY-MM
+// ---- Round 182 (2026-11-14): contest integrity rules ----
+// Emil decided ("Adopt all three") after the 2026-11-14 fairness
+// review verified in this code that a repeat winner was possible:
+// (1) a play can win Hype of the Month ONCE — once it stands in
+// contest_winners for any period it is retired and can never be
+// entered again (the play itself is untouched: it stays on the
+// board, votable, frameable — only the contest door closes);
+// (2) the winning ATHLETE sits out the next month — none of
+// their plays (athlete_id, the stable identity, never the name
+// string) can be entered in the month right after their win;
+// the board is never blocked, only the contest, and they are
+// fully eligible again the month after; (3) same clip = same
+// play — the upload dedupe (Round 145) extends from its
+// 30-minute retry window to all time against LIVE plays (see
+// the upload handler). The source of truth for (1) and (2) is
+// the contest_winners table the winner endpoint writes and
+// /api/contest reads — no new tables, no migration: with the
+// table empty (November 2026 has no finalized winner yet) every
+// check below simply answers "no block".
+function prevPeriod182(period) {
+  const m = /^(\d{4})-(\d{2})$/.exec(String(period || ""));
+  if (!m) return "";
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+// The athlete_id of the play that won `period` (null when the
+// period has no recorded winner, or its play is gone).
+function contestWinnerAthlete182(period) {
+  if (!period) return null;
+  const w = db.prepare("SELECT highlight_id FROM contest_winners WHERE period=?").get(period);
+  if (!w) return null;
+  const row = db.prepare("SELECT athlete_id FROM highlights WHERE id=?").get(w.highlight_id);
+  return row ? (row.athlete_id || null) : null;
+}
+function contestRetired182(playId) {
+  return !!db.prepare("SELECT 1 FROM contest_winners WHERE highlight_id=?").get(playId);
+}
+function contestSitOutFor182(row, period) {
+  if (!row || !row.athlete_id) return false;
+  const winnerAthlete = contestWinnerAthlete182(prevPeriod182(period));
+  return !!winnerAthlete && row.athlete_id === winnerAthlete;
+}
+// contestBlock182(row, period) -> null when the play may enter
+// `period`, else { reason, message } with the guardian-facing
+// words (the client renders the same states from the payload
+// flags). Retired is checked first: a past winner is retired in
+// every month, its sit-out month included. Every entry path —
+// auto-entry on approval, the manual enter endpoint, the
+// one-time retro-entry — consults this one function.
+function contestBlock182(row, period) {
+  if (!row) return null;
+  if (contestRetired182(row.id))
+    return { reason: "retired", message: "This play already won Hype of the Month — winning plays retire to the Hall of Fame and can't enter again." };
+  if (contestSitOutFor182(row, period))
+    return { reason: "sitout", message: "Champions sit out this month after a win — this athlete won last month, so their plays sit this one out and are back next month." };
+  return null;
+}
 // Round 130 (2026-11-13): contest auto-entry on approval. A play
 // whose guardian left the upload form's contest box checked
 // (contest_optin=1) is entered into the APPROVAL month's contest
@@ -1068,10 +1125,20 @@ function currentPeriod() { return new Date().toISOString().slice(0, 7); } // YYY
 // eligibility is untouched: an entered play with no reachable
 // guardian simply stays prize-ineligible, exactly as a manually
 // entered one does. Returns true when a row was inserted.
+// →182: a fifth guard rides inside — the Round 182 integrity
+// rules (retired winner / athlete sit-out) skip the entry while
+// leaving the approval itself untouched.
 function autoEnterOnApproval130(row) {
   if (!row || row.status !== "approved" || row.is_sample || !row.contest_optin) return false;
   const period = currentPeriod();
   if (db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(row.id, period)) return false;
+  // Round 182: the integrity rules gate auto-entry too — a
+  // retired play, or a play whose athlete is sitting this month
+  // out, is silently SKIPPED: the play still approves and posts
+  // to the board exactly as before; only the contest entry is
+  // withheld, and the log line says why.
+  const block182 = contestBlock182(row, period);
+  if (block182) { console.log(`[r182] auto-entry skipped for play ${row.id} into ${period}: ${block182.reason} (Round 182 contest integrity)`); return false; }
   db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(row.id, period);
   console.log(`[r130] auto-entered play ${row.id} into Hype of the Month ${period} on approval (upload opt-in)`);
   return true;
@@ -1635,6 +1702,16 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
   // either way — the stat_events 'play_open' rows POST /api/track
   // already records when a play is opened.
   const views151 = viewsMap151 ? (viewsMap151.get(row.id) || 0) : playViews105(row.id);
+  // Round 182: the contest-integrity states for THIS play,
+  // computed from the same contest_winners table /api/contest
+  // reads — contestRetired (this play has won a month, ever)
+  // and contestSitOut (this play's athlete won last month, so
+  // their plays sit the current month out). Booleans only, and
+  // nothing private: a month's winner is already public on the
+  // Month board. The client renders both as informational
+  // states in place of the Enter control.
+  const retired182 = contestRetired182(row.id);
+  const sitOut182 = contestSitOutFor182(row, currentPeriod());
   return {
     id: row.id,
     title: row.title,
@@ -1696,6 +1773,9 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     battleWins: battleWins105(row.id),
     voteCount: voteCount(row.id),
     hasVoted: voterToken ? !!db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(row.id, voterToken, currentPeriod()) : false,
+    // Round 182: see the computation above publicHighlight's return.
+    contestRetired: retired182,
+    contestSitOut: sitOut182,
   };
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
@@ -2371,11 +2451,17 @@ function r130RunMigration() {
     if (getSetting(R130_MIGRATION_KEY)) return;
     const period = "2026-11";
     for (const id of [50, 51]) {
-      const row = db.prepare("SELECT id, status, is_sample FROM highlights WHERE id=?").get(id);
+      const row = db.prepare("SELECT id, status, is_sample, athlete_id FROM highlights WHERE id=?").get(id);
       if (!row) { console.log(`[r130] retro-entry: play ${id} not found — skipped`); continue; }
       if (row.status !== "approved") { console.log(`[r130] retro-entry: play ${id} is ${row.status}, not approved — skipped`); continue; }
       if (row.is_sample) { console.log(`[r130] retro-entry: play ${id} is a sample — skipped`); continue; }
       if (db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period)) { console.log(`[r130] retro-entry: play ${id} already entered for ${period} — skipped`); continue; }
+      // Round 182: the integrity rules guard this third entry
+      // path too. (Both plays predate any recorded winner, so
+      // this never fires in practice — the guard keeps the path
+      // honest by construction rather than by assumption.)
+      const block182 = contestBlock182(row, period);
+      if (block182) { console.log(`[r130] retro-entry: play ${id} blocked by Round 182 (${block182.reason}) — skipped`); continue; }
       db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
       console.log(`[r130] retro-entry: play ${id} entered into Hype of the Month ${period} (owner direction, 2026-11-13)`);
     }
@@ -2913,6 +2999,13 @@ const server = http.createServer(async (req, res) => {
           team: r.team || "",
           status: r.status,
           inContest: r.status === "approved" ? !!db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(r.id, period) : false,
+          // Round 182: the guardian's own contest-integrity
+          // states — My Plays shows the winner / sit-out chip
+          // from these instead of leaving a family to wonder
+          // why a play can't be entered. Same helpers the
+          // public payload uses, so the two surfaces can't drift.
+          contestRetired: contestRetired182(r.id),
+          contestSitOut: contestSitOutFor182(r, period),
           // Round 165: a reel exists only for an approved play
           // with a local video file — My Plays renders the
           // "Get the reel" button from this flag, and the reel
@@ -3146,6 +3239,20 @@ const server = http.createServer(async (req, res) => {
         mediaHash145 = crypto.createHash("sha256").update(file.data).digest("hex");
         const dup145 = db.prepare("SELECT id, status, athlete_tag FROM highlights WHERE media_hash=? AND created_at >= datetime('now','-30 minutes') ORDER BY id DESC LIMIT 1").get(mediaHash145);
         if (dup145) return sendJson(res, 200, { ok: true, deduped: true, id: dup145.id, status: dup145.status, athlete_tag: dup145.athlete_tag || "", message: "This clip is already in — no need to post it twice." });
+        // Round 182: same clip = same play, ALL-TIME. Past the
+        // 30-minute retry window, a byte-match against a LIVE
+        // play (pending or approved) of ANY age gets the same
+        // answer — the clip is already on the board (or in the
+        // queue) as that play, whoever is re-posting it and
+        // however long ago it landed. Trashed or declined
+        // (hidden) originals do NOT block: remove the original
+        // and the clip can be posted again (a permanently
+        // deleted original leaves no row to match at all). The
+        // hash is the stored Round 145 media_hash, so no new
+        // data is needed; NULL hashes (link plays) never match,
+        // exactly as before.
+        const dup182 = db.prepare("SELECT id, status, athlete_tag FROM highlights WHERE media_hash=? AND status IN ('pending','approved') ORDER BY id DESC LIMIT 1").get(mediaHash145);
+        if (dup182) return sendJson(res, 200, { ok: true, deduped: true, id: dup182.id, status: dup182.status, athlete_tag: dup182.athlete_tag || "", message: "This clip is already in — no need to post it twice." });
         if (storageIsFull()) return sendJson(res, 507, { ok: false, message: "Storage is full right now — please try again later." });
         const name = `${Date.now()}-${crypto.randomBytes(6).toString("hex")}.${ext}`;
         fs.writeFileSync(path.join(UPLOAD_DIR, name), file.data);
@@ -3536,6 +3643,14 @@ const server = http.createServer(async (req, res) => {
       }
       const dup = db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(id, period);
       if (dup) return sendJson(res, 200, { ok: false, alreadyEntered: true, message: "This play is already entered in Hype of the Month." });
+      // Round 182: the integrity rules — a play that already won
+      // is retired for good, and last month's winning athlete
+      // sits this month out. Refused here in the same plain
+      // words the client renders as disabled states (the payload
+      // flags contestRetired / contestSitOut), with the reason
+      // distinguished for the client and the tests.
+      const block182 = contestBlock182(row, period);
+      if (block182) return sendJson(res, 400, { ok: false, reason182: block182.reason, message: block182.message });
       const info = db.prepare("INSERT INTO contest_entries(highlight_id,period) VALUES(?,?)").run(id, period);
       return sendJson(res, 201, { ok: true, entryId: Number(info.lastInsertRowid), period, message: "🏆 Entered! Good luck." });
     }
