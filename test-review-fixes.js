@@ -7223,7 +7223,7 @@ try {
      only — the family LAST NAME appears nowhere on the
      page. Isolation mirrors /demo: standalone markup,
      self-contained CSS, no app assets, no /api, no
-     tracking — and no script at all. Round 175:
+     tracking — and (until R177's menu toggle) no script. Round 175:
      reviewer-driven story edits, mapping confirmed by
      Emil — two sentences cut ("The rim was lowered,
      sure. But a dunk is a dunk." and "Read that again,
@@ -7237,6 +7237,13 @@ try {
      wordmark) replaced with the real header lockup
      (/logo-header-gold.png?v=119) — Emil flagged the
      mismatch on his phone; the footer crest stays.
+     Round 177: the top bar gains the homepage's ☰ menu
+     (Emil: the page needs a way to navigate back) — the
+     same seven doors in the same order as plain anchors,
+     Hype Frame pointing home where its studio lives, Our
+     Story marked aria-current. The page's one inline
+     script is the menu toggle, so the r173 "no script at
+     all" guard below now reads "no external script".
      ==================================================== */
   {
     const aboutSrc173 = fs.readFileSync(path.join(root, "public", "about.html"), "utf8");
@@ -7254,6 +7261,19 @@ try {
     assert(about173.includes(".about-brand173 img{height:30px;width:auto}"), "r176 header: the lockup is styled for the top bar — height 30px, width auto (~161px wide at the lockup's 1280x238 ratio)");
     assert(!about173.includes("about-wordmark173"), "r176 header: the R173 typed-wordmark stand-in (about-wordmark173) appears nowhere on the page — the span and its CSS rules are both gone");
     assert(about173.includes('<img src="/crest-watermark.png?v=169" alt="HighlightHype crest" />'), "r176 scope: the FOOTER crest on the About page is unchanged — Emil flagged the header only");
+    // ---- Round 177: the ☰ menu — the same seven doors as the homepage menu, same order ----
+    assert(about173.includes('<button type="button" class="about-menu-btn177" id="aboutMenuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="aboutNavMenu">☰</button>'), "r177 menu: the top bar carries the ☰ button (about-menu-btn177 / aboutMenuBtn), wired to the panel with aria-expanded starting false");
+    assert(about173.includes('<nav class="about-nav-menu177" id="aboutNavMenu" aria-label="Sections" hidden>'), "r177 menu: the dropdown panel (about-nav-menu177 / aboutNavMenu) exists and starts hidden");
+    const iPanel177 = about173.indexOf('id="aboutNavMenu"');
+    const panel177 = about173.slice(iPanel177, about173.indexOf("</nav>", iPanel177));
+    const hrefs177 = ['href="/?view=all"', 'href="/my-highlights"', 'href="/how-it-works"', 'href="/stories"', 'href="/about"', 'href="/"', 'href="/store"'];
+    let lastIdx177 = -1, orderOk177 = true;
+    for (const h177 of hrefs177) { const ix177 = panel177.indexOf(h177, lastIdx177 + 1); if (ix177 === -1) { orderOk177 = false; break; } lastIdx177 = ix177; }
+    assert(orderOk177, "r177 menu: the seven hrefs appear inside the panel in the homepage order — All Hypes, My Plays, How it works, Hype Stories, Our Story, Hype Frame, Swag Shop");
+    assert(panel177.includes('<a href="/">📸 Hype Frame</a>'), "r177 menu: Hype Frame's href is exactly \"/\" — the studio lives on the homepage (Emil's approved mapping)");
+    assert(panel177.includes('<a href="/about" aria-current="page">Our Story</a>'), "r177 menu: Our Story carries aria-current=\"page\"");
+    assert(panel177.includes('<a class="about-nav-swag177" href="/store">Swag Shop — Rep The Hype</a>'), "r177 menu: Swag Shop carries the emphasis treatment mirroring the homepage .nav-swag");
+    assert((aboutSrc173.match(/<script/g) || []).length === 1 && !aboutSrc173.includes("<script src"), "r177 menu: the page's only script is the one inline ☰ toggle — no external script loads");
     // ---- the approved story, verbatim (the H1 is sentence-case in markup, uppercased by CSS — the /demo convention; body prose stays normal case) ----
     for (const s173b of ["Our Story", "It started in the driveway", "It happened in the driveway. Just Nicholas, a basketball, and a hoop he'd been attacking all afternoon.", "Then — finally — he did it. His first dunk.", "There was nobody here to see it.", "The play of his life — and its only witness was the driveway.", "What if everyone could have seen that… and voted on how cool it was?", "And the second his feet hit the pavement, he had the thought every kid who's ever made a great play has had:", "Post the play. Everybody watches. Everybody votes. That wasn't a business plan", "it was a 9-year-old in a driveway", "His cousin Nicole dreamed up turning a kid's best frame into illustrated art.", "tagging out a runner sliding in at home", "and say that was cool.", "And not just the wins — all of it.", "The loss that stings for a week", "The underdog who refused to quit", "Sports are emotional — that's exactly why they matter.", "the tears and the lessons count right alongside the trophies", "Every athlete deserves the hype.", "you can mark what it was: a first ever, a personal best, a comeback — even a great effort in a game you lost.", "the moment matters as much as the highlight.", "Every play is reviewed by a real person before it goes live, and a parent or guardian is always in control.", "Your kid's driveway moment is coming.", "Your moment. Your hype.", "HighlightHype — built by a baseball family in Plainview, NY."]) {
       assert(about173.includes(s173b), `r173b story: the page carries "${s173b}"`);
@@ -7285,7 +7305,7 @@ try {
     // ---- isolation, the /demo posture ----
     assert(!aboutSrc173.includes("/api/"), "r173 isolation: about.html never references the API");
     assert(!aboutSrc173.includes("app.js") && !aboutSrc173.includes("styles.css"), "r173 isolation: about.html loads no app JS or CSS");
-    assert(!aboutSrc173.includes("<script"), "r173 isolation: about.html carries no script at all");
+    assert(!aboutSrc173.includes("<script src"), "r173 isolation → r177: about.html loads no external script — its only script is the inline ☰ toggle (guarded in the r177 block above)");
     assert(!aboutSrc173.includes('<img src="http'), "r173 isolation: no external images — every image is a same-origin asset");
     // ---- Round 174: Emil approved linking (☰ menu + footer) ----
     assert(home.includes('"/about"') && !home.includes("about.html"), "r174 posture: the homepage now links to /about by its clean route (☰ menu + footer — §83 guards both) — and still never to the raw about.html file");
