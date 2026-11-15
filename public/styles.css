@@ -3543,3 +3543,30 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
 .mine-play-main{overflow-wrap:break-word}
 .mine-play-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .mine-play-actions .mine-find-msg{flex:1 1 100%;margin:4px 0 0}
+
+/* ================================================================
+   Round 180 (2026-11-14, Emil: "the hype frame video can be a
+   little bigger with the wording made smaller and moved to the
+   right"): the mid-feed strip rebalances toward the film. The
+   Round 148 band gave the film 40% of the card (38% on phones)
+   beside a full-size copy column; the film now takes 58.5% and
+   the copy steps down a size in the narrower right column —
+   eyebrow 11→10px, headline 17→15px (16→14px on phones), the
+   steps line 11.5→10.5px, the Create button 13.5→12.5px with
+   a trimmer pad (its 38px min-height — the tap target — stays).
+   The 16:9 film box follows its container, so the card grows
+   a little taller. Wording, order, the openHfChoice
+   destination and the film itself are unchanged; the Store's
+   Hype Frame section keeps its own layout. On desktop the
+   film caps at 380px so the card never balloons past the
+   board column's reading width.
+   ================================================================ */
+.hf-strip-film126{flex-basis:58.5%;max-width:380px}
+.hf-strip-tag126{font-size:10px}
+.hf-strip-lockup126 b{font-size:15px}
+.hf-strip-stepsline126{font-size:10.5px}
+.hf-strip-btn126{font-size:12.5px;padding:7px 13px}
+@media (max-width:560px){
+  .hf-strip-film126{flex-basis:58.5%}
+  .hf-strip-lockup126 b{font-size:14px}
+}
