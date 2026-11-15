@@ -2918,6 +2918,12 @@ const server = http.createServer(async (req, res) => {
           // "Get the reel" button from this flag, and the reel
           // endpoint re-checks the same rule server-side.
           canReel: r.status === "approved" && r.media_kind === "file" && String(r.mime || "").startsWith("video/"),
+          // Round 179: whether a finished reel is already cached
+          // for this play (the exact r165CachedPath check the reel
+          // endpoint makes) — My Plays renders its ready state
+          // from this, so a returning guardian sees "ready"
+          // instead of sitting through a fake generation wait.
+          reelReady: r.status === "approved" ? !!r165CachedPath(r) : false,
           created_at: r.created_at,
         }));
       }
@@ -3385,19 +3391,14 @@ const server = http.createServer(async (req, res) => {
       const existing = db.prepare("SELECT pick_id FROM daily_battle_picks WHERE daily_id=? AND voter_token=?").get(row.id, voter);
       if (!existing) {
         try { db.prepare("INSERT INTO daily_battle_picks(daily_id,voter_token,pick_id) VALUES(?,?,?)").run(row.id, voter, pickId); } catch { /* lost a race — the stored pick stands */ }
-        // A pick on a REAL matchup also casts a normal vote for the
-        // chosen play when it is a current contest entry and the
-        // voter has not already voted for it this period. The check
-        // + insert (never a delete) is what guarantees a daily pick
-        // can NEVER toggle a vote off — the Round 91 safeguard.
-        if (dailyIsReal(row)) {
-          const period = currentPeriod();
-          const entered = db.prepare("SELECT 1 FROM contest_entries WHERE highlight_id=? AND period=?").get(pickId, period);
-          const voted = db.prepare("SELECT 1 FROM votes WHERE highlight_id=? AND voter_token=? AND (period IS NULL OR period=?)").get(pickId, voter, period);
-          if (entered && !voted) {
-            try { db.prepare("INSERT INTO votes(highlight_id,voter_token,created_at,period) VALUES(?,?,datetime('now'),?)").run(pickId, voter, period); } catch { /* vote already on file */ }
-          }
-        }
+        // Round 179 (2026-11-14, Emil — the youth testers' #1
+        // fairness flag): battles are JUST FOR FUN. A daily pick
+        // records the pick and nothing else — it never creates,
+        // removes, or alters a Hype of the Month contest vote.
+        // (Rounds 91–178 coupled a real-matchup pick to a normal
+        // vote insert, invisibly to the picker; that coupling is
+        // removed here and in the client's btlPick. Contest votes
+        // change ONLY through the explicit vote endpoints.)
       }
       return sendJson(res, 200, dailyPayload(row, voter));
     }
