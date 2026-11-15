@@ -647,7 +647,15 @@ function avatarDisc153(h) {
    whose counts cannot truncate, and the Vote button as a
    solid lime pill (the variant's form, no crown in its label —
    crowns still live in the badge/crown rows and the sample
-   chip). */
+   chip).
+   Round 181 (2026-11-14): VARIANT A, Emil's pick of the card
+   mocks — the badge / moment / crown rows and the votes row
+   merge into ONE action row (.tile-actrow181): the chips
+   cluster left (.tile-chips181, internal wrap allowed), the
+   Vote + Frame buttons right at their current sizes. The
+   stacked rows cost the card ~69px of dead space under every
+   play; the row gives it back. Samples keep the display-only
+   chip in the buttons' slot, as ever. */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
@@ -664,12 +672,12 @@ function tileHtml(h, opts = {}) {
           ${tileInfoHtml(h, votes, voteLabel)}
         </div>
       </div>
-      ${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}
-      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
-      ${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}
-      <div class="tile-votes">
-        ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
-        <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
+      <div class="tile-actrow181">
+        <div class="tile-chips181">${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}${typeof momentChip162 === "function" ? momentChip162(h) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}</div>
+        <div class="tile-votes">
+          ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
+          <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
+        </div>
       </div>
     </div>
   </article>`;
@@ -2446,19 +2454,34 @@ function goHome() {
   showHome();
   showPanel("plays");
   /* Round 132 (2026-11-13): the logo is the way back to the
-     board from ANY tab — activate the Watch view and park at
-     the board's top, exactly like a Watch tab tap. Before, the
+     board from ANY tab — activate the Watch view. Before, the
      tap only scrolled: from the Month tab the Month panel
      stayed on screen, so the tap read as dead there. */
   switchView("all");
-  scrollBoardIntoView122();
-  if (location.hash.startsWith("#hype-frame")) history.replaceState(history.state, "", "#top");
+  /* Round 181 (2026-11-14, Emil): "When you click the
+     highlighthype in the header when on another page it
+     doesn't bring you to the top." The R132 landing parked at
+     the BOARD (scrollBoardIntoView122) — below the hero — so
+     from any other view the tap landed mid-page, not at the
+     top. The logo means the TOP of the homepage (this reset's
+     original 2026-11-04 contract): scroll to 0, now and again
+     on the next frame so a settling layout can't strand the
+     landing. Back keeps its Round 139 restore — only the
+     logo resets. A deep-link hash that would resurrect a
+     view on the next data refresh (a play, an athlete, the
+     studio) is dropped to #top — the closePlayDetail
+     precedent — and the R139 record then pushes the board
+     entry wearing the clean URL. */
+  window.scrollTo(0, 0);
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => window.scrollTo(0, 0));
+  if (location.hash.startsWith("#hype-frame") || /^#(?:play|watch)-\d+$/.test(location.hash) || location.hash.startsWith("#athlete-")) history.replaceState(history.state, "", "#top");
 }
 $$("[data-store-link]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); closeMenu(false); showStore(a.dataset.storeTarget || null); }));
 $$("[data-home-link]").forEach((b) => b.addEventListener("click", () => goHome()));
 /* Round 132: preventDefault — the anchor's href="#top" jump
-   targets the hero and would override goHome's board parking
-   a beat later; goHome alone decides where a logo tap lands. */
+   targets the hero and would override goHome's landing
+   a beat later; goHome alone decides where a logo tap lands
+   (→181: that landing is the page top — see goHome). */
 $$(".brand").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); goHome(); }));
 window.addEventListener("hashchange", () => {
   /* Round 139: a hashchange that arrives with a history
