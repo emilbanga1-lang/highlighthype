@@ -18,7 +18,9 @@
      (2026-11-14): the top bar's stand-in crest + typed
      wordmark replaced with the real header lockup
      (/logo-header-gold.png?v=119), the same art the main
-     header carries. -->
+     header carries. Round 177 (2026-11-14): the top bar
+     gains the homepage's ☰ menu — the same seven doors in
+     the same order — so the page is no longer a dead end. -->
 <meta name="robots" content="noindex" />
 <title>Our Story — HighlightHype</title>
 <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -29,9 +31,10 @@
 <!-- Round 173/173b: STANDALONE page, the /demo pattern — it
      deliberately does NOT load the app's stylesheet or
      script. Isolation is the point: no API calls, no visit
-     beacons, no tracking, no worker registration, no
-     script at all; the story below is baked into the
-     markup. The copy is Emil-approved verbatim (the story
+     beacons, no tracking, no worker registration; the story
+     below is baked into the markup. Its ONLY script is the
+     tiny inline Round 177 menu toggle at the end of the
+     body. The copy is Emil-approved verbatim (the story
      he and Dyanna signed off 2026-11-14, heart-first). -->
 <style>
 :root{
@@ -49,9 +52,23 @@ img{max-width:100%;display:block}
 ::selection{background:var(--volt);color:var(--volt-ink)}
 
 /* ---------- top chrome (mirrors the /demo top bar) ---------- */
-.about-topbar173{display:flex;align-items:center;gap:9px;padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.about-topbar173{display:flex;align-items:center;gap:9px;padding:12px 0 10px;border-bottom:1px solid var(--line);position:relative}
 .about-brand173{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
 .about-brand173 img{height:30px;width:auto}
+
+/* ---------- Round 177: ☰ menu (mirrors the homepage .menu-btn / .nav-menu) ---------- */
+.about-menu-btn177{margin-left:auto;flex:none;width:44px;height:44px;border-radius:10px;border:1px solid transparent;background:transparent;color:#fff;font-size:21px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;text-shadow:0 1px 5px rgba(0,0,0,.55)}
+.about-menu-btn177:hover{background:rgba(255,255,255,.09)}
+.about-menu-btn177:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.about-nav-menu177{position:absolute;top:calc(100% + 8px);right:0;z-index:80;min-width:248px;background:#141414;border:1px solid var(--line2);border-radius:14px;padding:8px;box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.about-nav-menu177[hidden]{display:none}
+.about-nav-menu177 a{display:flex;width:100%;align-items:center;justify-content:space-between;gap:14px;color:#fff;font:inherit;font-weight:700;font-size:15px;text-align:left;padding:12px 14px;border-radius:9px;text-decoration:none}
+.about-nav-menu177 a:hover{background:rgba(255,255,255,.07)}
+.about-nav-menu177 a:focus-visible{outline:2px solid var(--volt);outline-offset:2px}
+.about-nav-menu177 a[aria-current="page"]::after{content:"●";font-size:8px;color:var(--volt)}
+.about-nav-menu177 a.about-nav-swag177{color:var(--volt-ink);background:var(--volt);font-weight:800;margin-top:6px}
+.about-nav-menu177 a.about-nav-swag177:hover{background:#d9ff4d;color:var(--volt-ink)}
+@media (max-width:480px){ .about-nav-menu177{left:0;right:0;min-width:0} }
 
 /* ---------- hero ---------- */
 .about-hero173{padding:26px 0 4px}
@@ -93,6 +110,17 @@ img{max-width:100%;display:block}
   <div class="about-topbar173">
     <!-- Round 176 (2026-11-14): the top bar carries the REAL header logo — the metallic gold crest + wordmark lockup (/logo-header-gold.png?v=119, the same art and pin as the main header) — replacing the R173 stand-in (plain crest + typed wordmark) Emil flagged on his phone. The footer crest below is unchanged. -->
     <a class="about-brand173" href="/" aria-label="HighlightHype home"><img src="/logo-header-gold.png?v=119" alt="HighlightHype" width="1280" height="238" /></a>
+    <!-- Round 177 (2026-11-14, Emil): the ☰ menu — the same seven doors as the homepage menu, same order, plain anchors to the real pages. Hype Frame points home: the studio lives on the homepage. -->
+    <button type="button" class="about-menu-btn177" id="aboutMenuBtn" aria-label="Menu" aria-expanded="false" aria-haspopup="true" aria-controls="aboutNavMenu">☰</button>
+    <nav class="about-nav-menu177" id="aboutNavMenu" aria-label="Sections" hidden>
+      <a href="/?view=all">All Hypes</a>
+      <a href="/my-highlights">My Plays</a>
+      <a href="/how-it-works">How it works</a>
+      <a href="/stories">Hype Stories</a>
+      <a href="/about" aria-current="page">Our Story</a>
+      <a href="/">📸 Hype Frame</a>
+      <a class="about-nav-swag177" href="/store">Swag Shop — Rep The Hype</a>
+    </nav>
   </div>
 
   <!-- hero -->
@@ -143,5 +171,25 @@ img{max-width:100%;display:block}
   </div>
 
 </div>
+<script>
+/* Round 177 (2026-11-14): the About page's ONLY script — the ☰
+   menu toggle. No network, no storage, no tracking: it flips the
+   panel's hidden state, keeps aria-expanded honest, and closes
+   on an outside tap or Escape. The links are plain anchors. */
+(function () {
+  var btn = document.getElementById("aboutMenuBtn");
+  var panel = document.getElementById("aboutNavMenu");
+  if (!btn || !panel) return;
+  function close177() { panel.hidden = true; btn.setAttribute("aria-expanded", "false"); }
+  btn.addEventListener("click", function () {
+    if (panel.hidden) { panel.hidden = false; btn.setAttribute("aria-expanded", "true"); }
+    else close177();
+  });
+  document.addEventListener("click", function (e) {
+    if (!panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) close177();
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") close177(); });
+})();
+</script>
 </body>
 </html>
