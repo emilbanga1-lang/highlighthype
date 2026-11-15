@@ -3570,3 +3570,24 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
   .hf-strip-film126{flex-basis:58.5%}
   .hf-strip-lockup126 b{font-size:14px}
 }
+
+/* ================================================================
+   Round 181 (2026-11-14, Emil's pick of the card mocks):
+   VARIANT A — the board card's badges and buttons share ONE
+   row. The card used to stack the badge row, the Round 162
+   moment row and the crown row above a separate votes row
+   (~195px under the video); now the three chip rows cluster
+   left inside .tile-chips181 (their relative order kept, the
+   cluster wraps internally when a card carries many chips)
+   and the Vote + Frame buttons sit right on the same row at
+   their current sizes (~126px under the video on the mocked
+   two-badge card). The votes keep their slot for samples —
+   the display-only chip rides where the button would be.
+   Scoped to #plays like the Round 153/179 board rules: the
+   Month and Hall of Fame rows are different renderers and
+   keep their stacked layout.
+   ================================================================ */
+#plays .tile-actrow181{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:9px}
+#plays .tile-chips181{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+#plays .tile-chips181 .play-badges,#plays .tile-chips181 .play-crowns{margin:0}
+#plays .tile-actrow181 .tile-votes{margin:0 0 0 auto;padding-top:0}
