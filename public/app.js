@@ -2993,6 +2993,38 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeQuick
    Sample phase throughout: prices show ($69.99), the CTA is a
    disabled COMING SOON, size selection is display state only —
    no cart, no checkout, no orders. */
+
+/* ---------------- Round 183 (2026-11-15): Shopify prep wiring ----
+   INVISIBLE and DORMANT by design. The Shopify store Emil created
+   today (6kk7gm-8d.myshopify.com, trial plan) holds Drop 001 as
+   DRAFT products; this map ties the store's products to their
+   Shopify counterparts so launch day is a flag flip, not a rebuild.
+   While HH_SHOP_LIVE183 is false, NOTHING changes: no network calls,
+   no Shopify JS, no embeds — the COMING SOON rendering below runs
+   exactly as before, byte for byte.
+   Keys are the site's own identifiers: the HS_PRODUCTS keys for the
+   hoodies that exist here, the SPORTS taxonomy key (martialarts)
+   for martial arts, and hypeframe for the Hype Frame product.
+   All six site hoodies are mapped. The Shopify MARTIAL ARTS
+   hoodie has no site store product yet, so its entry is
+   config-only for now. HYPE FRAME is config-only BY DESIGN: its
+   flow is the custom studio + order form, never a buy-button
+   swap — the entry exists only so the whole product mapping
+   lives in one place. Every GID and handle below is API-verified
+   against the store (volleyball and the hypeframe handle
+   confirmed 2026-11-15, after the volleyball draft was created
+   to complete the six). */
+const HH_SHOP_LIVE183 = false;
+const HH_SHOPIFY_MAP183 = {
+  baseball:    { gid: "gid://shopify/Product/15536451190997", handle: "hype-sports-hoodie-baseball",    url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-baseball" },
+  softball:    { gid: "gid://shopify/Product/15536451289301", handle: "hype-sports-hoodie-softball",    url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-softball" },
+  basketball:  { gid: "gid://shopify/Product/15536451354837", handle: "hype-sports-hoodie-basketball",  url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-basketball" },
+  football:    { gid: "gid://shopify/Product/15536451485909", handle: "hype-sports-hoodie-football",    url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-football" },
+  soccer:      { gid: "gid://shopify/Product/15536451518677", handle: "hype-sports-hoodie-soccer",      url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-soccer" },
+  volleyball:  { gid: "gid://shopify/Product/15536475898069", handle: "hype-sports-hoodie-volleyball",  url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-volleyball" },
+  martialarts: { gid: "gid://shopify/Product/15536451551445", handle: "hype-sports-hoodie-martial-arts", url: "https://6kk7gm-8d.myshopify.com/products/hype-sports-hoodie-martial-arts" },
+  hypeframe:   { gid: "gid://shopify/Product/15536451584213", handle: "hype-frame-hoodie-your-highlight-printed", url: "https://6kk7gm-8d.myshopify.com/products/hype-frame-hoodie-your-highlight-printed" },
+};
 const HS_PRODUCTS = {
   baseball: { n: "001", name: "Baseball", line: "Built for the diamond. Made for the hype.", price: "$69.99", gallery: [["/swag/hs/baseball-front.jpg", "Front"], ["/swag/hs/baseball-back.jpg", "Back"], ["/swag/hs/baseball-detail-chest.jpg", "Chest detail"], ["/swag/hs/baseball-detail-sleeve.jpg", "Sleeve detail"], ["/swag/hs/baseball-detail-fabric.jpg", "Fabric"], ["/swag/hs/baseball-detail-tag.jpg", "Hem tag"]] },
   football: { n: "002", name: "Football", line: "Friday lights. Full send.", price: "$69.99", gallery: [["/swag/hs/football-front.jpg", "Front"], ["/swag/hs/football-back.jpg", "Back"], ["/swag/hs/football-detail-chest.png", "Chest detail"]] },
@@ -3043,6 +3075,27 @@ function openHsView(sport) {
   view.hidden = false;
   document.body.classList.add("hsv-open");
   view.querySelector(".hsv-close")?.focus();
+  /* Round 183 dormant Shopify path: while HH_SHOP_LIVE183 is false
+     this block NEVER runs — the disabled COMING SOON button in the
+     markup stands exactly as rendered above, untouched. At launch
+     (flag flipped true), a mapped sport swaps its CTA for a link to
+     the Shopify product (all six HS_PRODUCTS sports are mapped);
+     an unmapped sport keeps COMING SOON. Hype Frame never comes
+     through here — it is excluded by design (see HH_SHOPIFY_MAP183). */
+  if (HH_SHOP_LIVE183) {
+    const shop183 = HH_SHOPIFY_MAP183[sport];
+    const cta183 = view.querySelector(".hsv-cta");
+    if (shop183 && cta183) {
+      if (cta183.tagName === "A") { cta183.href = shop183.url; }
+      else {
+        const a183 = document.createElement("a");
+        a183.className = cta183.className;
+        a183.href = shop183.url;
+        a183.textContent = "BUY NOW";
+        cta183.replaceWith(a183);
+      }
+    }
+  }
 }
 function closeHsView() {
   const view = $("#hsView"); if (!view) return;
