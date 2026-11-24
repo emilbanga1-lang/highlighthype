@@ -740,6 +740,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN notify_email_hash TEXT DEFAULT 
 try { db.exec("ALTER TABLE highlights ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN division TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE athletes ADD COLUMN jersey TEXT DEFAULT ''"); } catch {}
+// Round 186 (2026-11-24): the upload-time enhancement agent's
+// per-play report — ONE JSON string holding what the assessment
+// measured (shake, content frame, flicker, interlace, dead time),
+// which adjustments were applied, and the metadata-strip outcome
+// (see the Round 186 section at the media pipeline). Owner
+// diagnostics only: never on the public allowlist, never part of
+// approval — a play's public shape is unchanged by this round.
+try { db.exec("ALTER TABLE highlights ADD COLUMN enhance_json TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -1925,7 +1933,13 @@ async function r124ConvertNow(bins, inFile, outFile) {
   // upscaled; the width follows at an even number for yuv420p.
   // Round 138: "-threads 2" caps the encoder's thread pool for
   // the small shared instance — the output spec is unchanged.
+  // Round 186: "-map_metadata -1" — the encode writes NO global
+  // metadata. Phone originals carry GPS/location tags there, and
+  // this is a kids' platform: no display file may keep them (the
+  // metadata half of Round 186; see r186StripRemux for the
+  // passthrough case and the Round 186 banner for the whole rule).
   const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
+    "-map_metadata", "-1",
     "-vf", "scale=-2:'if(gt(ih,1280),1280,trunc(ih/2)*2)'",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast",
     "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", outFile];
@@ -1954,13 +1968,22 @@ async function r124PosterFor(bins, id, absFile, info) {
 // original upload on disk; the row follows), then generate its
 // poster. Any failure leaves the original untouched — the caller
 // has already inserted the row and answers 201 either way.
+// Round 186 adds two steps inside the same contract: the
+// metadata-strip outcome is settled here (the encode strips as it
+// converts; a compliant file with strippable global tags gets the
+// stream-copy remux — see the Round 186 banner), and the
+// enhancement agent is chained fire-and-forget at the end: this
+// function IS awaited by the upload handler, so the agent must
+// never be — the 201 cannot wait on a two-pass stabilization.
 async function r124ProcessUpload(id, name) {
   const bins = await r124ResolveBins();
   if (!bins) return;
   try {
     let abs = path.join(UPLOAD_DIR, name);
-    let info = r124VideoInfo(await r124Probe(bins, abs));
+    const probe0 = await r124Probe(bins, abs);
+    let info = r124VideoInfo(probe0);
     if (!info) return; // not a probeable video — leave exactly as uploaded
+    let converted186 = false;
     if (!r124Compliant(abs, info)) {
       const base = name.replace(/\.[^.]+$/, "");
       const tmpOut = path.join(UPLOAD_DIR, `${base}.r124tmp.mp4`);
@@ -1973,6 +1996,7 @@ async function r124ProcessUpload(id, name) {
           abs = path.join(UPLOAD_DIR, finalName);
           db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${finalName}`, id);
           info = chk;
+          converted186 = true;
           console.log(`[r124] upload ${id}: converted ${name} → ${finalName} (H.264/yuv420p/faststart)`);
         } else {
           try { fs.unlinkSync(tmpOut); } catch {}
@@ -1980,7 +2004,28 @@ async function r124ProcessUpload(id, name) {
         }
       }
     }
+    // Round 186 metadata strip: after the conversion decision the
+    // display file is final for this stage, so settle whether it
+    // still carries strippable global metadata. A converted file
+    // was stripped by its encode; a passthrough file is remuxed
+    // ONLY when its tags carry more than container bookkeeping —
+    // a metadata-free file keeps passing through byte-for-byte.
+    let meta186 = { stripped: false, action: "none" };
+    if (converted186) {
+      meta186 = { stripped: true, action: "encode" };
+    } else if (r186StrippableTags(probe0)) {
+      const ok = await r186StripRemux(bins, abs, info);
+      meta186 = ok ? { stripped: true, action: "remux" } : { stripped: false, action: "remux-failed" };
+      if (ok) console.log(`[r186] upload ${id}: global metadata stripped by remux (${name})`);
+    } else {
+      meta186 = { stripped: true, action: "none-needed" };
+    }
     await r124PosterFor(bins, id, abs, info);
+    // Round 186: chain the enhancement agent without awaiting it
+    // (see the note above). Its own catch-all is inside; this
+    // .catch is the belt to its suspenders — a rejected promise
+    // here must never become an unhandled rejection.
+    r186EnhanceUpload(bins, id, abs, meta186).catch((e) => console.error(`[r186] upload ${id}: stage error (display file kept):`, e.message));
   } catch (e) { console.error(`[r124] upload ${id} media processing error (original kept):`, e.message); }
 }
 // One-time migration for plays that predate the pipeline: any
@@ -2030,6 +2075,468 @@ async function r124RunMigration() {
     setSetting(R124_MIGRATION_KEY, new Date().toISOString());
     console.log("[r124] media migration complete");
   } catch (e) { console.error("[r124] migration error:", e.message); }
+}
+/* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
+   WHY: parents upload phone video of youth plays, and a lot of it
+   is a shaky, flickery recording of a TV across the room — the
+   girls' soccer clip Muse cleaned up by hand on 2026-11-24
+   (stabilize + crop to the picture + deflicker) is the type
+   specimen. Emil approved automating exactly that judgment: an
+   agent that ASSESSES every upload at upload time and applies
+   only the fixes the assessment calls for. It runs as a
+   fire-and-forget stage chained off the end of r124ProcessUpload
+   (which the upload handler awaits — the agent must never hold
+   the 201), after the file is compliant, stripped and postered.
+   ASSESSMENT (thresholds calibrated 2026-11-24 against the soccer
+   screen recording as the positive case and synthetic locked-off /
+   smooth-pan clips as negatives; the measured values are in the
+   round's test script, test-r186.js):
+     * shake — global frame-to-frame translation tracked on tiny
+       gray frames over 1-second hops. Handheld wander = a
+       substantial per-second shift whose direction cancels
+       (inconsistency) or reverses; a deliberate pan is consistent
+       and a locked-off shot has no shift, so neither triggers.
+     * content frame — cropdetect first (true black borders). If
+       it finds nothing, a dark-band scan looks for a screen inside
+       the frame: a TV's bezels are uniformly near-black bands,
+       which room content essentially never is.
+     * flicker — per-strip luma oscillation after detrending. A
+       filmed screen's refresh band parks in one strip and pulses
+       its brightness while the frame mean stays calm, so the
+       strip score sees what a global average cannot.
+     * interlace — idet multi-frame tallies, deliberately
+       conservative (R186_IDET_MIN_FRAMES / _FRAC): idet
+       false-positives on synthetic and high-detail progressive
+       content, so only unambiguous interlace earns a re-encode.
+     * dead time — black / frozen head and tail intervals.
+       REPORT ONLY in v1: nothing is trimmed.
+   ADJUSTMENTS — applied only when their assessment trips, in ONE
+   encode through the exact Round 124 output spec: yadif (if
+   interlaced) → crop (if a content frame was found) → vidstab
+   two-pass (if shaky; the detect pass analyzes the SAME
+   yadif+crop chain the transform then applies) → deflicker (if
+   flickery). A clean clip is a complete no-op: no encode, no
+   rename, no poster change. The editorial push-in zoom from the
+   hand cleanup is deliberately NOT in v1.
+   METADATA (the safety half of this round): phone videos carry
+   GPS/location in their global tags, and this is a kids'
+   platform, so the final display file must not. Every encode in
+   the upload path passes -map_metadata -1 (see r124ConvertNow
+   and the encode below), and a compliant file that would
+   otherwise pass through untouched gets a stream-copy strip
+   remux (r186StripRemux) — but only when its global tags carry
+   more than container bookkeeping, so a metadata-free file still
+   passes through byte-for-byte (the Round 124 suite's contract).
+   FALLBACK CONTRACT (the Round 124 hard rule, unchanged):
+   best-effort, NEVER a gate. Every ffmpeg invocation goes
+   through the Round 138 serializer; every produced file is
+   probed and verified before it is swapped in; any failure at
+   any step keeps the current display file; the pre-enhancement
+   file is always preserved as <base>-preenhance.mp4, never
+   deleted; and every outcome — enhanced, no-op, skipped, failed
+   — is recorded as JSON in highlights.enhance_json.
+   HH_NO_ENHANCE=1 disables the agent (the metadata strip still
+   runs: it belongs to the Round 124 path, not the agent). */
+const R186_SHAKE_MIN_PX_PER_SEC = 8;   // median 1s-hop global shift; below this the camera reads as locked-off or deliberate
+const R186_SHAKE_MIN_INCONSISTENCY = 0.12; // 1 − |mean shift vector| / mean |shift| over the hops (0 = perfectly consistent pan)
+const R186_FLICKER_MIN_RMS = 0.18;     // luma units (8-bit): robust detrended strip-oscillation floor for "filmed a screen"
+const R186_IDET_MIN_FRAMES = 120;      // tallied frames required before idet may convict (small samples false-positive)
+const R186_IDET_MIN_FRAC = 0.92;       // (TFF+BFF) share of tallied frames required — genuine interlace tallies ~100%
+const R186_BENIGN_TAGS = new Set(["major_brand", "minor_version", "compatible_brands", "encoder"]); // container bookkeeping, not metadata worth a rewrite
+const r186Round = (v, n) => { const f = 10 ** n; return Math.round((Number(v) || 0) * f) / f; };
+function r186RunBuffer(bin, args, timeoutMs, maxBuffer) {
+  return new Promise((resolve) => {
+    execFile(bin, args, { timeout: timeoutMs, maxBuffer, encoding: "buffer" }, (err, stdout, stderr) => resolve({ err, stdout: Buffer.isBuffer(stdout) ? stdout : Buffer.alloc(0), stderr: String(stderr || "") }));
+  });
+}
+function r186Fps(probe) {
+  if (!probe || !Array.isArray(probe.streams)) return 0;
+  const v = probe.streams.find((s) => s.codec_type === "video");
+  if (!v) return 0;
+  for (const key of ["avg_frame_rate", "r_frame_rate"]) {
+    const parts = String(v[key] || "").split("/");
+    if (parts.length === 2) { const f = Number(parts[0]) / Number(parts[1]); if (isFinite(f) && f > 0) return f; }
+    const f = Number(v[key]); if (isFinite(f) && f > 0) return f;
+  }
+  return 0;
+}
+// Does this probe's GLOBAL tag set carry anything beyond
+// container bookkeeping? Phones write creation_time, make/model,
+// software and — the one that matters — location /
+// com.apple.quicktime.location.ISO6709 there. Any non-benign key
+// means the file gets stripped before it may be displayed.
+function r186StrippableTags(probe) {
+  const tags = (probe && probe.format && probe.format.tags) || {};
+  for (const k of Object.keys(tags)) if (!R186_BENIGN_TAGS.has(String(k).toLowerCase())) return true;
+  return false;
+}
+async function r186StripRemux(bins, abs, info) {
+  return r138SerializeFfmpeg(() => r186StripRemuxNow(bins, abs, info));
+}
+async function r186StripRemuxNow(bins, abs, info) {
+  // Stream-copy the video + audio (the same streams the encode
+  // path keeps — data/metadata tracks do not survive), drop all
+  // global metadata, keep faststart: the source was compliant,
+  // so the result must stay compliant-shaped. Verified like every
+  // other swap in this pipeline; any doubt keeps the original.
+  const base = path.basename(abs).replace(/\.[^.]+$/, "");
+  const tmp = path.join(UPLOAD_DIR, `${base}.r186strip.mp4`);
+  try {
+    const { err, stderr } = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-c", "copy", "-map_metadata", "-1", "-movflags", "+faststart", tmp], 120000);
+    if (err) { console.error("[r186] metadata strip remux failed:", err.message, stderr.slice(-200)); return false; }
+    const chkProbe = await r124Probe(bins, tmp);
+    const chk = r124VideoInfo(chkProbe);
+    if (!chk || chk.codec !== info.codec || chk.width !== info.width || chk.height !== info.height || Math.abs(chk.duration - info.duration) > 0.5 || !r124IsFaststart(tmp) || r186StrippableTags(chkProbe)) {
+      console.error("[r186] metadata strip remux did not verify — original kept");
+      return false;
+    }
+    fs.renameSync(tmp, abs);
+    return true;
+  } catch (e) { console.error("[r186] metadata strip remux error:", e.message); return false; }
+  finally { try { if (fs.existsSync(tmp)) fs.unlinkSync(tmp); } catch {} }
+}
+// One tiny-gray-frame extraction feeds both the shake tracker and
+// the flicker strips: width 128, sampled at up to 30fps over at
+// most the first 12 seconds (assessment is a sample by design —
+// shake, flicker and framing are whole-clip properties).
+async function r186TinyFrames(bins, abs, info) {
+  const fps = Math.min(30, Math.max(1, Math.round(info.fps || 30)));
+  const tw = 128;
+  const th = Math.max(2, Math.round((info.height * tw / info.width) / 2) * 2);
+  const secs = Math.min(info.duration > 0 ? info.duration : 12, 12);
+  const { err, stdout } = await r138SerializeFfmpeg(() => r186RunBuffer(bins.ffmpeg, ["-nostats", "-v", "error", "-i", abs, "-vf", `fps=${fps},scale=${tw}:${th},format=gray`, "-t", String(secs), "-f", "rawvideo", "-"], 90000, 48 * 1024 * 1024));
+  if (err || !stdout || !stdout.length) return null;
+  const frameSize = tw * th;
+  const n = Math.floor(stdout.length / frameSize);
+  if (n < 2) return null;
+  return { buf: stdout, tw, th, n, fps, scale: info.width / tw };
+}
+// Global translation between two tiny frames: gradient-weighted
+// SAD over an integer search window, with parabolic sub-pixel
+// refinement. Weighting by the reference frame's gradient is
+// what keeps a near-uniform soccer field from defeating the
+// match (the aperture problem): textureless pixels abstain.
+function r186TrackShift(a, b, tw, th, scale) {
+  const R = 4, FS = tw * th;
+  const w = new Float32Array(FS);
+  for (let y = 1; y < th - 1; y++) for (let x = 1; x < tw - 1; x++) { const i = y * tw + x; w[i] = Math.abs(a[i + 1] - a[i - 1]) + Math.abs(a[i + tw] - a[i - tw]); }
+  const grid = new Map();
+  const sad = (dx, dy) => {
+    const k = dx + "," + dy;
+    if (grid.has(k)) return grid.get(k);
+    let s = 0, ws = 0;
+    for (let y = R; y < th - R; y++) for (let x = R; x < tw - R; x++) { const i = y * tw + x, wt = w[i]; if (wt < 12) continue; s += wt * Math.abs(b[i] - a[(y + dy) * tw + (x + dx)]); ws += wt; }
+    const m = ws ? s / ws : 1e9;
+    grid.set(k, m);
+    return m;
+  };
+  let best = { m: 1e18, dx: 0, dy: 0 };
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) { const m = sad(dx, dy); if (m < best.m) best = { m, dx, dy }; }
+  const denX = sad(best.dx - 1, best.dy) - 2 * best.m + sad(best.dx + 1, best.dy);
+  const denY = sad(best.dx, best.dy - 1) - 2 * best.m + sad(best.dx, best.dy + 1);
+  const fx = denX > 0 ? Math.max(-1, Math.min(1, 0.5 * (sad(best.dx - 1, best.dy) - sad(best.dx + 1, best.dy)) / denX)) : 0;
+  const fy = denY > 0 ? Math.max(-1, Math.min(1, 0.5 * (sad(best.dx, best.dy - 1) - sad(best.dx, best.dy + 1)) / denY)) : 0;
+  return { dx: (best.dx + fx) * scale, dy: (best.dy + fy) * scale };
+}
+function r186ShakeFromFrames(fr) {
+  const { buf, tw, th, n, fps, scale } = fr;
+  const FS = tw * th, K = fps, hop = Math.max(1, Math.floor(fps / 2));
+  const vecs = [];
+  for (let s = 0; s + K < n; s += hop) vecs.push(r186TrackShift(buf.subarray(s * FS, (s + 1) * FS), buf.subarray((s + K) * FS, (s + K + 1) * FS), tw, th, scale));
+  if (vecs.length < 2) return null;
+  const mags = vecs.map((v) => Math.hypot(v.dx, v.dy));
+  const median = [...mags].sort((x, y) => x - y)[Math.floor(mags.length / 2)];
+  const meanMag = mags.reduce((acc, v) => acc + v, 0) / mags.length;
+  const mx = vecs.reduce((acc, v) => acc + v.dx, 0) / vecs.length, my = vecs.reduce((acc, v) => acc + v.dy, 0) / vecs.length;
+  const inconsistency = meanMag > 0 ? 1 - Math.hypot(mx, my) / meanMag : 0;
+  const reversal = (vecs.some((v) => v.dx >= 4) && vecs.some((v) => v.dx <= -4)) || (vecs.some((v) => v.dy >= 4) && vecs.some((v) => v.dy <= -4));
+  return {
+    medianPxPerSec: r186Round(median, 2), inconsistency: r186Round(inconsistency, 3), reversal,
+    triggered: median >= R186_SHAKE_MIN_PX_PER_SEC && (inconsistency >= R186_SHAKE_MIN_INCONSISTENCY || reversal),
+  };
+}
+function r186FlickerFromFrames(fr) {
+  const { buf, tw, th, n, fps } = fr;
+  if (n < 10) return null;
+  const FS = tw * th, STRIPS = 6, stripH = Math.floor(th / STRIPS);
+  const dwin = Math.max(7, Math.round(fps * 0.5) | 1), dh = Math.floor(dwin / 2);
+  let best = 0;
+  for (let sIdx = 0; sIdx < STRIPS; sIdx++) {
+    const series = [];
+    for (let f = 0; f < n; f++) { let s = 0; const base = f * FS + sIdx * stripH * tw; for (let i = 0; i < stripH * tw; i++) s += buf[base + i]; series.push(s / (stripH * tw)); }
+    const det = series.map((v, i) => { let s = 0, c = 0; for (let k = -dh; k <= dh; k++) { const j = i + k; if (j >= 0 && j < series.length) { s += series[j]; c++; } } return Math.abs(v - s / c); });
+    det.sort((x, y) => x - y);
+    const keep = det.slice(0, Math.floor(det.length * 0.9)); // trimmed: scene cuts are not flicker
+    const rms = Math.sqrt(keep.reduce((acc, v) => acc + v * v, 0) / keep.length);
+    if (rms > best) best = rms;
+  }
+  return { stripRms: r186Round(best, 3), triggered: best >= R186_FLICKER_MIN_RMS };
+}
+// Content frame, mechanism A: cropdetect's modal rect over
+// sampled frames. Trustworthy for TRUE black borders (letterbox,
+// pillarbox, a phone held back from a screen in a dark room) —
+// and, as the soccer clip proved, blind when the room around the
+// screen is lit, which is what mechanism B below exists for.
+async function r186CropDetectRect(bins, abs, info) {
+  const { err, stderr } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-i", abs, "-vf", "fps=2,cropdetect=limit=24:round=2:reset=0", "-t", "60", "-f", "null", "-"], 120000));
+  if (err) return null;
+  const counts = new Map();
+  for (const m of stderr.matchAll(/crop=(\d+):(\d+):(\d+):(\d+)/g)) { const key = m.slice(1).join(":"); counts.set(key, (counts.get(key) || 0) + 1); }
+  let best = null, bestN = 0;
+  for (const [key, cnt] of counts) if (cnt > bestN) { bestN = cnt; best = key; }
+  if (!best || bestN < 3) return null;
+  const [w, h, x, y] = best.split(":").map(Number);
+  if (!(w > 0 && h > 0)) return null;
+  if (w >= info.width && h >= info.height) return null; // full frame: no borders found
+  const significant = info.width - w >= Math.round(info.width * 0.05) || info.height - h >= Math.round(info.height * 0.05);
+  if (!significant) return null;
+  if (w < info.width * 0.5 || h < info.height * 0.4) return null; // pathological rect — trust nothing
+  return { x, y, w, h };
+}
+// Per-line luma stats (dark fraction + 90th percentile) via a
+// histogram, for the band scan: a bezel line is not just dark on
+// average, it is dark almost everywhere along its length.
+function r186LineStats(fr, w, h, byRow) {
+  const lines = byRow ? h : w, span = byRow ? w : h;
+  const out = [];
+  const hist = new Uint32Array(256);
+  for (let l = 0; l < lines; l++) {
+    hist.fill(0);
+    for (let i = 0; i < span; i++) hist[byRow ? fr[l * w + i] : fr[i * w + l]]++;
+    let dark = 0;
+    for (let v = 0; v < 60; v++) dark += hist[v];
+    let cum = 0, p90 = 255;
+    const target = span * 0.9;
+    for (let v = 0; v < 256; v++) { cum += hist[v]; if (cum >= target) { p90 = v; break; } }
+    out.push({ darkFrac: dark / span, p90 });
+  }
+  return out;
+}
+function r186BezelBands(stats) {
+  const bands = [];
+  let start = -1;
+  for (let i = 0; i <= stats.length; i++) {
+    const bezel = i < stats.length && stats[i].darkFrac >= 0.7 && stats[i].p90 <= 95;
+    if (bezel && start < 0) start = i;
+    if (!bezel && start >= 0) { if (i - start >= 3) bands.push({ top: start, bottom: i - 1 }); start = -1; }
+  }
+  return bands;
+}
+function r186EdgeMedian(cands, tol) {
+  if (cands.length < 3) return null;
+  const med = [...cands].sort((a, b) => a - b)[Math.floor(cands.length / 2)];
+  return cands.filter((c) => Math.abs(c - med) <= tol).length >= 3 ? med : null;
+}
+// Content frame, mechanism B: the dark-band scan. On ~9 sampled
+// frames (scaled to at most 640 wide), find uniformly near-black
+// horizontal/vertical bands — manufactured edges — and take the
+// median outer pair as the picture rect. A band must be found by
+// at least 3 frames at a consistent position before its edge is
+// used, each edge is independent (a bottom-only crop is a valid
+// outcome), and the rect must survive sanity validation; the
+// parked flicker band inside a screen recording sits too high
+// and too inconsistently to pair as a picture edge.
+async function r186BandRect(bins, abs, info) {
+  const bw = Math.min(info.width, 640);
+  const bh = Math.max(2, Math.round((info.height * bw / info.width) / 2) * 2);
+  const dur = info.duration > 0 ? info.duration : 10;
+  const sampleFps = Math.min(2, 9 / dur);
+  const { err, stdout } = await r138SerializeFfmpeg(() => r186RunBuffer(bins.ffmpeg, ["-nostats", "-v", "error", "-i", abs, "-vf", `fps=${sampleFps.toFixed(4)},scale=${bw}:${bh},format=gray`, "-f", "rawvideo", "-"], 90000, 32 * 1024 * 1024));
+  if (err || !stdout || !stdout.length) return null;
+  const FS = bw * bh, nF = Math.floor(stdout.length / FS);
+  if (nF < 3) return null;
+  const rowBands = [], colBands = [];
+  for (let f = 0; f < nF; f++) {
+    const fr = stdout.subarray(f * FS, (f + 1) * FS);
+    rowBands.push(r186BezelBands(r186LineStats(fr, bw, bh, true)));
+    colBands.push(r186BezelBands(r186LineStats(fr, bw, bh, false)));
+  }
+  const tolY = Math.max(6, Math.round(bh * 0.02)), tolX = Math.max(6, Math.round(bw * 0.02));
+  const topCands = [], botCands = [], leftCands = [], rightCands = [];
+  for (const bands of rowBands) { const t = bands.find((b) => b.top <= bh * 0.3); if (t) topCands.push(t.bottom + 1); }
+  const topMed = r186EdgeMedian(topCands, tolY);
+  const minBotTop = topMed !== null ? topMed + Math.round(bh * 0.25) : Math.round(bh * 0.45);
+  for (const bands of rowBands) { const b = bands.find((bd) => bd.top >= minBotTop); if (b) botCands.push(b.top); }
+  const botMed = r186EdgeMedian(botCands, tolY);
+  for (const bands of colBands) { const t = bands.find((b) => b.top <= bw * 0.3); if (t) leftCands.push(t.bottom + 1); }
+  const leftMed = r186EdgeMedian(leftCands, tolX);
+  const minRightLeft = leftMed !== null ? leftMed + Math.round(bw * 0.25) : Math.round(bw * 0.45);
+  for (const bands of colBands) { const b = bands.find((bd) => bd.top >= minRightLeft); if (b) rightCands.push(b.top); }
+  const rightMed = r186EdgeMedian(rightCands, tolX);
+  if (topMed === null && botMed === null && leftMed === null && rightMed === null) return null;
+  const sx = info.width / bw, sy = info.height / bh;
+  let x0 = 0, y0 = 0, x1 = info.width, y1 = info.height;
+  if (leftMed !== null) x0 = Math.round(leftMed * sx) + 4; // inset past the bezel line itself
+  if (rightMed !== null) x1 = Math.round(rightMed * sx) - 4;
+  if (topMed !== null) y0 = Math.round(topMed * sy) + 4;
+  if (botMed !== null) y1 = Math.round(botMed * sy) - 4;
+  x0 -= x0 % 2; y0 -= y0 % 2; // yuv420p crop wants even origins and sizes
+  let w = x1 - x0, h = y1 - y0;
+  w -= w % 2; h -= h % 2;
+  if (w < info.width * 0.5 || h < info.height * 0.2 || w < 96 || h < 96) return null;
+  if (w * h > info.width * info.height * 0.92) return null; // removes too little to be a content frame
+  if (w >= info.width && h >= info.height) return null;
+  return { x: x0, y: y0, w, h };
+}
+async function r186Idet(bins, abs) {
+  const { err, stderr } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-i", abs, "-vf", "idet", "-frames:v", "600", "-f", "null", "-"], 120000));
+  if (err) return null;
+  let last = null;
+  for (const m of stderr.matchAll(/Multi frame detection:\s*TFF:\s*(\d+)\s+BFF:\s*(\d+)\s+Progressive:\s*(\d+)\s+Undetermined:\s*(\d+)/g)) last = m;
+  if (!last) return null;
+  const tff = +last[1], bff = +last[2], progressive = +last[3], undetermined = +last[4];
+  const frames = tff + bff + progressive + undetermined;
+  const frac = frames > 0 ? (tff + bff) / frames : 0;
+  return {
+    tff, bff, progressive, undetermined, frames, interlacedFrac: r186Round(frac, 3),
+    triggered: frames >= R186_IDET_MIN_FRAMES && frac >= R186_IDET_MIN_FRAC,
+  };
+}
+// Dead time is measured for the report only (v1 trims nothing):
+// black and frozen intervals that touch the head or the tail.
+async function r186DeadTime(bins, abs, duration) {
+  const { err, stderr } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-i", abs, "-vf", "blackdetect=d=0.5:pix_th=0.10,freezedetect=n=0.003:d=1.5", "-t", "180", "-f", "null", "-"], 180000));
+  if (err) return null;
+  const blacks = [];
+  for (const m of stderr.matchAll(/black_start:\s*([\d.]+)\s+black_end:\s*([\d.]+)/g)) blacks.push([+m[1], +m[2]]);
+  const fStarts = [...stderr.matchAll(/freeze_start:\s*([\d.]+)/g)].map((m) => +m[1]);
+  const fEnds = [...stderr.matchAll(/freeze_end:\s*([\d.]+)/g)].map((m) => +m[1]);
+  const freezes = fStarts.map((s, i) => [s, i < fEnds.length ? fEnds[i] : duration]);
+  const head = (ivs) => { let v = 0; for (const [s, e] of ivs) if (s <= 0.3) v = Math.max(v, e); return r186Round(v, 2); };
+  const tail = (ivs) => { let v = 0; for (const [s, e] of ivs) if (duration > 0 && e >= duration - 0.3) v = Math.max(v, duration - s); return r186Round(v, 2); };
+  return { headBlackSec: head(blacks), tailBlackSec: tail(blacks), headFrozenSec: head(freezes), tailFrozenSec: tail(freezes) };
+}
+async function r186Assess(bins, abs, info) {
+  const a = { shake: null, flicker: null, crop: { method: null, rect: null, triggered: false }, interlace: null, deadTime: null };
+  try {
+    const fr = await r186TinyFrames(bins, abs, info);
+    if (fr) { a.shake = r186ShakeFromFrames(fr); a.flicker = r186FlickerFromFrames(fr); }
+  } catch (e) { console.error("[r186] shake/flicker assessment failed:", e.message); }
+  try { a.interlace = await r186Idet(bins, abs); } catch (e) { console.error("[r186] idet assessment failed:", e.message); }
+  try {
+    const cd = await r186CropDetectRect(bins, abs, info);
+    if (cd) a.crop = { method: "cropdetect", rect: cd, triggered: true };
+    else { const br = await r186BandRect(bins, abs, info); if (br) a.crop = { method: "bands", rect: br, triggered: true }; }
+  } catch (e) { console.error("[r186] crop assessment failed:", e.message); }
+  try { a.deadTime = await r186DeadTime(bins, abs, info.duration); } catch (e) { console.error("[r186] dead-time assessment failed:", e.message); }
+  return a;
+}
+function r186StoreReport(id, report) {
+  try { db.prepare("UPDATE highlights SET enhance_json=? WHERE id=?").run(JSON.stringify(report), id); }
+  catch (e) { console.error(`[r186] could not store the enhancement report for play ${id}:`, e.message); }
+}
+// The agent itself. Runs detached from the upload response; the
+// display file stays exactly as Round 124 left it until an
+// enhanced encode has been produced AND verified, and the row
+// must still point at the file that was assessed before anything
+// is swapped (a play can be approved, trashed or migrated in the
+// meantime — if its media moved on, the agent stands down).
+async function r186EnhanceUpload(bins, id, abs, meta) {
+  const report = {
+    round: 186, version: 1, at: new Date().toISOString(), status: "failed", reason: "",
+    metadata_stripped: !!meta.stripped, metadata_action: meta.action,
+    source: { file: path.basename(abs) }, assessment: null,
+    applied: { deinterlace: false, crop: false, stabilize: false, deflicker: false },
+    output: null, preEnhanceFile: null,
+  };
+  try {
+    if (process.env.HH_NO_ENHANCE === "1") { report.status = "skipped"; report.reason = "HH_NO_ENHANCE=1"; r186StoreReport(id, report); return; }
+    // The file this stage was chained with can have been moved
+    // since the upload — the one real example is a first-boot
+    // Round 124 migration converting the same play concurrently.
+    // Work on the play's CURRENT display file instead of failing.
+    if (!fs.existsSync(abs)) {
+      const rowNow = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+      const alt = rowNow && rowNow.media_url ? path.join(UPLOAD_DIR, path.basename(rowNow.media_url)) : null;
+      if (alt && alt !== abs && fs.existsSync(alt)) { console.log(`[r186] upload ${id}: display file moved since upload — assessing ${path.basename(alt)}`); abs = alt; report.source = { file: path.basename(abs) }; }
+    }
+    const probe = await r124Probe(bins, abs);
+    const vinfo = r124VideoInfo(probe);
+    if (!vinfo) { report.reason = "display file no longer probes as video"; r186StoreReport(id, report); return; }
+    const info = { ...vinfo, fps: r186Fps(probe) };
+    report.source = { file: path.basename(abs), width: info.width, height: info.height, duration: r186Round(info.duration, 2), fps: r186Round(info.fps, 2) };
+    const a = await r186Assess(bins, abs, info);
+    report.assessment = a;
+    const want = {
+      deinterlace: !!(a.interlace && a.interlace.triggered),
+      crop: !!(a.crop && a.crop.triggered),
+      stabilize: !!(a.shake && a.shake.triggered),
+      deflicker: !!(a.flicker && a.flicker.triggered),
+    };
+    if (!want.deinterlace && !want.crop && !want.stabilize && !want.deflicker) {
+      report.status = "no-op";
+      r186StoreReport(id, report);
+      console.log(`[r186] upload ${id}: assessed — nothing to enhance`);
+      return;
+    }
+    const base = path.basename(abs).replace(/\.[^.]+$/, "");
+    const trf = path.join(UPLOAD_DIR, `${base}.r186.trf`);
+    const tmpOut = path.join(UPLOAD_DIR, `${base}.r186tmp.mp4`);
+    // The detect pass and the transform must see the SAME picture:
+    // yadif + crop run ahead of both. vidstabtransform's zoom +
+    // optzoom keep the stabilized frame off the black edges.
+    const preChain = [];
+    if (want.deinterlace) preChain.push("yadif");
+    if (want.crop) preChain.push(`crop=${a.crop.rect.w}:${a.crop.rect.h}:${a.crop.rect.x}:${a.crop.rect.y}`);
+    const encChain = [...preChain];
+    if (want.stabilize) encChain.push(`vidstabtransform=input=${trf}:smoothing=12:zoom=1:optzoom=1`);
+    if (want.deflicker) encChain.push("deflicker");
+    encChain.push("scale=-2:'if(gt(ih,1280),1280,trunc(ih/2)*2)'"); // the Round 124 output spec, unchanged
+    let encodeOk = false;
+    try {
+      encodeOk = await r138SerializeFfmpeg(async () => {
+        if (want.stabilize) {
+          const det = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-vf", [...preChain, `vidstabdetect=shakiness=5:accuracy=15:result=${trf}`].join(","), "-f", "null", "-"], 420000);
+          if (det.err) { console.error(`[r186] upload ${id}: vidstabdetect failed:`, det.err.message, det.stderr.slice(-200)); return false; }
+        }
+        const enc = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1", "-vf", encChain.join(","), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut], 600000);
+        if (enc.err) { console.error(`[r186] upload ${id}: enhancement encode failed:`, enc.err.message, enc.stderr.slice(-200)); return false; }
+        return true;
+      });
+    } finally { try { fs.unlinkSync(trf); } catch {} }
+    if (!encodeOk) { try { fs.unlinkSync(tmpOut); } catch {} report.reason = "enhancement encode failed"; r186StoreReport(id, report); return; }
+    const outInfo = r124VideoInfo(await r124Probe(bins, tmpOut));
+    let expW = info.width, expH = info.height;
+    if (want.crop) { expW = a.crop.rect.w; expH = a.crop.rect.h; }
+    if (expH > 1280) { expW = Math.round((expW * 1280 / expH) / 2) * 2; expH = 1280; }
+    const verified = outInfo && outInfo.codec === "h264" && outInfo.pixFmt === "yuv420p" && Math.abs(outInfo.duration - info.duration) <= 0.5 && Math.abs(outInfo.width - expW) <= 4 && Math.abs(outInfo.height - expH) <= 4;
+    if (!verified) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      report.reason = "enhanced file did not verify";
+      console.error(`[r186] upload ${id}: enhanced file did not verify (codec/dims/duration) — display file kept`);
+      r186StoreReport(id, report);
+      return;
+    }
+    const row = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+    if (!row || path.basename(row.media_url || "") !== path.basename(abs)) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      report.status = "skipped";
+      report.reason = "media changed since assessment";
+      r186StoreReport(id, report);
+      return;
+    }
+    // Swap order matters: the enhanced file lands first, then the
+    // current display file is preserved under its pre-enhancement
+    // name, and only then does the row move — at every instant
+    // the row points at a file that exists.
+    const enhancedName = `${base}-enhanced.mp4`;
+    let preName = `${base}-preenhance.mp4`;
+    if (fs.existsSync(path.join(UPLOAD_DIR, preName))) preName = `${base}-preenhance-${Date.now()}.mp4`;
+    fs.renameSync(tmpOut, path.join(UPLOAD_DIR, enhancedName));
+    fs.renameSync(abs, path.join(UPLOAD_DIR, preName));
+    db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${enhancedName}`, id);
+    report.applied = want;
+    report.status = "enhanced";
+    report.preEnhanceFile = preName;
+    report.output = { file: enhancedName, width: outInfo.width, height: outInfo.height, duration: r186Round(outInfo.duration, 2), bytes: fs.statSync(path.join(UPLOAD_DIR, enhancedName)).size };
+    await r124PosterFor(bins, id, path.join(UPLOAD_DIR, enhancedName), outInfo);
+    r186StoreReport(id, report);
+    console.log(`[r186] upload ${id}: enhanced → ${enhancedName} (deinterlace=${want.deinterlace} crop=${want.crop} stabilize=${want.stabilize} deflicker=${want.deflicker}); pre-enhancement file kept as ${preName}`);
+  } catch (e) {
+    report.reason = e.message;
+    console.error(`[r186] upload ${id}: enhancement stage failed (display file kept):`, e.message);
+    r186StoreReport(id, report);
+  }
 }
 /* ================= Round 165 (2026-11-14): Hype Reels =================
    A guardian downloads a branded MP4 of their own athlete's
