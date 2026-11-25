@@ -108,7 +108,7 @@ try {
     const home = await (await fetch(s.base + "/")).text();
     assert(home.includes('id="feed189"') && home.includes('id="feedTrack189"') && home.includes('id="feedClose189"'), "A: the page carries the feed overlay markup");
     assert(home.includes('id="btlFeedBtn189"'), "A: the Battles view carries the watch-in-feed entry");
-    assert(home.includes('src="app.js?v=189"') && home.includes('href="styles.css?v=189"'), "A: asset pins are v189");
+    assert(home.includes('src="app.js?v=191"') && home.includes('href="styles.css?v=191"'), "A: asset pins are v189 — →190: app.js now v190 (Round 190); styles keeps v189 (unchanged this round) — →191: app.js + styles now v191 (Round 191)");
     assert(!home.includes("window.HH_NO_FEED189=true"), "A: no kill-switch flag stamped in the page by default");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const css = await (await fetch(s.base + "/styles.css")).text();
@@ -188,7 +188,7 @@ try {
     // Slides.
     const vid = run("feedSlideHtml189(findPlay(11), 0, false)");
     assert(vid.includes("<video") && vid.includes('poster="/uploads/poster-a.jpg"') && vid.includes("feed189-bg") && vid.includes("Nicholas B.") && vid.includes("Home Run") && vid.includes("Plainview Hawks"), "VM: a video slide — own-poster blurred backdrop, caption (athlete, title, team)");
-    assert(vid.includes('data-feed-hype="11"') && vid.includes('data-feed-count="11"') && vid.includes("feedShare189(11, this)"), "VM: the rail carries the real Hype button + count and the Share button");
+    assert(vid.includes('data-feed-hype="11"') && vid.includes('data-feed-count="11"') && vid.includes("feedShare189(11, this)"), "VM: the rail carries the real Hype button + count and the Share button — →190: the rail's visible label + aria read \"Vote\" (the button IS the vote; asserted in test-r190)");
     assert(!vid.includes("feed189-music"), "VM: no music chip on a play with no track attached");
     const pho = run("feedSlideHtml189(findPlay(13), 0, false)");
     assert(pho.includes("<img") && !pho.includes("<video") && pho.includes('data-feed-kind="photo"'), "VM: a photo play renders as a still in the same frame — no broken player");
@@ -219,7 +219,7 @@ try {
     // Battle feed: the dealt pair, head-to-head chrome.
     run("window.openBattleFeed189()");
     const bhtml = trackEl.innerHTML;
-    assert(bhtml.includes("feed189-ribbon") && bhtml.includes("VS") && bhtml.includes("Home Run") && bhtml.includes("Walk-Off Hit") && bhtml.includes("Hype the play you pick"), "VM: battle feed pairs the current matchup — ribbon, both plays, VS bar, the pick prompt");
+    assert(bhtml.includes("feed189-ribbon") && bhtml.includes("VS") && bhtml.includes("Home Run") && bhtml.includes("Walk-Off Hit") && bhtml.includes("Vote for the play you pick"), "VM: battle feed pairs the current matchup — ribbon, both plays, VS bar, the pick prompt — →190: the prompt reads \"Vote for the play you pick\" (the action is named Vote everywhere; Round 190)");
     assert(bhtml.indexOf('data-feed-slide="11"') > -1 && bhtml.indexOf('data-feed-slide="11"') < bhtml.indexOf('data-feed-slide="12"'), "VM: battle slides run A then B — swiping moves to the opponent");
 
     // Close.
