@@ -7855,8 +7855,29 @@ initA2HS161();
    the classic openPlayDetail path, exactly as before the feed
    existed. Appended at the end of app.js per the sandbox-slice
    rule; every element lookup is guarded and every cross-block
-   call is typeof-guarded, so partial slices behave as before. */
+   call is typeof-guarded, so partial slices behave as before.
+   Round 191 (2026-11-25, the design review Emil approved):
+   the feed's chrome slims and the play takes the visual
+   weight. (1) The header (index.html) is now a small HH crest
+   + slim Watch/Battles tabs + close — Hype of the Month is
+   out of the feed header. (2) Slides are classified by their
+   REAL shape (feedShape191/feedWireShape191 below): portrait
+   clips FILL the viewer; wide GameChanger clips run
+   edge-to-edge with the ENTIRE frame visible (never cropped)
+   and their caption sits directly BELOW the video band — the
+   blurred-fill backdrop is gone for both classified shapes.
+   (3) The swipe hint reads "↑ Swipe up for the next play",
+   sits in its own space clear of every caption, shows ONCE
+   per page session (feed191.hintSeen), then fades and never
+   reappears. (4) The rail vote button wears the brand's gold
+   crown (public/crown.png, the standalone crown asset the
+   site ships) instead of the emoji crown. (5) Captions are
+   TITLE-first: the play's title is the first line, then
+   "Athlete · Sport" — a title-less play falls back to
+   name-first. Everything else — board order, the finite end
+   card, toggleVote, the kill switch — is exactly as built. */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
+const feed191 = { hintSeen: false };
 function feedEnabled189() { return !(typeof window !== "undefined" && window && window.HH_NO_FEED189); }
 /* The sequence builder — PURE on purpose (the suites drive it
    in a vm): the board's ids, in the board's order, untouched,
@@ -7889,6 +7910,60 @@ function feedSlideKind189(h) {
   const hasVideo = typeof playHasVideo === "function" ? playHasVideo(h) : (h.media_kind === "file" || h.media_kind === "link_video");
   return hasVideo ? "video" : "link";
 }
+/* Round 191: the slide's shape from the media's real pixel
+   dimensions — taller than wide is "portrait" (the clip fills
+   the viewer); anything else, square included, is "landscape"
+   (the wide band treatment). PURE on purpose (the suites drive
+   it in a vm). */
+function feedShape191(w, h) {
+  const W = Number(w) || 0, H = Number(h) || 0;
+  if (!W || !H) return "";
+  return H > W ? "portrait" : "landscape";
+}
+function feedApplyShape191(slide, w, h) {
+  if (!slide) return "";
+  const shape = feedShape191(w, h);
+  if (!shape) return "";
+  try { if (slide.dataset) slide.dataset.feedShape = shape; } catch (e) {}
+  if (slide.classList && typeof slide.classList.toggle === "function") {
+    slide.classList.toggle("feed191-portrait", shape === "portrait");
+    slide.classList.toggle("feed191-wide", shape === "landscape");
+  }
+  return shape;
+}
+/* Round 191: wire one rendered slide's shape classification.
+   The video's loadedmetadata dimensions are the truth; the
+   POSTER's dimensions are the pre-metadata stand-in so the
+   layout settles before the video can report (a poster answer
+   never overrides a metadata answer). Photo plays classify
+   off their own image. Embed/link slides keep the Round 189
+   treatment — there are no pixels of ours to measure. Every
+   lookup is guarded; a stub or a partial slice just never
+   classifies and the slide keeps the base layout. */
+function feedWireShape191(slide) {
+  try {
+    if (!slide || typeof slide.querySelector !== "function") return;
+    const kind = typeof slide.getAttribute === "function" ? slide.getAttribute("data-feed-kind") : "";
+    const media = slide.querySelector("video, img");
+    if (!media) return;
+    let metaDone = false;
+    const applyMeta = (w, h) => { if (Number(w) > 0 && Number(h) > 0) { metaDone = true; feedApplyShape191(slide, w, h); } };
+    const applyStandIn = (w, h) => { if (!metaDone && Number(w) > 0 && Number(h) > 0) feedApplyShape191(slide, w, h); };
+    if (kind === "video") {
+      if (typeof media.addEventListener === "function") media.addEventListener("loadedmetadata", () => applyMeta(media.videoWidth, media.videoHeight));
+      if (media.videoWidth > 0) applyMeta(media.videoWidth, media.videoHeight);
+      const poster = typeof media.getAttribute === "function" ? media.getAttribute("poster") : "";
+      if (poster && typeof Image !== "undefined") {
+        const probe = new Image();
+        probe.onload = () => applyStandIn(probe.naturalWidth, probe.naturalHeight);
+        probe.src = poster;
+      }
+    } else if (kind === "photo") {
+      if (typeof media.addEventListener === "function") media.addEventListener("load", () => applyMeta(media.naturalWidth, media.naturalHeight));
+      if (media.complete && media.naturalWidth > 0) applyMeta(media.naturalWidth, media.naturalHeight);
+    }
+  } catch (e) { /* an unclassified slide keeps the base layout — classification never breaks the feed */ }
+}
 function feedMediaHtml189(h, kind) {
   const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
   if (kind === "photo") return `<img class="feed189-fit" src="${esc(h.media_url)}" alt="">`;
@@ -7898,10 +7973,22 @@ function feedMediaHtml189(h, kind) {
 }
 function feedHypeRail189(h) {
   const count = `<span class="feed189-count" data-feed-count="${h.id}">${h.voteCount || 0}</span>`;
+  /* Round 191: the rail wears the brand's gold crown mark —
+     public/crown.png, the standalone gold crown asset the
+     site ships — in place of the emoji, on the vote button
+     and the sample chip alike (the chip is the same rail
+     slot). The crown is a flat silhouette, so the voted
+     state's gold disc darkens it to black via CSS filter. */
+  const crown = `<img class="feed191-crown" src="crown.png" alt="" aria-hidden="true">`;
   /* Sample plays keep the boards' rule: a display-only count,
      no vote affordance. */
-  if (h.isSample) return `<div class="feed189-railitem"><span class="feed189-samplechip" aria-hidden="true">👑</span>${count}<span class="feed189-raillabel">Sample</span></div>`;
-  return `<div class="feed189-railitem"><button type="button" class="feed189-hype${h.hasVoted ? " voted" : ""}" data-feed-hype="${h.id}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="Hype this play" onclick="feedHype189(${h.id}, this)">👑</button>${count}<span class="feed189-raillabel">Hype</span></div>`;
+  if (h.isSample) return `<div class="feed189-railitem"><span class="feed189-samplechip" aria-hidden="true">${crown}</span>${count}<span class="feed189-raillabel">Sample</span></div>`;
+  /* Round 190 (2026-11-25, Emil): the rail names the action
+     "Vote" — this button IS the vote (it runs through the real
+     toggleVote), and the action is labeled Vote everywhere it
+     appears. The voted state stays style-only (.voted +
+     aria-pressed), exactly as the mock drew it. */
+  return `<div class="feed189-railitem"><button type="button" class="feed189-hype${h.hasVoted ? " voted" : ""}" data-feed-hype="${h.id}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="Vote for this play" onclick="feedHype189(${h.id}, this)">${crown}</button>${count}<span class="feed189-raillabel">Vote</span></div>`;
 }
 function feedVsHtml189(current) {
   const b = feed189.battle;
@@ -7912,21 +7999,33 @@ function feedVsHtml189(current) {
   const pct = (av + cv) > 0 ? Math.round((av / (av + cv)) * 100) : 50;
   const side = (p, v) => `<div class="feed189-vs-side${current && p.id === current.id ? " now" : ""}"><b>${esc(p.athlete_label || p.player_name || "")}</b><span>${esc(p.title)}</span><b class="feed189-vs-count" data-feed-count="${p.id}">${v}</b></div>`;
   const curName = current ? (current.athlete_label || current.player_name || "") : "";
-  return `<div class="feed189-vs">${side(a, av)}<div class="feed189-vs-mid">VS</div>${side(c, cv)}<div class="feed189-vs-split"><span data-feed-split189 style="width:${pct}%"></span></div><p class="feed189-vs-prompt">Hype the play you pick${curName ? ` — you're watching ${esc(curName)}'s; swipe for the other` : ""}.</p></div>`;
+  return `<div class="feed189-vs">${side(a, av)}<div class="feed189-vs-mid">VS</div>${side(c, cv)}<div class="feed189-vs-split"><span data-feed-split189 style="width:${pct}%"></span></div><p class="feed189-vs-prompt">Vote for the play you pick${curName ? ` — you're watching ${esc(curName)}'s; swipe for the other` : ""}.</p></div>`;
 }
 function feedSlideHtml189(h, i, showHint) {
   const kind = feedSlideKind189(h);
   const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
   const name = h.athlete_label || h.player_name || "";
-  return `<section class="feed189-slide" data-feed-slide="${h.id}" data-feed-kind="${kind}">
+  /* Round 191: the caption is TITLE-first — the play's title
+     is the hook line ("Walk-off game winner"), then
+     "Athlete · Sport" beneath it; the team keeps its chip.
+     A play with no title falls back to name-first (the name
+     takes the hook line, the sport rides beneath it). The
+     same markup serves both caption placements — the
+     portrait overlay and the wide below-the-band block are
+     pure CSS (the slide's feed191-portrait / feed191-wide
+     classes from feedWireShape191). */
+  const title = String(h.title || "").trim();
+  const line1 = title || name;
+  const line2 = title ? [name, h.sport ? cap(h.sport) : ""].filter(Boolean).join(" · ") : (h.sport ? cap(h.sport) : "");
+  return `<section class="feed189-slide" data-feed-slide="${h.id}" data-feed-kind="${kind}"${feed189.battle ? ` data-feed-battle="1"` : ""}>
     ${poster ? `<div class="feed189-bg" style="background-image:url(&quot;${esc(poster)}&quot;)"></div>` : `<div class="feed189-bg feed189-bg-plain"></div>`}
     <div class="feed189-media">${feedMediaHtml189(h, kind)}</div>
     ${feed189.battle ? `<div class="feed189-ribbon">⚔️ Battle</div>` : ""}
     ${feed189.battle ? feedVsHtml189(h) : ""}
     <div class="feed189-caption">
-      ${name ? `<p class="feed189-athlete">${esc(name)}</p>` : ""}
-      <p class="feed189-title">${esc(h.title)}</p>
-      <p class="feed189-tags">${h.team ? `<span class="feed189-team">${esc(h.team)}</span>` : ""}${h.sport ? `<span class="feed189-sport">${esc(cap(h.sport))}</span>` : ""}</p>
+      ${line1 ? `<p class="feed189-title">${esc(line1)}</p>` : ""}
+      ${line2 ? `<p class="feed189-athlete">${esc(line2)}</p>` : ""}
+      ${h.team ? `<p class="feed189-tags"><span class="feed189-team">${esc(h.team)}</span></p>` : ""}
       ${h.musicTrack ? `<p class="feed189-music">♪ ${esc(h.musicTrack)} <span>Licensed hype track</span></p>` : ""}
     </div>
     <div class="feed189-rail">
@@ -7934,7 +8033,7 @@ function feedSlideHtml189(h, i, showHint) {
       <div class="feed189-railitem"><button type="button" class="feed189-share" aria-label="Share this play" onclick="feedShare189(${h.id}, this)">🔗</button><span class="feed189-raillabel">Share</span></div>
     </div>
     ${kind === "video" ? `<div class="feed189-progress"><span data-feed-progress="${h.id}"></span></div>` : ""}
-    ${showHint ? `<p class="feed189-hint" data-feed-hint189>Swipe up for the next play ↓</p>` : ""}
+    ${showHint ? `<p class="feed189-hint" data-feed-hint189>↑ Swipe up for the next play</p>` : ""}
   </section>`;
 }
 function feedEndCardHtml189() {
@@ -7955,11 +8054,22 @@ function feedRender189(seq, battle) {
   feed189.battle = battle || null;
   feed189.kind = battle ? "battle" : "board";
   feed189.counted = new Set();
+  /* Round 191: the swipe hint shows ONCE per page session —
+     on the first slide of the first feed that has a next
+     play — then never again (feed191.hintSeen survives
+     close/re-entry; feedActivate189 hides it for good once
+     the visitor swipes away). */
+  const wantHint = seq.ids.length > 1 && !feed191.hintSeen;
   const slides = seq.ids.map((id, i) => {
     const h = typeof findPlay === "function" ? findPlay(id) : null;
-    return h ? feedSlideHtml189(h, i, i === seq.start && seq.ids.length > 1) : "";
+    return h ? feedSlideHtml189(h, i, i === seq.start && wantHint) : "";
   }).join("");
+  if (wantHint) feed191.hintSeen = true;
   track.innerHTML = slides + feedEndCardHtml189();
+  /* Round 191: classify each slide by its media's real shape
+     (portrait fills, wide runs edge-to-edge — see
+     feedWireShape191). */
+  if (typeof track.querySelectorAll === "function") track.querySelectorAll("[data-feed-slide]").forEach((s) => feedWireShape191(s));
   if (typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => {
     if (typeof v.addEventListener !== "function") return;
     v.addEventListener("timeupdate", () => {
@@ -7983,7 +8093,10 @@ function feedActivate189(index) {
       else { try { v.pause(); } catch (e) {} }
     });
     const hint = typeof track.querySelector === "function" ? track.querySelector("[data-feed-hint189]") : null;
-    if (hint && hint.style) hint.style.display = index === feed189.start ? "" : "none";
+    /* Round 191: once the visitor swipes off the first slide
+       the hint is gone for good (its CSS fade handles the
+       rest) — it never reappears on a swipe back. */
+    if (hint && hint.style && index !== feed189.start) hint.style.display = "none";
   }
   const id = feed189.ids[index];
   if (id && !feed189.counted.has(id)) {

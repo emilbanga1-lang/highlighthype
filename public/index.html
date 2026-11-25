@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=189" />
+<link rel="stylesheet" href="styles.css?v=191" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -2104,13 +2104,19 @@
      HH_NO_FEED=1 (server-injected window.HH_NO_FEED189) turns
      the whole mode off and board taps keep the classic detail
      path.) ============ -->
+<!-- Round 191 (2026-11-25): the feed header slims down — a
+     small HH crest (the site's crest-watermark, pinned as
+     elsewhere on this page), slim Watch + Battles tabs only,
+     and the close button given right-edge room. Hype of the
+     Month leaves the feed header entirely (it stays reachable
+     from the boards and the end card's Leaderboard button,
+     which still rides feedGo189('month')). -->
 <div class="feed189" id="feed189" hidden role="dialog" aria-modal="true" aria-label="Watch feed">
   <div class="feed189-top">
-    <img class="feed189-logo" src="logo-header-gold.png" alt="HighlightHype">
+    <img class="feed191-crest" src="/crest-watermark.png?v=174" alt="HighlightHype">
     <nav class="feed189-tabs" aria-label="Boards">
       <button type="button" data-feed-tab="all" onclick="feedGo189('all')">Watch</button>
       <button type="button" data-feed-tab="battles" onclick="feedGo189('battles')">Battles</button>
-      <button type="button" data-feed-tab="month" onclick="feedGo189('month')">Hype of the Month</button>
     </nav>
     <button type="button" class="feed189-close" id="feedClose189" aria-label="Close the feed" onclick="closeFeed189()">✕</button>
   </div>
@@ -2176,6 +2182,6 @@
   </div>
 </div>
 
-<script src="app.js?v=189"></script>
+<script src="app.js?v=191"></script>
 </body>
 </html>

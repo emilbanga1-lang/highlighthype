@@ -3654,3 +3654,51 @@ body.feed-open189{overflow:hidden}
 .feed189-credo{color:#e8cf8f;font-size:16.5px;margin:10px 0 20px}
 .feed189-end-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .btl-feed-row189{margin:10px 0 4px}
+/* ================================================================
+   Round 191 (2026-11-25): the feed design refinement — the play
+   takes the visual weight. (1) Slim top bar: small HH crest,
+   slim tabs, close button with right-edge room; Hype of the
+   Month is out of the header (markup in index.html). (2) Both
+   video shapes, classified per slide by feedWireShape191:
+   .feed191-portrait fills the viewer; .feed191-wide runs the
+   clip edge-to-edge at full width with the ENTIRE frame
+   visible and the caption directly below the band — the
+   blurred-fill backdrop (.feed189-bg) is retired for both
+   classified shapes. (3) The swipe hint gets its own space
+   clear of every caption and fades once (feed191hintfade).
+   (4) The rail vote button wears the real gold crown
+   (crown.png) with tightened icon/count/label spacing.
+   (5) Captions are title-first (the title takes the strong
+   line, "Athlete · Sport" beneath). Overrides layer over the
+   Round 189 rules above; scoped to .feed189 throughout.
+   ================================================================ */
+.feed189-top{padding:8px 16px 12px 12px;gap:8px}
+.feed191-crest{height:30px;width:30px;object-fit:contain;flex:none}
+.feed189-tabs button{padding:4px 10px;font-size:12px}
+.feed189-close{width:38px;height:38px;font-size:16px}
+/* Shape: portrait fills the viewer. */
+.feed189-slide.feed191-portrait .feed189-fit{object-fit:cover}
+.feed189-slide.feed191-portrait .feed189-bg{display:none}
+/* Shape: wide — edge-to-edge band, caption directly below it. */
+.feed189-slide.feed191-wide{display:flex;flex-direction:column;justify-content:center}
+.feed189-slide.feed191-wide .feed189-bg{display:none}
+.feed191-wide .feed189-media{position:relative;inset:auto;display:block}
+.feed191-wide .feed189-fit{width:100%;height:auto;max-height:68vh;object-fit:contain}
+.feed191-wide .feed189-caption{position:relative;left:auto;right:auto;bottom:auto;order:1;margin:12px 84px 0 12px;text-shadow:none}
+.feed191-wide .feed189-vs{position:relative;left:auto;right:auto;bottom:auto;order:2;margin:10px 84px 0 12px}
+/* Title-first caption hierarchy (both placements). */
+.feed189-title{font-size:17px;font-weight:800;color:#fff;margin:0}
+.feed189-athlete{font-size:13.5px;font-weight:600;color:#e9e2cf;margin:3px 0 0}
+/* The real crown + tightened rail spacing. */
+.feed191-crown{width:30px;height:auto;display:block;margin:0 auto;filter:drop-shadow(0 1px 2px rgba(0,0,0,.55))}
+.feed189-hype.voted .feed191-crown{filter:brightness(0)}
+.feed189-samplechip .feed191-crown{opacity:.85}
+.feed189-rail{gap:12px}
+.feed189-railitem{gap:0}
+.feed189-count{line-height:1.2;margin-top:3px}
+.feed189-raillabel{margin-top:1px}
+/* The swipe hint: its own space, once, then faded for good. */
+.feed189-hint{bottom:156px;animation:feed191hintfade 3.4s ease forwards}
+.feed189-slide[data-feed-battle="1"] .feed189-hint{bottom:258px}
+.feed189-slide.feed191-wide[data-feed-battle="1"] .feed189-hint{bottom:148px}
+@keyframes feed191hintfade{0%{opacity:0;transform:translateY(6px)}10%{opacity:1;transform:translateY(0)}72%{opacity:1}100%{opacity:0;visibility:hidden}}
