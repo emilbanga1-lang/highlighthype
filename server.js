@@ -714,6 +714,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN moment_kind TEXT"); } catch {}
    generation is the last. */
 try { db.exec("ALTER TABLE highlights ADD COLUMN reel_generated_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN reel_source TEXT DEFAULT ''"); } catch {}
+/* Round 189 (2026-11-25): the watch feed's music chip is
+   DISPLAY-ONLY — a play may someday carry the name of a
+   platform-licensed instrumental track picked at upload, and
+   the feed renders the chip when one is attached. No licensed
+   library exists yet, nothing in the product sets this column,
+   and there is deliberately NO picker: the field rides along
+   empty ('' everywhere) until a real library lands. */
+try { db.exec("ALTER TABLE highlights ADD COLUMN music_track TEXT DEFAULT ''"); } catch {}
 // A contest play is prize-eligible when the owner can actually reach a
 // parent/guardian: a guardian email on file, OR a guardian mobile WITH
 // text consent. No reachable guardian = not prize-eligible.
@@ -1801,6 +1809,11 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     // Round 182: see the computation above publicHighlight's return.
     contestRetired: retired182,
     contestSitOut: sitOut182,
+    // Round 189: the attached licensed-track name for the watch
+    // feed's music chip — '' on every play today (no library
+    // exists yet; see the music_track migration note). Public
+    // and safe: it is a track title, never guardian data.
+    musicTrack: row.music_track || "",
   };
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
@@ -5096,6 +5109,21 @@ const server = http.createServer(async (req, res) => {
       : /[?&]v=/.test(req.url || "") ? "public, max-age=604800"
       : /\.(jpe?g|png|webp|gif|svg|ico|mp4|webm|woff2?)$/.test(staticExt) ? "public, max-age=86400"
       : "no-cache";
+    /* Round 189 (2026-11-25): the HH_NO_FEED=1 kill switch. The
+       watch feed is client-side, so the flag rides the one
+       document every visit loads: when the switch is set, the
+       served index.html carries window.HH_NO_FEED189 just
+       before app.js, and the client keeps every board tap on
+       the classic play-detail path — boards behave exactly as
+       they did before the feed. Mirrors HH_NO_ENHANCE /
+       HH_NO_WELCOME. */
+    if (process.env.HH_NO_FEED === "1" && path.basename(filePath) === "index.html") {
+      try {
+        const feedOffBuf189 = Buffer.from(fs.readFileSync(filePath, "utf8").replace('<script src="app.js', '<script>window.HH_NO_FEED189=true;</script>\n<script src="app.js'), "utf8");
+        res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": feedOffBuf189.length, "cache-control": "no-cache" });
+        return res.end(feedOffBuf189);
+      } catch { /* fall through to the plain static serve */ }
+    }
     const range = req.headers.range;
     if (range) {
       const m = /bytes=(\d*)-(\d*)/.exec(range);
