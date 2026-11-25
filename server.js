@@ -107,15 +107,18 @@ const BACKUP_FILE_DIRS = [UPLOAD_DIR, HYPEFRAME_DIR, REEL_DIR];
 // mail.privateemail.com), SMTP_PORT (default 465), NOTIFY_TO (default
 // hello@highlighthype.com). If SMTP_USER/SMTP_PASS are unset, this is a
 // silent no-op and uploads still succeed.
-function smtpSend({ host, port, user, pass, from, to, subject, body }) {
+function smtpSend({ host, port, user, pass, from, to, subject, body, html }) {
   // Test seam (Round 164): when HH_MAIL_CAPTURE names a file, the
   // "send" appends one JSON line per message ({to, subject, body})
   // there instead of opening a socket — that file is the suites'
   // mail stub, the only way email behavior is provable in the
   // sandbox. NEVER set in prod; unset, this branch does not exist
-  // as far as behavior is concerned.
+  // as far as behavior is concerned. Round 188: a message that
+  // carries an HTML part (the welcome email) adds an `html` key
+  // to its capture line; plain house mail is captured exactly as
+  // before.
   if (process.env.HH_MAIL_CAPTURE) {
-    try { fs.appendFileSync(process.env.HH_MAIL_CAPTURE, JSON.stringify({ to, subject, body }) + "\n"); } catch {}
+    try { fs.appendFileSync(process.env.HH_MAIL_CAPTURE, JSON.stringify(html ? { to, subject, body, html } : { to, subject, body }) + "\n"); } catch {}
     return Promise.resolve();
   }
   return new Promise((resolve, reject) => {
@@ -144,7 +147,16 @@ function smtpSend({ host, port, user, pass, from, to, subject, body }) {
         await cmd(`MAIL FROM:<${from}>`, "250");
         await cmd(`RCPT TO:<${to}>`, "250");
         await cmd("DATA", "354");
-        sock.write(`From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}\r\n.\r\n`);
+        // Round 188: a message with an `html` part goes out as
+        // multipart/alternative (plain text first, HTML second —
+        // clients pick the richest part they render). Plain house
+        // mail keeps the exact single-part shape it always had.
+        if (html) {
+          const bnd = "hh-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+          sock.write(`From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary="${bnd}"\r\n\r\n--${bnd}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}\r\n--${bnd}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n${html}\r\n--${bnd}--\r\n.\r\n`);
+        } else {
+          sock.write(`From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\n${body}\r\n.\r\n`);
+        }
         await readLine();
         await cmd("QUIT", "221");
         sock.end(); resolve();
@@ -748,6 +760,11 @@ try { db.exec("ALTER TABLE athletes ADD COLUMN jersey TEXT DEFAULT ''"); } catch
 // diagnostics only: never on the public allowlist, never part of
 // approval — a play's public shape is unchanged by this round.
 try { db.exec("ALTER TABLE highlights ADD COLUMN enhance_json TEXT DEFAULT ''"); } catch {}
+// Round 188 (2026-11-25): the upload welcome email's per-play
+// sent marker — stamped ONLY after the welcome send succeeds and
+// checked before any send, so a play can never be welcomed twice
+// (see the Round 188 section at the media pipeline). '' = not sent.
+try { db.exec("ALTER TABLE highlights ADD COLUMN welcome_sent_at TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -2025,7 +2042,16 @@ async function r124ProcessUpload(id, name) {
     // (see the note above). Its own catch-all is inside; this
     // .catch is the belt to its suspenders — a rejected promise
     // here must never become an unhandled rejection.
-    r186EnhanceUpload(bins, id, abs, meta186).catch((e) => console.error(`[r186] upload ${id}: stage error (display file kept):`, e.message));
+    r186EnhanceUpload(bins, id, abs, meta186)
+      .catch((e) => console.error(`[r186] upload ${id}: stage error (display file kept):`, e.message))
+      // Round 188: the welcome email rides the very end of this
+      // chain — only once the agent has fully settled is the
+      // poster final (the enhanced poster, when it enhanced), so
+      // that is the poster the email carries. Its own catch-all
+      // is inside; this .catch is the belt to its suspenders,
+      // the same discipline as the agent above.
+      .then(() => r188MaybeSendWelcome(id))
+      .catch((e) => console.error(`[r188] upload ${id}: welcome stage error (upload unaffected):`, e.message));
   } catch (e) { console.error(`[r124] upload ${id} media processing error (original kept):`, e.message); }
 }
 // One-time migration for plays that predate the pipeline: any
@@ -2536,6 +2562,156 @@ async function r186EnhanceUpload(bins, id, abs, meta) {
     report.reason = e.message;
     console.error(`[r186] upload ${id}: enhancement stage failed (display file kept):`, e.message);
     r186StoreReport(id, report);
+  }
+}
+/* ================= Round 188 (2026-11-25): the upload welcome email =================
+   WHY: Emil's call (2026-11-25) — when a family uploads a play,
+   the moment deserves more than a silent queue: the uploader
+   gets a "Welcome to the HighlightHype family" note carrying
+   the play's poster, the credo, and a link to the play's PUBLIC
+   page. Emil approved the mock (welcome-email-mock-2026-11-25)
+   and the build followed it the same day.
+   TRIGGER: chained off the very end of the Round 186 chain in
+   r124ProcessUpload — only reachable from the live upload
+   handler, so backfills, the boot migration, restores and
+   re-processing never welcome anyone; and only once the agent
+   has fully settled is the poster the FINAL (enhanced) one.
+   RECIPIENT: the play's notify_email — the parent/guardian
+   account holder, never the athlete. The greeting name is the
+   guardian name this family gave on a Hype Frame request when
+   one is on file; otherwise the greeting falls back to a plain
+   "Hi there," — the upload form captures no guardian name.
+   SUBJECTS: the guardian's FIRST play gets "Welcome to the
+   HighlightHype family"; every later play gets the proud line
+   with the play title lowercased into the sentence, exactly as
+   the approved mock shows it.
+   DISCOUNT: the mock's FAMILY10 block ships in the template
+   but behind HH_WELCOME_DISCOUNT=1, default OFF — the Shopify
+   code does not exist yet and the store takes no payments, so
+   no family may receive a code that doesn't work. Flag off,
+   the block is omitted cleanly (no empty shell).
+   DISCIPLINE (the house mail rules, unchanged): silent no-op
+   when SMTP is unconfigured; fire-and-forget — a mail failure
+   can never fail or delay an upload; HH_NO_WELCOME=1 is the
+   kill switch, mirroring HH_NO_ENHANCE. NO DOUBLE-SENDS:
+   highlights.welcome_sent_at is checked before sending and
+   stamped ONLY after smtpSend resolves, so a failed send
+   leaves the welcome owed (a later re-processing can deliver
+   it) and a delivered one can never repeat. The "Watch the
+   play" button links the play's public page — NEVER a
+   moderation link (anyone holding one can moderate). */
+// The guardian's first name, when this family has given one —
+// the only place a guardian name is stored is a Hype Frame
+// order request. Matched on the normalized address, newest first.
+function r188GuardianFirstName(to) {
+  try {
+    const row = db.prepare("SELECT guardian_name FROM hype_frame_orders WHERE lower(trim(guardian_email))=? AND trim(guardian_name)<>'' ORDER BY id DESC LIMIT 1").get(normIdentity(to));
+    const name = String((row && row.guardian_name) || "").trim();
+    return name ? name.split(/\s+/)[0] : "";
+  } catch { return ""; }
+}
+function r188WelcomeText({ greeting, athlete, athleteFirst, title, playUrl, showDiscount }) {
+  let s = `Welcome to the HighlightHype family\n\nHi ${greeting},\n\n${athlete}'s play — "${title}" — is live on HighlightHype, and we just had to say it: welcome to the family.\n\nYou should be proud of this one. The hours in the driveway, the rides to practice, the games in the cold — they're all in this swing. Moments like this are exactly why HighlightHype exists: we believe every young athlete should be celebrated.\n\nWatch the play: ${playUrl}\nShare the link with family — every view is a vote of confidence.\n`;
+  if (showDiscount) s += `\nA little welcome gift: 10% off your first HighlightHype order — enter code FAMILY10 at checkout on highlighthype.com. Our thanks for being one of the first families in.\n`;
+  s += `\nThanks for trusting us with this memory. We can't wait to see what ${athleteFirst} does next.\n\n— The HighlightHype Family\nhighlighthype.com\n\nYou're receiving this email because a play was uploaded from your HighlightHype account.\n`;
+  return s;
+}
+function r188WelcomeHtml({ greeting, athlete, athleteFirst, title, playUrl, posterUrl, showDiscount }) {
+  const g = escHtml(greeting), a = escHtml(athlete), af = escHtml(athleteFirst), t = escHtml(title);
+  const posterBlock = posterUrl ? `
+  <tr><td style="padding:22px 40px 0;">
+    <img src="${escHtml(posterUrl)}" width="520" alt="${a} — ${t}" style="display:block;width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid #2a2517;">
+    <div style="background:#141414;border:1px solid #2a2517;border-top:none;border-radius:0 0 10px 10px;padding:10px 14px;margin-top:-10px;position:relative;">
+      <span style="color:#e8cf8f;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:bold;">Now playing</span>
+      <span style="color:#ffffff;font-size:14.5px;">&nbsp;&nbsp;${a} · ${t}</span>
+    </div>
+  </td></tr>` : "";
+  const discountBlock = showDiscount ? `
+  <tr><td style="padding:26px 40px 0;">
+    <div style="border:1.5px dashed #B39B63;border-radius:12px;background:#171200;padding:20px 22px;text-align:center;">
+      <div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#B39B63;font-weight:bold;">A little welcome gift</div>
+      <div style="color:#ffffff;font-size:16.5px;margin-top:8px;">10% off your first HighlightHype order</div>
+      <div style="font-family:'Courier New',monospace;font-size:27px;font-weight:bold;letter-spacing:.28em;color:#e8cf8f;margin-top:12px;">FAMILY10</div>
+      <div style="font-size:12px;color:#9a958a;margin-top:8px;">Enter the code at checkout on highlighthype.com — our thanks for being one of the first families in.</div>
+    </div>
+  </td></tr>` : "";
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HighlightHype — Welcome</title></head>
+<body style="margin:0;padding:0;background:#0a0a0a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#0a0a0a;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:600px;max-width:600px;background:#0a0a0a;">
+  <tr><td style="background:#0a0a0a;padding:30px 40px 6px;text-align:center;">
+    <img src="https://highlighthype.com/logo-header-gold.png" width="340" alt="HighlightHype" style="display:block;margin:0 auto;width:340px;max-width:85%;height:auto;">
+    <div style="font-size:10.5px;letter-spacing:.3em;color:#B39B63;text-transform:uppercase;margin-top:7px;font-family:Arial,Helvetica,sans-serif;">Athletes — Strength — Memories — Motivation</div>
+  </td></tr>
+  <tr><td style="padding:18px 40px 0;"><div style="border-top:1px solid #2a2517;font-size:0;line-height:0;">&nbsp;</div></td></tr>
+  <tr><td style="padding:22px 40px 0;color:#e8e8e8;font-size:16px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+    <div style="font-family:'Arial Narrow',Arial,sans-serif;font-size:25px;font-weight:bold;text-transform:uppercase;letter-spacing:.03em;color:#ffffff;line-height:1.2;">Welcome to the family</div>
+    <p style="margin:14px 0 0;">Hi ${g},</p>
+    <p style="margin:12px 0 0;">${a}'s play — &ldquo;${t}&rdquo; — is live on HighlightHype, and we just had to say it: welcome to the family.</p>
+    <p style="margin:12px 0 0;">You should be proud of this one. The hours in the driveway, the rides to practice, the games in the cold — they're all in this swing. Moments like this are exactly why HighlightHype exists: <em style="color:#e8cf8f;">we believe every young athlete should be celebrated.</em></p>
+  </td></tr>${posterBlock}
+  <tr><td style="padding:24px 40px 0;text-align:center;">
+    <a href="${escHtml(playUrl)}" style="display:inline-block;background:#B39B63;color:#0a0a0a;font-family:Arial,sans-serif;font-size:15.5px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;padding:14px 38px;border-radius:999px;">Watch the play</a>
+    <div style="font-size:12.5px;color:#9a958a;margin-top:10px;font-family:Arial,Helvetica,sans-serif;">Share the link with family — every view is a vote of confidence.</div>
+  </td></tr>${discountBlock}
+  <tr><td style="padding:24px 40px 0;color:#e8e8e8;font-size:15.5px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+    <p style="margin:0;">Thanks for trusting us with this memory. We can't wait to see what ${af} does next.</p>
+    <p style="margin:14px 0 0;color:#ffffff;">— The HighlightHype Family<br><span style="font-size:13px;color:#9a958a;">highlighthype.com</span></p>
+  </td></tr>
+  <tr><td style="padding:26px 40px 30px;">
+    <div style="border-top:1px solid #2a2517;padding-top:16px;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+      <div style="font-size:10.5px;letter-spacing:.26em;color:#B39B63;text-transform:uppercase;">Athletes — Strength — Memories — Motivation</div>
+      <div style="font-size:12px;color:#8a857a;line-height:1.6;margin-top:10px;">
+        You're receiving this email because a play was uploaded from your HighlightHype account.<br>
+        HighlightHype · hello@highlighthype.com · <a href="https://highlighthype.com" style="color:#8a857a;">highlighthype.com</a>
+      </div>
+    </div>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+async function r188MaybeSendWelcome(id) {
+  try {
+    if (process.env.HH_NO_WELCOME === "1") return;
+    const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+    if (!user || !pass) return; // mailer unconfigured — silent no-op, the house rule
+    const row = db.prepare("SELECT * FROM highlights WHERE id=?").get(id);
+    if (!row || row.welcome_sent_at) return; // already welcomed — never twice
+    const to = String(row.notify_email || "").trim();
+    if (!to) return; // no guardian email on the play — nobody to welcome
+    // This guardian's FIRST play? Counted on the stored identity
+    // hash (the raw address for rows that predate it), strictly
+    // before this play.
+    let prior = 0;
+    if (row.notify_email_hash) prior = db.prepare("SELECT COUNT(*) AS c FROM highlights WHERE notify_email_hash=? AND id<?").get(row.notify_email_hash, id).c;
+    else prior = db.prepare("SELECT COUNT(*) AS c FROM highlights WHERE notify_email=? AND id<?").get(to, id).c;
+    const isFirst = !prior;
+    const athlete = String(row.player_name || "").trim() || "Your athlete";
+    const athleteFirst = athlete.split(/\s+/)[0];
+    const title = String(row.title || "").trim() || "Untitled play";
+    const greeting = r188GuardianFirstName(to) || "there";
+    const playUrl = `https://highlighthype.com/#play-${id}`;
+    const posterUrl = row.poster_url ? `https://highlighthype.com${row.poster_url.startsWith("/") ? "" : "/"}${row.poster_url}` : "";
+    const showDiscount = process.env.HH_WELCOME_DISCOUNT === "1";
+    const subject = isFirst
+      ? "Welcome to the HighlightHype family"
+      : `${athlete}'s ${title.toLowerCase()} is live — you should be proud of this one`;
+    const merges = { greeting, athlete, athleteFirst, title, playUrl, showDiscount };
+    await smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+      subject, body: r188WelcomeText(merges), html: r188WelcomeHtml({ ...merges, posterUrl }) });
+    // Stamp ONLY after the send resolved — a failed send leaves
+    // the marker empty, so the welcome is still owed rather than
+    // lost, and a delivered one can never be sent again.
+    db.prepare("UPDATE highlights SET welcome_sent_at=? WHERE id=?").run(new Date().toISOString(), id);
+    console.log(`[r188] upload ${id}: welcome email sent to the uploader (${isFirst ? "first play" : "returning family"})`);
+  } catch (e) {
+    console.error(`[r188] upload ${id}: welcome email failed (upload unaffected):`, e.message);
   }
 }
 /* ================= Round 165 (2026-11-14): Hype Reels =================
