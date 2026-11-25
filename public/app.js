@@ -659,8 +659,8 @@ function avatarDisc153(h) {
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
-  return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">
-    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlayDetail(${h.id})"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
+  return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlay189(${h.id}, this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlay189(${h.id}, this)}">
+    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlay189(${h.id}, this)"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
     <div class="tile-body">
       <div class="tile-head153">
         ${avatarDisc153(h)}
@@ -1124,7 +1124,7 @@ function renderMonth() {
      filter keeps its current behavior. Watch keeps its own
      division filtering in renderAll2, untouched. */
   const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
-  $("#monthRows").innerHTML = filtered.map((h, i) => fameRowHtml134(h, i)).join("");
+  $("#monthRows").innerHTML = filtered.map((h, i) => fameRowHtml134(h, i, { feed189: true })).join("");
   hydrateDurPills();
   /* Round 163: after every rebuild, if the Month view is the
      one on screen, the (possibly new) #1's showcase starts —
@@ -1299,13 +1299,17 @@ function posterUrlFor134(h) {
    too. Same markup, same tap; the /api/contest payload's
    voteCount override (month count, month order) is what
    makes the shared pill tell the month story on that tab. */
-function fameRowHtml134(h, i) {
+function fameRowHtml134(h, i, opts = {}) {
   const name = firstNameOf(h);
   const poster = posterUrlFor134(h);
   const thumb = poster
     ? `<img src="${esc(poster)}" alt="" loading="lazy"><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>`
     : `<span class="fame-thumb-fallback134">${esc(cap(h.sport))}</span>`;
-  return `<div class="fame-row${i === 0 ? " top" : ""}" role="button" tabindex="0" title="See this play's card" onclick="goToPlayCard(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToPlayCard(${h.id})}">
+  /* Round 189: Month-board rows (renderMonth passes
+     opts.feed189) open the watch feed at the row's play; Hall
+     of Fame rows keep the classic goToPlayCard tap. */
+  const tap134 = opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
+  return `<div class="fame-row${i === 0 ? " top" : ""}" data-tile-id="${h.id}" role="button" tabindex="0" title="See this play's card" onclick="${tap134}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${tap134}}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
       <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p></div>
@@ -7813,3 +7817,287 @@ function initA2HS161() {
   setTimeout(evaluate161, 25000);
 }
 initA2HS161();
+
+
+/* Round 189 (2026-11-25): the watch feed — a TikTok-style
+   full-screen mode inside Watch, built exactly as mocked and
+   approved by Emil (feed-mock-2026-11-25). The boards do not
+   change: tapping a play on a board (Watch tiles, Hype of the
+   Month rows) opens the feed AT that play, and swiping walks
+   the plays OF THE BOARD THE VISITOR CAME FROM, in the board's
+   own rendered order — read off the board's DOM ([data-tile-id]
+   in document order), NEVER re-sorted here. Fair order is a
+   hard rule: votes decide winners and votes are never sold, so
+   the feed carries no engagement ranking and no algorithmic
+   recommendations. The feed is FINITE: after the board's last
+   play it ends on the "You're all caught up" card — no infinite
+   scroll. Battles get the head-to-head treatment: entered from
+   the Battles view, the current Quick Battles pair becomes two
+   slides wearing the BATTLE ribbon and the VS bar, swiping
+   moves to the opponent's play, and hyping from inside the
+   feed goes through the SAME toggleVote as every other surface
+   (the real vote endpoint — a feed hype counts identically
+   everywhere; Quick Battle PICKS stay just-for-fun, untouched).
+   Videos play at their OWN aspect (object-fit: contain) over a
+   blurred, darkened copy of the play's own poster — never
+   force-cropped; muted autoplay for the in-view slide follows
+   the site's existing preview behavior, off-view slides pause.
+   Photo plays ride the same frame as a still — no broken
+   player, and they keep their place in the board's sequence.
+   Music: the chip renders ONLY when a play carries a track
+   name (h.musicTrack — a server field that is empty on every
+   play today; no licensed library exists yet, so there is NO
+   picker and NO placeholder track anywhere in this block).
+   Share rides the real sharePlay — the play's PUBLIC #play-
+   link, never a moderation link. Kill switch: HH_NO_FEED=1
+   makes the server stamp window.HH_NO_FEED189 into index.html;
+   every entry point here then stands down and board taps keep
+   the classic openPlayDetail path, exactly as before the feed
+   existed. Appended at the end of app.js per the sandbox-slice
+   rule; every element lookup is guarded and every cross-block
+   call is typeof-guarded, so partial slices behave as before. */
+const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
+function feedEnabled189() { return !(typeof window !== "undefined" && window && window.HH_NO_FEED189); }
+/* The sequence builder — PURE on purpose (the suites drive it
+   in a vm): the board's ids, in the board's order, untouched,
+   plus the index of the tapped play. An unknown start id
+   returns null and the caller falls back to the classic
+   detail, so a stale board can never open a wrong feed. */
+function feedSequence189(boardIds, startId) {
+  const ids = (Array.isArray(boardIds) ? boardIds : []).map((n) => Number(n)).filter((n) => Number.isFinite(n) && n > 0);
+  const start = ids.indexOf(Number(startId));
+  if (!ids.length || start < 0) return null;
+  return { ids, start };
+}
+/* The board's order, read off its rendered DOM: the tiles and
+   rows of the board the tapped element lives in, in document
+   order. This is the board's existing order BY CONSTRUCTION —
+   the feed inherits it and never computes one of its own. */
+function feedBoardIds189(el) {
+  try {
+    if (!el || typeof el.closest !== "function") return null;
+    const host = el.closest("#allBoard, #monthRows");
+    if (!host || typeof host.querySelectorAll !== "function") return null;
+    const ids = [...host.querySelectorAll("[data-tile-id]")].map((n) => Number(typeof n.getAttribute === "function" ? n.getAttribute("data-tile-id") : 0)).filter((n) => n > 0);
+    return ids.length ? ids : null;
+  } catch (e) { return null; }
+}
+function feedSlideKind189(h) {
+  if (!h) return "link";
+  if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return "photo";
+  if (h.media_kind === "link_embed") return "embed";
+  const hasVideo = typeof playHasVideo === "function" ? playHasVideo(h) : (h.media_kind === "file" || h.media_kind === "link_video");
+  return hasVideo ? "video" : "link";
+}
+function feedMediaHtml189(h, kind) {
+  const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
+  if (kind === "photo") return `<img class="feed189-fit" src="${esc(h.media_url)}" alt="">`;
+  if (kind === "embed") return `<iframe class="feed189-fit" src="${esc(h.embed_url || "")}" allowfullscreen title="Embedded play"></iframe>`;
+  if (kind === "video") return `<video class="feed189-fit" src="${esc(h.media_url)}"${poster ? ` poster="${esc(poster)}"` : ""} playsinline muted loop preload="metadata"></video>`;
+  return `<a class="feed189-watchlink" href="${esc(h.media_url)}" target="_blank" rel="noopener">▶ Watch on ${esc(h.host_label || "link")} ↗</a>`;
+}
+function feedHypeRail189(h) {
+  const count = `<span class="feed189-count" data-feed-count="${h.id}">${h.voteCount || 0}</span>`;
+  /* Sample plays keep the boards' rule: a display-only count,
+     no vote affordance. */
+  if (h.isSample) return `<div class="feed189-railitem"><span class="feed189-samplechip" aria-hidden="true">👑</span>${count}<span class="feed189-raillabel">Sample</span></div>`;
+  return `<div class="feed189-railitem"><button type="button" class="feed189-hype${h.hasVoted ? " voted" : ""}" data-feed-hype="${h.id}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="Hype this play" onclick="feedHype189(${h.id}, this)">👑</button>${count}<span class="feed189-raillabel">Hype</span></div>`;
+}
+function feedVsHtml189(current) {
+  const b = feed189.battle;
+  if (!b || typeof findPlay !== "function") return "";
+  const a = findPlay(b.a), c = findPlay(b.b);
+  if (!a || !c) return "";
+  const av = a.voteCount || 0, cv = c.voteCount || 0;
+  const pct = (av + cv) > 0 ? Math.round((av / (av + cv)) * 100) : 50;
+  const side = (p, v) => `<div class="feed189-vs-side${current && p.id === current.id ? " now" : ""}"><b>${esc(p.athlete_label || p.player_name || "")}</b><span>${esc(p.title)}</span><b class="feed189-vs-count" data-feed-count="${p.id}">${v}</b></div>`;
+  const curName = current ? (current.athlete_label || current.player_name || "") : "";
+  return `<div class="feed189-vs">${side(a, av)}<div class="feed189-vs-mid">VS</div>${side(c, cv)}<div class="feed189-vs-split"><span data-feed-split189 style="width:${pct}%"></span></div><p class="feed189-vs-prompt">Hype the play you pick${curName ? ` — you're watching ${esc(curName)}'s; swipe for the other` : ""}.</p></div>`;
+}
+function feedSlideHtml189(h, i, showHint) {
+  const kind = feedSlideKind189(h);
+  const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
+  const name = h.athlete_label || h.player_name || "";
+  return `<section class="feed189-slide" data-feed-slide="${h.id}" data-feed-kind="${kind}">
+    ${poster ? `<div class="feed189-bg" style="background-image:url(&quot;${esc(poster)}&quot;)"></div>` : `<div class="feed189-bg feed189-bg-plain"></div>`}
+    <div class="feed189-media">${feedMediaHtml189(h, kind)}</div>
+    ${feed189.battle ? `<div class="feed189-ribbon">⚔️ Battle</div>` : ""}
+    ${feed189.battle ? feedVsHtml189(h) : ""}
+    <div class="feed189-caption">
+      ${name ? `<p class="feed189-athlete">${esc(name)}</p>` : ""}
+      <p class="feed189-title">${esc(h.title)}</p>
+      <p class="feed189-tags">${h.team ? `<span class="feed189-team">${esc(h.team)}</span>` : ""}${h.sport ? `<span class="feed189-sport">${esc(cap(h.sport))}</span>` : ""}</p>
+      ${h.musicTrack ? `<p class="feed189-music">♪ ${esc(h.musicTrack)} <span>Licensed hype track</span></p>` : ""}
+    </div>
+    <div class="feed189-rail">
+      ${feedHypeRail189(h)}
+      <div class="feed189-railitem"><button type="button" class="feed189-share" aria-label="Share this play" onclick="feedShare189(${h.id}, this)">🔗</button><span class="feed189-raillabel">Share</span></div>
+    </div>
+    ${kind === "video" ? `<div class="feed189-progress"><span data-feed-progress="${h.id}"></span></div>` : ""}
+    ${showHint ? `<p class="feed189-hint" data-feed-hint189>Swipe up for the next play ↓</p>` : ""}
+  </section>`;
+}
+function feedEndCardHtml189() {
+  return `<section class="feed189-slide feed189-end" data-feed-end="1">
+    <div class="feed189-end-inner">
+      <p class="feed189-end-big">You're all caught up</p>
+      <p class="feed189-credo">We believe every young athlete should be celebrated.</p>
+      <p class="feed189-end-btns"><button type="button" class="btn btn-lime" onclick="closeFeed189()">Back to the board</button>
+      <button type="button" class="mini-btn" onclick="feedGo189('month')">See the Leaderboard</button></p>
+    </div>
+  </section>`;
+}
+function feedRender189(seq, battle) {
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track) return false;
+  feed189.ids = seq.ids;
+  feed189.start = seq.start;
+  feed189.battle = battle || null;
+  feed189.kind = battle ? "battle" : "board";
+  feed189.counted = new Set();
+  const slides = seq.ids.map((id, i) => {
+    const h = typeof findPlay === "function" ? findPlay(id) : null;
+    return h ? feedSlideHtml189(h, i, i === seq.start && seq.ids.length > 1) : "";
+  }).join("");
+  track.innerHTML = slides + feedEndCardHtml189();
+  if (typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => {
+    if (typeof v.addEventListener !== "function") return;
+    v.addEventListener("timeupdate", () => {
+      try {
+        const slide = typeof v.closest === "function" ? v.closest("[data-feed-slide]") : null;
+        const bar = slide && typeof slide.querySelector === "function" ? slide.querySelector("[data-feed-progress]") : null;
+        if (bar && v.duration > 0) bar.style.width = Math.round((v.currentTime / v.duration) * 100) + "%";
+      } catch (e) { /* a progress bar never breaks playback */ }
+    });
+  });
+  return true;
+}
+function feedActivate189(index) {
+  feed189.index = index;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (track && typeof track.querySelectorAll === "function") {
+    [...track.querySelectorAll("[data-feed-slide], [data-feed-end]")].forEach((s, i) => {
+      const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
+      if (!v) return;
+      if (i === index) { try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused autoplay leaves the poster resting */ } }
+      else { try { v.pause(); } catch (e) {} }
+    });
+    const hint = typeof track.querySelector === "function" ? track.querySelector("[data-feed-hint189]") : null;
+    if (hint && hint.style) hint.style.display = index === feed189.start ? "" : "none";
+  }
+  const id = feed189.ids[index];
+  if (id && !feed189.counted.has(id)) {
+    feed189.counted.add(id);
+    if (typeof trackEvent === "function") trackEvent("play_open", id);
+  }
+}
+function feedOnScroll189() {
+  if (!feed189.open) return;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track) return;
+  const h = track.clientHeight || 0;
+  if (!h) return;
+  const idx = Math.round((track.scrollTop || 0) / h);
+  if (idx !== feed189.index) feedActivate189(idx);
+}
+window.openFeed189 = (ids, startId, battle) => {
+  if (!feedEnabled189()) return false;
+  const seq = feedSequence189(ids, startId);
+  if (!seq) return false;
+  const wrap = typeof $ === "function" ? $("#feed189") : null;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!wrap || !track) return false;
+  if (!feedRender189(seq, battle)) return false;
+  wrap.hidden = false;
+  feed189.open = true;
+  try { if (typeof document !== "undefined" && document.body && document.body.classList) document.body.classList.add("feed-open189"); } catch (e) {}
+  /* Round 158's invariant, mirrored: opening the feed is a view
+     change — every panel falls silent behind it. */
+  if (typeof pauseMediaIn158 === "function" && typeof $$ === "function") $$(".panel[data-panel]").forEach((p) => pauseMediaIn158(p, false));
+  if (typeof featPause163 === "function") featPause163();
+  const jump = () => { try { track.scrollTop = seq.start * (track.clientHeight || 0); } catch (e) {} feedActivate189(seq.start); };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(jump); else jump();
+  return true;
+};
+/* The board tap: Watch tiles and Month rows land here. Feed on
+   and a readable board order → the feed; anything else (kill
+   switch, an element outside a known board, a play the board
+   no longer shows) → the classic detail, exactly as before. */
+window.openPlay189 = (id, el) => {
+  if (feedEnabled189()) {
+    const ids = feedBoardIds189(el);
+    if (ids && window.openFeed189(ids, id, null)) return;
+  }
+  if (typeof window.openPlayDetail === "function") window.openPlayDetail(id);
+};
+window.openBattleFeed189 = () => {
+  if (!feedEnabled189()) return;
+  let pair = null;
+  try { if (typeof btl !== "undefined" && btl && btl.cur && btl.cur.L && btl.cur.R) pair = [btl.cur.L, btl.cur.R]; } catch (e) {}
+  if (!pair && typeof btlPairs === "function") { try { const p = btlPairs(); if (p && Array.isArray(p.pairs) && p.pairs.length) pair = p.pairs[0]; } catch (e) {} }
+  if (!pair) return;
+  window.openFeed189(pair, pair[0], { a: pair[0], b: pair[1] });
+};
+window.closeFeed189 = () => {
+  const wrap = typeof $ === "function" ? $("#feed189") : null;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (track && typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => { try { v.pause(); } catch (e) {} });
+  if (track) track.innerHTML = "";
+  if (wrap) wrap.hidden = true;
+  feed189.open = false;
+  feed189.ids = [];
+  feed189.battle = null;
+  feed189.index = -1;
+  try { if (typeof document !== "undefined" && document.body && document.body.classList) document.body.classList.remove("feed-open189"); } catch (e) {}
+};
+/* The feed's top tabs and the end card's Leaderboard button:
+   leave the feed, land on the named board. The Leaderboard
+   lives on the Month tab (setMonthSub pins the This Month
+   sub-view, exactly like the tab itself). */
+window.feedGo189 = (view) => {
+  window.closeFeed189();
+  if (view === "month" && typeof setMonthSub === "function") setMonthSub("month");
+  else if (typeof switchView === "function") switchView(view);
+};
+/* A hype from the feed IS a hype: the same toggleVote (the real
+   vote endpoint, the same voter token, the same in-flight
+   guard and refresh) as the boards and the watch view. After
+   it settles, the slide's counts repaint from the fresh data
+   loadData already pulled. */
+window.feedHype189 = async (id, btn) => {
+  if (typeof window.toggleVote === "function") { try { await window.toggleVote(id, btn); } catch (e) {} }
+  feedSyncCounts189();
+};
+window.feedShare189 = (id, btn) => { if (typeof window.sharePlay === "function") window.sharePlay(id, btn); };
+function feedSyncCounts189() {
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track || typeof track.querySelectorAll !== "function" || typeof findPlay !== "function") return;
+  track.querySelectorAll("[data-feed-count]").forEach((el) => {
+    const h = findPlay(Number(typeof el.getAttribute === "function" ? el.getAttribute("data-feed-count") : 0));
+    if (h) el.textContent = String(h.voteCount || 0);
+  });
+  track.querySelectorAll("[data-feed-hype]").forEach((el) => {
+    const h = findPlay(Number(typeof el.getAttribute === "function" ? el.getAttribute("data-feed-hype") : 0));
+    if (h && el.classList && typeof el.classList.toggle === "function") { el.classList.toggle("voted", !!h.hasVoted); if (typeof el.setAttribute === "function") el.setAttribute("aria-pressed", h.hasVoted ? "true" : "false"); }
+  });
+  if (feed189.battle) {
+    const bar = typeof track.querySelector === "function" ? track.querySelector("[data-feed-split189]") : null;
+    const a = findPlay(feed189.battle.a), c = findPlay(feed189.battle.b);
+    if (bar && bar.style && a && c) {
+      const av = a.voteCount || 0, cv = c.voteCount || 0;
+      bar.style.width = ((av + cv) > 0 ? Math.round((av / (av + cv)) * 100) : 50) + "%";
+    }
+  }
+}
+(function initFeed189() {
+  try {
+    const track = typeof $ === "function" ? $("#feedTrack189") : null;
+    if (track && typeof track.addEventListener === "function") track.addEventListener("scroll", () => { if (typeof requestAnimationFrame === "function") requestAnimationFrame(feedOnScroll189); else feedOnScroll189(); }, { passive: true });
+    const btn = typeof document !== "undefined" && typeof document.getElementById === "function" ? document.getElementById("btlFeedBtn189") : null;
+    if (btn && typeof btn.addEventListener === "function") {
+      if (!feedEnabled189()) btn.hidden = true;
+      btn.addEventListener("click", () => window.openBattleFeed189());
+    }
+    if (typeof document !== "undefined" && typeof document.addEventListener === "function") document.addEventListener("keydown", (e) => { if (e && e.key === "Escape" && feed189.open) window.closeFeed189(); });
+  } catch (e) { /* the feed is an enhancement — a wiring hiccup never breaks the boards */ }
+})();

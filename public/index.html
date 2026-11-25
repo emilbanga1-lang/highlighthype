@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=181" />
+<link rel="stylesheet" href="styles.css?v=189" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -906,6 +906,10 @@
       <!-- Round 105: challenge landing note (Feature 2) — set only
            when the visitor arrived on a challenge link. -->
       <p class="btl-challenge-note" id="btlChallengeNote" hidden></p>
+      <!-- Round 189: the current Quick Battles matchup, watched
+           in the full-screen feed (head-to-head slides). Hidden
+           by the Round 189 block when HH_NO_FEED=1. -->
+      <p class="btl-feed-row189"><button type="button" class="mini-btn" id="btlFeedBtn189">▶ Watch this matchup in the feed</button></p>
       <div id="btlMain">
         <div class="btl-matchup" id="btlMatchup"></div>
         <div class="btl-player" id="btlPlayerBox">
@@ -2089,6 +2093,30 @@
   </div>
 </div>
 
+<!-- ============ WATCH FEED (Round 189, 2026-11-25: the
+     TikTok-style full-screen feed Emil approved from the mock —
+     a MODE inside Watch, not a replacement for the boards.
+     Tapping a play on a board opens the feed at that play and
+     swipes through THAT BOARD's plays in the board's own order
+     (never hype-ranked); the feed is finite and ends on the
+     "You're all caught up" card. Slides are rendered by the
+     Round 189 block at the end of app.js into #feedTrack189.
+     HH_NO_FEED=1 (server-injected window.HH_NO_FEED189) turns
+     the whole mode off and board taps keep the classic detail
+     path.) ============ -->
+<div class="feed189" id="feed189" hidden role="dialog" aria-modal="true" aria-label="Watch feed">
+  <div class="feed189-top">
+    <img class="feed189-logo" src="logo-header-gold.png" alt="HighlightHype">
+    <nav class="feed189-tabs" aria-label="Boards">
+      <button type="button" data-feed-tab="all" onclick="feedGo189('all')">Watch</button>
+      <button type="button" data-feed-tab="battles" onclick="feedGo189('battles')">Battles</button>
+      <button type="button" data-feed-tab="month" onclick="feedGo189('month')">Hype of the Month</button>
+    </nav>
+    <button type="button" class="feed189-close" id="feedClose189" aria-label="Close the feed" onclick="closeFeed189()">✕</button>
+  </div>
+  <div class="feed189-track" id="feedTrack189"></div>
+</div>
+
 <!-- ============ HYPE FRAME PRINT LIGHTBOX (Round 128: tap the
      composed print in the studio → see it big) ============ -->
 <div class="hf-lightbox128" id="hfLightbox128" hidden role="dialog" aria-modal="true" aria-label="Your print, enlarged">
@@ -2148,6 +2176,6 @@
   </div>
 </div>
 
-<script src="app.js?v=183"></script>
+<script src="app.js?v=189"></script>
 </body>
 </html>
