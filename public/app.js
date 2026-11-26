@@ -5419,12 +5419,23 @@ function playHfHomeFilm201() {
 
 /* Round 86 (2026-11-09, kid-experience feedback): the "Create a Hype
    Frame" entry points (homepage section + Store feature) open a
-   two-choice card instead of landing on the board. Sample -> the
+   choice card instead of landing on the board. Sample -> the
    studio with a sample play loaded (baseball preferred — the payoff
    is visible immediately); Own video -> the upload form (which now
-   opens with the parent/guardian banner). */
-window.openHfChoice = () => { const m = $("#hfChoiceModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };
-window.closeHfChoice = () => { const m = $("#hfChoiceModal"); if (m) m.hidden = true; };
+   opens with the parent/guardian banner).
+   Round 202 (2026-11-26, Emil's catch): a parent whose play is
+   ALREADY posted had no path from this card — finding the play's
+   own card was the only route, and re-uploading the same clip hits
+   the same-clip duplicate rule. The card gains a third choice:
+   pick a posted play. The picker offers EXACTLY the plays
+   openHypeFrame can resolve (ALL_PLAYS, plus any contest entries
+   not already in ALL_PLAYS) — the per-play Frame buttons in
+   cardHtml, tileHtml and the watch view are unconditional
+   (samples, photo plays and link plays all open the studio from
+   their own cards), so the picker excludes nothing; sample rows
+   keep their ⭐ SAMPLE PLAY tag, as the tiles show it. */
+window.openHfChoice = () => { const m = $("#hfChoiceModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); hfPickerReset202(); m.hidden = false; };
+window.closeHfChoice = () => { const m = $("#hfChoiceModal"); if (m) m.hidden = true; hfPickerReset202(); };
 window.hfChoiceSample = () => {
   closeHfChoice();
   const pool = ALL_PLAYS || [];
@@ -5432,6 +5443,57 @@ window.hfChoiceSample = () => {
   if (pick) openHypeFrame(pick.id);
 };
 window.hfChoiceOwn = () => { closeHfChoice(); goSubmit(); };
+/* Round 202: the posted-play picker. The two panels swap inside
+   the one modal; hfPickerReset202 always lands back on the choice
+   panel, so every exit (a pick, the backdrop, Not now, Escape)
+   leaves the card ready to reopen on the three choices. */
+function hfPickerReset202() {
+  const choice = $("#hfChoicePanel"), picker = $("#hfPickerPanel");
+  if (choice) choice.hidden = false;
+  if (picker) picker.hidden = true;
+}
+function hfPickerEligible202() {
+  const seen = new Set(), out = [];
+  for (const p of [...(ALL_PLAYS || []), ...((CONTEST && CONTEST.entries) || [])]) {
+    if (!p || p.id == null || seen.has(p.id)) continue;
+    seen.add(p.id); out.push(p);
+  }
+  const stamp = (p) => { const t = parsePlayDate(p.created_at); return Number.isFinite(t) ? t : (p.id || 0); };
+  return out.sort((a, b) => stamp(b) - stamp(a) || (b.id || 0) - (a.id || 0));
+}
+function hfPickerPoster202(p) {
+  if (p.poster_url) return p.poster_url;
+  if (p.media_kind === "file" && (p.mime || "").startsWith("image/") && p.media_url) return p.media_url;
+  if (typeof btlPosterFor118 === "function") { try { return btlPosterFor118(p.media_url || "", p.sport || "", p.title || "") || ""; } catch (e) { return ""; } }
+  return "";
+}
+function hfPickerRender202(q) {
+  const list = $("#hfPickerList202"), empty = $("#hfPickerEmpty202");
+  if (!list) return;
+  const eligible = hfPickerEligible202();
+  const needle = String(q || "").trim().toLowerCase();
+  const hits = needle ? eligible.filter((p) => [p.title, p.player_name, p.athlete_label, p.team, p.sport].join(" ").toLowerCase().includes(needle)) : eligible;
+  list.innerHTML = hits.map((p) => {
+    const poster = hfPickerPoster202(p);
+    const who = [p.athlete_label || p.player_name || "", cap(p.sport), p.team || ""].filter(Boolean).join(" · ");
+    return `<button type="button" class="hf-picker-row" onclick="hfPickerPick202(${p.id})">${poster ? `<img class="hf-picker-thumb" src="${esc(poster)}" alt="" loading="lazy">` : `<span class="hf-picker-thumb hf-picker-thumb-none">${esc(cap(p.sport || "Play"))}</span>`}<span class="hf-picker-main"><b>${esc(p.title)}</b><span>${esc(who)}</span></span>${p.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}</button>`;
+  }).join("");
+  if (empty) {
+    if (!eligible.length) { empty.textContent = "No plays are up yet — post yours or try the sample clip."; empty.hidden = false; }
+    else if (!hits.length) { empty.textContent = "No plays match that search — try a different title, athlete, team or sport."; empty.hidden = false; }
+    else empty.hidden = true;
+  }
+}
+window.hfChoicePosted = () => {
+  const choice = $("#hfChoicePanel"), picker = $("#hfPickerPanel");
+  if (!choice || !picker) return;
+  const search = $("#hfPickerSearch202"); if (search) search.value = "";
+  hfPickerRender202("");
+  choice.hidden = true; picker.hidden = false;
+};
+window.hfPickerFilter202 = (v) => hfPickerRender202(v);
+window.hfPickerBack202 = () => hfPickerReset202();
+window.hfPickerPick202 = (id) => { closeHfChoice(); openHypeFrame(id); };
 $$("[data-hf-start]").forEach((a) => a.addEventListener("click", (e) => { e.preventDefault(); openHfChoice(); }));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHfChoice(); });
 

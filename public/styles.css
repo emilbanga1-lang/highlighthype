@@ -2226,6 +2226,24 @@
   .hf-choice-btn:hover{border-color:var(--gold)}
   .hf-choice-btn b{display:block;font-size:16.5px;margin-bottom:3px}
   .hf-choice-btn span{color:var(--muted);font-size:13.5px;font-weight:600;line-height:1.45}
+  /* Round 202 (2026-11-26): the choice card's third path — the
+     posted-play picker panel, swapped in for the choice panel
+     inside the same modal shell. Rows ride the choice buttons'
+     dark card treatment; the list scrolls inside the panel. */
+  .hf-choice-panel[hidden],.hf-picker-panel[hidden]{display:none}
+  .hf-picker-search{width:100%;box-sizing:border-box;background:#0d0d0d;border:1px solid var(--line2);border-radius:12px;color:#fff;font:inherit;font-size:15px;padding:12px 14px;margin:0 0 12px}
+  .hf-picker-search:focus{outline:none;border-color:var(--gold)}
+  .hf-picker-search::placeholder{color:var(--muted2)}
+  .hf-picker-list{max-height:44vh;overflow-y:auto;margin:0 0 6px}
+  .hf-picker-row{display:flex;gap:11px;align-items:center;width:100%;text-align:left;background:#17181d;border:1px solid var(--line2);border-radius:12px;padding:8px 10px;margin:0 0 8px;cursor:pointer;color:#fff;font:inherit}
+  .hf-picker-row:hover{border-color:var(--gold)}
+  .hf-picker-thumb{width:66px;height:42px;object-fit:cover;border-radius:8px;flex:none;background:#000}
+  .hf-picker-thumb-none{display:flex;align-items:center;justify-content:center;font-size:10.5px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;padding:0 4px}
+  .hf-picker-main{flex:1;min-width:0}
+  .hf-picker-main b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hf-picker-main span{color:var(--muted);font-size:12.5px;font-weight:600}
+  .hf-picker-empty{color:var(--muted);font-weight:600;line-height:1.5;margin:4px 0 12px}
+  .hf-picker-nav{display:flex;gap:8px;flex-wrap:wrap}
   .tile-demo-tag{display:inline-flex;align-items:center;padding:8px 14px;border-radius:999px;border:1px dashed #4a4b52;color:var(--muted);font-weight:800;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
   .sample-strip{border:1px solid var(--line2);border-radius:12px;padding:10px 14px;background:rgba(255,255,255,.03)}
   .sample-strip[hidden]{display:none}
