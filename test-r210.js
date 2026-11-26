@@ -69,7 +69,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed)");
+assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211)");
 
 // ---- the section + the overlay after it ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -87,18 +87,14 @@ const bodySlice = sec.slice(0, sec.indexOf("<!-- Round 210: the merch section's 
 
 // ---- B. the centered hero ----
 const heroRule = (css.match(/\.hft207-hero\{[^}]*\}/) || [""])[0];
-assert(heroRule.includes("position:relative") && heroRule.includes("overflow:hidden") && heroRule.includes("aspect-ratio:4/5"), "B: the hero is a FIXED 4:5 frame (aspect-ratio, overflow hidden, the pills' positioning context)");
+assert(heroRule.includes("position:relative") && heroRule.includes("overflow:hidden") && heroRule.includes("border-radius:14px") && !heroRule.includes("aspect-ratio"), "B: →212 SUPERSEDED — the fixed 4:5 hero frame is GONE (Emil rejected the crop on his phone); the hero is a rounded natural-aspect frame again");
 const imgRule = (css.match(/\.hft207-hero-img\{[^}]*\}/) || [""])[0];
-const wPct = Number((imgRule.match(/width:(\d+)%/) || [])[1]);
-assert(wPct === 143 && imgRule.includes("max-width:none") && imgRule.includes("height:100%") && imgRule.includes("object-fit:cover") && imgRule.includes("object-position:50% 0%") && !imgRule.includes("height:auto"), "B: the hero photo renders at 143% width (max-width none beats the global img cap), full frame height, object-fit cover, top-aligned — no longer natural aspect");
-assert(Math.abs(wPct / 100 * 0.351 - 0.5) < 0.01, "B: the measured math — the print's center on the asset is 0.351 (x 130–880 of 1440); 143% × 0.351 = " + (wPct / 100 * 0.351).toFixed(3) + ", the frame's horizontal center (±1%)");
+assert(imgRule.includes("width:100%") && imgRule.includes("height:auto") && !imgRule.includes("object-fit") && !imgRule.includes("143%"), "B: →212 SUPERSEDED — the 143% cover render is GONE; the photo renders whole at natural aspect (width 100%, height auto), the full print + graffiti crown/H visible");
 assert(sec.slice(iHero, sec.indexOf("hft201-body")).includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the hero is still the real softball hoodie photo");
 assert((sec.match(/hf-hoodie-softball\.jpg/g) || []).length === 2, "B: the softball photo appears exactly twice in the section slice — the hero and the film's own cover instance");
 
-// ---- C. the pills, unchanged ----
-assert(sec.includes('class="hft201-badges hft207-badges"'), "C: the badges row still rides the hero with the raised-position class");
-const heroTop = Number((css.match(/\.hft207-badges\{top:(\d+)px\}/) || [])[1]);
-assert(heroTop === 6, "C: the pills stay raised (top:6px, as Round 207 set them)");
+// ---- C. the pills — →212: REMOVED (the card header does their job) ----
+assert(!sec.includes("hft201-badges") && !sec.includes("hft201-badge") && !css.includes(".hft201-badges{") && !css.includes(".hft207-badges{"), "C: →212 — the pills are OFF the photo: markup and their CSS are gone; the crown + HYPE FRAME™ card header carries the branding instead");
 
 // ---- D. body order + the retired reveal ----
 assert(iTitle > -1 && iSub > iTitle && iCta > iSub && iFilmBtn > iCta, "D: body order unchanged — headline, sub-line, CTA, film link");
@@ -201,7 +197,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vOv > vBtn && vFilm > vOv, "G: the served section reads hero -> headline -> CTA -> film link -> overlay -> film");
   assert(!served.includes('id="hfHomeFilmBox207"'), "G: the served homepage carries no trace of the retired in-place film box");
   assert(!served.includes("$110"), "G: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=211"') && served.includes('href="styles.css?v=207"'), "G: the served homepage carries the Round 210 pins");
+  assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R210 CHECKS PASSED");

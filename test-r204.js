@@ -78,7 +78,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
+assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
 
 // ---- B. the slim section: order + removals ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -96,10 +96,8 @@ const iTitle = sec.indexOf("Your moment on a hoodie");
 const iCta = sec.indexOf('onclick="openHfChoice()"');
 const iFilmBtn = sec.indexOf('id="hfHomeFilmBtn201"');
 const iFilmBox = sec.indexOf('id="hfHomeFilmOverlay210"');
-assert(iBadges > -1 && iTitle > iBadges && iCta > iTitle && iFilmBtn > iCta && iFilmBox > iFilmBtn && iFilm > iFilmBox, "B: DOM order — label pills on the hero, then the headline, then the CTA, then the film link, then the film (→207 redesign; was pills -> film -> headline -> CTA in Round 204 — →210: the film sits in its overlay after the section)");
-const badges = sec.slice(iBadges, sec.indexOf("</div>", iBadges));
-assert(badges.includes("The Swag Shop") && badges.includes("📸 Hype Frame"), "B: the label row carries BOTH pills — The Swag Shop and 📸 Hype Frame");
-assert((sec.match(/hft201-badge"/g) || []).length === 2, "B: exactly two label pills ride the product hero (→207; they rode the film in Round 204)");
+assert(iBadges === -1 && sec.indexOf("hft212-head") > -1 && iTitle > sec.indexOf("hft212-head") && iCta > iTitle && iFilmBtn > iCta && iFilmBox > iFilmBtn && iFilm > iFilmBox, "B: DOM order — card header, then the headline, then the CTA, then the film link, then the film (→207 redesign; was pills -> film -> headline -> CTA in Round 204 — →210: the film sits in its overlay after the section — →212: the pills are REMOVED, replaced by the crown + HYPE FRAME™ card header)");
+assert(!sec.includes("hft201-badge") && !sec.includes("The Swag Shop") && sec.includes("HYPE FRAME™"), "B: →212 — no label pills ride the hero anymore; the card header carries the branding");
 assert(sec.includes('id="hfFilmCoverHome201"') && sec.includes('id="hfHomeFilm201"') && sec.includes('src="/hype-frame-film.mp4?v=7"') && sec.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the film is unchanged — its own cover / video ids, the shared cut, the softball cover (→207: the softball photo ALSO serves as the hero still; the film keeps its own cover)");
 assert(sec.includes('id="hfHomeFilmBtn201"') && sec.includes('onclick="playHfHomeFilm201()"'), "B: the film's play button carries its own id and the section handler");
 assert(iFilmBtn > iCta && iFilmBtn < iFilmBox, "B: the play button is the 'See how it works' link BELOW the CTA and OUTSIDE the film box (→207; in Round 204 it sat between cover and video, overlaying the film — →210: the box rides in the overlay after the section)");
@@ -123,8 +121,8 @@ assert(!home.includes("$110"), "B: the $110 string is absent from the homepage m
 // The CSS follows the markup: dead rules gone, the new ones ride.
 for (const dead of [".hft201-eyebrow", ".hft201-pitch", ".hft201-facts", ".hft201-thumbs", ".hft201-sub", ".hft201-gold"])
   assert(!css.includes(dead), "B: dead CSS removed: " + dead);
-assert(css.includes(".hft201-badges{") && css.includes("#hfHomeFilmBtn201[hidden]"), "B: the badges row and the film button's explicit [hidden] guard ride in styles.css");
-assert(!css.includes(".hft201-film-btn") && css.includes(".hft207-badges{") && css.includes(".hft207-film-link{") && css.includes(".hf-film-overlay210[hidden]") && !css.includes("hfHomeFilmBox207"), "B: →207 — the R204 film-button stacking rule is REMOVED with the overlay markup; the raised hero badges, the film link and the film box's [hidden] guard ride instead — →210: the guard is the film OVERLAY's now, and the retired box's rules are gone");
+assert(!css.includes(".hft201-badges{") && css.includes("#hfHomeFilmBtn201[hidden]"), "B: the film button's explicit [hidden] guard rides in styles.css — →212: the badges row CSS is REMOVED with the pills (dead — nothing else used it)");
+assert(!css.includes(".hft201-film-btn") && !css.includes(".hft207-badges{") && css.includes(".hft207-film-link{") && css.includes(".hf-film-overlay210[hidden]") && !css.includes("hfHomeFilmBox207"), "B: →207 — the R204 film-button stacking rule is REMOVED with the overlay markup; the film link and the film box's [hidden] guard ride instead — →210: the guard is the film OVERLAY's now, and the retired box's rules are gone — →212: the raised-badges rule went with the pills");
 assert(css.includes(".hft201-card{") && css.includes(".hft201-title{") && css.includes(".hft201-cta{"), "B: the surviving section styles ride (card / headline / CTA)");
 
 // The /store section is unchanged.
@@ -198,12 +196,12 @@ try {
   const vStart = served.indexOf('id="merchTeaser125"');
   const vSec = served.slice(vStart, served.indexOf("<!-- ============ THE STORE", vStart));
   const vBadges = vSec.indexOf("hft201-badges"), vFilm = vSec.indexOf('id="hfHomeFilm201"'), vTitle = vSec.indexOf("Your moment on a hoodie"), vCta = vSec.indexOf('onclick="openHfChoice()"'), vFilmBtn = vSec.indexOf('id="hfHomeFilmBtn201"');
-  assert(vBadges > -1 && vTitle > vBadges && vCta > vTitle && vFilmBtn > vCta && vFilm > vFilmBtn, "C: the served section reads pills -> headline -> CTA -> film link -> film (→207 redesign; was pills -> film -> headline -> CTA)");
-  assert(vSec.includes("The Swag Shop") && vSec.includes("📸 Hype Frame"), "C: the served label row carries both pills");
+  assert(vBadges === -1 && vTitle > vSec.indexOf("hft212-head") && vCta > vTitle && vFilmBtn > vCta && vFilm > vFilmBtn, "C: the served section reads card header -> headline -> CTA -> film link -> film (→207 redesign; was pills -> film -> headline -> CTA — →212: header instead of pills)");
+  assert(!vSec.includes("The Swag Shop") && vSec.includes("HYPE FRAME™") && vSec.includes('src="/crown.png"'), "C: →212 — the served card header carries the crown + wordmark; no pills");
   assert(vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours."), "C: the served section carries the renamed CTA and the sub-line (→207)");
   assert(!vSec.includes("hft201-pitch") && !vSec.includes("hft201-facts") && !vSec.includes("hf-example-hoodie-back.jpg") && !vSec.includes("hf-example-lineup.jpg") && !vSec.includes("Drop 001") && !vSec.includes("Coming soon"), "C: the served section is slim — no pitch, no facts, no example thumbnails, no Drop 001 / Coming soon");
   assert(!served.includes("$110"), "C: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=211"') && served.includes('href="styles.css?v=207"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
+  assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R204 CHECKS PASSED");

@@ -75,7 +75,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
+assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
 
 // ---- the section ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -96,23 +96,18 @@ const iFilmBox = sec.indexOf('id="hfHomeFilmOverlay210"');
 const iFilm = sec.indexOf('id="hfHomeFilm201"');
 
 // ---- B. the product hero ----
-assert(iHero > -1 && iHeroImg > iHero && iBadges > iHero && iBody > iBadges, "B: the hero block (hft207-hero) opens the card and carries the hero image and the pills, ahead of the body");
+assert(iHero > -1 && iHeroImg > iHero && iBody > iHeroImg && sec.indexOf("hft212-head") > -1 && sec.indexOf("hft212-head") < iHero, "B: the card header (hft212-head) opens the card, then the hero block with the hero image, ahead of the body — →212: the header replaces the pills that rode the hero");
 const heroSlice = sec.slice(iHero, iBody);
 assert(heroSlice.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the hero is the REAL product photo — the softball hoodie (hf-hoodie-softball.jpg)");
 assert(fs.existsSync(path.join(ROOT, "public/swag/hf-hoodie-softball.jpg")), "B: the hero asset exists in public/swag/");
 assert(!heroSlice.includes("<video") && !heroSlice.includes("hf-film-box") && !heroSlice.includes("hfHomeFilm201"), "B: the hero is a STILL — no video and no film box in the hero position (the film left the hero)");
-assert(css.includes(".hft207-hero{position:relative;overflow:hidden;aspect-ratio:4/5}"), "B: the hero is the pills' positioning context (→210: the rule also carries the fixed 4:5 frame — overflow hidden + aspect-ratio)");
+assert(css.includes(".hft207-hero{position:relative;overflow:hidden;border-radius:14px}"), "B: →212 — the hero rule is the rounded natural frame (the →210 fixed 4:5 aspect is superseded; Emil rejected the crop)");
 const heroImgRule = (css.match(/\.hft207-hero-img\{[^}]*\}/) || [""])[0];
-assert(heroImgRule.includes("object-fit:cover") && heroImgRule.includes("width:143%") && heroImgRule.includes("object-position:50% 0%"), "B: →210 — the hero image no longer renders at natural aspect: it renders at 143% width under object-fit: cover in the fixed 4:5 hero frame, centering the print on the frame (the measured math is pinned in test-r210)");
+assert(heroImgRule.includes("width:100%") && heroImgRule.includes("height:auto") && !heroImgRule.includes("object-fit"), "B: →212 — the hero image renders at NATURAL aspect again (the R207 treatment restored): width 100%, height auto, no crop — the →210 143% cover render is superseded");
 
-// ---- C. the pills, raised ----
-assert(sec.includes('class="hft201-badges hft207-badges"'), "C: the badges row carries the R207 raised-position class alongside the base row class");
-const badges = sec.slice(iBadges, sec.indexOf("</div>", iBadges));
-assert(badges.includes("The Swag Shop") && badges.includes("📸 Hype Frame"), "C: the label row carries BOTH pills — The Swag Shop and 📸 Hype Frame");
-assert((sec.match(/hft201-badge"/g) || []).length === 2, "C: exactly two label pills ride the hero");
-const baseTop = Number((css.match(/\.hft201-badges\{[^}]*top:(\d+)px/) || [])[1]);
-const heroTop = Number((css.match(/\.hft207-badges\{top:(\d+)px\}/) || [])[1]);
-assert(heroTop > -1 && baseTop > -1 && heroTop < baseTop, "C: the hero pills sit HIGHER than the film-cover row did (" + heroTop + "px < " + baseTop + "px — Emil's 'moved up a little bit')");
+// ---- C. the pills — →212: REMOVED, replaced by the card header ----
+assert(iBadges === -1 && !sec.includes("hft201-badge") && !sec.includes("The Swag Shop") && !css.includes(".hft201-badges{") && !css.includes(".hft207-badges{"), "C: →212 — the pills are gone from the hero (markup + CSS); the branding moved to the card header");
+assert(sec.includes("hft212-brand") && sec.includes("HYPE FRAME™") && sec.includes('src="/crown.png"'), "C: →212 — the card header carries the crown + the HYPE FRAME™ wordmark");
 
 // ---- D. headline + sub-line + renamed CTA ----
 assert(iTitle > iBody && iSub > iTitle && iCta > iSub, "D: order in the body — headline, then the sub-line, then the CTA");
@@ -210,7 +205,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vFilm > vBtn, "G: the served section reads hero -> headline -> CTA -> film link -> film");
   assert(vSec.includes('src="/swag/hf-hoodie-softball.jpg"') && vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours.") && !vSec.includes("Create yours"), "G: the served section carries the product hero, the renamed CTA and the sub-line — and no 'Create yours'");
   assert(!served.includes("$110"), "G: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=211"') && served.includes('href="styles.css?v=207"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
+  assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R207 CHECKS PASSED");
