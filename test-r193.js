@@ -173,7 +173,7 @@ try {
     await s.waitFor(async () => { const r = await s.j("/api/highlights?division=all&sort=newest"); return r.body.highlights && r.body.highlights.length === 1 ? r.body : null; }, "A: the play is public");
 
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=199"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js v193 (Round 193), styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198)");
+    assert(home.includes('src="app.js?v=200"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js v193 (Round 193), styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("feedWarm193") && block.includes('v.preload = "auto"') && block.includes("Math.abs(i - index) <= 2"), "A: app.js wires neighbor warming (±2, preload upgrade)");

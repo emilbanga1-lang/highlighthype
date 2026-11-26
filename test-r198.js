@@ -4,8 +4,9 @@
 // two plays on screen at once — and "the swipe icon is
 // gone"). Run: node test-r198.js
 // What this suite pins down:
-//   A. Served pins are v199 (Round 198 changed app.js AND
-//      styles.css), the settle corrector is wired into the
+//   A. Served pins: app.js v200 / styles v199 (Round 198 set
+//      both to v199; Round 199 changed app.js only), the
+//      settle corrector is wired into the
 //      served app.js (feedSettle198 / feedSettleSoon198, fed
 //      from feedOnScroll189, gated on feed198.touching), and
 //      the CSS contracts the fix leans on are intact:
@@ -202,7 +203,7 @@ try {
   let appJs = "";
   try {
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=199"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js + styles now v199 (Round 198 changed both)");
+    assert(home.includes('src="app.js?v=200"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js + styles now v199 (Round 198 changed both) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("function feedSettle198(") && block.includes("function feedSettleSoon198("), "A: app.js carries the settle corrector and its scheduler");

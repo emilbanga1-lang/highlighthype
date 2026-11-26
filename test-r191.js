@@ -93,7 +93,7 @@ try {
 
     // Served wiring: pins + the slimmed feed header.
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=198"') && home.includes('href="styles.css?v=198"'), "A: asset pins are v191 (Round 191 changed app.js + styles.css) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both)");
+    assert(home.includes('src="app.js?v=200"') && home.includes('href="styles.css?v=199"'), "A: asset pins are v191 (Round 191 changed app.js + styles.css) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round)");
     const header = home.slice(home.indexOf('id="feed189"'), home.indexOf('id="feedTrack189"'));
     assert(header.includes('src="/crest-watermark.png?v=174"') && header.includes('class="feed191-crest"'), "A: the feed header carries the small HH crest (the site's crest-watermark, pinned as elsewhere on the page)");
     assert(header.includes('data-feed-tab="all"') && header.includes('data-feed-tab="battles"'), "A: the feed header keeps slim Watch + Battles tabs");

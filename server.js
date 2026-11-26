@@ -4698,6 +4698,17 @@ const server = http.createServer(async (req, res) => {
         if (!digits197) return sendJson(res, 400, { ok: false, message: "Add the jersey number — you picked name + number for the back." });
         jersey197 = digits197;
       }
+      // Garment color (Round 199, 2026-11-26 — Emil): the studio
+      // sells exactly two colorways now, Black and Heather Gray,
+      // and an order must name one of them. Unlike the enum fields
+      // that sanitize to a default (side, image style, size), a
+      // missing or discontinued colorway REJECTS the order — a
+      // stale client can never quietly order a color that no
+      // longer exists. Orders already on file are untouched: the
+      // owner email and Owner view keep printing the stored value.
+      const colorway199 = String(body.colorway || "").trim();
+      if (!["Black", "Heather Gray"].includes(colorway199))
+        return sendJson(res, 400, { ok: false, message: "Pick a hoodie color — the Hype Frame hoodie comes in Black or Heather Gray." });
       // Print image (Round 128): the composed PNG rides on the order
       // and is stored as a file in HYPEFRAME_DIR (DATA_DIR/hype-frames
       // — inside BACKUP_FILE_DIRS, so the nightly backup carries it).
@@ -4745,8 +4756,10 @@ const server = http.createServer(async (req, res) => {
         apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
         side: String(body.side || "").trim().toLowerCase() === "back" ? "back" : "front",
         image_style: String(body.imageStyle || "").trim().toLowerCase() === "avatar" ? "avatar" : "photo",
-        colorway: String(body.colorway || "").trim().slice(0, 40),
-        size: ["YXXS", "YXS", "YS", "YM", "YL", "YXL"].includes(String(body.size || "").trim().toUpperCase()) ? String(body.size).trim().toUpperCase() : "YM",
+        colorway: colorway199,
+        // Round 199: adult sizes S–XL join the youth run in the
+        // whitelist; the sanitize-to-YM fallback is unchanged.
+        size: ["YXXS", "YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"].includes(String(body.size || "").trim().toUpperCase()) ? String(body.size).trim().toUpperCase() : "YM",
         guardian_name: String(body.guardianName || "").trim().slice(0, 80),
         guardian_email: guardianEmail,
         placement,
