@@ -20,6 +20,16 @@
 //      left the homepage with them). The B assertions below
 //      were updated to the slimmed shape; test-r204.js pins
 //      the new shape in full (DOM order, film-button events).
+//      → Round 207 (Emil, same day) REDESIGNED it again from
+//      his product-hero reference: the real softball hoodie
+//      photo is the hero (the pills ride on IT, raised), the
+//      headline gains the "Pick a play. Make it yours."
+//      sub-line, the CTA is renamed "Build your hoodie →",
+//      and the film is demoted below the CTA (a link reveals
+//      its box in place; the button hides instantly on tap).
+//      The B assertions below were updated again where the
+//      redesign supersedes them; test-r207.js pins the new
+//      shape in full.
 //   C. The board strip is untouched (its own film ids and
 //      handler, still spliced into renderAll's deck) and the
 //      two film instances share no ids; no duplicate element
@@ -65,7 +75,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=203"') && home.includes('src="app.js?v=206"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed) — →203: app.js now v203 / styles now v201 (Round 202; both files changed again) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
+assert(home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed) — →203: app.js now v203 / styles now v201 (Round 202; both files changed again) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
 
 // ---- B. the section ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -73,14 +83,14 @@ const secEnd = home.indexOf("<!-- ============ THE STORE", secStart);
 assert(secStart > -1 && secEnd > secStart, "B: the merch section is located ahead of the Store section");
 const sec = home.slice(secStart, secEnd);
 assert(home.includes('<div class="merch-teaser125 view-home" id="merchTeaser125">'), "B: the section element, its id and the view-home class are unchanged (view routing untouched)");
-assert(!sec.includes("hft201-eyebrow") && sec.includes("hft201-badges") && sec.includes("The Swag Shop") && sec.includes("📸 Hype Frame"), "B: the eyebrow is GONE from below the film (Round 204) — both label pills ride together on the film instead");
+assert(!sec.includes("hft201-eyebrow") && sec.includes("hft201-badges") && sec.includes("The Swag Shop") && sec.includes("📸 Hype Frame"), "B: the eyebrow is GONE from below the film (Round 204) — both label pills ride together on the film instead — →207: the pills ride on the PRODUCT HERO now (hft207-badges), raised");
 assert(sec.includes("Your moment on a hoodie"), "B: the feature headline rides");
 assert(!sec.includes("Pick a frame from your play") && !sec.includes("hft201-pitch"), "B: the pitch is REMOVED (Round 204 slimming)");
 for (const f of ["$110", "Black or Heather Gray", "Youth YXXS–YXL", "Adult S–XL", "Made to order — ships in 5–7 business days"])
   assert(!sec.includes(f), "B: fact REMOVED with the facts row (Round 204): " + f);
 assert(!sec.includes('src="/swag/hf-example-hoodie-back.jpg"') && !sec.includes('src="/swag/hf-example-lineup.jpg"') && !sec.includes("hft201-thumbs"), "B: both finished-example thumbnails are REMOVED from the section (Round 204 — the files stay in /swag)");
 assert(fs.existsSync(path.join(ROOT, "public/swag/hf-example-hoodie-back.jpg")) && fs.existsSync(path.join(ROOT, "public/swag/hf-example-lineup.jpg")), "B: the example image files themselves were NOT deleted (Round 204 removed their use, not the files)");
-assert(sec.includes('onclick="openHfChoice()"') && sec.includes("Create yours"), "B: the CTA opens the studio via openHfChoice() (the board strip's entry)");
+assert(sec.includes('onclick="openHfChoice()"') && sec.includes("Build your hoodie"), "B: the CTA opens the studio via openHfChoice() (the board strip's entry) — →207: the CTA is renamed 'Build your hoodie →' (was 'Create yours →')");
 assert(sec.includes('id="hfFilmCoverHome201"') && sec.includes('id="hfHomeFilm201"') && sec.includes('onclick="playHfHomeFilm201()"'), "B: the section film carries its OWN cover / video / handler ids");
 assert(sec.includes('src="/hype-frame-film.mp4?v=7"') && sec.includes("data-click-play") && sec.includes("playsinline") && sec.includes('preload="none"'), "B: the section film is the shared cut with the house film attributes");
 assert(sec.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the film cover is the softball hoodie finish (the strip/store cover)");

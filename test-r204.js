@@ -3,13 +3,23 @@
 // Run: node test-r204.js
 // What this suite pins down:
 //   A. Pins: app.js v205 / styles v202 (both files changed) —
-//      →206: app.js now v206 / styles now v203 (Round 205).
+//      →206: app.js now v206 / styles now v203 (Round 205) —
+//      →207: app.js now v207 / styles now v204 (Round 206).
 //   B. The section (#merchTeaser125, element + id + view-home
 //      class unchanged) reads, in DOM order: the label pills
 //      row on the film (BOTH "The Swag Shop" and "📸 Hype
 //      Frame" pills) -> the film (its own R201 ids) -> the
 //      headline "Your moment on a hoodie" -> the "Create
-//      yours" CTA (openHfChoice()). REMOVED from the section:
+//      yours" CTA (openHfChoice()).
+//      → Round 207 (Emil, same day) REDESIGNED the section
+//      from his product-hero reference: the real softball
+//      hoodie photo is the hero (pills ride on it, raised),
+//      the headline gains the "Pick a play. Make it yours."
+//      sub-line, the CTA is renamed "Build your hoodie →",
+//      and the film sits BELOW the CTA (a link reveals its
+//      box in place). The B/C assertions below were updated
+//      to the new order and labels; test-r207.js pins the
+//      redesign in full. REMOVED from the section:
 //      the standalone eyebrow, the pitch paragraph, the facts
 //      pills ($110, Black or Heather Gray, Youth YXXS–YXL,
 //      Adult S–XL, the 5–7 business days line), both finished-
@@ -22,11 +32,18 @@
 //      section in the same order, price-free.
 //   D. VM drive: "Create yours" still opens the choice dialog
 //      (openHfChoice shows the modal on its choices panel).
+//      →207: the CTA is "Build your hoodie" now; same drive.
 //   E. VM drive: the film's play button (hfHomeFilmBtn201,
 //      now OUTSIDE the cover) answers to the video's events —
 //      visible before play, hidden on play, back on pause,
 //      hidden again on the next play, back on ended (replay)
 //      — and the listeners wire exactly once.
+//      →207: the button is the "See how it works" LINK below
+//      the CTA and the contract is INSTANT-HIDE — the drive
+//      below uses a lagging stub (play() neither flips paused
+//      nor fires 'play', the buffering lag Emil saw) and pins:
+//      hidden at tap BEFORE any play event, the film box
+//      revealed at tap, back on pause, back on ended.
 // Exits non-zero on failure.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -58,7 +75,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=203"') && home.includes('src="app.js?v=206"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
+assert(home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
 
 // ---- B. the slim section: order + removals ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -68,20 +85,24 @@ const sec = home.slice(secStart, secEnd);
 assert(home.includes('<div class="merch-teaser125 view-home" id="merchTeaser125">'), "B: the section element, its id and the view-home class are unchanged (view routing untouched)");
 
 // DOM order: pills row -> film -> headline -> CTA.
+// →207: hero (pills on the product photo) -> headline ->
+// sub-line -> CTA -> the film link -> the film box.
 const iBadges = sec.indexOf("hft201-badges");
 const iFilm = sec.indexOf('id="hfHomeFilm201"');
 const iTitle = sec.indexOf("Your moment on a hoodie");
 const iCta = sec.indexOf('onclick="openHfChoice()"');
-assert(iBadges > -1 && iFilm > iBadges && iTitle > iFilm && iCta > iTitle, "B: DOM order — label pills, then the film, then the headline, then the Create yours CTA");
+const iFilmBtn = sec.indexOf('id="hfHomeFilmBtn201"');
+const iFilmBox = sec.indexOf('id="hfHomeFilmBox207"');
+assert(iBadges > -1 && iTitle > iBadges && iCta > iTitle && iFilmBtn > iCta && iFilmBox > iFilmBtn && iFilm > iFilmBox, "B: DOM order — label pills on the hero, then the headline, then the CTA, then the film link, then the film (→207 redesign; was pills -> film -> headline -> CTA in Round 204)");
 const badges = sec.slice(iBadges, sec.indexOf("</div>", iBadges));
 assert(badges.includes("The Swag Shop") && badges.includes("📸 Hype Frame"), "B: the label row carries BOTH pills — The Swag Shop and 📸 Hype Frame");
-assert((sec.match(/hft201-badge"/g) || []).length === 2, "B: exactly two label pills ride the film");
-assert(sec.includes('id="hfFilmCoverHome201"') && sec.includes('id="hfHomeFilm201"') && sec.includes('src="/hype-frame-film.mp4?v=7"') && sec.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the film is unchanged — its own cover / video ids, the shared cut, the softball cover");
+assert((sec.match(/hft201-badge"/g) || []).length === 2, "B: exactly two label pills ride the product hero (→207; they rode the film in Round 204)");
+assert(sec.includes('id="hfFilmCoverHome201"') && sec.includes('id="hfHomeFilm201"') && sec.includes('src="/hype-frame-film.mp4?v=7"') && sec.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the film is unchanged — its own cover / video ids, the shared cut, the softball cover (→207: the softball photo ALSO serves as the hero still; the film keeps its own cover)");
 assert(sec.includes('id="hfHomeFilmBtn201"') && sec.includes('onclick="playHfHomeFilm201()"'), "B: the film's play button carries its own id and the section handler");
-assert(sec.indexOf('id="hfHomeFilmBtn201"') > sec.indexOf('id="hfFilmCoverHome201"') && sec.indexOf('id="hfHomeFilmBtn201"') < iFilm, "B: the play button sits OUTSIDE the cover (a sibling between cover and video), so it can overlay the playing film");
-const coverSlice = sec.slice(sec.indexOf('id="hfFilmCoverHome201"'), sec.indexOf("<button", sec.indexOf('id="hfFilmCoverHome201"')));
-assert(!coverSlice.includes("hf-film-btn"), "B: no play button remains inside the cover");
-assert(sec.includes("Create yours"), "B: the CTA label rides");
+assert(iFilmBtn > iCta && iFilmBtn < iFilmBox, "B: the play button is the 'See how it works' link BELOW the CTA and OUTSIDE the film box (→207; in Round 204 it sat between cover and video, overlaying the film)");
+const coverSlice = sec.slice(sec.indexOf('id="hfFilmCoverHome201"'), sec.indexOf("</div>", sec.indexOf('id="hfFilmCoverHome201"')));
+assert(!coverSlice.includes("hf-film-btn") && !coverSlice.includes("hfHomeFilmBtn201"), "B: no play button remains inside the cover");
+assert(sec.includes("Build your hoodie") && !sec.includes("Create yours"), "B: the CTA label rides — 'Build your hoodie →' (→207; was 'Create yours →')");
 
 // Removed, entirely:
 assert(!sec.includes("hft201-eyebrow"), "B: REMOVED — the standalone eyebrow below the film");
@@ -99,14 +120,16 @@ assert(!home.includes("$110"), "B: the $110 string is absent from the homepage m
 // The CSS follows the markup: dead rules gone, the new ones ride.
 for (const dead of [".hft201-eyebrow", ".hft201-pitch", ".hft201-facts", ".hft201-thumbs", ".hft201-sub", ".hft201-gold"])
   assert(!css.includes(dead), "B: dead CSS removed: " + dead);
-assert(css.includes(".hft201-badges{") && css.includes(".hft201-film-btn{") && css.includes("#hfHomeFilmBtn201[hidden]"), "B: the badges row, the film-button stacking and its explicit [hidden] guard ride in styles.css");
+assert(css.includes(".hft201-badges{") && css.includes("#hfHomeFilmBtn201[hidden]"), "B: the badges row and the film button's explicit [hidden] guard ride in styles.css");
+assert(!css.includes(".hft201-film-btn") && css.includes(".hft207-badges{") && css.includes(".hft207-film-link{") && css.includes("#hfHomeFilmBox207[hidden]"), "B: →207 — the R204 film-button stacking rule is REMOVED with the overlay markup; the raised hero badges, the film link and the film box's [hidden] guard ride instead");
 assert(css.includes(".hft201-card{") && css.includes(".hft201-title{") && css.includes(".hft201-cta{"), "B: the surviving section styles ride (card / headline / CTA)");
 
 // The /store section is unchanged.
 const store = home.slice(secEnd);
 assert(store.includes('<span class="crumb">HighlightHype<span class="sep">/</span><b>Store</b><span class="sep">·</span>Drop 001</span>') && store.includes('id="hfFilmCoverStore"') && store.includes('id="hfStoreFilm"'), "B: the /store section is unchanged (crumb + its own film pair)");
 
-// ---- D. VM drive: Create yours opens the choice dialog ----
+// ---- D. VM drive: the CTA opens the choice dialog ----
+// (→207: the CTA reads "Build your hoodie" — same openHfChoice.)
 // (The R202 drive pattern: the real openHfChoice block on stubs.)
 function lineSrc(startNeedle) { const i = appJs.indexOf(startNeedle); return appJs.slice(i, appJs.indexOf("\n", i)); }
 const escCapSrc = appJs.slice(appJs.indexOf("const esc ="), appJs.indexOf("\n", appJs.indexOf("const cap =")));
@@ -125,9 +148,13 @@ const sbD = {
 sbD.window = sbD;
 vm.runInContext(escCapSrc + "\n" + lineSrc("function parsePlayDate(") + "\n" + choiceBlock, vm.createContext(sbD));
 sbD.openHfChoice();
-assert(modalEl.hidden === false && choiceEl.hidden === false && pickerEl.hidden === true, "D: Create yours still opens the choice dialog on its choices panel");
+assert(modalEl.hidden === false && choiceEl.hidden === false && pickerEl.hidden === true, "D: the CTA (Build your hoodie, →207; Create yours before) still opens the choice dialog on its choices panel");
 
 // ---- E. VM drive: the film button answers to the video ----
+// →207: the stub's play() is deliberately LAGGING — it neither
+// flips paused nor fires 'play' (the buffering lag behind
+// Emil's 3-second sit). The button must hide at TAP, before
+// any event; the sync restores it on pause / ended.
 const filmBlock = appJs.slice(appJs.indexOf("let hfHomeFilmWired204"), appJs.indexOf("\n}", appJs.indexOf("function playHfHomeFilm201")) + 2);
 assert(filmBlock.includes("function playHfHomeFilm201()") && filmBlock.includes("hfHomeFilmBtnSync204"), "E: the R204 film block is located (wiring flag + sync helper + handler)");
 for (const ev of ['"play"', '"pause"', '"ended"'])
@@ -136,25 +163,30 @@ const vidE = {
   hidden: true, plays: 0, paused: true, ended: false, listeners: {},
   addEventListener(ev, fn) { (this.listeners[ev] = this.listeners[ev] || []).push(fn); },
   fire(ev) { (this.listeners[ev] || []).slice().forEach((fn) => fn()); },
-  play() { this.plays++; this.paused = false; this.ended = false; this.fire("play"); return { catch() {} }; },
+  play() { this.plays++; return { catch() {} }; },
 };
-const coverE = { hidden: false }, btnE = { hidden: false };
-const elMapE = { "#hfFilmCoverHome201": coverE, "#hfHomeFilm201": vidE, "#hfHomeFilmBtn201": btnE };
+const coverE = { hidden: false }, btnE = { hidden: false }, boxE = { hidden: true };
+const elMapE = { "#hfFilmCoverHome201": coverE, "#hfHomeFilm201": vidE, "#hfHomeFilmBtn201": btnE, "#hfHomeFilmBox207": boxE };
 const sbE = { console, $: (s) => elMapE[s] || null };
 vm.runInContext(filmBlock, vm.createContext(sbE));
-assert(btnE.hidden === false, "E: before play, the button is visible over the cover");
+assert(btnE.hidden === false && boxE.hidden === true, "E: before play, the link is visible under the CTA and the film box is hidden (→207)");
 sbE.playHfHomeFilm201();
 assert(coverE.hidden === true && vidE.hidden === false && vidE.plays === 1, "E: the handler still swaps the cover out and plays the film");
-assert(btnE.hidden === true, "E: the moment playback starts (play event), the button disappears");
-vidE.paused = true; vidE.fire("pause");
-assert(btnE.hidden === false, "E: on pause, the button returns over the paused film");
+assert(boxE.hidden === false, "E: the tap reveals the film box in place below the CTA (→207)");
+assert(btnE.hidden === true, "E: the button hides INSTANTLY on tap — before any 'play' event fires (→207, the 3-second-sit fix)");
 vidE.paused = false; vidE.fire("play");
-assert(btnE.hidden === true, "E: on the next play, the button disappears again");
+assert(btnE.hidden === true, "E: when the (lagging) play event finally lands, the button stays hidden");
+vidE.paused = true; vidE.fire("pause");
+assert(btnE.hidden === false, "E: on pause, the button returns (the sync restores it)");
+sbE.playHfHomeFilm201();
+assert(btnE.hidden === true, "E: tapping again hides it instantly again");
+vidE.paused = false; vidE.fire("play");
+assert(btnE.hidden === true, "E: on the next play, the button stays hidden");
 vidE.paused = true; vidE.ended = true; vidE.fire("ended");
 assert(btnE.hidden === false, "E: on ended, the button returns (replay)");
 sbE.playHfHomeFilm201();
 assert(vidE.listeners.play.length === 1 && vidE.listeners.pause.length === 1 && vidE.listeners.ended.length === 1, "E: the listeners wire exactly once, however often the handler runs");
-assert(btnE.hidden === true, "E: replaying from the ended state hides the button again");
+assert(btnE.hidden === true, "E: replaying from the ended state hides the button again (at tap, →207)");
 
 // ---- C. served homepage ----
 const s = await boot(8944);
@@ -162,12 +194,13 @@ try {
   const served = await (await fetch(s.base + "/")).text();
   const vStart = served.indexOf('id="merchTeaser125"');
   const vSec = served.slice(vStart, served.indexOf("<!-- ============ THE STORE", vStart));
-  const vBadges = vSec.indexOf("hft201-badges"), vFilm = vSec.indexOf('id="hfHomeFilm201"'), vTitle = vSec.indexOf("Your moment on a hoodie"), vCta = vSec.indexOf('onclick="openHfChoice()"');
-  assert(vBadges > -1 && vFilm > vBadges && vTitle > vFilm && vCta > vTitle, "C: the served section reads pills -> film -> headline -> CTA");
+  const vBadges = vSec.indexOf("hft201-badges"), vFilm = vSec.indexOf('id="hfHomeFilm201"'), vTitle = vSec.indexOf("Your moment on a hoodie"), vCta = vSec.indexOf('onclick="openHfChoice()"'), vFilmBtn = vSec.indexOf('id="hfHomeFilmBtn201"');
+  assert(vBadges > -1 && vTitle > vBadges && vCta > vTitle && vFilmBtn > vCta && vFilm > vFilmBtn, "C: the served section reads pills -> headline -> CTA -> film link -> film (→207 redesign; was pills -> film -> headline -> CTA)");
   assert(vSec.includes("The Swag Shop") && vSec.includes("📸 Hype Frame"), "C: the served label row carries both pills");
+  assert(vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours."), "C: the served section carries the renamed CTA and the sub-line (→207)");
   assert(!vSec.includes("hft201-pitch") && !vSec.includes("hft201-facts") && !vSec.includes("hf-example-hoodie-back.jpg") && !vSec.includes("hf-example-lineup.jpg") && !vSec.includes("Drop 001") && !vSec.includes("Coming soon"), "C: the served section is slim — no pitch, no facts, no example thumbnails, no Drop 001 / Coming soon");
   assert(!served.includes("$110"), "C: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=206"') && served.includes('href="styles.css?v=203"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
+  assert(served.includes('src="app.js?v=209"') && served.includes('href="styles.css?v=205"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R204 CHECKS PASSED");

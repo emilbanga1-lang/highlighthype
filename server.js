@@ -94,6 +94,15 @@ const notifyHitsByIp = new Map();
 const REEL_RATE_LIMIT = 30;               // reel requests per IP per window
 const REEL_RATE_WINDOW_MS = 10 * 60 * 1000;
 const reelHitsByIp = new Map();
+// Hype Frame Avatar guard (Round 206, see POST /api/hype-frame/avatar):
+// every generation is a PAID OpenAI image call, so it gets the
+// tightest per-IP cap on the site — a family needs a few tries per
+// hoodie, and an hour window matches the generation's own pace.
+// The IP is used transiently in memory only, exactly like the
+// limiters above; the frame image itself is never stored or logged.
+const AVATAR_RATE_LIMIT = 6;              // avatar generations per IP per window
+const AVATAR_RATE_WINDOW_MS = 60 * 60 * 1000;
+const avatarHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these
 // data subdirectories (the DB is served by its own snapshot
 // endpoint). Round 165: reels/ joins the list — cached Hype
@@ -366,6 +375,59 @@ Gate rules: "play" = clearly a sports play; "unsure" = probably sports but uncle
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) throw new Error("vision model returned no JSON");
     return normalizeAiResult(JSON.parse(m[0]));
+  } finally { clearTimeout(timer); }
+}
+
+// ---- Hype Frame Avatar (Round 206, 2026-11-26) ----
+// The studio's "Make my avatar": a parent who picked the Avatar
+// print style can generate the illustration IN the studio from
+// their frozen frame instead of waiting for fulfillment. The
+// frame is forwarded to OpenAI's image API and dropped — never
+// logged, never stored server-side; the generated PNG rides back
+// to the browser, which may then carry it on the order as the
+// print image itself (orders mark that with avatar_generated).
+// Config (Render env vars, set by Emil to activate):
+//   OPENAI_API_KEY     — required; without it the status endpoint
+//                        answers {configured:false}, the generate
+//                        endpoint answers 503, and the studio
+//                        hides the maker entirely (the Round 38
+//                        pick-An-illustration-at-fulfillment flow
+//                        is untouched).
+//   HH_NO_AVATAR=1     — kill switch: stands the feature down
+//                        even with a key configured.
+//   HF_AVATAR_MODEL    — default "gpt-image-1" (image-edit model).
+//   HF_AVATAR_BASE_URL — default https://api.openai.com (the
+//                        Images API shape is used; overridable
+//                        for tests, the AI_VISION_BASE_URL
+//                        pattern).
+// The style recipe is LOCKED server-side: the endpoint accepts
+// only the frame image — no client field can reach the prompt.
+const HF_AVATAR_MODEL206 = process.env.HF_AVATAR_MODEL || "gpt-image-1";
+const HF_AVATAR_PROMPT206 = "Turn this youth sports photo into a bold, stylized illustrated avatar of the same athlete in the same moment: a premium sports-poster illustration with clean shapes, strong outlines and dynamic energy. Keep the same pose, sport, action and uniform colors. Accent the scene with metallic gold and black HighlightHype brand tones and a subtle gold crown motif in the background. The face is a stylized illustration, never photorealistic. Illustrated artwork only — no text, no words, no letters, no logos, no watermark.";
+const HF_AVATAR_MAX206 = 5 * 1024 * 1024; // decoded frame cap (the studio sends a <=1024px JPEG)
+function hfAvatarConfigured206() {
+  return !!process.env.OPENAI_API_KEY && process.env.HH_NO_AVATAR !== "1";
+}
+async function runHfAvatar206(buf, mime) {
+  const base = String(process.env.HF_AVATAR_BASE_URL || "https://api.openai.com").replace(/\/+$/, "");
+  const form = new FormData();
+  form.append("model", HF_AVATAR_MODEL206);
+  form.append("prompt", HF_AVATAR_PROMPT206);
+  form.append("size", "auto");
+  form.append("image", new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const r = await fetch(base + "/v1/images/edits", {
+      method: "POST", signal: ctl.signal,
+      headers: { authorization: "Bearer " + process.env.OPENAI_API_KEY },
+      body: form,
+    });
+    if (!r.ok) throw new Error("avatar model answered " + r.status);
+    const j = await r.json();
+    const b64 = j && Array.isArray(j.data) && j.data[0] && typeof j.data[0].b64_json === "string" ? j.data[0].b64_json : "";
+    if (!b64) throw new Error("avatar model returned no image");
+    return "data:image/png;base64," + b64;
   } finally { clearTimeout(timer); }
 }
 
@@ -827,7 +889,10 @@ try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN placement TEXT DEFAULT '
 // Print side (Store v8, 2026-11-04): 'front' | 'back' — which side of
 // the garment the print lands on, chosen in the studio. Added
 // additively for existing DBs, same pattern as placement.
-try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN side TEXT DEFAULT 'front'"); } catch {}
+// Round 208 (2026-11-26): the column default for a fresh DB flips
+// to 'back' with the studio/server defaults (existing DBs already
+// carry the column; every insert names the side explicitly anyway).
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN side TEXT DEFAULT 'back'"); } catch {}
 // Youth size (Round 3, 2026-11-05): the studio's size picker rides on
 // the order (YXXS..YXL). Added additively, same pattern; pre-Round-3
 // rows read back '' and the owner surfaces show the YM default.
@@ -868,6 +933,13 @@ try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN payment_status TEXT DEFA
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN paid_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN shopify_order_id TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN paid_email_sent_at TEXT DEFAULT ''"); } catch {}
+// Round 206: avatar_generated marks an order whose print image
+// IS a studio-generated AI avatar (the parent made it with the
+// OpenAI-backed maker and chose it as the art) — as opposed to
+// image_style='avatar' alone, which is the Round 38 request to
+// illustrate at fulfillment. The owner email + Owner view read
+// the two apart so a finished avatar is never re-illustrated.
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN avatar_generated INTEGER DEFAULT 0"); } catch {}
 const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
 function athleteDisplayName(raw) {
   const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
@@ -1532,7 +1604,7 @@ function notifyHypeFrameRequest(order, play, opts = {}) {
   const paid200 = !!opts.paid;
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: paid200 ? `HighlightHype: Hype Frame order PAID — ${play.title}` : `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `${paid200 ? `PAYMENT CONFIRMED on Shopify — this Hype Frame order is PAID and cleared for production.\nShopify order: ${order.shopify_order_id || "—"} · Site order #${order.id}` : "A family just submitted a Hype Frame order request on highlighthype.com."}\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: ${paid200 ? "PAID — payment confirmed via Shopify; cleared for production." : "pending-guardian — nothing is printed until you confirm with the parent/guardian."}\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
+    body: `${paid200 ? `PAYMENT CONFIRMED on Shopify — this Hype Frame order is PAID and cleared for production.\nShopify order: ${order.shopify_order_id || "—"} · Site order #${order.id}` : "A family just submitted a Hype Frame order request on highlighthype.com."}\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "front" ? "Front" : "Back"} · Image: ${order.image_style === "avatar" ? (order.avatar_generated ? "AI avatar — generated in the studio (OpenAI); the print image on file IS the finished avatar, no illustration step needed" : "Avatar — illustrate the frame before printing") : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: ${paid200 ? "PAID — payment confirmed via Shopify; cleared for production." : "pending-guardian — nothing is printed until you confirm with the parent/guardian."}\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
 // ---- Round 200: Shopify payment handoff helpers ----
@@ -4489,6 +4561,16 @@ function trackRateLimited(req) {
   trackHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for Hype Frame avatar generation (see constants).
+function avatarRateLimited(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (avatarHitsByIp.get(ip) || []).filter((t) => now - t < AVATAR_RATE_WINDOW_MS);
+  if (hits.length >= AVATAR_RATE_LIMIT) { avatarHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  avatarHitsByIp.set(ip, hits);
+  return false;
+}
 // Same per-IP pattern for the Upload Assist (see constants).
 function assistRateLimited(req) {
   const ip = clientIp(req);
@@ -5080,6 +5162,44 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ---- Hype Frame Avatar (Round 206): in-studio AI avatar ----
+    // The status probe lets the studio show the maker only when
+    // it can actually work; with no OPENAI_API_KEY (or the
+    // HH_NO_AVATAR kill switch) it answers {configured:false} and
+    // the studio behaves exactly as it did before this round.
+    if (p === "/api/hype-frame/avatar-status" && req.method === "GET") {
+      return sendJson(res, 200, { ok: true, configured: hfAvatarConfigured206() });
+    }
+    // Generation: the browser posts ONLY the frozen frame (a data
+    // URL it captured itself). The frame is validated, forwarded
+    // to OpenAI with the locked server-side style prompt, and
+    // dropped — never logged, never stored. The generated PNG
+    // returns as a data URL; the studio decides whether it
+    // becomes the order's print art.
+    if (p === "/api/hype-frame/avatar" && req.method === "POST") {
+      if (!hfAvatarConfigured206()) return sendJson(res, 503, { ok: false, configured: false, message: "The avatar maker isn't switched on right now — your photo print still works." });
+      if (avatarRateLimited(req)) return sendJson(res, 429, { ok: false, configured: true, message: "That's a lot of avatars in an hour — give it a little while and try again. Your photo print still works." });
+      const AVATAR_BODY_MAX206 = 8 * 1024 * 1024;
+      if (Number(req.headers["content-length"] || 0) > AVATAR_BODY_MAX206) return sendJson(res, 413, { ok: false, configured: true, message: "That frame is too large to send to the avatar maker." });
+      let raw;
+      try { raw = await readBody(req, AVATAR_BODY_MAX206); }
+      catch { try { return sendJson(res, 413, { ok: false, configured: true, message: "That frame is too large to send to the avatar maker." }); } catch { return; } }
+      let body = null;
+      try { body = JSON.parse(raw.toString("utf8") || "{}"); } catch { body = null; }
+      const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String((body && body.image) || ""));
+      if (!m) return sendJson(res, 400, { ok: false, configured: true, message: "Send the frozen frame as a jpeg/png data URL." });
+      const buf = Buffer.from(m[2], "base64");
+      if (!buf.length || buf.length > HF_AVATAR_MAX206) return sendJson(res, 400, { ok: false, configured: true, message: "That frame is too large to send to the avatar maker." });
+      try {
+        const image = await runHfAvatar206(buf, "image/" + m[1]);
+        console.log("hype-frame avatar: generated (" + HF_AVATAR_MODEL206 + ")");
+        return sendJson(res, 200, { ok: true, configured: true, image });
+      } catch (e) {
+        console.error("hype-frame avatar failed:", e.message);
+        return sendJson(res, 502, { ok: false, configured: true, failed: true, message: "The avatar maker couldn't finish that one — your photo print still works. Try again in a bit." });
+      }
+    }
+
     // ---- Public highlights ----
     if (p === "/api/highlights" && req.method === "GET") {
       const sport = u.searchParams.get("sport") || "all";
@@ -5408,8 +5528,20 @@ const server = http.createServer(async (req, res) => {
         back_text_custom: backTextCustom,
         branding: body.branding === false ? 0 : 1,
         apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
-        side: String(body.side || "").trim().toLowerCase() === "back" ? "back" : "front",
+        // Round 208 (2026-11-26, Emil): the print-side default
+        // flips to "back" — the framed print is a back print (his
+        // configurator mockup, the DTF shop's back-print format,
+        // the hoodie-back example photo); the front carries the
+        // embroidered crest. Explicit "front"/"back" pass through
+        // exactly as before; a missing or bogus side now lands on
+        // "back" instead of "front". Stored orders are untouched.
+        side: String(body.side || "").trim().toLowerCase() === "front" ? "front" : "back",
         image_style: String(body.imageStyle || "").trim().toLowerCase() === "avatar" ? "avatar" : "photo",
+        // Round 206: the print image is a studio-generated AI
+        // avatar only when the client says the avatar was made
+        // AND chosen — and the claim only makes sense riding an
+        // avatar-styled order (a photo order's flag is ignored).
+        avatar_generated: body.avatarGenerated === true && String(body.imageStyle || "").trim().toLowerCase() === "avatar" ? 1 : 0,
         colorway: colorway199,
         // Round 199: adult sizes S–XL join the youth run in the
         // whitelist; the sanitize-to-YM fallback is unchanged.
@@ -5418,8 +5550,8 @@ const server = http.createServer(async (req, res) => {
         guardian_email: guardianEmail,
         placement,
       };
-      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom);
+      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,avatar_generated,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.avatar_generated, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom);
       if (imgProblem) console.error(`hype-frame order ${Number(info.lastInsertRowid)} saved WITHOUT its print image: ${imgProblem}`);
       // Round 200: with the Shopify handoff ON, the order starts
       // as awaiting_payment and the owner email is DEFERRED to the

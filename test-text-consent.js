@@ -61,8 +61,11 @@ try {
   assert(coll.body.highlights.length === 1 && coll.body.highlights[0].id === idA, "A: athlete collection returns the play");
   assert(!coll.raw.includes(PHONE_A) && !coll.raw.includes("guardian_phone"), "A: athlete collection contains NO phone");
 
-  // Contest: prize-eligible via consented phone alone
-  let eA = await post("/api/contest/enter", { highlightId: idA }); assert(eA.body.ok, "A: contest enter succeeds");
+  // Contest: prize-eligible via consented phone alone. Round 121:
+  // entry is gated to the posting guardian's EMAIL (or the owner) —
+  // a phone-only play has no email to prove with, so the owner path
+  // enters it here; eligibility computation is what's under test.
+  let eA = await post("/api/contest/enter", { highlightId: idA }, tok); assert(eA.body.ok, "A: contest enter succeeds (owner path)");
   let contest = await j("/api/contest");
   assert(!contest.raw.includes(PHONE_A) && !contest.raw.includes("guardian_phone"), "contest response contains NO phone");
   assert(contest.body.entries.find((x) => x.id === idA)?.prizeEligible === true, "A: prizeEligible TRUE with consented phone and no email");
@@ -74,7 +77,7 @@ try {
   let b = await upload({ title: "Play B", playerName: "Jo Lee", team: "Plainview Hawks", guardianPhone: PHONE_B });
   const idB = b.body.id;
   await approve(idB, tok);
-  await post("/api/contest/enter", { highlightId: idB });
+  await post("/api/contest/enter", { highlightId: idB }, tok);
   q = await j("/api/owner/queue", { headers: { "x-owner-token": tok } });
   const qB = q.body.queue.find((x) => x.id === idB);
   assert(qB.guardian_phone === PHONE_B && qB.text_consent === false, "B: owner sees phone with text_consent = false (not textable)");
@@ -89,7 +92,7 @@ try {
   let c = await upload({ title: "Play C", playerName: "Pat Kim" });
   const idC = c.body.id;
   await approve(idC, tok);
-  await post("/api/contest/enter", { highlightId: idC });
+  await post("/api/contest/enter", { highlightId: idC }, tok);
   contest = await j("/api/contest");
   assert(contest.body.entries.find((x) => x.id === idC)?.prizeEligible === false, "C: prizeEligible FALSE with no guardian contact at all");
 
@@ -97,7 +100,7 @@ try {
   let d = await upload({ title: "Play D", playerName: "Rue Fox", notifyEmail: "parent@example.com" });
   const idD = d.body.id;
   await approve(idD, tok);
-  await post("/api/contest/enter", { highlightId: idD });
+  await post("/api/contest/enter", { highlightId: idD, email: "parent@example.com" });
   contest = await j("/api/contest");
   assert(contest.body.entries.find((x) => x.id === idD)?.prizeEligible === true, "D: prizeEligible TRUE with guardian email only");
   assert(!contest.raw.includes("parent@example.com"), "D: contest response contains NO guardian email");

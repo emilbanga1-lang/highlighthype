@@ -67,13 +67,14 @@ try {
      the new pickers use fresh names (hfColors, hfPickColor). The
      studio flow is now payoff -> freeze -> print style -> color/size
      -> name/number -> guardian contact -> send request; apparel and
-     side still ride as fixed defaults (hoodie / front). */
+     side still ride as fixed defaults (hoodie / front). →208: the
+     side default has since flipped to back (Emil, 2026-11-26) — §6. */
   for (const gone of ["Preview it on apparel", 'id="hfAppHoodie"', 'id="hfAppTee"', 'id="hfSideFront"', 'id="hfSideBack"', 'id="hfSwatches"', 'id="hfMock"', 'id="hfPrint"', 'id="hfPrintImg"', 'id="hfPrintEmpty"', 'id="hfFinRow"', "See it finished"])
     assert(!home.includes(gone), `studio preview stays deleted: ${gone}`);
   for (const goneFn of ["function hfSetApparel", "function hfSetSide", "function hfSetColorway", "function hfSyncGarment", "function hfApplyPlacement", "function hfRenderFinished", "HF_FINISHED"])
     assert(!appJs.includes(goneFn), `preview JS stays deleted: ${goneFn}`);
   assert(!css.includes(".hf-mock{") && !css.includes(".hf-fin-row{") && !css.includes(".hf-garment{"), "preview CSS is deleted too (mock / finished-row / garment rules)");
-  assert(appJs.includes('apparel: "hoodie"') && appJs.includes('side: "front"'), "studio state carries the fixed garment defaults (hoodie, front)");
+  assert(appJs.includes('apparel: "hoodie"') && appJs.includes('side: "back"'), "studio state carries the fixed garment defaults (hoodie, front — →208: the side default is now back)");
   assert(appJs.includes("apparel: hfState.apparel") && appJs.includes("side: hfState.side") && appJs.includes("colorway: hfState.colorway"), "order payload still sends apparel / side / colorway (the defaults) — server contract unchanged");
   assert(appJs.includes("composeHfPrint") && appJs.includes("hfState.printDataUrl = c.toDataURL"), "the composed print is still generated client-side and carried on the order (only the on-screen preview went away)");
 
@@ -129,7 +130,7 @@ try {
   assert(r.status === 200 && r.body.requests.length === 1, "owner list returns the request with owner auth");
   const o = r.body.requests[0];
   assert(o.id === orderId && o.highlight_id === approvedId && o.guardian_email === GUARDIAN, "owner sees the request with the guardian email (owner-only)");
-  assert(o.custom_name === "Nick" && o.jersey === "13" && o.branding === true && o.apparel === "hoodie" && o.colorway === "Black" && o.side === "front" && o.status === "pending-guardian", "owner sees customization + apparel + status stored correctly");
+  assert(o.custom_name === "Nick" && o.jersey === "13" && o.branding === true && o.apparel === "hoodie" && o.colorway === "Black" && o.side === "back" && o.status === "pending-guardian", "owner sees customization + apparel + status stored correctly (— →208: this side-less order now stores the Back default)");
   const imgNoAuth = await fetch(base + `/api/owner/hype-frames/${orderId}/image`);
   assert(imgNoAuth.status === 403, "print image endpoint requires owner auth (403 without token)");
   const img = await fetch(base + `/api/owner/hype-frames/${orderId}/image`, { headers: { "x-owner-token": tok } });
@@ -161,8 +162,8 @@ try {
   assert(appJs.includes("size: 78") && appJs.includes("HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 }"), "the one shared placement default carries the raised 78% print size");
   assert(appJs.includes("function hfSetPreset") && appJs.includes('hfState.preset === "hypeframe"'), "presets drive the compose flags + the order's branding value");
   assert(!home.includes('id="hfSideFront"') && !home.includes('id="hfSideBack"'), "Round 2: the old V1 side-toggle ids stay gone (the Round 35 restore uses data-hf-side buttons instead)");
-  assert(home.includes('id="hfSides"') && home.includes('data-hf-side="front"') && home.includes('data-hf-side="back"') && appJs.includes("function hfPickSide"), "Round 35: the print-side picker is restored (Front / Back, Front default) — Emil's call after the usability audit");
-  assert(appJs.includes("side: hfState.side") && appJs.includes('hfPickSide("front")'), "the chosen print side rides on the order payload, reset to Front for each new play");
+  assert(home.includes('id="hfSides"') && home.includes('data-hf-side="front"') && home.includes('data-hf-side="back"') && appJs.includes("function hfPickSide"), "Round 35: the print-side picker is restored (Front / Back, Front default) — Emil's call after the usability audit — →208: the default is now Back (Emil, 2026-11-26)");
+  assert(appJs.includes("side: hfState.side") && appJs.includes('hfPickSide("back")'), "the chosen print side rides on the order payload, reset to Back for each new play (— →208: was Front)");
   assert(home.includes('id="hfImageStyles"') && home.includes('data-hf-image-style="photo"') && home.includes('data-hf-image-style="avatar"') && appJs.includes("function hfPickImageStyle"), "Round 38: the Photo or Avatar picker is in the studio (Real photo / Avatar, Real photo default) — Twinkie's feature");
   assert(appJs.includes("imageStyle: hfState.imageStyle") && appJs.includes('hfPickImageStyle("photo")'), "the chosen image style rides on the order payload, reset to Real photo for each new play");
   assert(appJs.includes('Image: ${o.image_style'), "Owner view's Hype Frame list surfaces the image style (Avatar orders must be illustrated before printing)");
@@ -220,7 +221,7 @@ try {
   assert(appJs.includes('window.openGuidelines = () => { const m = $("#guidelinesModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); m.hidden = false; };'), "Round 101: opening Posting guidelines hoists the modal to <body>, out of the transformed #plays stacking context that let Hype Stories paint over it");
   assert(!home.includes('id="hfFilmCover"') && !home.includes('id="hfHomeFilm"') && !appJs.includes("function playHfHomeFilm()"), "Round 48→125: the homepage Hype Frame film and its cream-hoodie cover left with the section — the hype-frame film still plays in the store + studio, and the mid-feed banner carries the concept on the homepage — →201: a homepage film RETURNS as the merch section's own instance (hfFilmCoverHome201 / hfHomeFilm201 / playHfHomeFilm201); the Round 48 ids and handler stay retired");
   assert(css.includes(".hf-hero-fig{max-width:none}") && css.includes("#hfExamplesHome{padding-left:0;padding-right:0"), "Round 49: the section-width rules stay in the stylesheet (harmless now that the homepage figure is gone — Round 125 removes markup, not the design system)");
-  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=203"') && home.includes('src="app.js?v=206"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped along each round; v147 for Round 148, →148; v148 for Round 149; v149 for Round 150; →151: v150 for Round 151; →152: v151 for Round 152); →153: v152 for Round 153; →154: v153 for Round 154 so phones stop serving stale cached copies — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169) — →170: now v170 (Round 170) — →172: now v172 (Round 172) — →174: now v174 (Round 174) — →179: now v179 (Round 179) — →180: styles now v180 (Round 180; app.js stays v179) — →181: app.js + styles now v181 (Round 181) — →182: app.js now v182 (Round 182); styles keeps v181 (unchanged this round) — →190: app.js now v190 (Round 190); styles keeps v189 (unchanged this round) — →191: app.js + styles now v191 (Round 191) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
+  assert(css.includes("section{padding:40px 0}") && home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "Round 50/51: the section rhythm tightens toward the mock, and the CSS/JS asset URLs are versioned (bumped along each round; v147 for Round 148, →148; v148 for Round 149; v149 for Round 150; →151: v150 for Round 151; →152: v151 for Round 152); →153: v152 for Round 153; →154: v153 for Round 154 so phones stop serving stale cached copies — →155: now v154 (Round 155) — →156: now v155 (Round 156) — →157: now v156 (Round 157) — →158: now v157 (Round 158) — →159: now v158 (Round 159) — →160: now v159 (Round 160) — →161: now v160 (Round 161) — →162: now v161 (Round 162) — →163: now v162 (Round 163) — →163b: now v163 (Round 163b) — →164: now v164 (Round 164) — →165: now v165 (Round 165) — →166: now v166 (Round 166) — →167: now v167 (Round 167) — →168: now v169 (Round 168) — →169: now v169 (Round 169) — →170: now v170 (Round 170) — →172: now v172 (Round 172) — →174: now v174 (Round 174) — →179: now v179 (Round 179) — →180: styles now v180 (Round 180; app.js stays v179) — →181: app.js + styles now v181 (Round 181) — →182: app.js now v182 (Round 182); styles keeps v181 (unchanged this round) — →190: app.js now v190 (Round 190); styles keeps v189 (unchanged this round) — →191: app.js + styles now v191 (Round 191) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
   assert((home.match(/onclick="openHfChoice\(\);return false"/g) || []).length === 2 && appJs.includes('closest("[data-hf-start]")'), "Round 103→125: the two remaining Hype Frame entry anchors (store hero + Hype Girls door) carry the parse-time inline opener AND app.js delegates [data-hf-start] taps at document level — the homepage section's third anchor left with the section; the menu entry and the mid-feed banner wire in app.js");
   /* ---- Round 51: real pages. The menu items are real URLs; the
      boot router opens the matching view in page mode; the server
@@ -295,7 +296,9 @@ try {
   assert(pClamp.cx === 100 && pClamp.cy === 0 && pClamp.size === 100, "out-of-range placement is clamped to the print-area bounds");
   /* ---- 6. Print side (Store v8, 2026-11-04) ----
      The studio's Front/Back chooser rides on the order; the server
-     sanitizes anything but "back" to "front". */
+     sanitizes anything but "back" to "front". →208 (2026-11-26,
+     Emil): the fallback flipped — anything but "front" now
+     sanitizes to "back", and a side-less order defaults to back. */
   r = await j("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(orderPayload(approvedId, { side: "back" })) });
   assert(r.status === 201, "order with print side Back is created");
   const backId = r.body.id;
@@ -304,8 +307,8 @@ try {
   const bogusSideId = r.body.id;
   r = await j("/api/owner/hype-frames", { headers: { "x-owner-token": tok } });
   assert(byId(backId).side === "back", "chosen print side (back) round-trips to the owner API");
-  assert(byId(defId).side === "front", "order without a side defaults to front");
-  assert(byId(bogusSideId).side === "front", "bogus side is sanitized to front");
+  assert(byId(defId).side === "back", "order without a side defaults to back (— →208: was front)");
+  assert(byId(bogusSideId).side === "back", "bogus side is sanitized to back (— →208: was front)");
 
   /* ---- 7. Round 3 (2026-11-05): color + size pickers return; the
      studio opens with the payoff; size rides on the order ----
