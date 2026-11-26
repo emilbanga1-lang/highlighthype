@@ -3864,6 +3864,17 @@ function hfBuildColorButtons() {
         guardianEmail,
         image: hfState.printDataUrl,
       }) });
+      // Round 200: when the server hands back a checkout URL, the
+      // order is saved as awaiting payment and the end state is a
+      // "Continue to payment" step — the parent taps through to
+      // Shopify themselves (never an instant auto-redirect, so the
+      // saved order + what happens next is clear first). After
+      // paying, Shopify sends them back to /?hf_order=<id>, where
+      // hfReturnLanding200 confirms the payment landed.
+      if (r.checkoutUrl) {
+        msg.innerHTML = `${esc(r.message)}${r.backTextToEmbroider ? ` Back text: “${esc(r.backTextToEmbroider)}”` : " Back text: No back text"}<br><a class="btn btn-lime" style="margin-top:10px" href="${esc(r.checkoutUrl)}">Continue to payment →</a><br><span class="small">Order #${r.id} · $110 at Shopify checkout (codes apply there). You’ll come back here after paying — we’ll confirm here and by email.</span>`;
+        return;
+      }
       // Round 197: the confirmation names exactly what will be
       // embroidered across the back — or, for the no-name choice,
       // says so plainly.
@@ -3871,6 +3882,50 @@ function hfBuildColorButtons() {
     } catch (err) { msg.textContent = "Error: " + err.message; }
   });
 })();
+
+/* Round 200 (2026-11-26): the payment return landing + owner
+   payment chips. After Shopify checkout, the parent lands back
+   on /?hf_order=<id> (the checkout's return points here). The
+   landing opens the studio panel and polls the order's payment
+   status — the endpoint returns ONLY the status, no order
+   detail — until the orders/paid webhook lands (normally a few
+   seconds) or the poll budget runs out (~60s, after which the
+   copy tells the parent the confirmation email is the record). */
+async function hfReturnLanding200() {
+  const box = $("#hfReturn200");
+  const id = Number(new URLSearchParams(location.search).get("hf_order") || "");
+  if (!box || !Number.isInteger(id) || id <= 0) return;
+  showHome(); closeMenu(false); showPanel("hypeframe");
+  box.hidden = false;
+  box.innerHTML = `<b>Welcome back — checking your payment…</b><br><span class="small">Order #${id}. Shopify confirms payments within a few seconds; this page updates itself.</span>`;
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+  const render200 = (st) => {
+    if (st === "paid") { box.innerHTML = `<b>✅ Payment confirmed — your Hype Frame is in production.</b><br><span class="small">Order #${id}. Made to order — ships in 5–7 business days. A confirmation email is on its way to the parent/guardian email on the order.</span>`; return true; }
+    if (st === "refunded") { box.innerHTML = `<b>This order was refunded.</b><br><span class="small">Order #${id}. Questions? Email hello@highlighthype.com.</span>`; return true; }
+    if (st === "") { box.innerHTML = `<b>That order doesn’t use online payment.</b><br><span class="small">Order #${id} is a classic order request — we’ll email the parent/guardian to confirm before anything is printed.</span>`; return true; }
+    return false; // awaiting_payment — keep polling
+  };
+  for (let i = 0; i < 24; i++) {
+    try {
+      const r = await api(`/api/hype-frame/orders/${id}/payment-status`);
+      if (render200(r.payment_status)) return;
+    } catch { /* a transient miss just costs one poll cycle */ }
+    if (i === 0) box.innerHTML = `<b>Waiting for payment…</b><br><span class="small">Order #${id}. If you just paid, hold on — Shopify’s confirmation is on its way. If you didn’t finish paying, your order is saved; the studio can send you back to checkout.</span>`;
+    await new Promise((res) => setTimeout(res, 2500));
+  }
+  box.innerHTML = `<b>Still waiting for Shopify’s confirmation.</b><br><span class="small">Order #${id}. Don’t pay twice — your confirmation email is the record once the payment lands, and the order is saved either way. Questions? Email hello@highlighthype.com.</span>`;
+}
+/* Round 200: the Owner view's payment chip for a Hype Frame
+   order — shown only when the order carries a payment status
+   (legacy request rows render nothing extra, exactly as
+   before). Inline colors on the house .tagchip, the same
+   pattern as the Round 197 custom-text chip. */
+function hfPayChip200(paymentStatus) {
+  if (paymentStatus === "awaiting_payment") return ` <span class="tagchip" style="background:#3a2f10;color:#e8cf8f">Awaiting payment</span>`;
+  if (paymentStatus === "paid") return ` <span class="tagchip" style="background:#1f5c2e;color:#fff">Paid ✓</span>`;
+  if (paymentStatus === "refunded") return ` <span class="tagchip" style="background:#7a1f1f;color:#fff">Refunded</span>`;
+  return "";
+}
 
 /* Photo/Avatar example swipe (Round 40, 2026-11-08): every cream-
    hoodie example (homepage, studio, Store feature) is a two-slide
@@ -4560,7 +4615,7 @@ async function loadOwner() {
         hfHtml += `<div class="queue-item hf-req">
           ${src ? `<img class="hf-req-img" src="${src}" alt="Hype Frame print image">` : (o.print_image ? `<p><i>Print image on file (preview unavailable here).</i></p>` : `<p><i>No print image on file for this order.</i></p>`)}
           <div class="hf-req-body">
-            <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
+            <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b>${hfPayChip200(o.payment_status)}<br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
             Back text: <b>${o.backTextToEmbroider ? esc(o.backTextToEmbroider) : "NO BACK TEXT"}</b>${o.back_text === "custom" ? (o.back_text_reviewed ? ` <span style="color:var(--muted)">(custom text — reviewed ✓)</span>` : ` <span class="tagchip" style="background:#7a1f1f;color:#fff">⚠ CUSTOM TEXT — REVIEW</span> <button type="button" class="mini-btn" onclick="hfMarkBackTextReviewed197(${o.id})">Mark reviewed</button>`) : ""}<br>
             Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"} · Image: ${o.image_style === "avatar" ? "Avatar (illustrate first)" : "Real photo"}<br>
@@ -5182,6 +5237,10 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   // form has no in-page position anymore, so the deep link opens
   // the overlay instead of anchor-jumping to a hidden element.
   if (location.hash === "#post") { bootHashTarget = true; goSubmit(); }
+  /* Round 200: a parent returning from Shopify checkout lands on
+     /?hf_order=<id> — open the return view (it polls the order's
+     payment status and confirms in place). */
+  if (new URLSearchParams(location.search).has("hf_order")) { bootHashTarget = true; hfReturnLanding200(); }
   // Site stats: one referrer event per page load, plus the landing
   // view. Store deep links already counted themselves through the
   // showStore hook above, and #post counted "home" through
