@@ -5,7 +5,7 @@
 // one; every other shape renders exactly as Round 191 left
 // it). Run: node test-r196.js
 // Boots the server twice on scratch DATA_DIRs:
-//   A. Defaults — checks the v198 pins, the served R196
+//   A. Defaults — checks the v199 pins, the served R196
 //      wiring (feedIsWide196 / feedWireFill196 /
 //      feedAddFill196 / feedFillPlay196 / the
 //      HH_NO_FEEDFILL196 flag read), the .feed196-fill
@@ -197,7 +197,7 @@ try {
   let appJs = "";
   try {
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=198"') && home.includes('href="styles.css?v=198"'), "A: asset pins — app.js + styles now v198 (Round 196 changed both)");
+    assert(home.includes('src="app.js?v=199"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("feedIsWide196") && block.includes("feedWireFill196") && block.includes("feedAddFill196") && block.includes("feedFillPlay196"), "A: app.js wires the wide test, the fill wiring, the builder and the sync-play");

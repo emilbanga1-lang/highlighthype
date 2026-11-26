@@ -60,7 +60,7 @@ try {
   const s = await boot(3521);
   try {
     const home = await s.text("/");
-    assert(home.includes('src="app.js?v=198"') && home.includes('href="styles.css?v=198"'), "A: asset pins — app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both)");
+    assert(home.includes('src="app.js?v=199"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198)");
     for (const v of ["name", "name_number", "none", "custom"])
       assert(home.includes(`data-hf-back-text="${v}"`), `A: studio picker carries the back-text option: ${v}`);
     assert(home.includes('id="hfBackText197"') && home.includes('id="hfBackCustom197"') && home.includes('id="hfBackCustomRow197"'), "A: studio markup carries the picker, the custom-words input and its row");
