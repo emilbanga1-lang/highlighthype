@@ -173,7 +173,7 @@ try {
     await s.waitFor(async () => { const r = await s.j("/api/highlights?division=all&sort=newest"); return r.body.highlights && r.body.highlights.length === 1 ? r.body : null; }, "A: the play is public");
 
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=193"') && home.includes('href="styles.css?v=191"'), "A: asset pins — app.js v193 (Round 193), styles keeps v191 (unchanged this round)");
+    assert(home.includes('src="app.js?v=198"') && home.includes('href="styles.css?v=198"'), "A: asset pins — app.js v193 (Round 193), styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("feedWarm193") && block.includes('v.preload = "auto"') && block.includes("Math.abs(i - index) <= 2"), "A: app.js wires neighbor warming (±2, preload upgrade)");

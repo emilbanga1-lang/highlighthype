@@ -5724,6 +5724,22 @@ const server = http.createServer(async (req, res) => {
        the classic play-detail path — boards behave exactly as
        they did before the feed. Mirrors HH_NO_ENHANCE /
        HH_NO_WELCOME. */
+    /* Round 196 (2026-11-26): the HH_NO_FEEDFILL196=1 kill switch.
+       The feed's extra-wide blur fill is client-side, so the flag
+       rides the same document: when the switch is set, the served
+       index.html carries window.HH_NO_FEEDFILL196 just before
+       app.js, and the client never builds a fill element — wide
+       clips keep the Round 191 band treatment exactly. Stamped
+       BEFORE the Round 189 block below so both flags can ride
+       the same page when both switches are set. Mirrors
+       HH_NO_FEED / HH_NO_ENHANCE. */
+    if (process.env.HH_NO_FEEDFILL196 === "1" && path.basename(filePath) === "index.html") {
+      try {
+        const fillOffBuf196 = Buffer.from(fs.readFileSync(filePath, "utf8").replace('<script src="app.js', '<script>window.HH_NO_FEEDFILL196=true;</script>\n<script src="app.js'), "utf8");
+        res.writeHead(200, { "content-type": type, "accept-ranges": "bytes", "content-length": fillOffBuf196.length, "cache-control": "no-cache" });
+        return res.end(fillOffBuf196);
+      } catch { /* fall through to the plain static serve */ }
+    }
     if (process.env.HH_NO_FEED === "1" && path.basename(filePath) === "index.html") {
       try {
         const feedOffBuf189 = Buffer.from(fs.readFileSync(filePath, "utf8").replace('<script src="app.js', '<script>window.HH_NO_FEED189=true;</script>\n<script src="app.js'), "utf8");
