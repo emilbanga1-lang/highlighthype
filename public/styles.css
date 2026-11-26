@@ -3013,8 +3013,10 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
    names only; NO prices here, ever (they live in the Store).
    (Round 201: the section's contents are the Hype Frame
    feature now — the .hft201- styles sit right after the
-   teaser block below; the settled $110 rides there by Emil's
-   launch decision.) */
+   teaser block below; the settled price rode there briefly
+   by Emil's launch decision. Round 204: the slimmed section
+   dropped the facts row, so the homepage is price-free
+   again — the price lives in the studio and the Store.) */
 .merch-teaser125{padding:30px 0 8px}
 .mt125-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px}
 .mt125-head b{font-size:19px;color:#fff}
@@ -3062,27 +3064,25 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
    the finished examples, and the studio CTA. Wide screens put
    the film and the copy side by side; phones stack them, film
    first (the approved mock's order). The Round 125/126 teaser
-   styles above go unused — their markup retired this round. */
+   styles above go unused — their markup retired this round.
+   Round 204 (Emil, same day): the section is slimmed to the
+   film (both label pills riding on it together), the headline
+   and the CTA — the eyebrow / pitch / facts / thumbs / sub
+   rules are REMOVED with their markup. The film's play button
+   sits outside the cover (a sibling in the film box), so it
+   paints over the video and answers to the video's events;
+   the [hidden] guard is explicit per the standing CSS trap. */
 .hft201-card{background:linear-gradient(180deg,#151512,#101010);border:1px solid var(--line2);border-radius:20px;overflow:hidden;margin-bottom:26px}
 .hft201-media .hf-film-box{border-radius:0}
-.hft201-badge{position:absolute;top:12px;left:12px;z-index:2;background:rgba(10,10,12,.78);border:1px solid rgba(212,175,55,.55);color:#e8d5a3;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:6px 9px;border-radius:999px}
+.hft201-badges{position:absolute;top:12px;left:12px;z-index:2;display:flex;flex-wrap:wrap;gap:6px}
+.hft201-badge{background:rgba(10,10,12,.78);border:1px solid rgba(212,175,55,.55);color:#e8d5a3;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:6px 9px;border-radius:999px}
+.hft201-film-btn{z-index:3}
+#hfHomeFilmBtn201[hidden]{display:none}
 .hft201-body{padding:18px 20px 20px}
-.hft201-eyebrow{color:var(--gold);font-size:11.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;margin:0 0 7px}
-.hft201-title{font-family:"Archivo",sans-serif;font-size:28px;font-weight:800;line-height:1.08;letter-spacing:-.01em;color:#fff;margin:0 0 9px}
-.hft201-pitch{color:#d8d2c4;font-size:15px;line-height:1.55;margin:0;max-width:560px}
-.hft201-pitch strong{color:#fff}
-.hft201-facts{display:flex;flex-wrap:wrap;gap:7px;list-style:none;margin:14px 0 0;padding:0}
-.hft201-facts li{border:1px solid var(--line2);background:#171714;color:#eee8da;font-size:12px;line-height:1;padding:7px 9px;border-radius:999px}
-.hft201-facts li.hft201-gold{border-color:rgba(212,175,55,.6);color:#e8d5a3;font-weight:800}
-.hft201-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;max-width:560px}
-.hft201-thumbs figure{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--line2);background:#000}
-.hft201-thumbs img{width:100%;height:118px;object-fit:cover;display:block}
-.hft201-thumbs figcaption{font-size:11px;color:var(--muted);padding:7px 8px;line-height:1.35;background:#141412}
+.hft201-title{font-family:"Archivo",sans-serif;font-size:28px;font-weight:800;line-height:1.08;letter-spacing:-.01em;color:#fff;margin:0}
 .hft201-cta{display:block;width:100%;margin-top:16px;background:var(--gold);color:#171200;border:0;border-radius:14px;padding:14px 16px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
-.hft201-sub{text-align:center;color:var(--muted2);font-size:12px;line-height:1.45;margin:9px 6px 0}
 @media (min-width:861px){
   .hft201-card{display:grid;grid-template-columns:1.15fr 1fr;align-items:center}
-  .hft201-thumbs{max-width:none}
 }
 
 /* Round 127 (2026-11-13): the studio player's custom chrome.
@@ -3094,11 +3094,47 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .hf-videowrap127{position:relative;line-height:0}
 .hf-videowrap127[hidden]{display:none}
 .hf-studio video#hfVideo[hidden]{display:none}
-.hf-bigplay127{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;border:2px solid rgba(0,0,0,.35);background:var(--volt);color:#0a0a0a;font-size:29px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 6px 24px rgba(0,0,0,.45);padding:0 0 0 6px}
+/* Round 205 (2026-11-26, Emil): the giant lime center circle is
+   gone — the first-play affordance is a small, quiet glass button
+   now (46px, dark, lime glyph). It still starts the first play
+   only and hides once playback begins (Round 127 behavior). */
+.hf-bigplay127{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(10,10,10,.72);color:var(--volt);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 4px 14px rgba(0,0,0,.4);padding:0 0 0 3px}
 .hf-bigplay127[hidden]{display:none}
 .hf-tapflash127{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.65);color:#fff;font-weight:800;font-size:13px;padding:5px 10px;border-radius:999px;line-height:1;opacity:0;transition:opacity .3s ease;pointer-events:none}
 .hf-tapflash127.show127{opacity:1;transition:opacity .08s ease}
 .hf-playbtn127{flex:0 0 auto;width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:#101010;color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0}
+
+/* Round 205 (2026-11-26, Emil — studio quick fixes):
+   - the floating Post a Play pill stands down while the studio
+     panel is active (body.hf-studio-open205, set by showPanel —
+     the body.store-open / body.upload-open pattern);
+   - the instant still preview (#hfInstant205) fills the player
+     box over the video until the full-res capture lands;
+   - the "Frame selected · 0:04" label and the Recommended badge;
+   - the jersey row's [hidden] guard (its .row2 display:grid
+     would otherwise beat the attribute — the standing CSS trap);
+   - the back-text picker as a 2x2 grid, so "Your own words"
+     fits; the rules out-specify the .seg base and the phone
+     .hf-studio .seg flex rule;
+   - the size guide expander and the order summary line. */
+body.hf-studio-open205 .float-submit{display:none}
+.hf-instant205{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;pointer-events:none}
+.hf-instant205[hidden]{display:none}
+.hf-selected205{margin:8px 0 0;font-size:13.5px;font-weight:800;color:var(--volt)}
+.hf-selected205[hidden]{display:none}
+.hf-thumb .hf-rec-badge205{top:5px;right:5px;left:auto;bottom:auto;background:var(--volt);color:#131a00;font-size:9.5px;font-weight:900;letter-spacing:.02em}
+#hfJerseyRow205[hidden]{display:none}
+.hf-studio .seg.hf-backtext197{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;border-radius:16px}
+.hf-studio .seg.hf-backtext197 button{white-space:normal;padding:10px 8px;line-height:1.25}
+.hf-sizeguide-btn205{margin-left:8px;vertical-align:middle;background:transparent;border:1px solid var(--line2);color:var(--volt);font:inherit;font-size:12px;font-weight:800;letter-spacing:.04em;padding:4px 10px;border-radius:999px;cursor:pointer;touch-action:manipulation}
+.hf-sizeguide205{margin:0 0 12px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:10px 12px}
+.hf-sizeguide205[hidden]{display:none}
+.hf-sizeguide205 table{border-collapse:collapse;font-size:13px;color:#e8e8e2}
+.hf-sizeguide205 th,.hf-sizeguide205 td{padding:2px 14px 2px 0;text-align:left;font-weight:600}
+.hf-sizeguide205 th{color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding-top:8px}
+.hf-sizeguide205 tr:first-child th{padding-top:0}
+.hf-sizeguide205 .small{margin:8px 0 0}
+.hf-summary205{margin:0 0 10px;font-size:14.5px;font-weight:800;color:#fff}
 
 /* Round 128 (2026-11-13): the studio's composed print opens BIG.
    The frozen confirmation (#hfFrozenWrap) is the tap target —

@@ -2118,6 +2118,13 @@ function showPanel(name) {
   // store…) replace the view. hidePlayDetail leaves the hash alone —
   // the #play- route reads it after showPanel runs.
   hidePlayDetail();
+  /* Round 205 (2026-11-26, Emil): while the Hype Frame studio is
+     the active panel, the floating Post a Play pill stands down —
+     it parked over the studio's own controls (the Avatar option,
+     the send button). styles.css hides it under
+     body.hf-studio-open205, the body.store-open / body.upload-open
+     pattern; the pill itself and its menu entry are untouched. */
+  if (document.body && document.body.classList && typeof document.body.classList.toggle === "function") document.body.classList.toggle("hf-studio-open205", name === "hypeframe");
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
   /* Round 158: a panel switch is a view change — the panels
@@ -3267,7 +3274,7 @@ const HF_COLORWAYS = {
    print's placement values and the order payload both read it
    (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3337,6 +3344,7 @@ function initHfStudio(play) {
   // a fresh play starts behind the first-play overlay again.
   const vWrap127 = $("#hfVideoWrap127"); if (vWrap127) vWrap127.hidden = v.hidden;
   hfResetPlayer127();
+  hfSetSelected205(null); // Round 205: a new play starts with no frame picked
   hfBuildStrip();
   hfSyncFrozenThumb(); // new play: no print yet — confirmation hidden, Freeze label restored
 }
@@ -3399,6 +3407,7 @@ function hfBuildStrip() {
       x.drawImage(cap, 0, 0, cvs.width, cvs.height);
       const b = document.createElement("button");
       b.type = "button"; b.className = "hf-thumb";
+      b.dataset.hfT = String(t); // Round 205: the still recommendation reads each thumb's moment back
       b.setAttribute("aria-label", `Jump to ${hfFmtTime(t)}`);
       const im = document.createElement("img");
       im.alt = ""; im.src = cvs.toDataURL("image/jpeg", 0.72);
@@ -3411,6 +3420,10 @@ function hfBuildStrip() {
     // Round 124: the capture ran to completion and produced
     // NOTHING (every seek came back frameless) — say so.
     if (token === hfStripToken && strip.querySelectorAll(".hf-thumb").length === 0) hfStripNote124();
+    // Round 205: with the strip complete, score its stills and
+    // pre-pick the strongest frame (badge + selection) — the
+    // family can always tap another thumb instead.
+    if (token === hfStripToken && strip.querySelectorAll(".hf-thumb").length) await hfRecommend205(strip, token);
     cap.removeAttribute("src"); cap.load();
   });
 }
@@ -3427,20 +3440,172 @@ function hfBuildStrip() {
    keeps rapid successive taps from composing a stale frame —
    only the latest tap's seek captures. */
 let hfTapToken127 = 0;
+/* Round 205 (2026-11-26, Emil): the tap IS the selection, and it
+   answers instantly. The label names the picked moment the moment
+   it's tapped ("Frame selected · 0:04"), and the thumbnail's own
+   already-loaded frame fills the player box right away
+   (#hfInstant205 over the video) — the seek + full-res capture
+   still compose the print behind it, and the overlay clears when
+   that capture lands, so what gets submitted is unchanged: the
+   full-resolution composed print, never the thumbnail. */
+function hfSetSelected205(t) {
+  const el = $("#hfSelected205");
+  hfState.frameTime205 = (typeof t === "number" && isFinite(t)) ? t : null;
+  if (!el) return;
+  if (hfState.frameTime205 == null) { el.hidden = true; el.textContent = ""; return; }
+  el.textContent = `Frame selected · ${hfFmtTime(hfState.frameTime205)}`;
+  el.hidden = false;
+}
+function hfShowInstant205(btn) {
+  const img = $("#hfInstant205"); if (!img) return;
+  const thumb = btn && btn.querySelector ? btn.querySelector("img") : null;
+  const src = thumb && thumb.src;
+  if (!src) { hfHideInstant205(); return; }
+  img.src = src;
+  img.hidden = false;
+}
+function hfHideInstant205() {
+  const img = $("#hfInstant205");
+  if (img) { img.hidden = true; img.removeAttribute("src"); }
+}
 function hfJumpToFrame(t, btn) {
   const v = $("#hfVideo"); if (!v) return;
   v.pause();
+  hfSetSelected205(t);
+  hfShowInstant205(btn);
   const target = v.duration ? Math.min(Math.max(0, t), v.duration) : Math.max(0, t);
   const scrub = $("#hfScrub"); if (scrub) scrub.value = target;
   hfUpdateTime();
   $$("#hfStrip .hf-thumb").forEach((el) => el.classList.toggle("active", el === btn));
   if (hfState.mediaType !== "video") return;
   const token = ++hfTapToken127;
-  const select = () => { if (token === hfTapToken127) hfCapturePrint(); };
+  const select = () => { if (token === hfTapToken127) { hfCapturePrint(); hfHideInstant205(); } };
   if (v.readyState >= 2 && v.videoWidth && Math.abs((v.currentTime || 0) - target) < 0.05) { select(); return; }
   const onSeeked = () => { v.removeEventListener("seeked", onSeeked); select(); };
   v.addEventListener("seeked", onSeeked);
   if (v.duration) { try { v.currentTime = target; } catch { onSeeked(); } }
+}
+/* Round 205 still recommendation (Emil: "Can an agent recommend
+   which still to use?"): the strip's OWN thumbnails are scored
+   locally, in the browser, the moment the strip lands — no
+   server, no vision model. Three signals, all from small canvas
+   downscales of the thumbnails already on screen:
+     sharpness — mean squared luma gradient; motion blur flattens
+       it, and blur is what ruins a print;
+     action — frame-difference energy against the neighbouring
+       stills, peaking where the play happens (the same signal
+       family as Round 203's band analysis, kept tiny);
+     placement — the moving subject (the frame-diff mask) should
+       cover a sane share of the frame, sit near the middle and
+       not hug the edges, so the athlete reads on fabric.
+   A near-black / blank still (Emil's black 0:00 and 0:01
+   thumbnails) is DISQUALIFIED outright — it can never win. The
+   winner wears a "Recommended" badge and is pre-selected through
+   the same one-tap path as a manual pick; any other tap
+   overrides it. Scoring runs after the strip renders and never
+   blocks the studio opening. */
+function hfThumbLuma205(img) {
+  const W = 48;
+  const iw = img.naturalWidth || 16, ih = img.naturalHeight || 9;
+  const H = Math.max(1, Math.round(W * ih / iw));
+  const c = document.createElement("canvas");
+  c.width = W; c.height = H;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.drawImage(img, 0, 0, W, H);
+  const d = x.getImageData(0, 0, W, H).data;
+  const lum = new Float32Array(W * H);
+  for (let i = 0, p = 0; i < lum.length; i++, p += 4) lum[i] = 0.2126 * d[p] + 0.7152 * d[p + 1] + 0.0722 * d[p + 2];
+  return { lum, w: W, h: H };
+}
+function hfScoreStills205(frames) {
+  const n = frames.length;
+  if (!n) return -1;
+  const stats = frames.map((f) => {
+    const { lum, w, h } = f;
+    let sum = 0;
+    for (let i = 0; i < lum.length; i++) sum += lum[i];
+    let g = 0, gc = 0;
+    for (let y = 0; y < h; y++) for (let xx = 0; xx < w - 1; xx++) { const dd = lum[y * w + xx + 1] - lum[y * w + xx]; g += dd * dd; gc++; }
+    for (let y = 0; y < h - 1; y++) for (let xx = 0; xx < w; xx++) { const dd = lum[(y + 1) * w + xx] - lum[y * w + xx]; g += dd * dd; gc++; }
+    return { mean: sum / lum.length, sharp: gc ? g / gc : 0, w, h };
+  });
+  // Pairwise frame differences: motion energy + the moving
+  // subject's mask (share of frame, centroid, edge contact).
+  // A pair touching a near-black still is EXCLUDED: a fade from
+  // black (the classic black 0:00 thumb) differs from the first
+  // real frame everywhere, which is a fade artifact, not action —
+  // it carries no subject and must not crown the first frame.
+  const pairs = [];
+  for (let i = 1; i < n; i++) {
+    const a = frames[i - 1], b = frames[i];
+    if (a.lum.length !== b.lum.length || stats[i - 1].mean < 10 || stats[i].mean < 10) { pairs.push(null); continue; }
+    const { lum, w, h } = b;
+    let diff = 0, mask = 0, mx = 0, my = 0, edge = 0;
+    for (let k = 0; k < lum.length; k++) {
+      const dd = Math.abs(lum[k] - a.lum[k]);
+      diff += dd;
+      if (dd > 22) {
+        mask++;
+        const px = k % w, py = (k / w) | 0;
+        mx += px; my += py;
+        if (px === 0 || py === 0 || px === w - 1 || py === h - 1) edge++;
+      }
+    }
+    pairs.push({
+      energy: diff / lum.length,
+      maskFrac: mask / lum.length,
+      cx: mask ? (mx / mask) / Math.max(1, w - 1) : 0.5,
+      cy: mask ? (my / mask) / Math.max(1, h - 1) : 0.5,
+      edgeFrac: mask ? edge / mask : 0,
+    });
+  }
+  const pairAt = (i) => (i > 0 ? pairs[i - 1] : pairs[0]) || null; // frame i's mask: the pair that ENDS at i (frame 0: the pair that starts at it)
+  const motionAt = (i) => Math.max(pairs[i - 1] ? pairs[i - 1].energy : 0, pairs[i] ? pairs[i].energy : 0);
+  const ok = stats.map((s) => s.mean >= 10); // near-black / blank stills never win
+  if (!ok.some(Boolean)) return -1;
+  const norm = (vals) => { const m = Math.max(...vals, 1e-9); return vals.map((v) => v / m); };
+  const sharpN = norm(stats.map((s) => s.sharp));
+  const motionN = norm(stats.map((_, i) => motionAt(i)));
+  let best = -1, bestScore = -Infinity;
+  for (let i = 0; i < n; i++) {
+    if (!ok[i]) continue;
+    const pr = pairAt(i);
+    let place = 0.5; // neutral when there is no motion read (single still)
+    if (pr) {
+      const cover = pr.maskFrac <= 0.005 ? 0 : pr.maskFrac >= 0.65 ? 0.35 : 1; // a subject, not nothing and not the whole frame
+      const dx = pr.cx - 0.5, dy = pr.cy - 0.45;
+      const centre = Math.max(0, 1 - Math.hypot(dx, dy) * 1.7);
+      place = cover * (0.35 + 0.65 * centre) * (1 - 0.55 * pr.edgeFrac);
+    }
+    const score = 0.5 * sharpN[i] + 0.3 * motionN[i] + 0.45 * place * Math.min(1, sharpN[i] + 0.25);
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  return best;
+}
+async function hfRecommend205(strip, token) {
+  const thumbs = [...strip.querySelectorAll(".hf-thumb")];
+  if (!thumbs.length) return;
+  const imgs = thumbs.map((b) => b.querySelector("img")).filter(Boolean);
+  if (imgs.length !== thumbs.length) return;
+  // The thumbnails are data URLs minted moments ago; wait for
+  // their pixels before scoring (never blocks the studio — the
+  // strip is already on screen and tappable).
+  await Promise.all(imgs.map((im) => (im.complete && im.naturalWidth) ? null : new Promise((res) => { im.addEventListener("load", res, { once: true }); im.addEventListener("error", res, { once: true }); })));
+  if (token !== hfStripToken) return;
+  let frames;
+  try { frames = imgs.map((im) => hfThumbLuma205(im)); } catch { return; }
+  const best = hfScoreStills205(frames);
+  if (best < 0 || token !== hfStripToken) return;
+  const btn = thumbs[best];
+  if (!btn || btn.querySelector(".hf-rec-badge205")) return;
+  const badge = document.createElement("span");
+  badge.className = "hf-rec-badge205";
+  badge.textContent = "★ Recommended";
+  btn.appendChild(badge);
+  btn.setAttribute("aria-label", `${btn.getAttribute("aria-label") || ""} — recommended frame`);
+  // Pre-select the winner through the one-tap path — unless the
+  // family has already picked a frame themselves.
+  if (!hfState.frozen && hfState.frameTime205 == null) hfJumpToFrame(Number(btn.dataset.hfT || 0), btn);
 }
 function hfFmtTime(t) { t = Math.max(0, Math.floor(t || 0)); return Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); }
 function hfUpdateTime() {
@@ -3473,7 +3638,14 @@ function hfCapturePrint() {
 function freezeHfFrame() {
   if (!hfState.play) { alert("Pick a play on the board first."); return; }
   if (hfState.mediaType === "video") $("#hfVideo").pause(); // freeze works mid-play: stop on this exact frame first
-  if (hfCapturePrint()) return;
+  if (hfCapturePrint()) {
+    // Round 205: a Freeze is a frame selection too — the label
+    // names the moment, and the video itself is showing the real
+    // frame now, so the instant preview stands down.
+    hfHideInstant205();
+    if (hfState.mediaType === "video") hfSetSelected205($("#hfVideo").currentTime || 0);
+    return;
+  }
   if (hfState.mediaType === "video") alert("Give the video a moment to load, then freeze again.");
   else if (hfState.mediaType === "image") alert("Give the photo a moment to load, then freeze again.");
   else alert("This play was posted as a link, so a frame can't be frozen from it here.");
@@ -3511,6 +3683,7 @@ function hfResetPlayer127() {
   hfPlayed127 = false;
   const big = $("#hfBigPlay127"); if (big) big.hidden = false;
   const f = $("#hfTapFlash127"); if (f) f.classList.remove("show127");
+  hfHideInstant205(); // Round 205: no stale instant preview on a fresh play
   hfSyncPlayBtn127();
 }
 // Print tone for the Hype Frame frame + lockup: bone on dark garments,
@@ -3697,11 +3870,29 @@ function composeHfPrint() {
   hfState.printAspect = c.height / c.width;
   hfSyncFrozenThumb();
 }
+/* Round 205 (2026-11-26, Emil): the order summary line above the
+   email field — the order at a glance, rebuilt from live state on
+   every pick (color, size, side, print style), in the studio's
+   own vocabulary: "Black hoodie · Youth M · Front print · Hype
+   Frame". Youth sizes carry their Y in the picker (YM) and read
+   as "Youth M" here. */
+const HF_PRESET_LABELS205 = { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" };
+function hfSummary205() {
+  const size = hfState.size || "YM";
+  const sizeLabel = size.startsWith("Y") ? `Youth ${size.slice(1)}` : `Adult ${size}`;
+  const sideLabel = hfState.side === "back" ? "Back print" : "Front print";
+  return `${hfState.colorway} hoodie · ${sizeLabel} · ${sideLabel} · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"}`;
+}
+function hfSyncSummary205() {
+  const el = $("#hfSummary205");
+  if (el) el.textContent = hfSummary205();
+}
 // Print style presets: radio behavior over the three options; the
 // choice re-composes the print live, exactly like the old checkbox did.
 function hfSetPreset(p) {
   hfState.preset = p;
   $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
+  hfSyncSummary205();
   if (hfState.frozen) composeHfPrint();
 }
 // Hoodie color + youth size (Round 3, 2026-11-05): Emil reversed the
@@ -3720,12 +3911,14 @@ function hfPickColor(name) {
   if (!list.some((k) => k.name === name)) return;
   hfState.colorway = name;
   $$("#hfColors [data-hf-color]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfColor === name)));
+  hfSyncSummary205();
   if (hfState.frozen) composeHfPrint();
 }
 function hfPickSize(size) {
   if (!HF_SIZES.includes(size)) return;
   hfState.size = size;
   $$("#hfSizes [data-hf-size]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSize === size)));
+  hfSyncSummary205();
 }
 /* Print side (RESTORED in Round 35, 2026-11-07 — Emil's call after
    the usability audit): the picker was removed in the Round 3 studio
@@ -3735,6 +3928,7 @@ function hfPickSize(size) {
 function hfPickSide(side) {
   hfState.side = side === "back" ? "back" : "front";
   $$("#hfSides [data-hf-side]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSide === hfState.side)));
+  hfSyncSummary205();
 }
 /* Photo or Avatar (Round 38, 2026-11-08 — Twinkie's idea, approved by
    Twinkie + Nicholas): 'photo' prints the frozen frame as-is; 'avatar'
@@ -3769,6 +3963,12 @@ function hfPickBackText197(choice) {
   $$("#hfBackText197 [data-hf-back-text]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfBackText === hfState.backText)));
   const customRow = $("#hfBackCustomRow197");
   if (customRow) customRow.hidden = hfState.backText !== "custom";
+  // Round 205: the jersey number field shows ONLY when it affects
+  // the design — the Name + number choice. Its value is left in
+  // place while hidden (the Signature caption still reads it);
+  // the digits-required validation for name_number is unchanged.
+  const jerseyRow205 = $("#hfJerseyRow205");
+  if (jerseyRow205) jerseyRow205.hidden = hfState.backText !== "name_number";
   // With "No name" or "Your own words" picked, the name/number
   // fields no longer decide the back — disable them so the form
   // never implies otherwise. Their values stay put (the composed
@@ -3805,10 +4005,10 @@ function hfBuildColorButtons() {
   if (bigPlay127) bigPlay127.addEventListener("click", () => { const p = v.play(); if (p && p.catch) p.catch(() => {}); });
   if (playBtn127) playBtn127.addEventListener("click", () => hfTogglePlay127(false));
   v.addEventListener("click", () => { if (hfPlayed127) hfTogglePlay127(true); });
-  v.addEventListener("play", () => { hfPlayed127 = true; const big = $("#hfBigPlay127"); if (big) big.hidden = true; hfSyncPlayBtn127(); });
+  v.addEventListener("play", () => { hfPlayed127 = true; const big = $("#hfBigPlay127"); if (big) big.hidden = true; hfHideInstant205(); hfSyncPlayBtn127(); });
   v.addEventListener("pause", hfSyncPlayBtn127);
   v.addEventListener("ended", hfSyncPlayBtn127);
-  $("#hfScrub").addEventListener("input", (e) => { if (v.duration) { v.currentTime = Number(e.target.value); hfUpdateTime(); } });
+  $("#hfScrub").addEventListener("input", (e) => { hfHideInstant205(); if (v.duration) { v.currentTime = Number(e.target.value); hfUpdateTime(); } });
   $("#hfFreeze").addEventListener("click", freezeHfFrame);
   // Step buttons nudge the playhead ±1s (paused) so the exact moment is
   // easy to land on before freezing.
@@ -3825,6 +4025,10 @@ function hfBuildColorButtons() {
   $$("#hfSides [data-hf-side]").forEach((b) => b.addEventListener("click", () => hfPickSide(b.dataset.hfSide)));
   $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.addEventListener("click", () => hfPickImageStyle(b.dataset.hfImageStyle)));
   $$("#hfBackText197 [data-hf-back-text]").forEach((b) => b.addEventListener("click", () => hfPickBackText197(b.dataset.hfBackText)));
+  // Round 205: the size guide expander beside the Size heading.
+  const sgBtn205 = $("#hfSizeGuideBtn205"), sgPanel205 = $("#hfSizeGuide205");
+  if (sgBtn205 && sgPanel205) sgBtn205.addEventListener("click", () => { sgPanel205.hidden = !sgPanel205.hidden; sgBtn205.setAttribute("aria-expanded", String(!sgPanel205.hidden)); });
+  hfSyncSummary205(); // Round 205: the order summary starts in sync with the default picks
   // Print placement is FIXED at the default (2026-11-04): no drag, no
   // placement controls and no garment preview; the order carries the
   // default placement, the fixed garment (hoodie), the chosen print
@@ -5376,13 +5580,35 @@ function playHfFeedFilm126() {
 /* Round 201 (2026-11-26, Emil): the homepage merch section's
    own film instance — the same cover swap as the feed strip's
    (above) and the store feature's (playHfStoreFilm), on its
-   own ids so all three films play and pause independently. */
+   own ids so all three films play and pause independently.
+   Round 204 (Emil, same day): the film's play button
+   (hfHomeFilmBtn201) lives OUTSIDE the cover now and answers
+   to the video's own events — visible only while the film is
+   NOT playing (never started, paused, or ended) and gone the
+   moment playback starts, so no route (the button, the
+   native controls, an end-of-film pause) leaves it sitting
+   on a playing video. The listeners wire once, lazily, on
+   the first play through this handler — the only route that
+   can reveal the video at all. */
+let hfHomeFilmWired204 = false;
+function hfHomeFilmBtnSync204() {
+  const btn = $("#hfHomeFilmBtn201"), vid = $("#hfHomeFilm201");
+  if (!btn || !vid) return;
+  btn.hidden = !(vid.paused || vid.ended);
+}
 function playHfHomeFilm201() {
   const cover = $("#hfFilmCoverHome201"), vid = $("#hfHomeFilm201");
   if (!vid) return;
+  if (!hfHomeFilmWired204 && typeof vid.addEventListener === "function") {
+    hfHomeFilmWired204 = true;
+    vid.addEventListener("play", hfHomeFilmBtnSync204);
+    vid.addEventListener("pause", hfHomeFilmBtnSync204);
+    vid.addEventListener("ended", hfHomeFilmBtnSync204);
+  }
   if (cover) cover.hidden = true;
   vid.hidden = false;
   const p = vid.play(); if (p && p.catch) p.catch(() => {});
+  hfHomeFilmBtnSync204();
 }
 
 /* Round 84 (2026-11-09, Emil): warm the store's landing pictures
@@ -5419,10 +5645,10 @@ function playHfHomeFilm201() {
 
 /* Round 86 (2026-11-09, kid-experience feedback): the "Create a Hype
    Frame" entry points (homepage section + Store feature) open a
-   choice card instead of landing on the board. Sample -> the
-   studio with a sample play loaded (baseball preferred — the payoff
-   is visible immediately); Own video -> the upload form (which now
-   opens with the parent/guardian banner).
+   choice card instead of landing on the board. Originally: Sample
+   -> the studio with a sample play loaded; Own video -> the upload
+   form (which now opens with the parent/guardian banner). The
+   Sample start left the card in Round 205 — see the note below.
    Round 202 (2026-11-26, Emil's catch): a parent whose play is
    ALREADY posted had no path from this card — finding the play's
    own card was the only route, and re-uploading the same clip hits
@@ -5433,20 +5659,20 @@ function playHfHomeFilm201() {
    cardHtml, tileHtml and the watch view are unconditional
    (samples, photo plays and link plays all open the studio from
    their own cards), so the picker excludes nothing; sample rows
-   keep their ⭐ SAMPLE PLAY tag, as the tiles show it. */
+   keep their ⭐ SAMPLE PLAY tag, as the tiles show it.
+   Round 205 (2026-11-26, Emil): the Sample choice LEAVES the
+   card — hfChoiceSample is gone and the card offers two starts
+   (a posted play, or your own video). Sample plays are
+   untouched: they stay on the boards and in the picker, and
+   their own cards still open the studio directly. */
 window.openHfChoice = () => { const m = $("#hfChoiceModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); hfPickerReset202(); m.hidden = false; };
 window.closeHfChoice = () => { const m = $("#hfChoiceModal"); if (m) m.hidden = true; hfPickerReset202(); };
-window.hfChoiceSample = () => {
-  closeHfChoice();
-  const pool = ALL_PLAYS || [];
-  const pick = pool.find((p) => p.isSample && p.sport === "baseball") || pool.find((p) => p.isSample) || pool[0];
-  if (pick) openHypeFrame(pick.id);
-};
 window.hfChoiceOwn = () => { closeHfChoice(); goSubmit(); };
 /* Round 202: the posted-play picker. The two panels swap inside
    the one modal; hfPickerReset202 always lands back on the choice
    panel, so every exit (a pick, the backdrop, Not now, Escape)
-   leaves the card ready to reopen on the three choices. */
+   leaves the card ready to reopen on the choices. (Round 205:
+   two choices now — the Sample start left the card.) */
 function hfPickerReset202() {
   const choice = $("#hfChoicePanel"), picker = $("#hfPickerPanel");
   if (choice) choice.hidden = false;
@@ -5479,7 +5705,7 @@ function hfPickerRender202(q) {
     return `<button type="button" class="hf-picker-row" onclick="hfPickerPick202(${p.id})">${poster ? `<img class="hf-picker-thumb" src="${esc(poster)}" alt="" loading="lazy">` : `<span class="hf-picker-thumb hf-picker-thumb-none">${esc(cap(p.sport || "Play"))}</span>`}<span class="hf-picker-main"><b>${esc(p.title)}</b><span>${esc(who)}</span></span>${p.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}</button>`;
   }).join("");
   if (empty) {
-    if (!eligible.length) { empty.textContent = "No plays are up yet — post yours or try the sample clip."; empty.hidden = false; }
+    if (!eligible.length) { empty.textContent = "No plays are up yet — post yours to get started."; empty.hidden = false; }
     else if (!hits.length) { empty.textContent = "No plays match that search — try a different title, athlete, team or sport."; empty.hidden = false; }
     else empty.hidden = true;
   }
@@ -8121,7 +8347,12 @@ initA2HS161();
    exactly one track-height; snap points sit at exact
    multiples), so Round 198 enforces the settle in JS and
    pins the hint's stacking in CSS rather than trusting the
-   engine's compositor. */
+   engine's compositor.
+   Round 203 (2026-11-26): the shape threshold moves —
+   "portrait" now means properly tall (see feedShape191
+   below), because Round 203's action-band reframe can
+   hand the feed a near-square clip whose whole frame
+   must survive. */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
 const feed191 = { hintSeen: false };
 /* Round 193 (2026-11-25): the slight delay between swipes.
@@ -8325,14 +8556,25 @@ function feedSlideKind189(h) {
   return hasVideo ? "video" : "link";
 }
 /* Round 191: the slide's shape from the media's real pixel
-   dimensions — taller than wide is "portrait" (the clip fills
-   the viewer); anything else, square included, is "landscape"
-   (the wide band treatment). PURE on purpose (the suites drive
-   it in a vm). */
+   dimensions — a portrait clip fills the viewer; anything
+   else takes the "landscape" wide-band treatment (the whole
+   frame visible, caption below the band). PURE on purpose
+   (the suites drive it in a vm).
+   Round 203 (2026-11-26): "portrait" now means PROPERLY
+   tall — H at least 1.25× W (integer math: H * 4 >= W * 5).
+   Round 203's action-band reframe can hand the feed a
+   near-square clip (a 720×1280 sky-heavy upload reframed
+   to 720×768); under the old taller-than-wide rule that
+   clip took the portrait cover treatment and the feed
+   side-cropped ~40% of it away — the athlete the reframe
+   exists to center could be cut. Near-square clips now
+   ride the band treatment and keep their whole frame.
+   True phone portraits are unaffected (720×1280 and even
+   a 3:4 clip's 720×960 still classify portrait). */
 function feedShape191(w, h) {
   const W = Number(w) || 0, H = Number(h) || 0;
   if (!W || !H) return "";
-  return H > W ? "portrait" : "landscape";
+  return H * 4 >= W * 5 ? "portrait" : "landscape";
 }
 function feedApplyShape191(slide, w, h) {
   if (!slide) return "";
