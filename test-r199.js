@@ -110,6 +110,13 @@ try {
     line("const hfState = {"),
     line("const HF_SIZES"),
     fn("function hfPrintTone()"),
+    // →205: hfPickColor / hfPickSize now also re-sync the order
+    // summary — the real summary block rides into the slice so
+    // the picks run exactly as served ($ answers null for
+    // #hfSummary205 here, so the sync is a no-op in this drive).
+    line("const HF_PRESET_LABELS205"),
+    fn("function hfSummary205()"),
+    fn("function hfSyncSummary205()"),
     fn("function hfPickColor(name)"),
     fn("function hfPickSize(size)"),
     fn("function hfBuildColorButtons()"),
@@ -141,7 +148,7 @@ try {
   const s = await boot(3531);
   try {
     const home = await s.text("/");
-    assert(home.includes('src="app.js?v=203"') && home.includes('href="styles.css?v=201"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202)");
+    assert(home.includes('src="app.js?v=206"') && home.includes('href="styles.css?v=203"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
     for (const sz of SIZES10)
       assert(home.includes(`data-hf-size="${sz}"`), `C: studio size picker offers ${sz}`);
     assert(home.includes('id="hfSizes"') && home.includes('aria-label="Size"') && home.includes(">Youth</span>") && home.includes(">Adult</span>"), "C: the size picker is one group with Youth / Adult labels");

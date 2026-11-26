@@ -3,12 +3,20 @@
 // 2026-11-26: a parent whose play is already posted had no path
 // from the card; re-uploading the same clip hits the same-clip
 // duplicate rule). Run: node test-r202.js
+// →205 (2026-11-26, Emil): the Sample start LEAVES the card —
+// hfChoiceSample is removed and the card offers TWO starts
+// (Posted, Own) under "Two ways to start:". Sample plays stay
+// on the boards and in the picker (tagged SAMPLE). Sections B,
+// D and F below carry the superseded assertions with →205
+// notes; C (eligibility parity) and E are untouched.
 // What this suite pins down:
-//   A. Pins: app.js v203 / styles v201.
-//   B. The dialog: three options in order (Sample, Posted, Own),
-//      "Three ways to start:", the picker panel (search, list,
-//      empty state, Back / Not now) and its app.js handlers; no
-//      "two ways" copy left in home or app.js.
+//   A. Pins: app.js v203 / styles v201 — →206: app.js now v206
+//      (Round 205); styles now v203 (Round 205).
+//   B. The dialog: two options in order (Posted, Own) — →205:
+//      the Sample option and "Three ways to start:" are gone,
+//      "Two ways to start:" rides instead; the picker panel
+//      (search, list, empty state, Back / Not now) and its
+//      app.js handlers unchanged.
 //   C. ELIGIBILITY PARITY (the correctness core): the per-play
 //      Frame buttons (cardHtml, tileHtml, watch view) are
 //      unconditional and openHypeFrame resolves ALL_PLAYS +
@@ -19,10 +27,11 @@
 //   D. VM drive of the real block: open -> posted -> render,
 //      search by athlete / sport / team / no-match, Back, pick
 //      (opens the studio with the id, closes both layers and
-//      resets the panels), Sample and Own paths unchanged, and
-//      the honest empty state when nothing is eligible.
+//      resets the panels), the Own path unchanged, →205: the
+//      Sample handler no longer exists, and the honest empty
+//      state when nothing is eligible.
 //   E. No duplicate element ids across index.html + the strip.
-//   F. The served homepage carries the three-way card + picker.
+//   F. The served homepage carries the two-way card + picker.
 // Exits non-zero on failure.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -54,15 +63,16 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=201"') && home.includes('src="app.js?v=203"'), "A: asset pins — app.js v203 / styles v201 (Round 202; both files changed)");
+assert(home.includes('href="styles.css?v=203"') && home.includes('src="app.js?v=206"'), "A: asset pins — app.js v203 / styles v201 (Round 202; both files changed) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
 
 // ---- B. the dialog ----
 const mStart = home.indexOf('id="hfChoiceModal"');
 const modal = home.slice(mStart, home.indexOf('id="uploadForm"', mStart));
-assert(modal.includes("Three ways to start:"), "B: the sub-copy now offers three ways to start");
-assert(!home.includes("Two ways to start:") && !appJs.includes("Two ways") && !appJs.includes("two-choice"), "B: no 'two ways' copy survives in the page or the script");
+assert(modal.includes("Two ways to start:") && !modal.includes("Three ways to start:"), "B: the sub-copy offers two ways to start — →205: Round 202's 'Three ways to start:' is superseded (the Sample start left the card)");
+assert(!home.includes("Three ways") && !appJs.includes("Three ways") && !appJs.includes("three-choice"), "B: no 'three ways' copy survives in the page or the script — →205: the Round 202 no-'two ways' rule is inverted");
 const iSample = modal.indexOf('onclick="hfChoiceSample()"'), iPosted = modal.indexOf('onclick="hfChoicePosted()"'), iOwn = modal.indexOf('onclick="hfChoiceOwn()"');
-assert(iSample > -1 && iPosted > iSample && iOwn > iPosted, "B: the three options render in order — Sample, Posted (new, middle), Own");
+assert(iSample === -1 && !modal.includes("Try it with a sample clip") && !appJs.includes("window.hfChoiceSample"), "B: →205: the Sample option is GONE from the card — no button, no handler (the name survives only in the Round 205 comment noting its removal)");
+assert(iPosted > -1 && iOwn > iPosted, "B: the two options render in order — Posted, Own — →205: Round 202's Sample, Posted, Own order is superseded");
 assert(modal.includes("Use a play already on HighlightHype") && modal.includes("Pick a posted play — yours or any play on the boards."), "B: the new button's label and sub-line ride");
 assert(modal.includes('id="hfChoicePanel"'), "B: the choice panel carries its own id for the swap");
 assert(modal.includes('id="hfPickerPanel"') && modal.includes('id="hfPickerSearch202"') && modal.includes('id="hfPickerList202"') && modal.includes('id="hfPickerEmpty202"'), "B: the picker panel and its search / list / empty elements ride");
@@ -114,7 +124,7 @@ vm.runInContext(escCapSrc + "\n" + lineSrc("function parsePlayDate(") + "\n" + b
 const eligibleIds = sb.hfPickerEligible202().map((p) => p.id);
 assert(JSON.stringify(eligibleIds) === JSON.stringify([15, 12, 11, 13, 14]), "D: the eligible set is ALL of them — contest-only (15), photo (12), regular (11), link (13), sample (14) — deduped and newest first");
 sb.openHfChoice();
-assert(modalEl.hidden === false && choiceEl.hidden === false && pickerEl.hidden === true, "D: opening the card lands on the three choices");
+assert(modalEl.hidden === false && choiceEl.hidden === false && pickerEl.hidden === true, "D: opening the card lands on the choices — →205: two choices now (Posted, Own)");
 sb.hfChoicePosted();
 assert(choiceEl.hidden === true && pickerEl.hidden === false, "D: the Posted choice swaps the picker panel in");
 const rows = (listEl.innerHTML.match(/hf-picker-row/g) || []).length;
@@ -138,18 +148,17 @@ assert(!listEl.innerHTML.includes("hf-picker-row") && emptyEl.hidden === false &
 sb.hfPickerFilter202("");
 assert((listEl.innerHTML.match(/hf-picker-row/g) || []).length === 5 && emptyEl.hidden === true, "D: clearing the search restores the full list");
 sb.hfPickerBack202();
-assert(choiceEl.hidden === false && pickerEl.hidden === true && modalEl.hidden === false, "D: Back returns to the three choices without closing the card");
+assert(choiceEl.hidden === false && pickerEl.hidden === true && modalEl.hidden === false, "D: Back returns to the choices without closing the card — →205: two choices now");
 sb.hfChoicePosted();
 sb.hfPickerPick202(12);
 assert(JSON.stringify(calls.open) === JSON.stringify([12]), "D: tapping a row opens the studio with that play's id");
 assert(modalEl.hidden === true && choiceEl.hidden === false && pickerEl.hidden === true, "D: the pick closes both layers and resets the panels for the next open");
-sb.hfChoiceSample();
-assert(calls.open[calls.open.length - 1] === 14 && modalEl.hidden === true, "D: the Sample path is unchanged — the sample baseball play opens, the card closes");
+assert(typeof sb.hfChoiceSample === "undefined", "D: →205: the Sample handler no longer exists — Round 202's Sample-path drive is superseded (sample plays still open the studio from their own cards and via the picker)");
 sb.hfChoiceOwn();
 assert(calls.submit === 1 && modalEl.hidden === true, "D: the Own path is unchanged — the upload form opens, the card closes");
 sb.ALL_PLAYS = []; sb.CONTEST = { entries: [] };
 sb.openHfChoice(); sb.hfChoicePosted();
-assert(!listEl.innerHTML.includes("hf-picker-row") && emptyEl.hidden === false && emptyEl.textContent.includes("No plays are up yet"), "D: with nothing eligible, the picker says so honestly (post yours / sample) instead of showing a blank list");
+assert(!listEl.innerHTML.includes("hf-picker-row") && emptyEl.hidden === false && emptyEl.textContent.includes("No plays are up yet"), "D: with nothing eligible, the picker says so honestly (post yours) instead of showing a blank list — →205: the empty text no longer points at the removed sample start");
 
 // ---- E. id uniqueness ----
 const stripStart = appJs.indexOf("function hypeFrameStrip126()");
@@ -165,8 +174,8 @@ for (const id of ["hfChoicePanel", "hfPickerPanel", "hfPickerSearch202", "hfPick
 const s = await boot(8942);
 try {
   const served = await (await fetch(s.base + "/")).text();
-  assert(served.includes("Three ways to start:") && served.includes('id="hfPickerPanel"') && served.includes('id="hfPickerList202"'), "F: the served homepage carries the three-way card and the picker panel");
-  assert(served.includes('src="app.js?v=203"') && served.includes('href="styles.css?v=201"'), "F: the served homepage carries the Round 202 asset pins");
+  assert(served.includes("Two ways to start:") && served.includes('id="hfPickerPanel"') && served.includes('id="hfPickerList202"'), "F: the served homepage carries the card and the picker panel — →205: the two-way card (Round 202's three-way card superseded)");
+  assert(served.includes('src="app.js?v=206"') && served.includes('href="styles.css?v=203"'), "F: the served homepage carries the current asset pins — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R202 CHECKS PASSED");

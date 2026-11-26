@@ -787,6 +787,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN stream_url TEXT DEFAULT ''"); }
 // so an evaluated play is never re-processed (see the Round
 // 195 section at the media pipeline). '' = not yet evaluated.
 try { db.exec("ALTER TABLE highlights ADD COLUMN r195_checked_at TEXT DEFAULT ''"); } catch {}
+// Round 203 (2026-11-26): the action-band reframe stage's
+// per-play evaluation stamp — set when the Round 203 stage
+// has evaluated a play (reframed or not), and read by the
+// boot backfill, which selects on the empty stamp so an
+// evaluated play is never re-processed (see the Round 203
+// section at the media pipeline). '' = not yet evaluated.
+try { db.exec("ALTER TABLE highlights ADD COLUMN r203_checked_at TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -2296,6 +2303,14 @@ async function r124ProcessUpload(id, name) {
       // discipline as every stage on this chain.
       .then(() => r195AfterEnhance(id))
       .catch((e) => console.error(`[r195] upload ${id}: trim/upscale stage error (display file kept):`, e.message))
+      // Round 203: the action-band reframe stage rides
+      // between Round 195 and the rendition, so the poster,
+      // the rendition and the welcome email all inherit the
+      // reframed file. Its own catch-all is inside; this
+      // .catch is the belt to its suspenders, the same
+      // discipline as every stage on this chain.
+      .then(() => r203AfterR195(id))
+      .catch((e) => console.error(`[r203] upload ${id}: reframe stage error (display file kept):`, e.message))
       // Round 192: the streaming rendition is made from the
       // FINAL display file (the enhanced one, when it enhanced),
       // so it rides after the agent settles. Its catch-all is
@@ -2456,7 +2471,7 @@ async function r192EnsureStream(bins, id) {
   r192InFlight.set(id, p);
   try { return await p; } finally { if (r192InFlight.get(id) === p) r192InFlight.delete(id); }
 }
-async function r192EnsureStreamNow(bins, id) {
+async function r192EnsureStreamNow(bins, id, depth = 0) {
   try {
     if (process.env.HH_NO_STREAM192 === "1") return false;
     const row = db.prepare("SELECT media_kind, media_url, stream_url FROM highlights WHERE id=?").get(id);
@@ -2480,7 +2495,30 @@ async function r192EnsureStreamNow(bins, id) {
       console.error(`[r192] play ${id}: rendition did not verify as H.264/yuv420p/faststart — master kept`);
       return false;
     }
-    const inBytes = fs.statSync(abs).size, outBytes = fs.statSync(tmpOut).size;
+    // Media-changed recheck (the Round 195/203 swap
+    // discipline, adopted here in Round 203): a sibling
+    // stage's swap can rename the master mid-encode — the
+    // encode reads on through the rename, but the size
+    // read below then stats a path the row no longer
+    // names (observed as an ENOENT "rendition failed"
+    // with an orphaned temp file, once Round 203's boot
+    // scan lengthened the window in which the Round 192
+    // and Round 195 backfills interleave). If the media
+    // moved, discard this rendition and retry against the
+    // current file (bounded), so the play still leaves
+    // this call with a correct rendition; the retry calls
+    // the Now body directly because this call already
+    // holds the per-play gate.
+    const rowNow = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+    let inBytes = 0;
+    try { inBytes = fs.statSync(abs).size; } catch { inBytes = 0; }
+    if (!rowNow || path.basename(rowNow.media_url || "") !== name || !inBytes) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      if (depth < 2) { console.log(`[r192] play ${id}: media changed during rendition — retrying against the current file`); return r192EnsureStreamNow(bins, id, depth + 1); }
+      console.error(`[r192] play ${id}: media changed during rendition — standing down (master kept)`);
+      return false;
+    }
+    const outBytes = fs.statSync(tmpOut).size;
     if (outBytes >= inBytes) {
       try { fs.unlinkSync(tmpOut); } catch {}
       console.log(`[r192] play ${id}: rendition (${outBytes}B) is not smaller than the master (${inBytes}B) — master serves`);
@@ -2712,6 +2750,14 @@ async function r195ProcessPlayNow(bins, id, origin) {
     }
     let prior = null;
     if (row.enhance_json) { try { prior = JSON.parse(row.enhance_json).r195 || null; } catch { prior = null; } }
+    // A prior evaluation that already swapped recorded
+    // the preserved original's name; carry it — when the
+    // boot backfill wins the race to a fresh upload, the
+    // chain's later evaluation only re-stores, and the
+    // name is the audit trail to the true original
+    // (observed in test-r195 once Round 203's boot scan
+    // lengthened the window).
+    if (prior && prior.preEnhanceFile) r195.preEnhanceFile = prior.preEnhanceFile;
     // ---- trim decision ----
     let cutStart = 0;
     if (prior && prior.trim && prior.trim.status === "trimmed") {
@@ -2839,6 +2885,369 @@ async function r195Backfill() {
     }
     console.log(`[r195] backfill complete (${trimmed} trimmed, ${upscaled} upscaled, ${flagged} flagged, ${rows.length} file plays scanned)`);
   } catch (e) { console.error("[r195] backfill error:", e.message); }
+}
+
+/* ================= Round 203 (2026-11-26): action-band reframe =================
+   WHY: Emil, after running a real cheer clip through the
+   agent by hand (2026-11-26): the athlete sits low in a
+   tall phone frame under a lot of empty sky — "could we do
+   anything to center more around her instead of the sky?"
+   He approved building exactly that judgment into the agent
+   after seeing the hand-made reframe of that clip.
+   MEASUREMENT: the display file is sampled at 5 fps onto a
+   small gray working copy (at most 360 wide, 960 tall,
+   never upscaled) and the mean frame-to-frame luma
+   difference is accumulated per band — 8 horizontal bands
+   and 8 vertical bands. That is the same quantity the hand
+   run read off ffmpeg's tblend-difference + signalstats
+   YAVG per band, computed here in one decode pass instead
+   of sixteen. The first 60 seconds decide: a camera's
+   framing does not change its band signature over a clip,
+   and the cap bounds the temp file.
+   DECISION (per axis): peak = the largest band energy;
+   median = the LOWER median (the 4th-smallest of the 8) —
+   the background level. The textbook average-of-the-
+   middle-two median breaks exactly when this round
+   matters: when half the bands carry the action it lands
+   inside the action itself, and the calibration clip
+   below would fail its own test (rows [3.3, 3.5, 4.0,
+   5.3, 29.8, 25.3, 31.7, 38.9]: middle-two median 15.3
+   vs lower median 5.3). The axis is DECISIVE only when
+   peak ≥ 8 (an absolute floor — a nearly static frame
+   has no action band to find) and peak ≥ 3× the
+   background level. Action bands are those at ≥ 35% of
+   peak; the crop window is their span widened by one
+   band of headroom on each side, clamped to the frame,
+   snapped to even pixels. A crop is taken on an axis
+   only when it removes ≥ 25% of that axis and keeps
+   ≥ 45% of it; the reframed frame must also keep a
+   smaller dimension of ≥ 360px and ≥ 40% of the source
+   area, or nothing is cropped at all.
+   CALIBRATION (the cheer clip, measured on its post-R186
+   display file): rows [3.33, 3.52, 3.96, 5.27, 29.84,
+   25.29, 31.73, 38.88] — decisive, action bands 4–7,
+   window 3–7 → y 480, keeping the bottom 800 of 1280
+   (62.5%); columns [18.07, 18.25, 18.46, 16.23, 15.62,
+   16.77, 17.26, 21.15] — spread (she travels the full
+   width), not decisive, width untouched. Full-frame
+   motion (a GameChanger clip) reads peak ≈ background on
+   both axes and is never reframed.
+   INTEGRATION: one stage chained between Round 195 and
+   the Round 192 rendition, evaluating the CURRENT
+   display file (post-agent, post-trim/upscale). A
+   reframe shares Round 195's swap discipline exactly:
+   the encode is produced and verified first (the Round
+   186 encode spec plus the crop), the current display
+   file is preserved as <base>-preenhance.mp4 (a
+   timestamped variant when that name is taken — the
+   TRUE original is never overwritten), the poster is
+   regenerated from the reframed file, and a stale
+   rendition is dropped and remade. Every outcome is
+   recorded under `r203` in highlights.enhance_json, and
+   highlights.r203_checked_at is stamped as the
+   evaluation completes — the boot backfill selects on
+   the empty stamp, and a recorded reframe is honored
+   directly, so a play is never cropped twice.
+   HH_NO_REFRAME=1 disables the stage (recorded as
+   skipped; the rest of the chain is unaffected).
+   FALLBACK CONTRACT (the house rule): best-effort, never
+   a gate — any failure keeps the current display file,
+   leaves the stamp empty for a later retry, and logs
+   why. Photo uploads never enter the chain (Round 124
+   returns before it); a photo the backfill meets keeps
+   its non-video name out of this stage exactly as in
+   Round 195. */
+const R203_SAMPLE_FPS = 5;      // frame-difference sampling rate on the working copy
+const R203_SCAN_SEC = 60;       // analysis window cap — a framing's band signature is set long before this
+const R203_WORK_MAX_W = 360;    // working-copy width cap (band energies are relative; small is fast)
+const R203_WORK_MAX_H = 960;    // working-copy height cap (a very tall, thin clip stays bounded)
+const R203_MIN_PEAK = 8;        // absolute decisiveness floor (mean luma-difference units)
+const R203_RATIO = 3;           // peak must clear 3× the background (lower-median) band level
+const R203_BAND_FRAC = 0.35;    // a band counts as action at ≥ 35% of the axis peak
+const R203_MIN_REMOVE = 0.25;   // a crop must remove at least this share of the axis
+const R203_MIN_KEEP = 0.45;     // ... and keep at least this share of it
+const R203_MIN_DIM = 360;       // the reframed frame's smaller-dimension floor
+const R203_MIN_AREA = 0.40;     // the reframed frame's area floor, as a share of the source area
+// Measure one display file's per-band motion energies:
+// 8 horizontal + 8 vertical bands of mean frame-difference
+// luma on a small gray working copy, decoded once into a
+// temp raw file that is always cleaned up. Returns
+// { rows, cols, frames } (energies rounded for the
+// report) or null when the measurement itself failed —
+// the caller treats null as "never reframe, never stamp".
+async function r203BandEnergies(bins, abs, info) {
+  const s = Math.min(1, R203_WORK_MAX_W / info.width, R203_WORK_MAX_H / info.height);
+  const even = (v) => Math.max(2, Math.round(v / 2) * 2);
+  const workW = even(info.width * s), workH = even(info.height * s);
+  const base = path.basename(abs).replace(/\.[^.]+$/, "");
+  const tmp = path.join(UPLOAD_DIR, `${base}.r203tmp.raw`);
+  try {
+    const { err } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-vf", `fps=${R203_SAMPLE_FPS},scale=${workW}:${workH},format=gray`, "-t", String(R203_SCAN_SEC), "-f", "rawvideo", tmp], 300000));
+    if (err) return null;
+    const frameSize = workW * workH;
+    const nFrames = Math.floor(fs.statSync(tmp).size / frameSize);
+    if (!(nFrames >= 2) || frameSize <= 0) return null;
+    const rowBand = new Uint8Array(workH), colBand = new Uint8Array(workW);
+    const rowPix = new Array(8).fill(0), colPix = new Array(8).fill(0);
+    for (let y = 0; y < workH; y++) { rowBand[y] = Math.min(7, Math.floor((y * 8) / workH)); rowPix[rowBand[y]]++; }
+    for (let x = 0; x < workW; x++) { colBand[x] = Math.min(7, Math.floor((x * 8) / workW)); colPix[colBand[x]]++; }
+    const rowSum = new Array(8).fill(0), colSum = new Array(8).fill(0);
+    const fd = fs.openSync(tmp, "r");
+    try {
+      let prev = Buffer.alloc(frameSize), cur = Buffer.alloc(frameSize);
+      if (fs.readSync(fd, prev, 0, frameSize, 0) < frameSize) return null;
+      for (let f = 1; f < nFrames; f++) {
+        if (fs.readSync(fd, cur, 0, frameSize, f * frameSize) < frameSize) break;
+        for (let y = 0; y < workH; y++) {
+          const rb = rowBand[y], off = y * workW;
+          for (let x = 0; x < workW; x++) {
+            const d = cur[off + x] - prev[off + x];
+            if (d !== 0) { const a = d < 0 ? -d : d; rowSum[rb] += a; colSum[colBand[x]] += a; }
+          }
+        }
+        const swap = prev; prev = cur; cur = swap;
+      }
+    } finally { try { fs.closeSync(fd); } catch {} }
+    const pairs = nFrames - 1;
+    const rows = rowSum.map((v, i) => r186Round(v / (pairs * rowPix[i] * workW), 2));
+    const cols = colSum.map((v, i) => r186Round(v / (pairs * colPix[i] * workH), 2));
+    return { rows, cols, frames: nFrames };
+  } catch { return null; } finally { try { fs.unlinkSync(tmp); } catch {} }
+}
+// One axis's decision from its 8 band energies: decisive
+// or not, and — when the window also passes the
+// removed/kept bounds — the crop in source pixels
+// ({ start, keep } along an axis of length len).
+function r203AxisPlan(e, len) {
+  const peak = Math.max(...e);
+  const sorted = [...e].sort((a, b) => a - b);
+  const median = sorted[3]; // the lower median — the background level (see the banner)
+  const axis = { peak: r186Round(peak, 2), median: r186Round(median, 2), decisive: false, crop: null };
+  if (!(peak >= R203_MIN_PEAK && peak >= R203_RATIO * median)) return axis;
+  axis.decisive = true;
+  const th = R203_BAND_FRAC * peak;
+  let lo = 8, hi = -1;
+  e.forEach((v, i) => { if (v >= th) { if (i < lo) lo = i; if (i > hi) hi = i; } });
+  const wlo = Math.max(0, lo - 1), whi = Math.min(7, hi + 1);
+  axis.actionBands = [lo, hi];
+  axis.windowBands = [wlo, whi];
+  const evenDn = (v) => Math.max(0, Math.floor(v / 2) * 2);
+  const start = evenDn((wlo * len) / 8);
+  const keep = evenDn(((whi + 1) * len) / 8) - start;
+  if (keep > 0 && len - keep >= R203_MIN_REMOVE * len && keep >= R203_MIN_KEEP * len) axis.crop = { start, keep };
+  else axis.veto = `window keeps ${keep}/${len}px — outside the ${(R203_MIN_REMOVE * 100) | 0}%-removed / ${(R203_MIN_KEEP * 100) | 0}%-kept bounds`;
+  return axis;
+}
+async function r203Encode(bins, abs, tmpOut, rect) {
+  return r138SerializeFfmpeg(() => r203EncodeNow(bins, abs, tmpOut, rect));
+}
+async function r203EncodeNow(bins, abs, tmpOut, rect) {
+  // The Round 186 encode spec (libx264 CRF 23 / yuv420p /
+  // AAC 128k / faststart / no global metadata — the
+  // kids'-platform GPS rule binds every display file),
+  // plus this round's one move: the crop to the action
+  // band.
+  const args = ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1",
+    "-vf", `crop=${rect.w}:${rect.h}:${rect.x}:${rect.y}`,
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut];
+  const { err, stderr } = await r124Run(bins.ffmpeg, args, 600000);
+  if (err) { console.error("[r203] encode failed:", err.message, stderr.slice(-300)); return false; }
+  return true;
+}
+// Merge this round's evaluation into the play's
+// enhance_json (the Round 186 report and the r195 key,
+// when they exist, are preserved) and stamp
+// r203_checked_at in the same write — the stamp is what
+// the boot backfill selects on.
+function r203StoreEval(id, r203) {
+  const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+  let obj = {};
+  if (row && row.enhance_json) { try { obj = JSON.parse(row.enhance_json); } catch { obj = {}; } }
+  obj.r203 = r203;
+  db.prepare("UPDATE highlights SET enhance_json=?, r203_checked_at=? WHERE id=?").run(JSON.stringify(obj), new Date().toISOString(), id);
+}
+// Evaluate one play and reframe it when the measurement
+// calls for it. Shared by the upload chain (origin
+// "upload") and the boot backfill (origin "backfill") —
+// and those two callers can meet on the same fresh
+// upload, so evaluations of one play are serialized
+// through a per-play promise gate, exactly as in Round
+// 195: two evaluators share the temp/output paths, and
+// an unserialized pair could rename a half-written
+// encode into place. A second caller waits, then
+// evaluates fresh against whatever the first left
+// (usually: the stamp + recorded outcome, and nothing to
+// do). Never throws; returns the tallies the backfill
+// summary reports. The stamp is written only when the
+// evaluation actually completed — a detector or encode
+// failure leaves it empty so a later boot retries.
+const r203InFlight = new Map();
+async function r203ProcessPlay(bins, id, origin) {
+  while (r203InFlight.has(id)) { try { await r203InFlight.get(id); } catch {} }
+  const p = r203ProcessPlayNow(bins, id, origin);
+  r203InFlight.set(id, p);
+  try { return await p; } finally { if (r203InFlight.get(id) === p) r203InFlight.delete(id); }
+}
+async function r203ProcessPlayNow(bins, id, origin) {
+  const out = { reframed: 0 };
+  try {
+    const row = db.prepare("SELECT media_kind, media_url, stream_url, enhance_json FROM highlights WHERE id=?").get(id);
+    if (!row || row.media_kind !== "file") return out;
+    const name = path.basename(row.media_url || "");
+    if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return out;
+    const abs = path.join(UPLOAD_DIR, name);
+    if (!fs.existsSync(abs)) return out; // missing file: a later boot retries — never stamp it
+    const info = r124VideoInfo(await r124Probe(bins, abs));
+    const r203 = { at: new Date().toISOString(), origin, status: null, srcW: 0, srcH: 0, rowBands: null, colBands: null, rows: null, cols: null, crop: null, outputFile: null, preservedFile: null };
+    if (!info || !info.width || !info.height) {
+      // A file play that does not probe as video:
+      // evaluated, nothing to do, stamped so backfill
+      // scans stay cheap and the file is left exactly as
+      // it is.
+      r203.status = "not-video";
+      r203StoreEval(id, r203);
+      return out;
+    }
+    r203.srcW = info.width;
+    r203.srcH = info.height;
+    let prior = null;
+    if (row.enhance_json) { try { prior = JSON.parse(row.enhance_json).r203 || null; } catch { prior = null; } }
+    if (prior && prior.status === "reframed") {
+      // Already reframed once — never twice. The recorded
+      // outcome is carried into this evaluation (belt to
+      // the stamp's suspenders, as in Round 195).
+      r203StoreEval(id, { ...prior, at: new Date().toISOString(), origin });
+      return out;
+    }
+    if (process.env.HH_NO_REFRAME === "1") {
+      r203.status = "skipped";
+      r203.reason = "HH_NO_REFRAME=1";
+      r203StoreEval(id, r203);
+      console.log(`[r203] play ${id}: evaluated — reframe skipped (HH_NO_REFRAME=1) (display file unchanged)`);
+      return out;
+    }
+    const bands = await r203BandEnergies(bins, abs, info);
+    if (!bands) { console.error(`[r203] play ${id}: band measurement failed — left unstamped for a later retry`); return out; }
+    r203.rowBands = bands.rows;
+    r203.colBands = bands.cols;
+    const rowsPlan = r203AxisPlan(bands.rows, info.height);
+    const colsPlan = r203AxisPlan(bands.cols, info.width);
+    r203.rows = { peak: rowsPlan.peak, median: rowsPlan.median, decisive: rowsPlan.decisive };
+    r203.cols = { peak: colsPlan.peak, median: colsPlan.median, decisive: colsPlan.decisive };
+    if (rowsPlan.actionBands) { r203.rows.actionBands = rowsPlan.actionBands; r203.rows.windowBands = rowsPlan.windowBands; }
+    if (colsPlan.actionBands) { r203.cols.actionBands = colsPlan.actionBands; r203.cols.windowBands = colsPlan.windowBands; }
+    const vetoes = [];
+    if (rowsPlan.veto) vetoes.push(`rows: ${rowsPlan.veto}`);
+    if (colsPlan.veto) vetoes.push(`cols: ${colsPlan.veto}`);
+    let rect = null;
+    if (rowsPlan.crop || colsPlan.crop) {
+      rect = {
+        x: colsPlan.crop ? colsPlan.crop.start : 0,
+        y: rowsPlan.crop ? rowsPlan.crop.start : 0,
+        w: colsPlan.crop ? colsPlan.crop.keep : info.width,
+        h: rowsPlan.crop ? rowsPlan.crop.keep : info.height,
+      };
+      if (Math.min(rect.w, rect.h) < R203_MIN_DIM) { vetoes.push(`output ${rect.w}x${rect.h} is under the ${R203_MIN_DIM}px smaller-dimension floor`); rect = null; }
+      else if (rect.w * rect.h < R203_MIN_AREA * info.width * info.height) { vetoes.push(`output ${rect.w}x${rect.h} keeps under ${(R203_MIN_AREA * 100) | 0}% of the source area`); rect = null; }
+    }
+    if (!rect) {
+      r203.status = "no-reframe";
+      if (vetoes.length) r203.veto = vetoes.join("; ");
+      r203StoreEval(id, r203);
+      console.log(`[r203] play ${id}: evaluated — no reframe (rows peak ${r203.rows.peak} vs background ${r203.rows.median}; cols peak ${r203.cols.peak} vs background ${r203.cols.median}) (display file unchanged)`);
+      return out;
+    }
+    // ---- the one encode ----
+    const base = name.replace(/\.[^.]+$/, "");
+    const tmpOut = path.join(UPLOAD_DIR, `${base}.r203tmp.mp4`);
+    const finalName = `${base}-reframed.mp4`;
+    try {
+      if (!(await r203Encode(bins, abs, tmpOut, rect))) { try { fs.unlinkSync(tmpOut); } catch {} return out; }
+      const outInfo = r124VideoInfo(await r124Probe(bins, tmpOut));
+      const verified = outInfo && outInfo.codec === "h264" && outInfo.pixFmt === "yuv420p" && r124IsFaststart(tmpOut)
+        && Math.abs(outInfo.width - rect.w) <= 2 && Math.abs(outInfo.height - rect.h) <= 2
+        && Math.abs(outInfo.duration - info.duration) <= 0.75;
+      if (!verified) {
+        try { fs.unlinkSync(tmpOut); } catch {}
+        console.error(`[r203] play ${id}: output did not verify (codec/dims/duration) — display file kept`);
+        return out;
+      }
+      const rowNow = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+      if (!rowNow || path.basename(rowNow.media_url || "") !== name) {
+        try { fs.unlinkSync(tmpOut); } catch {}
+        console.log(`[r203] play ${id}: media changed since evaluation — standing down`);
+        return out;
+      }
+      // Swap order matters (the Round 186 discipline):
+      // the new file lands first, then the current
+      // display file is preserved under its
+      // pre-enhancement name, and only then does the row
+      // move — at every instant the row points at a file
+      // that exists.
+      let preName = `${base}-preenhance.mp4`;
+      if (fs.existsSync(path.join(UPLOAD_DIR, preName))) preName = `${base}-preenhance-${Date.now()}.mp4`;
+      fs.renameSync(tmpOut, path.join(UPLOAD_DIR, finalName));
+      fs.renameSync(abs, path.join(UPLOAD_DIR, preName));
+      db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${finalName}`, id);
+      r203.status = "reframed";
+      r203.crop = rect;
+      r203.outputFile = finalName;
+      r203.preservedFile = preName;
+      await r124PosterFor(bins, id, path.join(UPLOAD_DIR, finalName), outInfo);
+      // A rendition made from the pre-reframe file is
+      // stale: drop it and make a fresh one from the new
+      // master (Round 192's own kill switch still binds).
+      const rowAfter = db.prepare("SELECT stream_url FROM highlights WHERE id=?").get(id);
+      if (rowAfter && rowAfter.stream_url) {
+        try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(rowAfter.stream_url))); } catch {}
+        db.prepare("UPDATE highlights SET stream_url='' WHERE id=?").run(id);
+        await r192EnsureStream(bins, id);
+      }
+      r203StoreEval(id, r203);
+      out.reframed = 1;
+      console.log(`[r203] play ${id}: reframed ${info.width}x${info.height} → ${rect.w}x${rect.h} (crop x${rect.x} y${rect.y}) → ${finalName}; previous display file kept as ${preName}`);
+    } catch (e) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      console.error(`[r203] play ${id}: stage failed (display file kept):`, e.message);
+      return out;
+    }
+  } catch (e) { console.error(`[r203] play ${id}: evaluation failed (display file kept):`, e.message); }
+  return out;
+}
+// The upload-pipeline stage: chained after the Round 195
+// stage settles and before the Round 192 rendition, so
+// everything downstream is made from the final file.
+// Catch-all inside, like every stage on this chain.
+async function r203AfterR195(id) {
+  try {
+    const bins = await r124ResolveBins();
+    if (!bins) return;
+    await r203ProcessPlay(bins, id, "upload");
+  } catch (e) { console.error(`[r203] upload ${id}: reframe stage error (display file kept):`, e.message); }
+}
+// Boot-time backfill: existing plays are evaluated once —
+// sequentially, behind the same ffmpeg serializer, never
+// blocking startup. Selection is the empty
+// r203_checked_at stamp, so a boot that finds everything
+// evaluated costs one query, a partial run simply finishes
+// on the next boot, and a play processed at upload is
+// never selected. The summary line is the deploy
+// verification's read: what was reframed.
+async function r203Backfill() {
+  try {
+    if (process.env.HH_NO_REFRAME === "1") { console.log("[r203] backfill disabled via HH_NO_REFRAME"); return; }
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r203] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r203_checked_at='' OR r203_checked_at IS NULL)").all();
+    let reframed = 0;
+    for (const row of rows) {
+      try {
+        const o = await r203ProcessPlay(bins, row.id, "backfill");
+        reframed += o.reframed;
+      } catch (e) { console.error(`[r203] backfill row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r203] backfill complete (${reframed} reframed, ${rows.length} file plays scanned)`);
+  } catch (e) { console.error("[r203] backfill error:", e.message); }
 }
 
 /* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
@@ -6041,4 +6450,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); });

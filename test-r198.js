@@ -203,7 +203,7 @@ try {
   let appJs = "";
   try {
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=203"') && home.includes('href="styles.css?v=201"'), "A: asset pins — app.js + styles now v199 (Round 198 changed both) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202)");
+    assert(home.includes('src="app.js?v=206"') && home.includes('href="styles.css?v=203"'), "A: asset pins — app.js + styles now v199 (Round 198 changed both) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("function feedSettle198(") && block.includes("function feedSettleSoon198("), "A: app.js carries the settle corrector and its scheduler");

@@ -335,6 +335,13 @@ try {
     assert(!fs.readdirSync(eUp).some((n) => n.includes("seedalready-trimmed-trimmed") || n.includes("seedalready-trimmed-upscaled")), "E(f): no second-generation derivative of the already-trimmed play exists");
     await e2.waitFor(() => e2.getLog().includes("[r195] backfill complete (1 trimmed, 2 upscaled, 0 flagged, 3 file plays scanned)") || null, "E: backfill summary line", 120000);
     assert(true, "E: backfill summary reports 1 trimmed, 2 upscaled, 0 flagged, 3 scanned");
+    // Round 203 note: the sibling boot scans (r192
+    // posters/renditions, r203 evaluations) share the
+    // ffmpeg serializer and can still be mid-scan when
+    // this round's summary lands; the idempotency
+    // snapshot below must be taken against a SETTLED
+    // directory, so wait for their summaries too.
+    await e2.waitFor(() => (e2.getLog().includes("[r192] backfill complete") && e2.getLog().includes("[r203] backfill complete")) || null, "E: sibling backfills complete", 120000);
     comboMedia = path.basename(combo.media_url);
     comboMtime = fs.statSync(path.join(eUp, comboMedia)).mtimeMs;
   } finally { await e2.stop(); }
@@ -344,6 +351,7 @@ try {
   const e3 = await boot(3527, {}, eDir);
   try {
     await e3.waitFor(() => e3.getLog().includes("[r195] backfill complete (0 trimmed, 0 upscaled, 0 flagged, 0 file plays scanned)") || null, "E: second-boot summary", 120000);
+    await e3.waitFor(() => (e3.getLog().includes("[r192] backfill complete") && e3.getLog().includes("[r203] backfill complete")) || null, "E: second-boot sibling backfills complete", 120000);
     assert(fs.statSync(path.join(eUp, comboMedia)).mtimeMs === comboMtime, "E(f): second boot leaves the trimmed/upscaled file untouched (idempotent)");
     assert(fs.readdirSync(eUp).sort().join("|") === listingBefore, "E(f): second boot creates no new files");
     assert(!fs.readdirSync(eUp).some((n) => n.includes(".r195tmp")), "E: no R195 temp files remain");
