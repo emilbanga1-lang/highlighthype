@@ -7899,9 +7899,81 @@ initA2HS161();
    TITLE-first: the play's title is the first line, then
    "Athlete · Sport" — a title-less play falls back to
    name-first. Everything else — board order, the finite end
-   card, toggleVote, the kill switch — is exactly as built. */
+   card, toggleVote, the kill switch — is exactly as built.
+   Round 193 (2026-11-25): swipe latency — neighbor
+   preloading + mid-swipe early playback (feed193 below). */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
 const feed191 = { hintSeen: false };
+/* Round 193 (2026-11-25): the slight delay between swipes.
+   A swiped-to slide used to start cold — preload="metadata"
+   only, and playback began when the scroll SETTLED — so every
+   swipe paid a network fetch before its first frame. Two
+   changes, both inside this block:
+   (1) feedWarm193 keeps the settled slide's neighborhood
+   (±2) at preload="auto" with load() called, so the next
+   swipe's video is already buffered; slides that fall out of
+   the neighborhood stand back down to preload="metadata".
+   Warming runs only while the feed is open — nothing is
+   preloaded on the boards behind it.
+   (2) feedObserve193's IntersectionObserver starts an
+   incoming slide's playback the moment it is mostly visible
+   (threshold 0.5) instead of waiting for the settle.
+   feedActivate189 remains the single source of truth for the
+   current index, view counting (feed189.counted / play_open),
+   hint dismissal and pausing: the early path only ever PLAYS
+   a not-yet-active slide and records it in feed193.early,
+   and the settle pass plays the settled slide and pauses
+   every other — so a view is still counted exactly once and
+   two videos never keep playing once a swipe lands. Where
+   IntersectionObserver is unavailable there is no early
+   path and the feed behaves exactly as before. The poster
+   attribute already rides every video slide, so the poster
+   visual holds until the first frame — no black flash to
+   fix in markup. */
+const feed193 = { early: new Set(), observer: null };
+function feedSlides193() {
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track || typeof track.querySelectorAll !== "function") return [];
+  return [...track.querySelectorAll("[data-feed-slide], [data-feed-end]")];
+}
+function feedWarm193(index) {
+  if (!feed189.open) return;
+  feedSlides193().forEach((s, i) => {
+    const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
+    if (!v) return;
+    try {
+      if (Math.abs(i - index) <= 2) {
+        if (v.preload !== "auto") v.preload = "auto";
+        if (i !== index && typeof v.load === "function") v.load();
+      } else if (v.preload !== "metadata") v.preload = "metadata";
+    } catch (e) { /* preload is a hint — a video that refuses it never breaks the feed */ }
+  });
+}
+function feedObserve193() {
+  if (typeof IntersectionObserver === "undefined") return;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track) return;
+  try {
+    if (!feed193.observer) {
+      feed193.observer = new IntersectionObserver((entries) => {
+        if (!feed189.open) return;
+        const slides = feedSlides193();
+        (entries || []).forEach((en) => {
+          if (!en || !en.isIntersecting) return;
+          const idx = slides.indexOf(en.target);
+          if (idx < 0 || idx === feed189.index) return;
+          const s = slides[idx];
+          const v = s && typeof s.querySelector === "function" ? s.querySelector("video") : null;
+          if (!v) return;
+          feed193.early.add(idx);
+          try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused early play: the settle pass plays it instead */ }
+        });
+      }, { root: track, threshold: 0.5 });
+    }
+    feed193.observer.disconnect();
+    feedSlides193().forEach((s) => { try { feed193.observer.observe(s); } catch (e) {} });
+  } catch (e) { feed193.observer = null; }
+}
 function feedEnabled189() { return !(typeof window !== "undefined" && window && window.HH_NO_FEED189); }
 /* The sequence builder — PURE on purpose (the suites drive it
    in a vm): the board's ids, in the board's order, untouched,
@@ -8104,18 +8176,25 @@ function feedRender189(seq, battle) {
       } catch (e) { /* a progress bar never breaks playback */ }
     });
   });
+  /* Round 193: (re)observe the fresh slides so an incoming
+     slide can start playing mid-swipe (see feedObserve193). */
+  feedObserve193();
   return true;
 }
 function feedActivate189(index) {
   feed189.index = index;
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (track && typeof track.querySelectorAll === "function") {
-    [...track.querySelectorAll("[data-feed-slide], [data-feed-end]")].forEach((s, i) => {
+    feedSlides193().forEach((s, i) => {
       const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
       if (!v) return;
       if (i === index) { try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused autoplay leaves the poster resting */ } }
       else { try { v.pause(); } catch (e) {} }
     });
+    /* Round 193: the settle is authoritative — the loop above
+       paused every early-started slide that isn't this one,
+       so the early set starts fresh from here. */
+    feed193.early.clear();
     const hint = typeof track.querySelector === "function" ? track.querySelector("[data-feed-hint189]") : null;
     /* Round 191: once the visitor swipes off the first slide
        the hint is gone for good (its CSS fade handles the
@@ -8127,6 +8206,10 @@ function feedActivate189(index) {
     feed189.counted.add(id);
     if (typeof trackEvent === "function") trackEvent("play_open", id);
   }
+  /* Round 193: warm the neighborhood around the settled slide
+     so the next swipe starts from buffered data (feedWarm193
+     is a no-op while the feed is closed). */
+  feedWarm193(index);
 }
 function feedOnScroll189() {
   if (!feed189.open) return;
@@ -8176,6 +8259,11 @@ window.openBattleFeed189 = () => {
   window.openFeed189(pair, pair[0], { a: pair[0], b: pair[1] });
 };
 window.closeFeed189 = () => {
+  /* Round 193: stop watching the outgoing slides and forget
+     any early starts — nothing warms or early-plays while the
+     feed is closed. */
+  if (feed193.observer) { try { feed193.observer.disconnect(); } catch (e) {} }
+  feed193.early.clear();
   const wrap = typeof $ === "function" ? $("#feed189") : null;
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (track && typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => { try { v.pause(); } catch (e) {} });
