@@ -3292,7 +3292,11 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, step211: 1, stepMax211: 1, clipOpen211: false };
+// Round 211 state: step211 / stepMax211 (the three-step
+// customizer's current + furthest-reached step — presentation
+// only, never read by the order path) and clipOpen211 (the
+// Moment step's player area, collapsed by default).
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3385,6 +3389,16 @@ function initHfStudio(play) {
   hfSyncAvatar206();
   hfAvatarStatus206();
   hfRenderPresetMinis206();
+  // Round 211: a new play restarts the customizer at Moment —
+  // the step state resets, the hero is back in the Moment slot,
+  // the clip row is labeled for this play, and the player area
+  // starts collapsed (photo and link plays open it instead:
+  // their content IS the moment picker).
+  hfGoStep211(1, true);
+  hfSyncClipRow211();
+  hfSetClipOpen211(hfState.mediaType !== "video");
+  const step1Msg211 = $("#hfStep1Msg211");
+  if (step1Msg211) { step1Msg211.hidden = true; step1Msg211.textContent = ""; }
 }
 /* Frame filmstrip (2026-11-05): thumbnails captured client-side from
    the play's own video at ~1s intervals (coarser for long clips, max
@@ -4133,17 +4147,14 @@ function hfBuildColorButtons() {
   // side (picker restored Round 35), colorway and size.
   $("#hfOrderForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    // Round 206 (scope update, Emil): the form's primary CTA is
-    // "Review hoodie request" — submitting the form validates
-    // and opens the review stage (#hfReview206); the request
-    // itself is sent from there by hfSubmitOrder206, which is
-    // the exact pre-R206 send path (same payload, same
-    // responses) behind the review's "Send hoodie request".
-    const err206 = hfValidateOrder206();
-    const msg = $("#hfMsg");
-    if (err206) { if (msg) msg.textContent = err206; return; }
-    if (msg) msg.textContent = "";
-    hfOpenReview206();
+    // Round 211: the form lives ON the Review step now, so its
+    // submit IS the send — hfSubmitOrder206 validates first
+    // (a failure keeps the parent on Step 3 with the error in
+    // #hfMsg) and posts the exact pre-R206 payload: same
+    // endpoint, same responses, same Round 200 checkout
+    // handoff. (Rounds 206–210 routed this through the review
+    // stage's separate "Send hoodie request" button.)
+    hfSubmitOrder206();
   });
 })();
 
@@ -4194,17 +4205,154 @@ function hfBuildColorButtons() {
    E. STYLE MINIS: each print-style button renders a miniature
       of the current art composed in that style (the frozen
       frame once one exists, the play's poster before that). */
+/* Round 211 (2026-11-26, Emil): the garment is a PHOTOREAL
+   blank photo now (the hf-blank-*211.jpg ghost-mannequin
+   shots), one per colorway × view. Geometry measured from the
+   assets themselves (visual grounding, 2026-11-26):
+   - Black (1344×1792, 3:4): the back panel runs between the
+     sleeve seams x .195–.805, the hood tip lands y≈.35, the
+     ribbed hem tops y≈.81; the chest zone x .268–.748 with
+     the kangaroo pocket topping y≈.63.
+   - Heather Gray (1280×1920, 2:3): back panel x .175–.825,
+     hood tip y≈.41, hem top y≈.835; chest x .250–.765,
+     pocket top y≈.632.
+   The print zones below are insets of those panels (fractions
+   of the PHOTO — the stage wraps the photo, so stage
+   fractions ARE photo fractions). `aspect` is each photo's
+   w/h, which the print-fit math needs. The crest anchor is
+   the wearer's left chest (the viewer's right): the point the
+   embroidered crest's glyph centers on; the crest art
+   (crest-watermark.png) is the gold crest on a black ground,
+   worn with mix-blend-mode:screen so the ground drops out
+   over either colorway, and its glyph centers at (.50, .52)
+   of the art. */
 const HF_GARMENT_ART206 = {
-  Black: { front: "/swag/hf-garment-front-black206.svg", back: "/swag/hf-garment-back-black206.svg" },
-  "Heather Gray": { front: "/swag/hf-garment-front-gray206.svg", back: "/swag/hf-garment-back-gray206.svg" },
+  Black: { front: "/swag/hf-blank-front-black211.jpg", back: "/swag/hf-blank-back-black211.jpg", aspect: 1344 / 1792 },
+  "Heather Gray": { front: "/swag/hf-blank-front-gray211.jpg", back: "/swag/hf-blank-back-gray211.jpg", aspect: 1280 / 1920 },
 };
-// Print areas as fractions of the 640x720 garment stage: the
-// chest window between hood and pocket (front), and the back's
-// statement window under the name line (back).
-const HF_GARMENT_AREA206 = {
-  front: { left: 0.3125, top: 0.392, width: 0.375, height: 0.317 },
-  back: { left: 0.3125, top: 0.465, width: 0.375, height: 0.42 },
+const HF_GARMENT_AREA211 = {
+  Black: {
+    back: { left: 0.27, top: 0.365, width: 0.46, height: 0.42 },
+    front: { left: 0.30, top: 0.315, width: 0.40, height: 0.30 },
+  },
+  "Heather Gray": {
+    back: { left: 0.26, top: 0.425, width: 0.48, height: 0.375 },
+    front: { left: 0.29, top: 0.315, width: 0.42, height: 0.30 },
+  },
 };
+const HF_GARMENT_CREST211 = {
+  Black: { cx: 0.635, cy: 0.335, w: 0.17 },
+  "Heather Gray": { cx: 0.65, cy: 0.335, w: 0.17 },
+};
+const HF_CREST_ART_ASPECT211 = 1100 / 1122; // crest-watermark.png, h/w
+
+/* Round 211: the play's poster URL (its own, else the board's
+   per-sport fallback) — the provisional art the garment wears
+   before a frame is captured. */
+function hfPosterUrl211(play) {
+  if (!play) return "";
+  try {
+    return play.poster_url || (typeof btlPosterFor118 === "function" ? btlPosterFor118(play.media_url || "", play.sport || "", play.title || "") : "") || "";
+  } catch { return ""; }
+}
+
+/* Round 211: one stage painter for every garment stage (the
+   studio hero and the Review step's compact stage). refs =
+   { img, area, print, shade, crest, backText } — any may be
+   null. opts = { view, printSrc, words }: the garment view to
+   draw, the art to wear ("" = no print), and the back-text
+   treatment ("" = none). The print is FIT inside the zone:
+   placement (cx/cy/size) maps into the zone, a name band is
+   reserved at the zone's top on the back (the embroidered
+   words sit INSIDE the zone above the frame, never across
+   the hood), and a print taller than the zone scales down to
+   fit — the preview never spills over the hood or the hem.
+   The shade layer (the same photo, soft-light) is clipped to
+   the print's exact rect, so the fabric's folds shade the
+   print and it sits IN the cloth. Preview-only throughout:
+   the order's placement values are never touched. */
+function hfGarmentPaint211(refs, opts) {
+  if (!refs || !refs.img) return { printHere: false, isWide: false };
+  const P = (n) => (Math.round(n * 1000) / 1000) + "%"; // percent strings, float dust rounded off
+  const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
+  const areas = HF_GARMENT_AREA211[hfState.colorway] || HF_GARMENT_AREA211.Black;
+  const view = opts.view === "front" ? "front" : "back";
+  const src = view === "back" ? art.back : art.front;
+  if (refs.img.getAttribute("src") !== src) refs.img.src = src;
+  if (refs.shade && refs.shade.getAttribute("src") !== src) refs.shade.src = src;
+  const area = view === "back" ? areas.back : areas.front;
+  const printHere = !!opts.printSrc && ((view === "front") === (hfState.side !== "back"));
+  let isWide = false;
+  if (refs.area && refs.print) {
+    refs.area.hidden = !printHere;
+    if (printHere) {
+      refs.area.style.left = P(area.left * 100);
+      refs.area.style.top = P(area.top * 100);
+      refs.area.style.width = P(area.width * 100);
+      refs.area.style.height = P(area.height * 100);
+      if (refs.print.getAttribute("src") !== opts.printSrc) refs.print.src = opts.printSrc;
+      // Fit math, in stage fractions. The art actually loaded
+      // on the img wins (composed print, avatar, or poster);
+      // hfState.printAspect covers the not-yet-loaded moment.
+      let aspect = hfState.printAspect || 0;
+      if (refs.print.naturalWidth) aspect = refs.print.naturalHeight / refs.print.naturalWidth;
+      const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
+      const nameBand = (view === "back" && opts.words) ? 0.05 : 0; // stage-height fraction the embroidered words reserve
+      const availH = Math.max(0.05, area.height - nameBand);
+      let wFrac = (pl.size / 100) * area.width;
+      let hFrac = aspect > 0 ? wFrac * aspect * art.aspect : 0;
+      if (hFrac > availH) { wFrac *= availH / hFrac; hFrac = availH; }
+      const cxStage = area.left + (pl.cx / 100) * area.width;
+      const cyStage = area.top + nameBand + (pl.cy / 100) * availH;
+      refs.print.style.width = P(wFrac / area.width * 100);
+      refs.print.style.left = pl.cx + "%";
+      refs.print.style.top = P((cyStage - area.top) / area.height * 100);
+      if (refs.shade) {
+        refs.shade.hidden = false;
+        refs.shade.style.clipPath = `inset(${P((cyStage - hFrac / 2) * 100)} ${P((1 - cxStage - wFrac / 2) * 100)} ${P((1 - cyStage - hFrac / 2) * 100)} ${P((cxStage - wFrac / 2) * 100)})`;
+      }
+      // Part D (Round 206): a frame wider than the zone prints
+      // in a band across it — outline the zone. Compares the
+      // art's aspect to the zone's, in the photo's own terms.
+      const fc = $("#hfCanvas");
+      const artAspect = fc && fc.width ? fc.width / fc.height : 0;
+      isWide = !hfState.avatarPreview206 && artAspect > (area.width / (area.height / art.aspect)) + 0.05;
+      refs.area.classList.toggle("hf-garment-area-wide206", isWide);
+    } else {
+      refs.area.classList.toggle("hf-garment-area-wide206", false);
+      if (refs.shade) refs.shade.hidden = true;
+    }
+  } else if (refs.shade) {
+    refs.shade.hidden = true;
+  }
+  // The front's embroidered crest: it rides the front view
+  // whenever the print itself is on the back — with a front
+  // print, the print IS the front design.
+  if (refs.crest) {
+    const crest = HF_GARMENT_CREST211[hfState.colorway] || HF_GARMENT_CREST211.Black;
+    const showCrest = view === "front" && hfState.side === "back";
+    refs.crest.hidden = !showCrest;
+    if (showCrest) {
+      const hFrac = crest.w * HF_CREST_ART_ASPECT211 * art.aspect;
+      refs.crest.style.width = P(crest.w * 100);
+      refs.crest.style.left = P((crest.cx - crest.w * 0.50) * 100);
+      refs.crest.style.top = P((crest.cy - hFrac * 0.52) * 100);
+    }
+  }
+  if (refs.backText) {
+    const words = view === "back" ? (opts.words || "") : "";
+    refs.backText.hidden = !words;
+    if (words) {
+      refs.backText.textContent = words.toUpperCase();
+      refs.backText.style.color = hfPrintTone();
+      refs.backText.style.left = P(area.left * 100);
+      refs.backText.style.width = P(area.width * 100);
+      refs.backText.style.top = P((area.top + 0.008) * 100);
+    }
+  }
+  return { printHere, isWide };
+}
+
 function hfGarmentBackText206() {
   const name = ($("#hfName") ? $("#hfName").value.trim() : "");
   const jersey = ($("#hfJersey") ? $("#hfJersey").value.trim().replace(/^#/, "") : "");
@@ -4213,66 +4361,84 @@ function hfGarmentBackText206() {
   if (hfState.backText === "name_number") return [name, jersey ? "#" + jersey : ""].filter(Boolean).join("  ");
   return name;
 }
+
 function hfGarmentSync206() {
   const wrap = $("#hfGarment206"); if (!wrap) return;
-  const show = !!(hfState.frozen && hfState.printDataUrl);
+  // Round 211: the garment IS the studio's first screen — it
+  // shows whenever a play is open (a frozen print is no longer
+  // the gate). Before a frame is captured the print area
+  // carries the play's poster as the suggested frame, so the
+  // studio opens settled on the hoodie — no video-first flash,
+  // no layout jump; the full-res capture replaces the poster
+  // behind the same geometry when it lands.
+  const show = !!(hfState.play || (hfState.frozen && hfState.printDataUrl));
   wrap.hidden = !show;
   if (!show) return;
   const view = hfState.garmentView206 === "back" ? "back" : "front";
   $$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfGarmentView === view)));
-  const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
-  const img = $("#hfGarmentImg206");
-  const src = view === "back" ? art.back : art.front;
-  if (img && img.getAttribute("src") !== src) img.src = src;
-  // The print shows on the view the print actually sits on;
-  // the back ALSO carries the embroidered words (with the
-  // print below them when the print side is Back).
-  const printHere = (view === "front") === (hfState.side !== "back");
-  const areaEl = $("#hfGarmentPrintArea206"), printImg = $("#hfGarmentPrint206");
-  let isWide206 = false;
-  if (areaEl && printImg) {
-    areaEl.hidden = !printHere;
-    if (printHere) {
-      const area = view === "back" ? HF_GARMENT_AREA206.back : HF_GARMENT_AREA206.front;
-      areaEl.style.left = (area.left * 100) + "%";
-      areaEl.style.top = (area.top * 100) + "%";
-      areaEl.style.width = (area.width * 100) + "%";
-      areaEl.style.height = (area.height * 100) + "%";
-      // Avatar approval gate (Round 206 scope update): a fresh
-      // generation PREVIEWS on the garment as the raw artwork
-      // while the order's print art stays the photo composition
-      // — it becomes the print only on "Use this avatar".
-      const previewSrc206 = (hfState.avatarPreview206 && hfState.avatarDataUrl206 && !hfState.avatarApplied206) ? hfState.avatarDataUrl206 : hfState.printDataUrl;
-      if (printImg.getAttribute("src") !== previewSrc206) printImg.src = previewSrc206;
-      const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
-      printImg.style.width = pl.size + "%";
-      printImg.style.left = pl.cx + "%";
-      printImg.style.top = pl.cy + "%";
-      // Part D: a frame wider than the print area prints in a
-      // band across it — outline the area so that reads at a
-      // glance (the composition itself never crops). While an
-      // unapproved avatar is previewing, the flag stands down
-      // (the avatar's own aspect isn't the print's yet).
-      const fc = $("#hfCanvas");
-      const artAspect = fc && fc.width ? fc.width / fc.height : 0;
-      isWide206 = !hfState.avatarPreview206 && artAspect > (area.width / area.height) + 0.05;
-      areaEl.classList.toggle("hf-garment-area-wide206", isWide206);
-    } else {
-      areaEl.classList.toggle("hf-garment-area-wide206", false);
-    }
-  }
+  // The garment shows what WILL print: while an avatar
+  // preview waits for the family's call it is the preview
+  // (approval flips it — hfApplyAvatar206); otherwise the
+  // composed print; before capture, the poster.
+  const previewSrc206 = (hfState.avatarPreview206 && hfState.avatarDataUrl206 && !hfState.avatarApplied206) ? hfState.avatarDataUrl206 : hfState.printDataUrl;
+  const printSrc = (hfState.frozen && previewSrc206) ? previewSrc206 : hfPosterUrl211(hfState.play);
+  const painted = hfGarmentPaint211({
+    img: $("#hfGarmentImg206"), area: $("#hfGarmentPrintArea206"), print: $("#hfGarmentPrint206"),
+    shade: $("#hfGarmentShade211"), crest: $("#hfGarmentCrest211"), backText: $("#hfGarmentBackText206"),
+  }, { view, printSrc, words: hfGarmentBackText206() });
   const wideNote206 = $("#hfGarmentWide206");
-  if (wideNote206) wideNote206.hidden = !(printHere && isWide206);
-  const backTextEl = $("#hfGarmentBackText206");
-  if (backTextEl) {
-    const words = view === "back" ? hfGarmentBackText206() : "";
-    backTextEl.hidden = !words;
-    if (words) {
-      backTextEl.textContent = words.toUpperCase();
-      backTextEl.style.color = hfPrintTone();
-    }
+  if (wideNote206) wideNote206.hidden = !(painted.printHere && painted.isWide);
+}
+
+/* Round 211: the three-step flow. Step state is presentation
+   only — hfState.step211 / stepMax211 track where the parent
+   is; every value the order reads lives in the same hfState
+   fields as always, so stepping around can never change an
+   order (the payload invariant is pinned in test-r211). The
+   garment hero moves between the Moment and Design slots —
+   one preview, one sync. Entering Review re-syncs the
+   as-ordered render. */
+function hfGoStep211(n, instant) {
+  n = [1, 2, 3].includes(n) ? n : 1;
+  hfState.step211 = n;
+  if (n > (hfState.stepMax211 || 1)) hfState.stepMax211 = n;
+  const panels = { 1: $("#hfStepMoment211"), 2: $("#hfStepDesign211"), 3: $("#hfStepReview211") };
+  for (const k of [1, 2, 3]) { const p = panels[k]; if (p) p.hidden = k !== n; }
+  $$("#hfStudio [data-hf-step-pill]").forEach((b) => {
+    const s = Number(b.dataset.hfStepPill || 0);
+    b.classList.toggle("is-current211", s === n);
+    b.classList.toggle("is-done211", s < n);
+    if (s === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    b.disabled = s > (hfState.stepMax211 || 1);
+  });
+  const hero = $("#hfGarment206"), slot = n === 2 ? $("#hfHeroSlot2-211") : $("#hfHeroSlot1-211");
+  if (hero && slot && hero.parentElement !== slot) slot.appendChild(hero);
+  if (n === 3) hfReviewSync206();
+  else hfGarmentSync206();
+  const studio = $("#hfStudio");
+  if (studio && !instant) studio.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* Round 211: the Moment step's clip row — the play's poster
+   and name on a collapsed bar; the player area expands in
+   place under it (hfSetClipOpen211). */
+function hfSyncClipRow211() {
+  const label = $("#hfClipRowLabel211"), thumb = $("#hfClipRowThumb211");
+  const play = hfState.play;
+  if (label) label.textContent = hfState.mediaType === "image" ? "Your photo — tap to view" : hfState.mediaType === "link" ? "Posted as a link" : (play && play.title ? `“${play.title}” — open the clip` : "Open the clip");
+  if (thumb) {
+    const url = hfState.mediaType === "image" && play ? (play.media_url || "") : hfPosterUrl211(play);
+    thumb.hidden = !url;
+    if (url && thumb.getAttribute("src") !== url) thumb.src = url;
   }
 }
+function hfSetClipOpen211(open) {
+  hfState.clipOpen211 = !!open;
+  const area = $("#hfClipArea211"), row = $("#hfClipRow211");
+  if (area) area.hidden = !open;
+  if (row) row.setAttribute("aria-expanded", String(!!open));
+}
+
 /* Part C: fine scrubbing — nudge the picked frame by a tenth
    of a second through the same seek-and-capture path a strip
    tap uses, so the composed print follows the nudged time. */
@@ -4493,22 +4659,20 @@ function hfValidateOrder206() {
 }
 function hfReviewSync206() {
   const view = hfState.side === "back" ? "back" : "front"; // the garment as ordered
-  const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
-  const img = $("#hfReviewImg206");
-  if (img) { const src = view === "back" ? art.back : art.front; if (img.getAttribute("src") !== src) img.src = src; }
-  const areaEl = $("#hfReviewPrintArea206"), printImg = $("#hfReviewPrint206");
-  if (areaEl && printImg) {
-    const area = view === "back" ? HF_GARMENT_AREA206.back : HF_GARMENT_AREA206.front;
-    areaEl.style.left = (area.left * 100) + "%";
-    areaEl.style.top = (area.top * 100) + "%";
-    areaEl.style.width = (area.width * 100) + "%";
-    areaEl.style.height = (area.height * 100) + "%";
-    if (printImg.getAttribute("src") !== hfState.printDataUrl) printImg.src = hfState.printDataUrl;
-    const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
-    printImg.style.width = pl.size + "%";
-    printImg.style.left = pl.cx + "%";
-    printImg.style.top = pl.cy + "%";
-  }
+  // Round 211: the Review stage paints through the same
+  // painter as the hero (photoreal blank, fit math, shade
+  // layer, front crest) — the garment as ordered, compact.
+  hfGarmentPaint211({
+    img: $("#hfReviewImg206"), area: $("#hfReviewPrintArea206"), print: $("#hfReviewPrint206"),
+    shade: $("#hfReviewShade211"), crest: $("#hfReviewCrest211"), backText: null,
+  }, { view, printSrc: hfState.printDataUrl, words: "" });
+  // Round 211: the summary headline in the mockup's form,
+  // derived from live state — "Black hoodie" over
+  // "Back print · Hype Frame".
+  const titleEl211 = $("#hfReviewTitle211");
+  if (titleEl211) titleEl211.textContent = `${hfState.colorway} hoodie`;
+  const lineEl211 = $("#hfReviewLine211");
+  if (lineEl211) lineEl211.textContent = `${hfState.side === "back" ? "Back" : "Front"} print · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"}`;
   const sizeEl = $("#hfReviewSize206");
   if (sizeEl) { const s = hfState.size || "YM"; sizeEl.textContent = `${hfState.colorway} hoodie · ${s.startsWith("Y") ? "Youth " + s.slice(1) : "Adult " + s}`; }
   const placeEl = $("#hfReviewPlacement206");
@@ -4520,18 +4684,11 @@ function hfReviewSync206() {
   const backEl = $("#hfReviewBack206");
   if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `“${words}” embroidered across the back` : "No back text"; }
 }
-function hfOpenReview206() {
-  const box = $("#hfReview206");
-  if (!box) { hfSubmitOrder206(); return; } // no review markup: send directly — never strand an order
-  hfReviewSync206();
-  box.hidden = false;
-  const m = $("#hfReviewMsg206"); if (m) m.textContent = "";
-  box.scrollIntoView({ behavior: "smooth", block: "center" });
-}
-function hfCloseReview206() {
-  const box = $("#hfReview206");
-  if (box) box.hidden = true;
-}
+/* Round 211: the Round 206 review stage became Step 3 of
+   the customizer — hfOpenReview206 / hfCloseReview206 are
+   gone with the stage's markup. Entering the step runs
+   hfReviewSync206 (hfGoStep211), and the form that lives on
+   the step submits the send directly. */
 async function hfSubmitOrder206() {
   const msg = $("#hfReviewMsg206") || $("#hfMsg");
   const formMsg = $("#hfMsg");
@@ -4598,11 +4755,32 @@ async function hfSubmitOrder206() {
     const target = ($("#hfStripWrap") && !$("#hfStripWrap").hidden) ? $("#hfStripWrap") : $("#hfVideoWrap127");
     if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
   });
-  // The review stage's own actions: send (the real order path)
-  // and back-to-editing.
-  const send206 = $("#hfReviewSend206"), edit206 = $("#hfReviewEdit206");
-  if (send206) send206.addEventListener("click", () => { hfSubmitOrder206(); });
-  if (edit206) edit206.addEventListener("click", () => hfCloseReview206());
+})();
+
+/* Round 211: the three-step wiring — stepper pills (a step is
+   reachable once it has been reached; going back never loses
+   state, everything lives in hfState), the per-step back
+   buttons, the Moment step's "Use this frame" gate (a frame
+   must exist before Design means anything), the Design step's
+   move to Review, and the clip row's expand/collapse. */
+(function wireHfSteps211() {
+  $$("#hfStudio [data-hf-step-pill]").forEach((b) => b.addEventListener("click", () => {
+    const s = Number(b.dataset.hfStepPill || 0);
+    if (s >= 1 && s <= (hfState.stepMax211 || 1)) hfGoStep211(s);
+  }));
+  $$("#hfStudio [data-hf-step-back]").forEach((b) => b.addEventListener("click", () => hfGoStep211(Number(b.dataset.hfStepBack || 1))));
+  const use211 = $("#hfUseFrame211");
+  if (use211) use211.addEventListener("click", () => {
+    if (hfState.frozen && hfState.printDataUrl) { const m = $("#hfStep1Msg211"); if (m) m.hidden = true; hfGoStep211(2); return; }
+    const m = $("#hfStep1Msg211");
+    if (m) { m.textContent = "Pick the frame for the hoodie first — tap a still below, or open the clip and freeze the moment."; m.hidden = false; }
+    const strip = $("#hfStripWrap");
+    if (strip && !strip.hidden) strip.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  const toReview211 = $("#hfToReview211");
+  if (toReview211) toReview211.addEventListener("click", () => hfGoStep211(3));
+  const clipRow211 = $("#hfClipRow211");
+  if (clipRow211) clipRow211.addEventListener("click", () => hfSetClipOpen211(!hfState.clipOpen211));
 })();
 
 /* Round 200 (2026-11-26): the payment return landing + owner
