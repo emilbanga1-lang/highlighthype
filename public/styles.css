@@ -3702,3 +3702,16 @@ body.feed-open189{overflow:hidden}
 .feed189-slide[data-feed-battle="1"] .feed189-hint{bottom:258px}
 .feed189-slide.feed191-wide[data-feed-battle="1"] .feed189-hint{bottom:148px}
 @keyframes feed191hintfade{0%{opacity:0;transform:translateY(6px)}10%{opacity:1;transform:translateY(0)}72%{opacity:1}100%{opacity:0;visibility:hidden}}
+/* ================================================================
+   Round 194 (2026-11-25): the feed's sound toggle — a speaker
+   button in the top bar, left of the close button, wearing the
+   close button's chrome (same dark disc, same 38px). Two
+   inline SVGs ride inside it (muted speaker / speaker with
+   waves); the .sound-on class — synced by feedSyncSoundBtn194
+   in app.js — picks which one shows. Scoped to .feed189.
+   ================================================================ */
+.feed194-sound{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:50%;width:38px;height:38px;padding:0;display:grid;place-items:center;cursor:pointer;flex:none}
+.feed194-sound svg{display:block}
+.feed194-sound .ic-on{display:none}
+.feed194-sound.sound-on .ic-on{display:block}
+.feed194-sound.sound-on .ic-off{display:none}

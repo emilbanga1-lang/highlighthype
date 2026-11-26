@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=191" />
+<link rel="stylesheet" href="styles.css?v=194" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -2118,6 +2118,16 @@
       <button type="button" data-feed-tab="all" onclick="feedGo189('all')">Watch</button>
       <button type="button" data-feed-tab="battles" onclick="feedGo189('battles')">Battles</button>
     </nav>
+    <!-- Round 194 (2026-11-25): the feed's sound toggle —
+         feed videos autoplay muted (the courtesy default);
+         this speaker button is how a viewer turns the sound
+         on. Two inline SVGs ride inside (muted speaker /
+         speaker with waves); app.js's feedToggleSound194
+         flips the state, unmutes every feed video in place,
+         and remembers the choice (hhFeedSound) — the
+         .sound-on class and the aria state are synced by
+         feedSyncSoundBtn194. -->
+    <button type="button" class="feed194-sound" id="feedSound194" aria-label="Turn sound on" aria-pressed="false" onclick="feedToggleSound194()"><svg class="ic-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg><svg class="ic-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.6 5.4a9.2 9.2 0 0 1 0 13.2"/></svg></button>
     <button type="button" class="feed189-close" id="feedClose189" aria-label="Close the feed" onclick="closeFeed189()">✕</button>
   </div>
   <div class="feed189-track" id="feedTrack189"></div>
@@ -2182,6 +2192,6 @@
   </div>
 </div>
 
-<script src="app.js?v=193"></script>
+<script src="app.js?v=194"></script>
 </body>
 </html>

@@ -7901,7 +7901,10 @@ initA2HS161();
    name-first. Everything else — board order, the finite end
    card, toggleVote, the kill switch — is exactly as built.
    Round 193 (2026-11-25): swipe latency — neighbor
-   preloading + mid-swipe early playback (feed193 below). */
+   preloading + mid-swipe early playback (feed193 below).
+   Round 194 (2026-11-25): the feed's sound toggle
+   (feed194 below) — the speaker button in the top bar,
+   left of the close button. */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
 const feed191 = { hintSeen: false };
 /* Round 193 (2026-11-25): the slight delay between swipes.
@@ -7931,6 +7934,64 @@ const feed191 = { hintSeen: false };
    visual holds until the first frame — no black flash to
    fix in markup. */
 const feed193 = { early: new Set(), observer: null };
+/* Round 194 (2026-11-25): the feed's sound toggle. Emil,
+   swiping the feed: "I am not hearing anything play from
+   the videos." He was right — every feed video renders
+   with the muted attribute (feedMediaHtml189) and the feed
+   offered no way to turn sound on. The fix is a speaker
+   button in the top bar (index.html, left of the close
+   button; two inline SVGs, the .sound-on class picks which
+   shows). The rules:
+   - Muted stays the DEFAULT: a fresh feed session starts
+     with sound off (autoplay policy + courtesy), and the
+     markup keeps rendering muted — sound is a runtime
+     state applied to the elements, never a markup change.
+   - feed194.sound is the single source of truth. It is
+     seeded from the saved preference (hhFeedSound, through
+     the app's safe-storage helpers) and re-read at every
+     feed open; the toggle flips it, persists it, applies
+     it to EVERY video in the track at once (the playing
+     one unmutes in place — no restart) and re-syncs the
+     button.
+   - Every path that can start a video applies the state
+     BEFORE it plays — feedActivate189 (the settle),
+     feedObserve193 (the mid-swipe early start) and
+     feedWarm193 (the neighborhood warm) all run each video
+     through feedApplySound194 — so a video that starts
+     after sound was enabled plays WITH sound, on board
+     slides and battle slides alike.
+   - Autoplay honesty: a saved ON preference cannot force
+     audible autoplay where the browser demands a gesture
+     first — a refused play() is swallowed exactly as
+     before and the poster rests; the toggle is always one
+     tap away in the top bar and tapping it IS a gesture.
+     No silent-audio unlock tricks, deliberately. */
+function feedSoundPref194() {
+  try { return typeof hhStorageGet === "function" && hhStorageGet("hhFeedSound") === "on"; } catch (e) { return false; }
+}
+const feed194 = { sound: feedSoundPref194() };
+function feedApplySound194(v) {
+  if (!v) return;
+  try { v.muted = !feed194.sound; } catch (e) { /* a video that refuses a mute flip never breaks the feed */ }
+}
+function feedSyncSoundBtn194() {
+  try {
+    const btn = typeof document !== "undefined" && typeof document.getElementById === "function" ? document.getElementById("feedSound194") : null;
+    if (!btn) return;
+    if (btn.classList && typeof btn.classList.toggle === "function") btn.classList.toggle("sound-on", !!feed194.sound);
+    if (typeof btn.setAttribute === "function") {
+      btn.setAttribute("aria-pressed", feed194.sound ? "true" : "false");
+      btn.setAttribute("aria-label", feed194.sound ? "Turn sound off" : "Turn sound on");
+    }
+  } catch (e) { /* the button is chrome — a sync hiccup never breaks the feed */ }
+}
+window.feedToggleSound194 = () => {
+  feed194.sound = !feed194.sound;
+  try { if (typeof hhStorageSet === "function") hhStorageSet("hhFeedSound", feed194.sound ? "on" : "off"); } catch (e) { /* persistence is best-effort; the in-session state above still holds */ }
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (track && typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => feedApplySound194(v));
+  feedSyncSoundBtn194();
+};
 function feedSlides193() {
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (!track || typeof track.querySelectorAll !== "function") return [];
@@ -7941,6 +8002,9 @@ function feedWarm193(index) {
   feedSlides193().forEach((s, i) => {
     const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
     if (!v) return;
+    /* Round 194: a warmed video carries the current sound
+       state before it can ever be played. */
+    feedApplySound194(v);
     try {
       if (Math.abs(i - index) <= 2) {
         if (v.preload !== "auto") v.preload = "auto";
@@ -7965,6 +8029,10 @@ function feedObserve193() {
           const s = slides[idx];
           const v = s && typeof s.querySelector === "function" ? s.querySelector("video") : null;
           if (!v) return;
+          /* Round 194: the early start applies the sound
+             state BEFORE it plays — an early-started video
+             is never a muted surprise after sound was on. */
+          feedApplySound194(v);
           feed193.early.add(idx);
           try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused early play: the settle pass plays it instead */ }
         });
@@ -8188,6 +8256,11 @@ function feedActivate189(index) {
     feedSlides193().forEach((s, i) => {
       const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
       if (!v) return;
+      /* Round 194: every activation restates the sound
+         state on every slide's video before the settled one
+         plays (the others are paused anyway — restating
+         keeps them honest for their own turn). */
+      feedApplySound194(v);
       if (i === index) { try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused autoplay leaves the poster resting */ } }
       else { try { v.pause(); } catch (e) {} }
     });
@@ -8228,6 +8301,13 @@ window.openFeed189 = (ids, startId, battle) => {
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (!wrap || !track) return false;
   if (!feedRender189(seq, battle)) return false;
+  /* Round 194: the sound state is read fresh at every open
+     — the saved preference wins (it may have changed in
+     another tab) — and the top-bar toggle is synced to it
+     before the first slide starts; the opening activation
+     then applies it to every rendered video. */
+  feed194.sound = feedSoundPref194();
+  feedSyncSoundBtn194();
   wrap.hidden = false;
   feed189.open = true;
   try { if (typeof document !== "undefined" && document.body && document.body.classList) document.body.classList.add("feed-open189"); } catch (e) {}
@@ -8316,6 +8396,9 @@ function feedSyncCounts189() {
 }
 (function initFeed189() {
   try {
+    /* Round 194: the sound toggle starts in the saved
+       preference's state, before the feed is ever opened. */
+    feedSyncSoundBtn194();
     const track = typeof $ === "function" ? $("#feedTrack189") : null;
     if (track && typeof track.addEventListener === "function") track.addEventListener("scroll", () => { if (typeof requestAnimationFrame === "function") requestAnimationFrame(feedOnScroll189); else feedOnScroll189(); }, { passive: true });
     const btn = typeof document !== "undefined" && typeof document.getElementById === "function" ? document.getElementById("btlFeedBtn189") : null;
