@@ -3274,7 +3274,17 @@ const HF_COLORWAYS = {
    print's placement values and the order payload both read it
    (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null };
+// Round 206 state: garmentView206 (the on-garment preview's
+// front/back VIEW — preview-only, never the order's side; opens
+// on "back" per Emil's mockup), the avatar maker's fields (the
+// generated avatar's data URL; avatarApplied206 = it IS the
+// print art after the parent's explicit approval;
+// avatarPreview206 = it is previewing on the garment, not yet
+// approved; avatarConfigured206 = the server's word on the
+// maker, null = not asked yet), and frameCanvas206 — the frozen
+// frame's canvas snapshot (the photo the avatar reverts to; a
+// canvas clone, so reverting never re-seeks the video).
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3309,7 +3319,7 @@ function initHfStudio(play) {
   // the family's choice — the side picker returned in Round 35
   // (2026-11-07, Emil). Reset all three pickers for the new play.
   hfState.apparel = "hoodie";
-  hfPickSide("front");
+  hfPickSide("back");
   hfPickImageStyle("photo");
   // Round 197: the back-text choice resets to the player's name for
   // each new play, and any typed custom words are cleared.
@@ -3347,6 +3357,26 @@ function initHfStudio(play) {
   hfSetSelected205(null); // Round 205: a new play starts with no frame picked
   hfBuildStrip();
   hfSyncFrozenThumb(); // new play: no print yet — confirmation hidden, Freeze label restored
+  // Round 206: a new play resets the whole round — garment
+  // preview back to the front view, the avatar maker cleared
+  // (a generated avatar belongs to the previous play's frame),
+  // the fine-scrub row follows the media kind, the style minis
+  // re-render from the new play's poster, and the one-time
+  // avatar configured check kicks off.
+  hfState.garmentView206 = "back"; // Round 206 scope update: the preview opens on the back (Emil's mockup starting look), Black by the color reset above
+  hfState.avatarDataUrl206 = "";
+  hfState.avatarApplied206 = false;
+  hfState.avatarPreview206 = false;
+  hfState.avatarBusy206 = false;
+  hfState.frameCanvas206 = null;
+  const fineRow206 = $("#hfFineRow206");
+  if (fineRow206) fineRow206.hidden = hfState.mediaType !== "video";
+  const fineTime206 = $("#hfFineTime206");
+  if (fineTime206) fineTime206.textContent = "";
+  hfGarmentSync206();
+  hfSyncAvatar206();
+  hfAvatarStatus206();
+  hfRenderPresetMinis206();
 }
 /* Frame filmstrip (2026-11-05): thumbnails captured client-side from
    the play's own video at ~1s intervals (coarser for long clips, max
@@ -3455,6 +3485,17 @@ function hfSetSelected205(t) {
   if (hfState.frameTime205 == null) { el.hidden = true; el.textContent = ""; return; }
   el.textContent = `Frame selected · ${hfFmtTime(hfState.frameTime205)}`;
   el.hidden = false;
+  // Round 206: the fine-scrub readout names the EXACT picked
+  // time (tenths included) next to the ±0.1s steppers.
+  const fine206 = $("#hfFineTime206");
+  if (fine206) fine206.textContent = hfFineFmt206(hfState.frameTime205);
+}
+/* Round 206: m:ss.d — the fine-scrub readout's format (the
+   strip labels and the selection label keep whole seconds). */
+function hfFineFmt206(t) {
+  t = Math.max(0, Number(t) || 0);
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return `${m}:${s < 10 ? "0" : ""}${s.toFixed(1)}`;
 }
 function hfShowInstant205(btn) {
   const img = $("#hfInstant205"); if (!img) return;
@@ -3632,6 +3673,19 @@ function hfCapturePrint() {
     return false;
   }
   hfState.frozen = true;
+  // Round 206: snapshot the raw frame (the avatar maker sends
+  // THIS to OpenAI, and "Use my photo" restores it verbatim),
+  // and stand the avatar down — it was made from whatever frame
+  // was frozen before, never from this new one.
+  try {
+    if (!hfState.frameCanvas206) hfState.frameCanvas206 = document.createElement("canvas");
+    hfState.frameCanvas206.width = c.width; hfState.frameCanvas206.height = c.height;
+    hfState.frameCanvas206.getContext("2d").drawImage(c, 0, 0);
+  } catch { hfState.frameCanvas206 = null; }
+  hfState.avatarDataUrl206 = "";
+  hfState.avatarApplied206 = false;
+  hfState.avatarPreview206 = false;
+  if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
   composeHfPrint();
   return true;
 }
@@ -3792,6 +3846,15 @@ function hfSyncFrozenThumb() {
     img.removeAttribute("src");
     if (btn) btn.textContent = HF_FREEZE_LABEL;
   }
+  // Round 206: the on-garment preview and the print-style minis
+  // ride the same choke point, so they track every recompose
+  // (freeze, preset, colorway, name edit, avatar apply/revert).
+  if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
+  if (typeof hfRenderPresetMinis206 === "function") hfRenderPresetMinis206();
+  // Round 206 scope update: the "Change frame" action under the
+  // picked-frame thumbnail shows exactly when a frame is picked.
+  const changeFrame206 = $("#hfChangeFrame206");
+  if (changeFrame206) changeFrame206.hidden = !(hfState.frozen && hfState.printDataUrl);
 }
 /* Round 128 (2026-11-13, Emil): tap the composed print → see it
    BIG. The lightbox reads hfState.printDataUrl at OPEN time, so
@@ -3913,6 +3976,10 @@ function hfPickColor(name) {
   $$("#hfColors [data-hf-color]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfColor === name)));
   hfSyncSummary205();
   if (hfState.frozen) composeHfPrint();
+  // Round 206: the garment preview wears the picked colorway —
+  // synced explicitly (not only via a recompose) so the garment
+  // illustration follows even before a frame is frozen.
+  if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
 }
 function hfPickSize(size) {
   if (!HF_SIZES.includes(size)) return;
@@ -3924,11 +3991,23 @@ function hfPickSize(size) {
    the usability audit): the picker was removed in the Round 3 studio
    revision, but the order payload, the server column, the owner
    email and the Owner view carried the side all along — orders just
-   always said Front. Now the family picks; default stays Front. */
+   always said Front. Now the family picks; default stayed Front
+   until Round 208 (2026-11-26, Emil) flipped it to Back: the
+   framed print is a back print (his configurator mockup, the DTF
+   shop's back-print format, the hoodie-back example photo) and
+   the front carries the embroidered crest. Front remains fully
+   selectable; only the fallback/default changed. */
 function hfPickSide(side) {
-  hfState.side = side === "back" ? "back" : "front";
+  hfState.side = side === "front" ? "front" : "back";
   $$("#hfSides [data-hf-side]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSide === hfState.side)));
   hfSyncSummary205();
+  // Round 206 (scope update, Emil): the garment preview's
+  // front/back flip is a VIEW control only — it never mutates
+  // the print side, the placement, or anything on the order.
+  // Picking a print side here just re-renders the preview (so
+  // it stays truthful about which view carries the print);
+  // the preview's own view is NOT changed by this picker.
+  if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
 }
 /* Photo or Avatar (Round 38, 2026-11-08 — Twinkie's idea, approved by
    Twinkie + Nicholas): 'photo' prints the frozen frame as-is; 'avatar'
@@ -3938,6 +4017,9 @@ function hfPickSide(side) {
 function hfPickImageStyle(style) {
   hfState.imageStyle = style === "avatar" ? "avatar" : "photo";
   $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfImageStyle === hfState.imageStyle)));
+  // Round 206: the avatar maker panel follows the style pick
+  // (it also kicks the one-time configured check).
+  if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
 }
 /* Words on the back (Round 197, 2026-11-25 — parent feedback Emil
    received with the first delivered sweatshirt): the embroidered
@@ -3977,6 +4059,10 @@ function hfPickBackText197(choice) {
   const nameEl = $("#hfName"), jerseyEl = $("#hfJersey");
   if (nameEl) nameEl.disabled = lockName;
   if (jerseyEl) jerseyEl.disabled = lockName;
+  // Round 206: the garment preview's back shows the picked
+  // treatment — it follows the choice even when the composed
+  // print itself doesn't change (the Classic style).
+  if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
 }
 function hfBuildColorButtons() {
   const wrap = $("#hfColors");
@@ -4015,7 +4101,11 @@ function hfBuildColorButtons() {
   const hfSeek = (d) => { if (v.duration) { v.pause(); v.currentTime = Math.min(Math.max(0, (v.currentTime || 0) + d), Math.max(0, v.duration - 0.05)); hfUpdateTime(); } };
   $("#hfStepBack").addEventListener("click", () => hfSeek(-1));
   $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
-  ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); }));
+  ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); }));
+  // Round 206: the custom back words feed the garment preview's
+  // back treatment live, like the name fields above.
+  const hfBackCustomInput206 = $("#hfBackCustom197");
+  if (hfBackCustomInput206) hfBackCustomInput206.addEventListener("input", () => { if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); });
   $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
   // Color + size pickers (Round 3): color buttons are built from
   // HF_COLORWAYS so the list lives in exactly one place; size buttons
@@ -4033,58 +4123,478 @@ function hfBuildColorButtons() {
   // placement controls and no garment preview; the order carries the
   // default placement, the fixed garment (hoodie), the chosen print
   // side (picker restored Round 35), colorway and size.
-  $("#hfOrderForm").addEventListener("submit", async (e) => {
+  $("#hfOrderForm").addEventListener("submit", (e) => {
     e.preventDefault();
+    // Round 206 (scope update, Emil): the form's primary CTA is
+    // "Review hoodie request" — submitting the form validates
+    // and opens the review stage (#hfReview206); the request
+    // itself is sent from there by hfSubmitOrder206, which is
+    // the exact pre-R206 send path (same payload, same
+    // responses) behind the review's "Send hoodie request".
+    const err206 = hfValidateOrder206();
     const msg = $("#hfMsg");
-    if (!hfState.play) { msg.textContent = "Pick a play on the board first — Hype Frame starts from an approved play."; return; }
-    if (!hfState.frozen || !hfState.printDataUrl) { msg.textContent = "Freeze a frame first — the print starts from your frozen still."; return; }
-    const guardianEmail = $("#hfGuardianEmail").value.trim();
-    if (!guardianEmail) { msg.textContent = "A parent/guardian email is required so we can confirm before printing."; return; }
-    // Round 197: the back-text choice is validated before the
-    // request leaves — the server enforces the same rules.
-    if (hfState.backText === "custom") {
-      const err197 = hfCustomTextError197($("#hfBackCustom197").value);
-      if (err197) { msg.textContent = err197; return; }
-    }
-    if (hfState.backText === "name_number" && !$("#hfJersey").value.replace(/\D/g, "")) {
-      msg.textContent = "Add the jersey number — you picked name + number for the back."; return;
-    }
-    msg.textContent = "Sending your request…";
-    try {
-      const r = await api("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
-        highlightId: hfState.play.id,
-        customName: $("#hfName").value.trim(),
-        jersey: $("#hfJersey").value.trim(),
-        backText: hfState.backText,
-        backTextCustom: $("#hfBackCustom197").value.trim(),
-        branding: hfState.preset === "hypeframe",
-        apparel: hfState.apparel,
-        side: hfState.side,
-        imageStyle: hfState.imageStyle,
-        colorway: hfState.colorway,
-        size: hfState.size,
-        placement: hfState.placement,
-        guardianName: $("#hfGuardianName").value.trim(),
-        guardianEmail,
-        image: hfState.printDataUrl,
-      }) });
-      // Round 200: when the server hands back a checkout URL, the
-      // order is saved as awaiting payment and the end state is a
-      // "Continue to payment" step — the parent taps through to
-      // Shopify themselves (never an instant auto-redirect, so the
-      // saved order + what happens next is clear first). After
-      // paying, Shopify sends them back to /?hf_order=<id>, where
-      // hfReturnLanding200 confirms the payment landed.
-      if (r.checkoutUrl) {
-        msg.innerHTML = `${esc(r.message)}${r.backTextToEmbroider ? ` Back text: “${esc(r.backTextToEmbroider)}”` : " Back text: No back text"}<br><a class="btn btn-lime" style="margin-top:10px" href="${esc(r.checkoutUrl)}">Continue to payment →</a><br><span class="small">Order #${r.id} · $110 at Shopify checkout (codes apply there). You’ll come back here after paying — we’ll confirm here and by email.</span>`;
-        return;
-      }
-      // Round 197: the confirmation names exactly what will be
-      // embroidered across the back — or, for the no-name choice,
-      // says so plainly.
-      msg.textContent = r.message + (r.backTextToEmbroider ? ` Back text: “${r.backTextToEmbroider}”` : " Back text: No back text");
-    } catch (err) { msg.textContent = "Error: " + err.message; }
+    if (err206) { if (msg) msg.textContent = err206; return; }
+    if (msg) msg.textContent = "";
+    hfOpenReview206();
   });
+})();
+
+/* Round 206 (2026-11-26, Emil): the hoodie preview round.
+   Scope update (Emil, later the same day, from his configurator
+   mockup): the garment preview is the studio's HERO — it sits
+   at the top of the studio and opens on the BLACK hoodie, BACK
+   view, with the Round 205 recommended frame already selected
+   and composited; the controls below it run Your moment →
+   Artwork → Hoodie color → Size → personalization. The
+   front/back flip is a VIEW control only (it can never touch
+   hfState.side, the placement, or the order), a generated
+   avatar PREVIEWS on the garment behind an explicit approval
+   gate before it can become the print, and the order is sent
+   from a REVIEW stage (Part F below).
+   A. ON-GARMENT PREVIEW (#hfGarment206): the composed print
+      composited onto the hoodie itself — clean garment
+      illustrations derived from the shop's own quick-view
+      artwork (public/swag/hf-garment-*-206.svg, graphics
+      stripped), front and back with a flip toggle. The front
+      shows the print at its true placement (hfState.placement);
+      the back shows the embroidered-words treatment for the
+      picked back-text choice (the print joins it there when
+      the print side is Back). It rides hfSyncFrozenThumb — the
+      compose choke point — plus the color/side/back-text
+      pickers, so it tracks every change live. (This is a new
+      Emil-directed preview, not the Round 2 mock: fresh names
+      throughout, hfGarmentSync206 and friends.)
+   B. AVATAR MAKER (#hfAvatarPanel206): with the Avatar style
+      picked and the server reporting the maker configured
+      (OPENAI_API_KEY; HH_NO_AVATAR stands it down), the frozen
+      frame can be turned into an OpenAI illustration in the
+      studio. The consent line sits over the button — nothing
+      leaves the site until it's tapped. A generated avatar can
+      become the print art itself (it replaces the frame in
+      #hfCanvas and composes like any frame; the order then
+      carries avatarGenerated so the owner knows the print
+      image IS the finished avatar), and "Use my photo" always
+      restores the frozen frame from its canvas snapshot.
+   C. FINE SCRUBBING (#hfFineRow206): ±0.1s steppers around the
+      picked frame, riding the Round 127 tap path so the print
+      capture uses the nudged time.
+   D. WIDE-SHOT FOOTPRINT: composeHfPrint never crops — the
+      full frame always prints. For a frame wider than the
+      garment's print area, the preview outlines that area
+      (dashed) and says what that means, so the band the print
+      occupies on the garment is no surprise.
+   E. STYLE MINIS: each print-style button renders a miniature
+      of the current art composed in that style (the frozen
+      frame once one exists, the play's poster before that). */
+const HF_GARMENT_ART206 = {
+  Black: { front: "/swag/hf-garment-front-black206.svg", back: "/swag/hf-garment-back-black206.svg" },
+  "Heather Gray": { front: "/swag/hf-garment-front-gray206.svg", back: "/swag/hf-garment-back-gray206.svg" },
+};
+// Print areas as fractions of the 640x720 garment stage: the
+// chest window between hood and pocket (front), and the back's
+// statement window under the name line (back).
+const HF_GARMENT_AREA206 = {
+  front: { left: 0.3125, top: 0.392, width: 0.375, height: 0.317 },
+  back: { left: 0.3125, top: 0.465, width: 0.375, height: 0.42 },
+};
+function hfGarmentBackText206() {
+  const name = ($("#hfName") ? $("#hfName").value.trim() : "");
+  const jersey = ($("#hfJersey") ? $("#hfJersey").value.trim().replace(/^#/, "") : "");
+  if (hfState.backText === "none") return "";
+  if (hfState.backText === "custom") return ($("#hfBackCustom197") ? $("#hfBackCustom197").value.trim() : "");
+  if (hfState.backText === "name_number") return [name, jersey ? "#" + jersey : ""].filter(Boolean).join("  ");
+  return name;
+}
+function hfGarmentSync206() {
+  const wrap = $("#hfGarment206"); if (!wrap) return;
+  const show = !!(hfState.frozen && hfState.printDataUrl);
+  wrap.hidden = !show;
+  if (!show) return;
+  const view = hfState.garmentView206 === "back" ? "back" : "front";
+  $$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfGarmentView === view)));
+  const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
+  const img = $("#hfGarmentImg206");
+  const src = view === "back" ? art.back : art.front;
+  if (img && img.getAttribute("src") !== src) img.src = src;
+  // The print shows on the view the print actually sits on;
+  // the back ALSO carries the embroidered words (with the
+  // print below them when the print side is Back).
+  const printHere = (view === "front") === (hfState.side !== "back");
+  const areaEl = $("#hfGarmentPrintArea206"), printImg = $("#hfGarmentPrint206");
+  let isWide206 = false;
+  if (areaEl && printImg) {
+    areaEl.hidden = !printHere;
+    if (printHere) {
+      const area = view === "back" ? HF_GARMENT_AREA206.back : HF_GARMENT_AREA206.front;
+      areaEl.style.left = (area.left * 100) + "%";
+      areaEl.style.top = (area.top * 100) + "%";
+      areaEl.style.width = (area.width * 100) + "%";
+      areaEl.style.height = (area.height * 100) + "%";
+      // Avatar approval gate (Round 206 scope update): a fresh
+      // generation PREVIEWS on the garment as the raw artwork
+      // while the order's print art stays the photo composition
+      // — it becomes the print only on "Use this avatar".
+      const previewSrc206 = (hfState.avatarPreview206 && hfState.avatarDataUrl206 && !hfState.avatarApplied206) ? hfState.avatarDataUrl206 : hfState.printDataUrl;
+      if (printImg.getAttribute("src") !== previewSrc206) printImg.src = previewSrc206;
+      const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
+      printImg.style.width = pl.size + "%";
+      printImg.style.left = pl.cx + "%";
+      printImg.style.top = pl.cy + "%";
+      // Part D: a frame wider than the print area prints in a
+      // band across it — outline the area so that reads at a
+      // glance (the composition itself never crops). While an
+      // unapproved avatar is previewing, the flag stands down
+      // (the avatar's own aspect isn't the print's yet).
+      const fc = $("#hfCanvas");
+      const artAspect = fc && fc.width ? fc.width / fc.height : 0;
+      isWide206 = !hfState.avatarPreview206 && artAspect > (area.width / area.height) + 0.05;
+      areaEl.classList.toggle("hf-garment-area-wide206", isWide206);
+    } else {
+      areaEl.classList.toggle("hf-garment-area-wide206", false);
+    }
+  }
+  const wideNote206 = $("#hfGarmentWide206");
+  if (wideNote206) wideNote206.hidden = !(printHere && isWide206);
+  const backTextEl = $("#hfGarmentBackText206");
+  if (backTextEl) {
+    const words = view === "back" ? hfGarmentBackText206() : "";
+    backTextEl.hidden = !words;
+    if (words) {
+      backTextEl.textContent = words.toUpperCase();
+      backTextEl.style.color = hfPrintTone();
+    }
+  }
+}
+/* Part C: fine scrubbing — nudge the picked frame by a tenth
+   of a second through the same seek-and-capture path a strip
+   tap uses, so the composed print follows the nudged time. */
+function hfFineStep206(d) {
+  const v = $("#hfVideo"); if (!v || hfState.mediaType !== "video") return;
+  const base = (typeof hfState.frameTime205 === "number") ? hfState.frameTime205 : (v.currentTime || 0);
+  const dur = v.duration || 0;
+  let target = base + d;
+  target = dur ? Math.min(Math.max(0, target), Math.max(0, dur - 0.05)) : Math.max(0, target);
+  target = Math.round(target * 10) / 10;
+  hfJumpToFrame(target, null);
+}
+/* Part E: the style minis' art source before a freeze — the
+   play's poster, loaded lazily; the minis re-render when it
+   lands (and the frozen frame takes over once one exists). */
+let hfPosterImg206 = null, hfPosterUrl206 = "";
+function hfMiniPoster206() {
+  const play = hfState.play; if (!play) return;
+  let url = "";
+  try { url = play.poster_url || (typeof btlPosterFor118 === "function" ? btlPosterFor118(play.media_url || "", play.sport || "", play.title || "") : ""); } catch { url = ""; }
+  if (!url || url === hfPosterUrl206) return;
+  hfPosterUrl206 = url;
+  const im = new Image();
+  im.onload = () => { if (hfState.play === play) hfRenderPresetMinis206(); };
+  im.src = url;
+  hfPosterImg206 = im;
+}
+function hfRenderPresetMinis206() {
+  const minis = $$("[data-hf-preset-mini]");
+  if (!minis.length) return;
+  let art = null;
+  const fc = $("#hfCanvas");
+  if (hfState.frozen && fc && fc.width) art = fc;
+  else { hfMiniPoster206(); if (hfPosterImg206 && hfPosterImg206.naturalWidth) art = hfPosterImg206; }
+  const name = ($("#hfName") ? $("#hfName").value.trim() : ""), jersey = ($("#hfJersey") ? $("#hfJersey").value.trim() : "");
+  for (const cv of minis) {
+    const preset = cv.dataset.hfPresetMini;
+    const x = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    x.clearRect(0, 0, W, H);
+    x.fillStyle = "#141414"; x.fillRect(0, 0, W, H);
+    if (!art) continue;
+    // Mirror composeHfPrint at miniature scale: the art, then
+    // the preset's band (caption or lockup) under it, the whole
+    // composition contain-fit into the button's mini canvas.
+    const artW = art.width || art.naturalWidth, artH = art.height || art.naturalHeight;
+    if (!artW || !artH) continue;
+    const bandH = preset === "signature" ? Math.round(W * 0.17) : preset === "hypeframe" ? Math.round(W * 0.30) : 0;
+    const comp = document.createElement("canvas");
+    comp.width = W; comp.height = Math.round(W * artH / artW) + bandH;
+    const cx2 = comp.getContext("2d");
+    cx2.drawImage(art, 0, 0, W, comp.height - bandH);
+    if (preset === "hypeframe") {
+      const tone = hfPrintTone();
+      hfGrungeFrame(cx2, W, comp.height - bandH, tone);
+      hfDrawLockup(cx2, W, comp.height - bandH, bandH, tone);
+    } else if (preset === "signature") {
+      const caption = [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ");
+      if (caption) {
+        const fs = Math.round(W * 0.072);
+        cx2.font = `800 ${fs}px Archivo, Arial, sans-serif`;
+        cx2.textAlign = "center"; cx2.textBaseline = "middle";
+        cx2.lineWidth = Math.max(2, fs / 7); cx2.strokeStyle = "rgba(0,0,0,.65)";
+        const cy = (comp.height - bandH) + bandH / 2;
+        cx2.strokeText(caption, W / 2, cy);
+        cx2.fillStyle = "#ffffff"; cx2.fillText(caption, W / 2, cy);
+      }
+    }
+    const scale = Math.min(W / comp.width, H / comp.height);
+    const dw = Math.round(comp.width * scale), dh = Math.round(comp.height * scale);
+    x.drawImage(comp, Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
+  }
+}
+/* Part B: the avatar maker. The configured check runs once per
+   page (the status endpoint is the server's word on
+   OPENAI_API_KEY + the HH_NO_AVATAR kill switch); until it
+   answers — and whenever it answers no — the studio is exactly
+   the Round 38 flow. */
+let hfAvatarStatusPromise206 = null;
+function hfAvatarStatus206() {
+  if (hfState.avatarConfigured206 !== null) { hfSyncAvatar206(); return Promise.resolve(hfState.avatarConfigured206); }
+  if (!hfAvatarStatusPromise206) {
+    hfAvatarStatusPromise206 = fetch("/api/hype-frame/avatar-status")
+      .then((r) => r.json())
+      .then((j) => { hfState.avatarConfigured206 = !!(j && j.configured); hfSyncAvatar206(); return hfState.avatarConfigured206; })
+      .catch(() => { hfState.avatarConfigured206 = false; hfSyncAvatar206(); return false; });
+  }
+  return hfAvatarStatusPromise206;
+}
+function hfAvatarNote206(text) {
+  const el = $("#hfAvatarStatus206"); if (!el) return;
+  el.textContent = text || "";
+  el.hidden = !text;
+}
+function hfSyncAvatar206() {
+  const panel = $("#hfAvatarPanel206"); if (!panel) return;
+  if (hfState.avatarConfigured206 === null) hfAvatarStatus206();
+  const show = hfState.avatarConfigured206 === true && hfState.imageStyle === "avatar";
+  panel.hidden = !show;
+  if (!show) return;
+  const make = $("#hfAvatarMake206");
+  if (make) {
+    make.disabled = !hfState.frozen || hfState.avatarBusy206;
+    make.textContent = hfState.avatarBusy206 ? "Creating your avatar…" : (hfState.avatarDataUrl206 ? "✨ Make it again" : "✨ Make my avatar");
+  }
+  const result = $("#hfAvatarResult206");
+  if (result) {
+    const has = !!hfState.avatarDataUrl206;
+    result.hidden = !has;
+    if (has) { const im = $("#hfAvatarImg206"); if (im && im.getAttribute("src") !== hfState.avatarDataUrl206) im.src = hfState.avatarDataUrl206; }
+  }
+  const useBtn = $("#hfAvatarUse206"), photoBtn = $("#hfAvatarPhoto206");
+  if (useBtn) useBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 === true));
+  if (photoBtn) photoBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 !== true));
+}
+async function hfMakeAvatar206() {
+  if (hfState.avatarBusy206) return;
+  if (!hfState.frozen || !hfState.frameCanvas206) { hfAvatarNote206("Freeze a frame first — the avatar is made from your frozen still."); return; }
+  hfState.avatarBusy206 = true;
+  hfSyncAvatar206();
+  hfAvatarNote206("Creating your avatar… this can take up to a minute. Your photo stays put until it's ready.");
+  try {
+    // The frame the maker sees: the frozen still itself, capped
+    // at 1024px on its long edge as a JPEG — plenty for the
+    // model, kind to the connection. ONLY the image is posted;
+    // the style recipe lives server-side and can't be reached
+    // from here.
+    const src = hfState.frameCanvas206;
+    const scale = Math.min(1, 1024 / Math.max(src.width, src.height));
+    const tc = document.createElement("canvas");
+    tc.width = Math.max(1, Math.round(src.width * scale));
+    tc.height = Math.max(1, Math.round(src.height * scale));
+    tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
+    const image = tc.toDataURL("image/jpeg", 0.87);
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 120000);
+    let j = null;
+    try {
+      const r = await fetch("/api/hype-frame/avatar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image }), signal: ctl.signal });
+      j = await r.json().catch(() => null);
+      if (!r.ok || !j || !j.ok || !j.image) throw new Error((j && j.message) || "The avatar maker couldn't finish that one.");
+    } finally { clearTimeout(timer); }
+    hfState.avatarDataUrl206 = j.image;
+    // Approval gate (Round 206 scope update, Emil): the avatar
+    // PREVIEWS on the garment — the order's print art is still
+    // the photo. It becomes the print only when the parent taps
+    // "Use this avatar" (hfApplyAvatar206); ignoring it, or
+    // tapping "Use my photo", keeps the photo.
+    hfState.avatarPreview206 = true;
+    hfGarmentSync206();
+    hfAvatarNote206("Your avatar is ready — it's previewing on the hoodie above. Tap “Use this avatar” to make it your print — until then, your print is still the photo.");
+  } catch (e) {
+    hfAvatarNote206(((e && e.message) || "The avatar maker couldn't finish that one.") + " Your photo print still works — try again any time.");
+  } finally {
+    hfState.avatarBusy206 = false;
+    hfSyncAvatar206();
+  }
+}
+/* Choosing the avatar: it becomes the frame in #hfCanvas, so
+   the composed print, the garment preview and the submitted
+   order all carry it through the existing paths. */
+function hfApplyAvatar206() {
+  if (!hfState.avatarDataUrl206) return;
+  const im = new Image();
+  im.onload = () => {
+    const c = $("#hfCanvas"); if (!c) return;
+    c.width = im.naturalWidth; c.height = im.naturalHeight;
+    c.getContext("2d").drawImage(im, 0, 0);
+    hfState.avatarApplied206 = true;
+    hfState.avatarPreview206 = false; // approved: it IS the print now, no longer a preview
+    if (hfState.imageStyle !== "avatar") hfPickImageStyle("avatar");
+    composeHfPrint();
+    hfSyncAvatar206();
+  };
+  im.onerror = () => hfAvatarNote206("That avatar image didn't load — your photo print still works.");
+  im.src = hfState.avatarDataUrl206;
+}
+/* Reverting: the frozen frame's canvas snapshot goes back —
+   no re-seek, no re-capture, the exact still they froze. */
+function hfUsePhoto206() {
+  // Declining the avatar: the preview stands down first; if the
+  // avatar had been approved into the print, the frozen frame's
+  // canvas snapshot goes back — no re-seek, no re-capture, the
+  // exact still they froze.
+  hfState.avatarPreview206 = false;
+  const snap = hfState.frameCanvas206, c = $("#hfCanvas");
+  if (!hfState.avatarApplied206) { hfGarmentSync206(); hfSyncAvatar206(); return; }
+  if (!snap || !c) return;
+  c.width = snap.width; c.height = snap.height;
+  c.getContext("2d").drawImage(snap, 0, 0);
+  hfState.avatarApplied206 = false;
+  composeHfPrint();
+  hfSyncAvatar206();
+}
+/* Part F (Round 206 scope update, Emil): the review stage.
+   The form's CTA is "Review hoodie request"; the review shows
+   the hoodie AS ORDERED (the garment view the print sits on —
+   the preview flip's current view is irrelevant here), the
+   size, the print placement and the artwork, and the request
+   is sent from the review by hfSubmitOrder206 — the exact
+   pre-R206 send path (same payload built from the same live
+   state, same responses), so the review is a confirmation
+   view over the order, never a second order path. */
+function hfValidateOrder206() {
+  if (!hfState.play) return "Pick a play on the board first — Hype Frame starts from an approved play.";
+  if (!hfState.frozen || !hfState.printDataUrl) return "Freeze a frame first — the print starts from your frozen still.";
+  if (!$("#hfGuardianEmail").value.trim()) return "A parent/guardian email is required so we can confirm before printing.";
+  // Round 197: the back-text choice is validated before the
+  // request leaves — the server enforces the same rules.
+  if (hfState.backText === "custom") {
+    const err197 = hfCustomTextError197($("#hfBackCustom197").value);
+    if (err197) return err197;
+  }
+  if (hfState.backText === "name_number" && !$("#hfJersey").value.replace(/\D/g, "")) {
+    return "Add the jersey number — you picked name + number for the back.";
+  }
+  return "";
+}
+function hfReviewSync206() {
+  const view = hfState.side === "back" ? "back" : "front"; // the garment as ordered
+  const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
+  const img = $("#hfReviewImg206");
+  if (img) { const src = view === "back" ? art.back : art.front; if (img.getAttribute("src") !== src) img.src = src; }
+  const areaEl = $("#hfReviewPrintArea206"), printImg = $("#hfReviewPrint206");
+  if (areaEl && printImg) {
+    const area = view === "back" ? HF_GARMENT_AREA206.back : HF_GARMENT_AREA206.front;
+    areaEl.style.left = (area.left * 100) + "%";
+    areaEl.style.top = (area.top * 100) + "%";
+    areaEl.style.width = (area.width * 100) + "%";
+    areaEl.style.height = (area.height * 100) + "%";
+    if (printImg.getAttribute("src") !== hfState.printDataUrl) printImg.src = hfState.printDataUrl;
+    const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
+    printImg.style.width = pl.size + "%";
+    printImg.style.left = pl.cx + "%";
+    printImg.style.top = pl.cy + "%";
+  }
+  const sizeEl = $("#hfReviewSize206");
+  if (sizeEl) { const s = hfState.size || "YM"; sizeEl.textContent = `${hfState.colorway} hoodie · ${s.startsWith("Y") ? "Youth " + s.slice(1) : "Adult " + s}`; }
+  const placeEl = $("#hfReviewPlacement206");
+  if (placeEl) { const pl = hfState.placement || HF_PLACEMENT_DEFAULT; placeEl.textContent = `${hfState.side === "back" ? "Back" : "Front"} print · centered ${pl.cx}% / ${pl.cy}% · ${pl.size}% size · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"} style`; }
+  const artEl = $("#hfReviewArt206");
+  if (artEl) artEl.textContent = hfState.imageStyle === "avatar"
+    ? (hfState.avatarApplied206 ? "Illustrated avatar — the AI avatar you approved in the studio" : "Illustrated avatar — illustrated from your frame before printing")
+    : "Real photo — your frozen frame";
+  const backEl = $("#hfReviewBack206");
+  if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `“${words}” embroidered across the back` : "No back text"; }
+}
+function hfOpenReview206() {
+  const box = $("#hfReview206");
+  if (!box) { hfSubmitOrder206(); return; } // no review markup: send directly — never strand an order
+  hfReviewSync206();
+  box.hidden = false;
+  const m = $("#hfReviewMsg206"); if (m) m.textContent = "";
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function hfCloseReview206() {
+  const box = $("#hfReview206");
+  if (box) box.hidden = true;
+}
+async function hfSubmitOrder206() {
+  const msg = $("#hfReviewMsg206") || $("#hfMsg");
+  const formMsg = $("#hfMsg");
+  const err206 = hfValidateOrder206();
+  if (err206) { if (msg) msg.textContent = err206; return; }
+  hfReviewSync206(); // the send always matches what the review shows now
+  const guardianEmail = $("#hfGuardianEmail").value.trim();
+  if (msg) msg.textContent = "Sending your request…";
+  try {
+    const r = await api("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
+      highlightId: hfState.play.id,
+      customName: $("#hfName").value.trim(),
+      jersey: $("#hfJersey").value.trim(),
+      backText: hfState.backText,
+      backTextCustom: $("#hfBackCustom197").value.trim(),
+      branding: hfState.preset === "hypeframe",
+      apparel: hfState.apparel,
+      side: hfState.side,
+      imageStyle: hfState.imageStyle,
+      avatarGenerated: hfState.avatarApplied206 === true,
+      colorway: hfState.colorway,
+      size: hfState.size,
+      placement: hfState.placement,
+      guardianName: $("#hfGuardianName").value.trim(),
+      guardianEmail,
+      image: hfState.printDataUrl,
+    }) });
+    // Round 200: when the server hands back a checkout URL, the
+    // order is saved as awaiting payment and the end state is a
+    // "Continue to payment" step — the parent taps through to
+    // Shopify themselves (never an instant auto-redirect, so the
+    // saved order + what happens next is clear first). After
+    // paying, Shopify sends them back to /?hf_order=<id>, where
+    // hfReturnLanding200 confirms the payment landed.
+    if (r.checkoutUrl) {
+      const html206 = `${esc(r.message)}${r.backTextToEmbroider ? ` Back text: “${esc(r.backTextToEmbroider)}”` : " Back text: No back text"}<br><a class="btn btn-lime" style="margin-top:10px" href="${esc(r.checkoutUrl)}">Continue to payment →</a><br><span class="small">Order #${r.id} · $110 at Shopify checkout (codes apply there). You’ll come back here after paying — we’ll confirm here and by email.</span>`;
+      if (msg) msg.innerHTML = html206;
+      if (formMsg && formMsg !== msg) formMsg.innerHTML = html206;
+      return;
+    }
+    // Round 197: the confirmation names exactly what will be
+    // embroidered across the back — or, for the no-name choice,
+    // says so plainly.
+    const done206 = r.message + (r.backTextToEmbroider ? ` Back text: “${r.backTextToEmbroider}”` : " Back text: No back text");
+    if (msg) msg.textContent = done206;
+    if (formMsg && formMsg !== msg) formMsg.textContent = done206;
+  } catch (err) { if (msg) msg.textContent = "Error: " + err.message; }
+}
+(function wireHf206() {
+  $$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.addEventListener("click", () => { hfState.garmentView206 = b.dataset.hfGarmentView === "back" ? "back" : "front"; hfGarmentSync206(); }));
+  const fineBack206 = $("#hfFineBack206"), fineFwd206 = $("#hfFineFwd206");
+  if (fineBack206) fineBack206.addEventListener("click", () => hfFineStep206(-0.1));
+  if (fineFwd206) fineFwd206.addEventListener("click", () => hfFineStep206(0.1));
+  const make206 = $("#hfAvatarMake206");
+  if (make206) make206.addEventListener("click", () => { hfMakeAvatar206(); });
+  const use206 = $("#hfAvatarUse206"), photo206 = $("#hfAvatarPhoto206");
+  if (use206) use206.addEventListener("click", () => hfApplyAvatar206());
+  if (photo206) photo206.addEventListener("click", () => hfUsePhoto206());
+  // "Your moment": the Change frame action returns the parent
+  // to the picking surface (the strip / player) from the
+  // picked-frame thumbnail.
+  const change206 = $("#hfChangeFrame206");
+  if (change206) change206.addEventListener("click", () => {
+    const target = ($("#hfStripWrap") && !$("#hfStripWrap").hidden) ? $("#hfStripWrap") : $("#hfVideoWrap127");
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+  // The review stage's own actions: send (the real order path)
+  // and back-to-editing.
+  const send206 = $("#hfReviewSend206"), edit206 = $("#hfReviewEdit206");
+  if (send206) send206.addEventListener("click", () => { hfSubmitOrder206(); });
+  if (edit206) edit206.addEventListener("click", () => hfCloseReview206());
 })();
 
 /* Round 200 (2026-11-26): the payment return landing + owner
@@ -4822,7 +5332,7 @@ async function loadOwner() {
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b>${hfPayChip200(o.payment_status)}<br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
             Back text: <b>${o.backTextToEmbroider ? esc(o.backTextToEmbroider) : "NO BACK TEXT"}</b>${o.back_text === "custom" ? (o.back_text_reviewed ? ` <span style="color:var(--muted)">(custom text — reviewed ✓)</span>` : ` <span class="tagchip" style="background:#7a1f1f;color:#fff">⚠ CUSTOM TEXT — REVIEW</span> <button type="button" class="mini-btn" onclick="hfMarkBackTextReviewed197(${o.id})">Mark reviewed</button>`) : ""}<br>
-            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"} · Image: ${o.image_style === "avatar" ? "Avatar (illustrate first)" : "Real photo"}<br>
+            Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "front" ? "Front" : "Back"} · Image: ${o.image_style === "avatar" ? (o.avatar_generated ? "AI avatar (studio-generated — the print image IS the avatar)" : "Avatar (illustrate first)") : "Real photo"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             ${src ? `<a class="mini-btn" style="text-decoration:none" href="${src}" download="hypeframe-order-${o.id}.png">⬇ Download print image</a><br>` : ""}
             Parent/guardian (owner only): ${o.guardian_name ? `${esc(o.guardian_name)} — ` : ""}${esc(o.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(o.guardian_email)}?subject=${encodeURIComponent("HighlightHype — your Hype Frame request")}">✉️ Contact guardian</a><br>
@@ -5589,7 +6099,20 @@ function playHfFeedFilm126() {
    native controls, an end-of-film pause) leaves it sitting
    on a playing video. The listeners wire once, lazily, on
    the first play through this handler — the only route that
-   can reveal the video at all. */
+   can reveal the video at all.
+   Round 207 (Emil, same day): the film is DEMOTED below the
+   section's CTA — the product photo is the hero now, and
+   the button is an understated "▶ See how it works" link
+   under the Build your hoodie CTA; tapping it reveals the
+   film box (hfHomeFilmBox207) in place and starts the film.
+   The button also hides INSTANTLY on tap now: Emil watched
+   the R204 button sit there for ~3 seconds after tapping,
+   because it waited for the real 'play' event, which lags
+   while the video buffers. The tap hides it optimistically;
+   the sync (still wired to play/pause/ended) remains the
+   authority that restores it — on pause, on ended, and via
+   the play() promise's rejection path if playback fails to
+   start at all. */
 let hfHomeFilmWired204 = false;
 function hfHomeFilmBtnSync204() {
   const btn = $("#hfHomeFilmBtn201"), vid = $("#hfHomeFilm201");
@@ -5605,10 +6128,14 @@ function playHfHomeFilm201() {
     vid.addEventListener("pause", hfHomeFilmBtnSync204);
     vid.addEventListener("ended", hfHomeFilmBtnSync204);
   }
+  // Round 207: hide the link the moment it is tapped — do
+  // NOT wait for the (buffering-lagged) 'play' event — and
+  // reveal the film in place below the CTA.
+  const btn = $("#hfHomeFilmBtn201"); if (btn) btn.hidden = true;
+  const box = $("#hfHomeFilmBox207"); if (box) box.hidden = false;
   if (cover) cover.hidden = true;
   vid.hidden = false;
-  const p = vid.play(); if (p && p.catch) p.catch(() => {});
-  hfHomeFilmBtnSync204();
+  const p = vid.play(); if (p && p.catch) p.catch(() => { hfHomeFilmBtnSync204(); });
 }
 
 /* Round 84 (2026-11-09, Emil): warm the store's landing pictures

@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=203" />
+<link rel="stylesheet" href="styles.css?v=205" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1353,9 +1353,34 @@
          Store's Hype Frame feature; the Photo/Avatar CHOICE
          itself stays below as a working picker (#hfImageStyles). -->
     <div class="hf-studio upload-card" id="hfStudio">
+          <!-- Round 206 (2026-11-26, Emil; scope update same day): the on-garment preview — the studio's HERO, at its top —
+               the composed print composited onto the hoodie itself
+               (clean garment illustrations derived from the shop's
+               own quick-view artwork), front and back. The back
+               shows the embroidered words treatment; the front
+               shows the print at its true placement. Synced from
+               hfGarmentSync206 in app.js; hidden until a frame is
+               frozen, exactly like the frozen confirmation above. -->
+          <div class="hf-garment206" id="hfGarment206" hidden>
+            <div class="hf-garment-stage206" id="hfGarmentStage206">
+              <img class="hf-garment-img206" id="hfGarmentImg206" alt="Hoodie preview">
+              <div class="hf-garment-printarea206" id="hfGarmentPrintArea206">
+                <img id="hfGarmentPrint206" alt="">
+              </div>
+              <div class="hf-garment-backtext206" id="hfGarmentBackText206" hidden></div>
+            </div>
+            <div class="hf-garment-bar206">
+              <div class="seg hf-garment-flip206" role="group" aria-label="Preview the front or back of the hoodie">
+                <button type="button" data-hf-garment-view="front" aria-pressed="false">Front</button>
+                <button type="button" data-hf-garment-view="back" aria-pressed="true">Back</button>
+              </div>
+              <span class="hf-garment-cap206">Preview — your design on the hoodie</span>
+            </div>
+            <p class="hf-garment-wide206" id="hfGarmentWide206" hidden>Wide frame — it prints in full inside the dashed print area, in a band across the garment. Freeze a tighter moment if you want the athlete bigger.</p>
+          </div>
       <div class="hf-grid">
         <div class="hf-col">
-          <h4 class="form-sec-title">Freeze your frame</h4>
+          <h4 class="form-sec-title">Your moment</h4>
           <!-- Round 127 (2026-11-13, Emil): NO native controls on
                the studio player — iOS parks its big center play
                button over the paused frame, hiding the very frame
@@ -1394,6 +1419,16 @@
             <button type="button" class="btn btn-lime" id="hfFreeze">📸 Freeze this frame</button>
             <button type="button" class="btn btn-ghost" id="hfStepFwd" aria-label="Forward one second">1s ▶</button>
           </div>
+          <!-- Round 206 (2026-11-26, Emil): fine scrubbing — the
+               1-second strip lands near the moment; these steppers
+               nudge the picked frame a tenth of a second at a time
+               and the print capture follows the nudged time. -->
+          <div class="hf-finerow206" id="hfFineRow206" hidden>
+            <span class="hf-fine-label206">Fine tune</span>
+            <button type="button" class="btn btn-ghost hf-fine-btn206" id="hfFineBack206" aria-label="Nudge the frame back a tenth of a second">−0.1s</button>
+            <span class="hf-fine-time206" id="hfFineTime206" aria-live="polite"></span>
+            <button type="button" class="btn btn-ghost hf-fine-btn206" id="hfFineFwd206" aria-label="Nudge the frame forward a tenth of a second">+0.1s</button>
+          </div>
           <!-- Freeze confirmation (Fixes batch, 2026-11-05): NOT the
                removed apparel preview — just the composed print itself,
                small, so a freeze visibly lands. Hidden until a freeze
@@ -1402,66 +1437,46 @@
             <img id="hfFrozenImg" alt="Your frozen frame — the print composed from the moment you froze">
             <p class="hf-frozen-cap">Your frozen frame — this is the print. <span class="hf-frozen-zoom128">⤢ Tap to see it bigger</span> — freeze again any time to change it.</p>
           </div>
+          <!-- Round 206 scope update: the Change frame action —
+               returns the parent to the strip / player above to
+               pick a different moment. -->
+          <button type="button" class="btn btn-ghost hf-changeframe206" id="hfChangeFrame206" hidden>Change frame</button>
           <p class="small">Play or scrub to the moment — Freeze works while the video plays, and the ◀ ▶ buttons nudge it a second at a time. Not the one? Freeze again — as many times as you like, until it's the shot. Your frozen frame becomes the print.</p>
           <div id="hfLinkNote" hidden>
             <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
           </div>
         </div>
-
         <div class="hf-col">
-          <h4 class="form-sec-title">Make it yours</h4>
-          <!-- Words on the back (Round 197, 2026-11-25): the
-               embroidered back text is the family's choice — the
-               player's name, name + number, no name, or their own
-               words. The choice rides on the order request. -->
-          <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Words on the back">
-            <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
-            <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
-            <button type="button" data-hf-back-text="none" aria-pressed="false">No name</button>
-            <button type="button" data-hf-back-text="custom" aria-pressed="false">Your own words</button>
-          </div>
-          <p class="small">The words embroidered across the back of the hoodie.</p>
-          <div id="hfBackCustomRow197" hidden>
-            <label>Your words for the back <input type="text" id="hfBackCustom197" maxlength="16" placeholder="e.g. GO HAWKS!"></label>
-            <p class="small">Up to 16 characters — letters, numbers, spaces and basic punctuation. Embroidery can't stitch emoji, and we read every custom line before it's made.</p>
-          </div>
-          <!-- Round 205 (2026-11-26, Emil): the label said "Name on
-               the print" — wrong. The name is EMBROIDERED across
-               the back (the locked decoration spec); the front is
-               the frame print as designed. -->
-          <label>Name — embroidered across the back <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
-          <!-- Round 205: the jersey number only shows when it
-               affects the design — the Name + number back-text
-               choice (hfPickBackText197 toggles the row). -->
-          <div class="row2" id="hfJerseyRow205" hidden>
-            <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
-          </div>
-          <h4 class="form-sec-title" style="margin-top:22px">Print style</h4>
-          <div class="seg hf-presets" role="group" aria-label="Print style">
-            <button type="button" data-hf-preset="classic" aria-pressed="false">Classic</button>
-            <button type="button" data-hf-preset="signature" aria-pressed="false">Signature</button>
-            <button type="button" data-hf-preset="hypeframe" aria-pressed="true">Hype Frame</button>
-          </div>
-          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
-
-          <h4 class="form-sec-title" style="margin-top:22px">Print side</h4>
-          <div class="seg hf-sides" id="hfSides" role="group" aria-label="Print side">
-            <button type="button" data-hf-side="front" aria-pressed="true">Front</button>
-            <button type="button" data-hf-side="back" aria-pressed="false">Back</button>
-          </div>
-          <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above.</p>
-
-          <!-- Photo or Avatar (Round 38, 2026-11-08): Twinkie's idea,
+          <!-- Artwork: Photo or Illustrated avatar (Round 38, 2026-11-08): Twinkie's idea,
                kid-approved. The choice rides on the order like the print
                side does; the illustration itself is made at fulfillment,
                after the owner confirms with the parent/guardian. -->
-          <h4 class="form-sec-title" style="margin-top:22px">Photo or Avatar</h4>
-          <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Photo or Avatar">
-            <button type="button" data-hf-image-style="photo" aria-pressed="true">Real photo</button>
-            <button type="button" data-hf-image-style="avatar" aria-pressed="false">Avatar</button>
+          <h4 class="form-sec-title" style="margin-top:22px">Artwork</h4>
+          <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
+            <button type="button" data-hf-image-style="photo" aria-pressed="true">Photo</button>
+            <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
           </div>
-          <p class="small"><b>Real photo</b> — your frozen frame, printed as the photo it is. <b>Avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
-
+          <p class="small"><b>Photo</b> — your frozen frame, printed as the photo it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
+          <!-- Round 206 (2026-11-26, Emil): the in-studio avatar
+               maker. Shown only when the Avatar style is picked
+               AND the server reports the maker configured
+               (hfSyncAvatar206 in app.js) — otherwise the studio
+               is exactly the Round 38 flow above. The consent line
+               sits directly over the button: nothing is sent
+               anywhere until a parent taps it. -->
+          <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
+            <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame is sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
+            <button type="button" class="btn btn-lime hf-avatar-make206" id="hfAvatarMake206" disabled>✨ Make my avatar</button>
+            <p class="hf-avatar-status206" id="hfAvatarStatus206" aria-live="polite" hidden></p>
+            <div class="hf-avatar-result206" id="hfAvatarResult206" hidden>
+              <img id="hfAvatarImg206" alt="Your AI avatar, generated from the frozen frame">
+              <div class="seg hf-avatar-use206" role="group" aria-label="Which artwork should print">
+                <button type="button" id="hfAvatarUse206" data-hf-avatar-use="avatar" aria-pressed="false">Use this avatar</button>
+                <button type="button" id="hfAvatarPhoto206" data-hf-avatar-use="photo" aria-pressed="true">Use my photo</button>
+              </div>
+              <p class="small">The avatar becomes the print only when you pick it — your photo frame is always here to go back to.</p>
+            </div>
+          </div>
           <!-- Color + size pickers (Round 3, 2026-11-05): Emil reversed
                the Round 2 simplification for these two fields. The
                garment (hoodie) stays fixed — no apparel mock. The
@@ -1511,7 +1526,51 @@
             <button type="button" class="hf-size" data-hf-size="L" aria-pressed="false">L</button>
             <button type="button" class="hf-size" data-hf-size="XL" aria-pressed="false">XL</button>
           </div>
-
+          <h4 class="form-sec-title" style="margin-top:22px">Personalization</h4>
+          <!-- Words on the back (Round 197, 2026-11-25): the
+               embroidered back text is the family's choice — the
+               player's name, name + number, no name, or their own
+               words. The choice rides on the order request. -->
+          <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Words on the back">
+            <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
+            <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
+            <button type="button" data-hf-back-text="none" aria-pressed="false">No name</button>
+            <button type="button" data-hf-back-text="custom" aria-pressed="false">Your own words</button>
+          </div>
+          <p class="small">The words embroidered across the back of the hoodie.</p>
+          <div id="hfBackCustomRow197" hidden>
+            <label>Your words for the back <input type="text" id="hfBackCustom197" maxlength="16" placeholder="e.g. GO HAWKS!"></label>
+            <p class="small">Up to 16 characters — letters, numbers, spaces and basic punctuation. Embroidery can't stitch emoji, and we read every custom line before it's made.</p>
+          </div>
+          <!-- Round 205 (2026-11-26, Emil): the label said "Name on
+               the print" — wrong. The name is EMBROIDERED across
+               the back (the locked decoration spec); the front is
+               the frame print as designed. -->
+          <label>Name — embroidered across the back <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
+          <!-- Round 205: the jersey number only shows when it
+               affects the design — the Name + number back-text
+               choice (hfPickBackText197 toggles the row). -->
+          <div class="row2" id="hfJerseyRow205" hidden>
+            <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
+          </div>
+          <h4 class="form-sec-title" style="margin-top:22px">Print style</h4>
+          <!-- Round 206: each style button carries a live mini
+               rendering of the picked frame in that style
+               (hfRenderPresetMinis206 in app.js), so the difference
+               is visible at a glance. Before a frame exists the
+               minis render from the play's poster. -->
+          <div class="seg hf-presets" role="group" aria-label="Print style">
+            <button type="button" data-hf-preset="classic" aria-pressed="false"><canvas class="hf-preset-mini206" data-hf-preset-mini="classic" width="168" height="126" aria-hidden="true"></canvas><span>Classic</span></button>
+            <button type="button" data-hf-preset="signature" aria-pressed="false"><canvas class="hf-preset-mini206" data-hf-preset-mini="signature" width="168" height="126" aria-hidden="true"></canvas><span>Signature</span></button>
+            <button type="button" data-hf-preset="hypeframe" aria-pressed="true"><canvas class="hf-preset-mini206" data-hf-preset-mini="hypeframe" width="168" height="126" aria-hidden="true"></canvas><span>Hype Frame</span></button>
+          </div>
+          <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
+          <h4 class="form-sec-title" style="margin-top:22px">Print side</h4>
+          <div class="seg hf-sides" id="hfSides" role="group" aria-label="Print side">
+            <button type="button" data-hf-side="front" aria-pressed="false">Front</button>
+            <button type="button" data-hf-side="back" aria-pressed="true">Back</button>
+          </div>
+          <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above.</p>
           <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
           <form id="hfOrderForm">
             <label>Parent/guardian name (optional) <input type="text" id="hfGuardianName" maxlength="80" autocomplete="name"></label>
@@ -1525,9 +1584,33 @@
                  doesn't — when the request is sent, while the
                  Round 200 Shopify handoff stays dark. -->
             <p class="small" id="hfNoPay205">No payment is collected today. We'll email your parent or guardian to confirm the design before we print.</p>
-            <button type="submit" class="btn btn-lime submit-btn">Send hoodie request</button>
+            <button type="submit" class="btn btn-lime submit-btn">Review hoodie request</button>
+            <p class="small hf-review-sub206">No payment today</p>
             <p id="hfMsg"></p>
           </form>
+          <!-- Round 206 scope update (Emil): the review stage —
+               the form's "Review hoodie request" opens it; it
+               shows the hoodie AS ORDERED (hfReviewSync206 in
+               app.js) and the request is sent from here, over
+               the same order path as always. -->
+          <div class="hf-review206" id="hfReview206" hidden>
+            <h4 class="form-sec-title" style="margin-top:22px">Review your hoodie</h4>
+            <div class="hf-garment-stage206 hf-review-stage206">
+              <img class="hf-garment-img206" id="hfReviewImg206" alt="Your hoodie, as ordered">
+              <div class="hf-garment-printarea206" id="hfReviewPrintArea206">
+                <img id="hfReviewPrint206" alt="">
+              </div>
+            </div>
+            <dl class="hf-review-rows206">
+              <div><dt>Size</dt><dd id="hfReviewSize206"></dd></div>
+              <div><dt>Print placement</dt><dd id="hfReviewPlacement206"></dd></div>
+              <div><dt>Artwork</dt><dd id="hfReviewArt206"></dd></div>
+              <div><dt>Back</dt><dd id="hfReviewBack206"></dd></div>
+            </dl>
+            <button type="button" class="btn btn-lime submit-btn" id="hfReviewSend206">Send hoodie request</button>
+            <button type="button" class="btn btn-ghost hf-review-edit206" id="hfReviewEdit206">Back to editing</button>
+            <p id="hfReviewMsg206" aria-live="polite"></p>
+          </div>
         </div>
       </div>
       <canvas id="hfCanvas" hidden></canvas>
@@ -1660,26 +1743,45 @@
      image files stay in /swag, unused here). The film's play
      button (hfHomeFilmBtn201) now lives outside the cover
      and answers to the video's own play/pause/ended events —
-     it disappears while the film plays (app.js). -->
+     it disappears while the film plays (app.js).
+     Round 207 (Emil, same day, from his product-hero
+     reference): the PRODUCT is the hero now — the real
+     softball hoodie photo (the full back view, garment
+     whole, nothing cropped away) carries the two label
+     pills, nudged up a little at Emil's ask. The headline
+     keeps its wording and gains the sub-line "Pick a play.
+     Make it yours."; the CTA is renamed "Build your
+     hoodie →" (same openHfChoice()). The film is DEMOTED
+     below the CTA: an understated "▶ See how it works"
+     link (the same hfHomeFilmBtn201) reveals the film box
+     (hfHomeFilmBox207) in place under it — same cover, same
+     cut, same handler. And the button hides the INSTANT it
+     is tapped: Emil watched the R204 button sit over the
+     starting film for ~3 seconds because it waited for the
+     real 'play' event, which lags while the video buffers
+     (the sync in app.js restores it on pause/ended, or if
+     playback fails to start). -->
 <div class="merch-teaser125 view-home" id="merchTeaser125">
   <div class="wrap">
     <div class="hft201-card">
-      <div class="hft201-media">
-        <div class="hf-film-box">
-          <div class="hf-film-cover" id="hfFilmCoverHome201">
-            <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async">
-            <div class="hft201-badges">
-              <span class="hft201-badge">The Swag Shop</span>
-              <span class="hft201-badge">📸 Hype Frame</span>
-            </div>
-          </div>
-          <button type="button" class="hf-film-btn hft201-film-btn" id="hfHomeFilmBtn201" onclick="playHfHomeFilm201()">▶ See how it works</button>
-          <video id="hfHomeFilm201" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
+      <div class="hft201-media hft207-hero">
+        <img class="hft207-hero-img" src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async">
+        <div class="hft201-badges hft207-badges">
+          <span class="hft201-badge">The Swag Shop</span>
+          <span class="hft201-badge">📸 Hype Frame</span>
         </div>
       </div>
       <div class="hft201-body">
         <h2 class="hft201-title">Your moment on a hoodie</h2>
-        <button type="button" class="hft201-cta" onclick="openHfChoice()">Create yours →</button>
+        <p class="hft207-sub">Pick a play. Make it yours.</p>
+        <button type="button" class="hft201-cta" onclick="openHfChoice()">Build your hoodie →</button>
+        <button type="button" class="hft207-film-link" id="hfHomeFilmBtn201" onclick="playHfHomeFilm201()">▶ See how it works</button>
+        <div class="hf-film-box hft207-film" id="hfHomeFilmBox207" hidden>
+          <div class="hf-film-cover" id="hfFilmCoverHome201">
+            <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async">
+          </div>
+          <video id="hfHomeFilm201" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
+        </div>
       </div>
     </div>
   </div>
@@ -2278,6 +2380,6 @@
   </div>
 </div>
 
-<script src="app.js?v=206"></script>
+<script src="app.js?v=209"></script>
 </body>
 </html>
