@@ -31,9 +31,29 @@
 //   G. HH_NO_SMARTPOSTER=1: the burst clip uploads, status
 //      "skipped", poster stays the default-freeze poster.
 //   H. Backfill: a seeded legacy burst play (with a
-//      default-freeze poster already in place) is re-picked
-//      once at boot (origin "backfill"); a second boot
-//      changes nothing (poster bytes + stamp hold).
+//      default-freeze poster already in place) is
+//      re-evaluated once at boot (origin "backfill"); a
+//      second boot changes nothing (poster bytes + stamp
+//      hold). →213: on the backfill path the R195 trim
+//      keeps a shorter lead than on the upload path, so
+//      the burst fixture's two whole-frame boundary
+//      spikes land inside the R213-excluded head/tail
+//      zones and the in-window noise motion is not
+//      decisive — the re-evaluation now lands kept-flat
+//      and the poster is left untouched (the one-time
+//      poster-producing re-pick is pinned by
+//      test-r213.js §C instead).
+// →213 (2026-11-26): D/E/H now run under the Round 213
+// rules (interior candidacy window, concentration tiers,
+// r213_checked_at stamped alongside r209_checked_at).
+// D and E hold unchanged (on the upload path the burst
+// boundary spike sits just inside the interior window;
+// the flat clip is still not decisive), and the second
+// boot still scans nothing because the first boot's
+// evaluation stamps both columns. The Round 213
+// behaviors themselves (window math, tiers, the
+// one-time library re-pick, overrides) are pinned by
+// test-r213.js.
 // Uploads are gated on the boot backfills having finished,
 // so a boot scan can never meet a fresh upload mid-chain.
 // Exits non-zero on failure.
@@ -153,7 +173,7 @@ async function boot(port, extraEnv = {}, dataDir) {
   };
   const readRow = (id) => {
     const db = new DatabaseSync(path.join(tmp, "highlighthype.db"), { readOnly: true });
-    try { return db.prepare("SELECT id, media_url, poster_url, stream_url, enhance_json, r209_checked_at FROM highlights WHERE id=?").get(id); } finally { db.close(); }
+    try { return db.prepare("SELECT id, media_url, poster_url, stream_url, enhance_json, r209_checked_at, r213_checked_at FROM highlights WHERE id=?").get(id); } finally { db.close(); }
   };
   const waitFor = async (fn, what, timeoutMs = 300000) => {
     const t0 = Date.now();
@@ -288,13 +308,31 @@ try {
       const row = await h2.waitStamp(seedId, "H: seed stamp");
       const r = r209Of(row);
       console.log("H r209:", JSON.stringify(r));
-      assert(r && r.status === "poster" && r.origin === "backfill", `H: the seeded legacy play is re-picked by the backfill (got ${r && r.status}/${r && r.origin})`);
+      // →213: the seeded play IS re-evaluated once at boot
+      // under the new rules (v 213 report, interior window
+      // recorded, both stamps set) — but on this backfill
+      // path the R195 trim's shorter lead puts the burst
+      // fixture's two boundary spikes inside the excluded
+      // head/tail zones, so the outcome is kept-flat and
+      // the poster is left alone. (test-r213.js §C pins
+      // the poster-producing legacy re-pick.)
+      assert(r && r.status === "kept-flat" && r.origin === "backfill" && r.v === 213, `H: the seeded legacy play is re-evaluated once by the backfill under R213 (got ${r && r.status}/${r && r.origin}/v${r && r.v})`);
+      assert(JSON.stringify(r.window) === "[1,2.9]", `H: the re-evaluation records the interior window [1, 2.9] of the trimmed display file (got ${JSON.stringify(r.window)})`);
+      assert(row.r213_checked_at && row.r213_checked_at === row.r209_checked_at, "H: the re-evaluation stamps r213_checked_at alongside r209_checked_at");
       posterAfter1 = fs.readFileSync(path.join(hUp, `poster-${seedId}.jpg`));
-      assert(!posterAfter1.equals(seedPosterBefore), "H: the backfill replaced the legacy default-freeze poster");
-      assert(meanLuma(extractFrame(path.join(hUp, `poster-${seedId}.jpg`))) > 40, "H: the backfilled poster is the bright action frame, not the dark tail frame it replaced");
+      // The poster on disk is the sibling stages' default-
+      // freeze poster of the final (trimmed) display file —
+      // the R209 stage itself substituted nothing on
+      // kept-flat. (Byte-equality with the seeded poster is
+      // not the instrument here: the R186/R195 backfills
+      // re-create posters for fully-unstamped legacy plays
+      // as part of their own normal operation.)
+      const hDisp = path.join(hUp, "seedburst-trimmed-upscaled.mp4");
+      const hFreeze = meanAbsDiff(extractFrame(path.join(hUp, `poster-${seedId}.jpg`)), extractFrame(hDisp, vinfoOf(hDisp).duration * 0.35));
+      assert(hFreeze < 12, `H: kept-flat leaves the poster at the pipeline default freeze of the display file (mean abs diff ${hFreeze.toFixed(2)})`);
       stamp1 = row.r209_checked_at;
-      await h2.waitFor(() => h2.getLog().includes("[r209] backfill complete (1 posters re-picked") || null, "H: backfill summary line", 120000);
-      assert(true, "H: the backfill summary reports 1 poster re-picked");
+      await h2.waitFor(() => h2.getLog().includes("[r209] backfill complete (0 posters re-picked, 1 file plays scanned)") || null, "H: backfill summary line", 120000);
+      assert(true, "H: the backfill summary reports the 1 scanned play (0 re-picked under the new rules)");
     } finally { await h2.stop(); }
     const h3 = await boot(3735, {}, hDir);
     try {

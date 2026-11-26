@@ -864,6 +864,17 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN r203_checked_at TEXT DEFAULT ''
 // Round 209 section at the media pipeline). '' = not yet
 // evaluated.
 try { db.exec("ALTER TABLE highlights ADD COLUMN r209_checked_at TEXT DEFAULT ''"); } catch {}
+// Round 213 (2026-11-26): the smart-poster robustness
+// pass's per-play stamp — set (together with
+// r209_checked_at, in the same write) when the Round 209
+// stage has evaluated a play under the Round 213 rules.
+// The boot backfill selects on EITHER stamp being empty,
+// so a play evaluated under the original Round 209 rules
+// (r209 stamped, r213 empty) is re-evaluated exactly
+// once under the new rules, and a play evaluated under
+// Round 213 is never re-processed. '' = not yet
+// evaluated under Round 213.
+try { db.exec("ALTER TABLE highlights ADD COLUMN r213_checked_at TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -3404,7 +3415,50 @@ async function r203Backfill() {
    skipped; the rest of the chain is unaffected).
    FALLBACK CONTRACT (the house rule): best-effort, never a
    gate — any failure keeps the current poster, leaves the
-   stamp empty for a later retry, and logs why. */
+   stamp empty for a later retry, and logs why.
+   ROUND 213 ADDENDUM (2026-11-26, Emil, from the live
+   site): the first library re-pick made one poster WORSE.
+   Juliana's "Caught stealing home!" is a GameChanger
+   screen recording whose last ~2 seconds rotate to
+   portrait — the app switches to its game page, the video
+   shrinks to a sideways sliver and play-by-play text
+   fills the frame. That rotation changes the whole frame
+   at once, so the motion series peaked there and the
+   razor-sharp UI text won the sharpness score; the old
+   poster (a clean field frame) was better. Two guards
+   now fence the peak search:
+     * INTERIOR WINDOW — candidacy (the peak search AND
+       the ±1s candidate window) is restricted to the
+       clip's interior: the first max(1.0s, 8% of the
+       duration) and the last max(2.5s, 12%) are excluded,
+       because the head and tail are where screen
+       recordings keep their junk (menus, the phone
+       rotating as the parent lowers it). A clip too short
+       for the exclusions to leave a usable window falls
+       back to the full range. The window used is recorded
+       in the report (`window`).
+     * CONCENTRATION — every motion step is also scored
+       for how UNIFORMLY the frame changed (the share of
+       grid blocks whose own change reaches a quarter of
+       the frame's mean change, at real magnitude). Real
+       action concentrates — part of the frame moves, the
+       rest is fence and grass; a rotation, an app-page
+       takeover or a hard cut redraws ~everything at once.
+       A transition-class step (share ≥ 0.90) cannot be
+       the peak and cannot lend its magnitude to a
+       neighbour's smoothed score (tier 1); if no decisive
+       non-transition peak exists, the search falls back
+       to the plain in-window peak (tier 2), so a clip
+       whose action IS broad still gets its poster. The
+       tier that fired and the transition-step count are
+       recorded (`tier`, `transSteps`).
+   Every evaluation under these rules stamps
+   r213_checked_at alongside r209_checked_at, and the
+   boot backfill selects on either stamp being empty —
+   so the whole library is re-evaluated exactly once
+   under Round 213, hand-set Round 124 overrides
+   included-out (they still land on kept-override and are
+   never re-picked). */
 const R209_SAMPLE_FPS = 5;       // motion-series sampling rate on the working copy
 const R209_SCAN_SEC = 60;        // analysis window cap (mirrors Round 203)
 const R209_WORK_MAX_W = 360;     // working-copy width cap
@@ -3415,13 +3469,52 @@ const R209_CAND_FPS = 3;         // candidate sampling rate around the peak
 const R209_CAND_HALF_SEC = 1;    // candidate window half-width (±1s)
 const R209_CAND_MAX_W = 480;     // candidate scoring width cap (scores are relative within a clip)
 const R209_LUMA_FLOOR = 10;      // near-black disqualifier (mean luma), cf. Round 205's client rule
+// Round 213: the interior window (see the addendum
+// above). Head/tail exclusions are the larger of a floor
+// and a fraction of the duration; if they would leave
+// less than R213_MIN_WINDOW_SEC of candidacy the window
+// falls back to the full range (today's behavior).
+const R213_HEAD_MIN_SEC = 1.0;   // head exclusion floor (s)
+const R213_HEAD_FRAC = 0.08;     // head exclusion fraction of duration
+const R213_TAIL_MIN_SEC = 2.5;   // tail exclusion floor (s)
+const R213_TAIL_FRAC = 0.12;     // tail exclusion fraction of duration
+const R213_MIN_WINDOW_SEC = 0.5; // smallest usable interior window (s)
+// Round 213: the concentration guard (see the addendum
+// above). The working frame is divided into a grid
+// (6×4 landscape, 4×6 portrait); a block counts as
+// changed when its own mean change reaches
+// R213_BLOCK_FRAC of the frame's mean change, and a step
+// is transition-class when at least R213_TRANS_SHARE of
+// the blocks changed while the step's own magnitude is
+// real (≥ R209_MIN_PEAK — a near-zero step is just a
+// quiet frame pair, whatever its share says).
+const R213_GRID_WIDE = [6, 4];   // [cols, rows] when width ≥ height
+const R213_GRID_TALL = [4, 6];   // [cols, rows] when height > width
+const R213_BLOCK_FRAC = 0.25;    // block-changed threshold, as a fraction of the frame mean change
+const R213_TRANS_SHARE = 0.90;   // transition-class share cutoff
+// The interior candidacy window of one clip, in seconds
+// [start, end]. A non-positive or unknown duration, and
+// a clip whose exclusions would leave less than the
+// minimum usable window, both fall back to the full
+// range — the pre-213 behavior.
+function r213Window(duration) {
+  const d = Number(duration) || 0;
+  if (!(d > 0)) return [0, 0];
+  const head = Math.max(R213_HEAD_MIN_SEC, R213_HEAD_FRAC * d);
+  const tail = Math.max(R213_TAIL_MIN_SEC, R213_TAIL_FRAC * d);
+  if (d - tail - head < R213_MIN_WINDOW_SEC) return [0, r186Round(d, 3)];
+  return [r186Round(head, 3), r186Round(d - tail, 3)];
+}
 // The per-frame-pair motion series of one display file:
 // mean absolute luma difference per pair on a small gray
 // working copy, decoded once into a temp raw file that is
-// always cleaned up. Returns { series, frames } (series
-// values rounded for the report) or null when the
-// measurement itself failed — the caller treats null as
-// "never re-pick, never stamp".
+// always cleaned up. Round 213: the same pass also scores
+// each step's concentration — the share of grid blocks
+// whose own mean change reaches R213_BLOCK_FRAC of the
+// frame's mean change (see the addendum above). Returns
+// { series, shares, frames } (values rounded for the
+// report) or null when the measurement itself failed —
+// the caller treats null as "never re-pick, never stamp".
 async function r209MotionSeries(bins, abs, info) {
   const s = Math.min(1, R209_WORK_MAX_W / info.width, R209_WORK_MAX_H / info.height);
   const even = (v) => Math.max(2, Math.round(v / 2) * 2);
@@ -3434,36 +3527,96 @@ async function r209MotionSeries(bins, abs, info) {
     const frameSize = workW * workH;
     const nFrames = Math.floor(fs.statSync(tmp).size / frameSize);
     if (!(nFrames >= 2) || frameSize <= 0) return null;
-    const series = [];
+    // Round 213 grid geometry: per-pixel block lookup,
+    // precomputed once per measurement.
+    const [gCols, gRows] = workW >= workH ? R213_GRID_WIDE : R213_GRID_TALL;
+    const nBlocks = gCols * gRows;
+    const bw = workW / gCols, bh = workH / gRows;
+    const colOf = new Uint8Array(workW), rowBase = new Uint16Array(workH), blockPx = new Float64Array(nBlocks);
+    for (let x = 0; x < workW; x++) colOf[x] = Math.min(gCols - 1, Math.floor(x / bw));
+    for (let y = 0; y < workH; y++) { rowBase[y] = Math.min(gRows - 1, Math.floor(y / bh)) * gCols; for (let x = 0; x < workW; x++) blockPx[rowBase[y] + colOf[x]]++; }
+    const series = [], shares = [];
     const fd = fs.openSync(tmp, "r");
     try {
       let prev = Buffer.alloc(frameSize), cur = Buffer.alloc(frameSize);
       if (fs.readSync(fd, prev, 0, frameSize, 0) < frameSize) return null;
+      const blockSum = new Float64Array(nBlocks);
       for (let f = 1; f < nFrames; f++) {
         if (fs.readSync(fd, cur, 0, frameSize, f * frameSize) < frameSize) break;
+        blockSum.fill(0);
         let sum = 0;
-        for (let i = 0; i < frameSize; i++) { const d = cur[i] - prev[i]; if (d !== 0) sum += d < 0 ? -d : d; }
-        series.push(r186Round(sum / frameSize, 2));
+        for (let y = 0; y < workH; y++) {
+          const rb = rowBase[y], ro = y * workW;
+          for (let x = 0; x < workW; x++) {
+            const i = ro + x;
+            const d = cur[i] - prev[i];
+            if (d !== 0) { const a = d < 0 ? -d : d; sum += a; blockSum[rb + colOf[x]] += a; }
+          }
+        }
+        const mean = sum / frameSize;
+        series.push(r186Round(mean, 2));
+        // The concentration share. A zero-change step has
+        // no meaningful share (its threshold would be 0
+        // and every noisy block would count) — record 0;
+        // the transition classification in r209PeakOf
+        // additionally requires real magnitude.
+        let share = 0;
+        if (mean > 0) {
+          const blockThresh = R213_BLOCK_FRAC * mean;
+          let changed = 0;
+          for (let j = 0; j < nBlocks; j++) if (blockSum[j] / blockPx[j] >= blockThresh) changed++;
+          share = changed / nBlocks;
+        }
+        shares.push(r186Round(share, 2));
         const swap = prev; prev = cur; cur = swap;
       }
     } finally { try { fs.closeSync(fd); } catch {} }
-    return { series, frames: nFrames };
+    return { series, shares, frames: nFrames };
   } catch { return null; } finally { try { fs.unlinkSync(tmp); } catch {} }
 }
-// The decisive peak of a motion series: 3-sample moving
-// average, peak vs the lower-median background. Returns
-// { peak, background, peakIdx, decisive }.
-function r209PeakOf(series) {
-  const sm = series.map((_, i) => {
-    const a = series[Math.max(0, i - 1)], b = series[i], c = series[Math.min(series.length - 1, i + 1)];
-    return (a + b + c) / 3;
+// The decisive peak of a motion series, Round 213 rules:
+// the background is the lower median of the RAW smoothed
+// series (the clip's typical motion level — brief
+// transitions cannot move a median); the peak search is
+// restricted to the interior-window index range
+// [iMin, iMax]. Tier 1 searches a capped series —
+// transition-class steps (Round 213 concentration guard)
+// are capped at the background level, so they can
+// neither win nor lend magnitude to a neighbour's
+// smoothed score, and are not themselves candidates.
+// Tier 2 is the plain in-window peak of the raw smoothed
+// series, used when tier 1 has no decisive candidate.
+// `peak` reports the raw smoothed value at the chosen
+// index in both tiers (the decision value for tier 1 is
+// the capped one). Returns { peak, background, peakIdx,
+// decisive, tier, transSteps }.
+function r209PeakOf(series, shares, iMin, iMax) {
+  const smooth = (a) => a.map((_, i) => {
+    const x = a[Math.max(0, i - 1)], b = a[i], c = a[Math.min(a.length - 1, i + 1)];
+    return (x + b + c) / 3;
   });
-  let peakIdx = 0;
-  for (let i = 1; i < sm.length; i++) if (sm[i] > sm[peakIdx]) peakIdx = i;
-  const peak = sm[peakIdx] || 0;
+  const sm = smooth(series);
   const sorted = [...sm].sort((a, b) => a - b);
   const background = sorted[Math.floor((sorted.length - 1) / 2)] || 0;
-  return { peak: r186Round(peak, 2), background: r186Round(background, 2), peakIdx, decisive: sm.length >= 3 && peak >= R209_MIN_PEAK && peak >= R209_RATIO * background };
+  const lo = Math.max(0, iMin | 0), hi = Math.min(series.length - 1, iMax === undefined ? series.length - 1 : iMax);
+  const isTrans = (i) => series[i] >= R209_MIN_PEAK && (shares ? shares[i] || 0 : 0) >= R213_TRANS_SHARE;
+  let transSteps = 0;
+  for (let i = 0; i < series.length; i++) if (isTrans(i)) transSteps++;
+  const decisive = (v) => series.length >= 3 && v >= R209_MIN_PEAK && v >= R209_RATIO * background;
+  if (hi >= lo) {
+    const capped = series.map((v, i) => (isTrans(i) ? Math.min(v, background) : v));
+    const smCap = smooth(capped);
+    let t1 = -1;
+    for (let i = lo; i <= hi; i++) { if (isTrans(i)) continue; if (t1 < 0 || smCap[i] > smCap[t1]) t1 = i; }
+    if (t1 >= 0 && decisive(smCap[t1])) {
+      return { peak: r186Round(sm[t1], 2), background: r186Round(background, 2), peakIdx: t1, decisive: true, tier: 1, transSteps };
+    }
+    let peakIdx = lo;
+    for (let i = lo + 1; i <= hi; i++) if (sm[i] > sm[peakIdx]) peakIdx = i;
+    const peak = sm[peakIdx] || 0;
+    return { peak: r186Round(peak, 2), background: r186Round(background, 2), peakIdx, decisive: decisive(peak), tier: 2, transSteps };
+  }
+  return { peak: 0, background: r186Round(background, 2), peakIdx: 0, decisive: false, tier: 2, transSteps };
 }
 // Score the candidate frames around the peak: one ffmpeg
 // pass at R209_CAND_FPS over the window, blurdetect +
@@ -3471,34 +3624,74 @@ function r209PeakOf(series) {
 // frame order. Returns [{ t, blur, luma }] or null when
 // nothing parseable came back (the caller falls back to
 // the peak frame itself).
-async function r209Candidates(bins, abs, peakTime, duration) {
-  const start = Math.max(0, peakTime - R209_CAND_HALF_SEC);
-  const end = duration > 0 ? Math.min(duration, peakTime + R209_CAND_HALF_SEC) : peakTime + R209_CAND_HALF_SEC;
+async function r209Candidates(bins, abs, peakTime, duration, winStart, winEnd) {
+  let start = Math.max(0, peakTime - R209_CAND_HALF_SEC);
+  let end = duration > 0 ? Math.min(duration, peakTime + R209_CAND_HALF_SEC) : peakTime + R209_CAND_HALF_SEC;
+  // Round 213: the candidate window is clamped to the
+  // interior window as well — a peak near the window's
+  // edge must not let candidacy leak back into the
+  // excluded head or tail.
+  if (winEnd > winStart) { start = Math.max(start, winStart); end = Math.min(end, winEnd); }
   if (!(end > start)) return null;
   const run = () => r124Run(bins.ffmpeg, ["-nostats", "-y", "-ss", String(r186Round(start, 3)), "-i", abs,
     "-vf", `fps=${R209_CAND_FPS},scale=${R209_CAND_MAX_W}:-2,blurdetect,signalstats,metadata=print:key=lavfi.blur,metadata=print:key=lavfi.signalstats.YAVG`,
     "-t", String(r186Round(end - start, 3)), "-f", "null", "-"], 120000);
   const { err, stderr } = await r138SerializeFfmpeg(run);
   if (err) return null;
-  const blurs = [...stderr.matchAll(/lavfi\.blur=([\d.]+)/g)].map((m) => Number(m[1]));
-  const lumas = [...stderr.matchAll(/lavfi\.signalstats\.YAVG=([\d.]+)/g)].map((m) => Number(m[1]));
-  const n = Math.min(blurs.length, lumas.length);
-  if (!n) return null;
+  // Round 213: the metadata stream is parsed as ONE
+  // ordered sequence — each frame prints a header
+  // carrying its pts_time (relative to the seek point),
+  // then its blur value, then its luma — and the three
+  // are bound together per frame. The original code
+  // collected blurs and lumas with two independent
+  // regexes and zipped them by index. That silently
+  // misaligned whenever blurdetect reported "-nan" on a
+  // flat frame (the numeric regex dropped the entry,
+  // shifting every later blur onto the wrong frame).
+  // A NaN blur is kept as Infinity here: unmeasurable
+  // sharpness never wins, but the frame keeps its time
+  // and luma. A frame whose header time is missing
+  // falls back to its index.
+  // The candidate time points at the END of the frame's
+  // fps slot (minus a small epsilon): the fps filter
+  // emits, for each output slot, the LAST source frame
+  // that rounds into it, so the frame actually scored
+  // lives at the slot's end, not its start — pointing
+  // the poster grab at the slot's start can land it on
+  // the wrong side of a hard content boundary a full
+  // slot earlier (a black head frame instead of the
+  // action frame that won).
+  const slotGrab = 1 / R209_CAND_FPS - 0.05;
   const out = [];
-  for (let k = 0; k < n; k++) out.push({ t: r186Round(start + k / R209_CAND_FPS, 3), blur: blurs[k], luma: lumas[k] });
+  let pendingT = null, pendingBlur = null;
+  for (const m of stderr.matchAll(/pts_time:([\d.]+)|lavfi\.blur=(\S+)|lavfi\.signalstats\.YAVG=([\d.]+)/g)) {
+    if (m[1] !== undefined) { pendingT = Number(m[1]); }
+    else if (m[2] !== undefined) { const b = Number(m[2]); pendingBlur = Number.isFinite(b) ? b : Infinity; }
+    else if (m[3] !== undefined) {
+      out.push({ t: r186Round(start + (pendingT !== null ? pendingT : out.length / R209_CAND_FPS) + slotGrab, 3), blur: pendingBlur !== null ? pendingBlur : Infinity, luma: Number(m[3]) });
+      pendingT = null; pendingBlur = null;
+    }
+  }
+  if (!out.length) return null;
   return out;
 }
 // Merge this round's evaluation into the play's
 // enhance_json (the Round 186 report and the r195/r203
 // keys, when they exist, are preserved) and stamp
 // r209_checked_at in the same write — the stamp is what
-// the boot backfill selects on.
+// the boot backfill selects on. Round 213: r213_checked_at
+// is stamped in the same write — every evaluation now
+// runs under the Round 213 rules, and the backfill
+// selects on either stamp being empty, so a play stamped
+// under the original Round 209 rules is re-evaluated
+// exactly once.
 function r209StoreEval(id, r209) {
   const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
   let obj = {};
   if (row && row.enhance_json) { try { obj = JSON.parse(row.enhance_json); } catch { obj = {}; } }
   obj.r209 = r209;
-  db.prepare("UPDATE highlights SET enhance_json=?, r209_checked_at=? WHERE id=?").run(JSON.stringify(obj), new Date().toISOString(), id);
+  const ts = new Date().toISOString();
+  db.prepare("UPDATE highlights SET enhance_json=?, r209_checked_at=?, r213_checked_at=? WHERE id=?").run(JSON.stringify(obj), ts, ts, id);
 }
 // Evaluate one play and re-pick its poster at the action
 // when the measurement calls for it. Shared by the upload
@@ -3544,7 +3737,7 @@ async function r209EvaluateOnce(bins, id, origin) {
     const abs = path.join(UPLOAD_DIR, name);
     if (!fs.existsSync(abs)) return out; // missing file: a later boot retries — never stamp it
     const info = r124VideoInfo(await r124Probe(bins, abs));
-    const r209 = { at: new Date().toISOString(), origin, status: null, peakTime: null, chosenTime: null, method: null, peak: null, background: null, candidates: 0 };
+    const r209 = { at: new Date().toISOString(), origin, status: null, peakTime: null, chosenTime: null, method: null, peak: null, background: null, candidates: 0, v: 213, window: null, tier: null, transSteps: null };
     if (!info || !info.width || !info.height) {
       // A file play that does not probe as video:
       // evaluated, nothing to do, stamped so backfill
@@ -3578,9 +3771,27 @@ async function r209EvaluateOnce(bins, id, origin) {
       console.error(`[r209] play ${id}: motion measurement failed — left unstamped for a later retry`);
       return out;
     }
-    const pk = r209PeakOf(motion.series);
+    // Round 213: restrict candidacy to the clip's
+    // interior window. Step i of the series is the frame
+    // pair ending at (i+1)/FPS — the same basis peakTime
+    // is reported on — so the window in seconds converts
+    // to an index range on that basis. A window that
+    // would leave no index (defensive; r213Window already
+    // falls back to the full range) restores full-range
+    // indices.
+    const [winStart, winEnd] = r213Window(info.duration || 0);
+    r209.window = [winStart, winEnd];
+    let iMin = 0, iMax = motion.series.length - 1;
+    if (winEnd > winStart) {
+      iMin = Math.max(0, Math.ceil(winStart * R209_SAMPLE_FPS) - 1);
+      iMax = Math.min(motion.series.length - 1, Math.floor(winEnd * R209_SAMPLE_FPS) - 1);
+      if (iMax < iMin) { iMin = 0; iMax = motion.series.length - 1; }
+    }
+    const pk = r209PeakOf(motion.series, motion.shares, iMin, iMax);
     r209.peak = pk.peak;
     r209.background = pk.background;
+    r209.tier = pk.tier;
+    r209.transSteps = pk.transSteps;
     r209.peakTime = r186Round((pk.peakIdx + 1) / R209_SAMPLE_FPS, 3);
     if (!pk.decisive) {
       r209.status = "kept-flat";
@@ -3589,7 +3800,22 @@ async function r209EvaluateOnce(bins, id, origin) {
       console.log(`[r209] play ${id}: evaluated — no decisive action peak (peak ${pk.peak} vs background ${pk.background}) (poster unchanged)`);
       return out;
     }
-    const cands = await r209Candidates(bins, abs, r209.peakTime, info.duration || 0);
+    let cands = await r209Candidates(bins, abs, r209.peakTime, info.duration || 0, winStart, winEnd);
+    if (cands && pk.tier === 1 && pk.transSteps > 0) {
+      // Tier 1 won on a non-transition step: a candidate
+      // frame that itself sits on a transition-class step
+      // (the UI page a cut lands on is razor-sharp and
+      // would otherwise win the sharpness score) is not a
+      // candidate. If that empties the list, the caller
+      // falls back to the frame at the peak, exactly as
+      // when blurdetect yields nothing.
+      const isTransAt = (t) => {
+        const i = Math.max(0, Math.min(motion.series.length - 1, Math.ceil(t * R209_SAMPLE_FPS) - 1));
+        return motion.series[i] >= R209_MIN_PEAK && (motion.shares[i] || 0) >= R213_TRANS_SHARE;
+      };
+      const kept = cands.filter((c) => !isTransAt(c.t));
+      cands = kept.length ? kept : null;
+    }
     let chosen = null;
     if (cands && cands.length) {
       r209.candidates = cands.length;
@@ -3668,13 +3894,17 @@ async function r209PosterAfterR203(id) {
 // r209_checked_at stamp, so a boot that finds everything
 // evaluated costs one query, a partial run simply finishes
 // on the next boot, and a play processed at upload is
-// never selected.
+// never selected. Round 213: the selection also admits a
+// play whose r213_checked_at is empty — a play evaluated
+// under the original Round 209 rules carries the r209
+// stamp only, so it is re-evaluated exactly once under
+// the Round 213 rules (its evaluation stamps both).
 async function r209Backfill() {
   try {
     if (process.env.HH_NO_SMARTPOSTER === "1") { console.log("[r209] backfill disabled via HH_NO_SMARTPOSTER"); return; }
     const bins = await r124ResolveBins();
     if (!bins) { console.log("[r209] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
-    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r209_checked_at='' OR r209_checked_at IS NULL)").all();
+    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r209_checked_at='' OR r209_checked_at IS NULL OR r213_checked_at='' OR r213_checked_at IS NULL)").all();
     let picked = 0;
     for (const row of rows) {
       try {
