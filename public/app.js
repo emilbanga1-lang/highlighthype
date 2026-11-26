@@ -1597,7 +1597,7 @@ function updateContestStrip107() {
    the stacked layout lives in the Round 129 styles.css block
    (the 126 classes stay). */
 function hypeFrameStrip126() {
-  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL</span></p></div></div>`;
+  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL · Adult sizes S–XL</span></p></div></div>`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -3249,12 +3249,13 @@ if (hsTeaserCard) {
 // Capture is client-side canvas work: play videos are same-origin hosted
 // files, so drawImage + toDataURL work. Link-posted plays can't be
 // captured (cross-origin embeds) — the studio says so instead of failing.
+// Round 199 (2026-11-26, Emil): the garment comes in exactly two
+// colors now — Black and Heather Gray. The server enforces the
+// same two names on order creation; orders already on file keep
+// whatever colorway they carry.
 const HF_COLORWAYS = {
   hoodie: [
-    { name: "Black", hex: "#17171a" }, { name: "Cream", hex: "#f3e7cf" },
-    { name: "Pink", hex: "#f3a8c4" }, { name: "Navy", hex: "#14264a" },
-    { name: "Forest Green", hex: "#14532d" }, { name: "Heather Gray", hex: "#a8abb0" },
-    { name: "Light Blue", hex: "#a9d7f0" }, { name: "Olive", hex: "#66704a" },
+    { name: "Black", hex: "#17171a" }, { name: "Heather Gray", hex: "#a8abb0" },
   ],
 };
 // Placement is stored as percentages RELATIVE to the garment's print
@@ -3709,7 +3710,11 @@ function hfSetPreset(p) {
 // picking one re-composes a frozen print exactly like a style change.
 // The garment stays "hoodie" and the side stays "front" — there is
 // still no apparel mock, garment picker or side toggle.
-const HF_SIZES = ["YXXS", "YXS", "YS", "YM", "YL", "YXL"];
+// Round 199: adult sizes (S–XL) join the six youth sizes — the
+// same ten the Shopify product carries, so the payment handoff
+// maps 1:1. One list: hfPickSize validates against it and the
+// server mirrors it.
+const HF_SIZES = ["YXXS", "YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"];
 function hfPickColor(name) {
   const list = HF_COLORWAYS[hfState.apparel] || [];
   if (!list.some((k) => k.name === name)) return;

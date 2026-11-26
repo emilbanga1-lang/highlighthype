@@ -1427,14 +1427,25 @@
                tone, exactly as the default did. -->
           <h4 class="form-sec-title" style="margin-top:22px">Hoodie color</h4>
           <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
-          <h4 class="form-sec-title" style="margin-top:22px">Youth size</h4>
-          <div class="hf-sizes" id="hfSizes" role="group" aria-label="Youth size">
+          <!-- Round 199 (2026-11-26): adult sizes S–XL join the youth
+               run — the same ten sizes the Shopify product carries.
+               The Youth/Adult labels group the ONE #hfSizes picker;
+               the buttons stay static markup wired by data-hf-size,
+               and HF_SIZES in app.js stays the single size list. -->
+          <h4 class="form-sec-title" style="margin-top:22px">Size</h4>
+          <div class="hf-sizes" id="hfSizes" role="group" aria-label="Size">
+            <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Youth</span>
             <button type="button" class="hf-size" data-hf-size="YXXS" aria-pressed="false">YXXS</button>
             <button type="button" class="hf-size" data-hf-size="YXS" aria-pressed="false">YXS</button>
             <button type="button" class="hf-size" data-hf-size="YS" aria-pressed="false">YS</button>
             <button type="button" class="hf-size" data-hf-size="YM" aria-pressed="true">YM</button>
             <button type="button" class="hf-size" data-hf-size="YL" aria-pressed="false">YL</button>
             <button type="button" class="hf-size" data-hf-size="YXL" aria-pressed="false">YXL</button>
+            <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Adult</span>
+            <button type="button" class="hf-size" data-hf-size="S" aria-pressed="false">S</button>
+            <button type="button" class="hf-size" data-hf-size="M" aria-pressed="false">M</button>
+            <button type="button" class="hf-size" data-hf-size="L" aria-pressed="false">L</button>
+            <button type="button" class="hf-size" data-hf-size="XL" aria-pressed="false">XL</button>
           </div>
 
           <h4 class="form-sec-title" style="margin-top:22px">Parent/guardian approval</h4>
@@ -2207,6 +2218,6 @@
   </div>
 </div>
 
-<script src="app.js?v=199"></script>
+<script src="app.js?v=200"></script>
 </body>
 </html>
