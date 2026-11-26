@@ -108,7 +108,7 @@ try {
     const home = await (await fetch(s.base + "/")).text();
     assert(home.includes('id="feed189"') && home.includes('id="feedTrack189"') && home.includes('id="feedClose189"'), "A: the page carries the feed overlay markup");
     assert(home.includes('id="btlFeedBtn189"'), "A: the Battles view carries the watch-in-feed entry");
-    assert(home.includes('src="app.js?v=193"') && home.includes('href="styles.css?v=191"'), "A: asset pins are v189 — →190: app.js now v190 (Round 190); styles keeps v189 (unchanged this round) — →191: app.js + styles now v191 (Round 191) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round)");
+    assert(home.includes('src="app.js?v=194"') && home.includes('href="styles.css?v=194"'), "A: asset pins are v189 — →190: app.js now v190 (Round 190); styles keeps v189 (unchanged this round) — →191: app.js + styles now v191 (Round 191) — →192: app.js now v192 (Round 192); styles keeps v191 (unchanged this round) — →193: app.js now v193 (Round 193); styles keeps v191 (unchanged this round) — →194: app.js + styles now v194 (Round 194)");
     assert(!home.includes("window.HH_NO_FEED189=true"), "A: no kill-switch flag stamped in the page by default");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const css = await (await fetch(s.base + "/styles.css")).text();

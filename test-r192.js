@@ -142,8 +142,8 @@ try {
     assert(pcc.includes("max-age=86400") && !pcc.includes("immutable"), "A: poster cache-control stays on the one-day policy (posters regenerate in place)");
 
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=192"') && home.includes('href="styles.css?v=191"'), "A: asset pins — app.js v192 (Round 192), styles keeps v191");
-    const appJs = await (await fetch(s.base + "/app.js?v=192")).text();
+    assert(home.includes('src="app.js?v=194"') && home.includes('href="styles.css?v=194"'), "A: asset pins — app.js v192 (Round 192), styles keeps v191 — →193: app.js now v193 (Round 193) — →194: app.js + styles now v194 (Round 194)");
+    const appJs = await (await fetch(s.base + "/app.js?v=194")).text();
     assert(appJs.includes("function playSrc192"), "A: served app.js carries playSrc192");
     assert(appJs.split("playSrc192").length - 1 >= 4, "A: playSrc192 is wired into mediaHtml, fameThumbHtml and the feed renderer (helper + call sites)");
     assert(appJs.includes("rest192"), "A: served app.js carries the rest192 at-rest card form");
