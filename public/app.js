@@ -3266,7 +3266,7 @@ const HF_COLORWAYS = {
    print's placement values and the order payload both read it
    (server fallback default matches). */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "front", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name" };
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3303,6 +3303,11 @@ function initHfStudio(play) {
   hfState.apparel = "hoodie";
   hfPickSide("front");
   hfPickImageStyle("photo");
+  // Round 197: the back-text choice resets to the player's name for
+  // each new play, and any typed custom words are cleared.
+  hfPickBackText197("name");
+  const hfBackCustomEl197 = $("#hfBackCustom197");
+  if (hfBackCustomEl197) hfBackCustomEl197.value = "";
   hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
   hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
@@ -3735,6 +3740,39 @@ function hfPickImageStyle(style) {
   hfState.imageStyle = style === "avatar" ? "avatar" : "photo";
   $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfImageStyle === hfState.imageStyle)));
 }
+/* Words on the back (Round 197, 2026-11-25 — parent feedback Emil
+   received with the first delivered sweatshirt): the embroidered
+   back text is the family's choice — the player's name (the
+   default, exactly as before), name + jersey number, no name at
+   all, or their own short line of words. The choice rides on the
+   order; the name/number fields stay the order's name data, and a
+   custom line is validated here AND on the server (16 characters,
+   stitchable characters only — the server copy enforces). The
+   owner reads every custom line before production: the Owner view
+   flags unreviewed custom orders (see hfMarkBackTextReviewed197). */
+const HF_BACK_TEXT_197 = ["name", "name_number", "none", "custom"];
+const HF_CUSTOM_TEXT_RE197 = /^[\p{L}\p{N} .,'&#!-]+$/u;
+function hfCustomTextError197(raw) {
+  const t = String(raw || "").trim();
+  if (!t) return "Write the words you'd like on the back — or pick one of the other back-text options.";
+  if (t.length > 16) return "Custom words are limited to 16 characters — the embroidery space across the back is tight.";
+  if (!HF_CUSTOM_TEXT_RE197.test(t)) return "Custom words can use letters, numbers, spaces and basic punctuation only — embroidery can't stitch emoji or other symbols.";
+  return "";
+}
+function hfPickBackText197(choice) {
+  hfState.backText = HF_BACK_TEXT_197.includes(choice) ? choice : "name";
+  $$("#hfBackText197 [data-hf-back-text]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfBackText === hfState.backText)));
+  const customRow = $("#hfBackCustomRow197");
+  if (customRow) customRow.hidden = hfState.backText !== "custom";
+  // With "No name" or "Your own words" picked, the name/number
+  // fields no longer decide the back — disable them so the form
+  // never implies otherwise. Their values stay put (the composed
+  // print's Signature caption still reads them).
+  const lockName = hfState.backText === "none" || hfState.backText === "custom";
+  const nameEl = $("#hfName"), jerseyEl = $("#hfJersey");
+  if (nameEl) nameEl.disabled = lockName;
+  if (jerseyEl) jerseyEl.disabled = lockName;
+}
 function hfBuildColorButtons() {
   const wrap = $("#hfColors");
   if (!wrap || wrap.childElementCount) return;
@@ -3781,6 +3819,7 @@ function hfBuildColorButtons() {
   $$("#hfSizes [data-hf-size]").forEach((b) => b.addEventListener("click", () => hfPickSize(b.dataset.hfSize)));
   $$("#hfSides [data-hf-side]").forEach((b) => b.addEventListener("click", () => hfPickSide(b.dataset.hfSide)));
   $$("#hfImageStyles [data-hf-image-style]").forEach((b) => b.addEventListener("click", () => hfPickImageStyle(b.dataset.hfImageStyle)));
+  $$("#hfBackText197 [data-hf-back-text]").forEach((b) => b.addEventListener("click", () => hfPickBackText197(b.dataset.hfBackText)));
   // Print placement is FIXED at the default (2026-11-04): no drag, no
   // placement controls and no garment preview; the order carries the
   // default placement, the fixed garment (hoodie), the chosen print
@@ -3792,12 +3831,23 @@ function hfBuildColorButtons() {
     if (!hfState.frozen || !hfState.printDataUrl) { msg.textContent = "Freeze a frame first — the print starts from your frozen still."; return; }
     const guardianEmail = $("#hfGuardianEmail").value.trim();
     if (!guardianEmail) { msg.textContent = "A parent/guardian email is required so we can confirm before printing."; return; }
+    // Round 197: the back-text choice is validated before the
+    // request leaves — the server enforces the same rules.
+    if (hfState.backText === "custom") {
+      const err197 = hfCustomTextError197($("#hfBackCustom197").value);
+      if (err197) { msg.textContent = err197; return; }
+    }
+    if (hfState.backText === "name_number" && !$("#hfJersey").value.replace(/\D/g, "")) {
+      msg.textContent = "Add the jersey number — you picked name + number for the back."; return;
+    }
     msg.textContent = "Sending your request…";
     try {
       const r = await api("/api/hype-frame/orders", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
         highlightId: hfState.play.id,
         customName: $("#hfName").value.trim(),
         jersey: $("#hfJersey").value.trim(),
+        backText: hfState.backText,
+        backTextCustom: $("#hfBackCustom197").value.trim(),
         branding: hfState.preset === "hypeframe",
         apparel: hfState.apparel,
         side: hfState.side,
@@ -3809,7 +3859,10 @@ function hfBuildColorButtons() {
         guardianEmail,
         image: hfState.printDataUrl,
       }) });
-      msg.textContent = r.message;
+      // Round 197: the confirmation names exactly what will be
+      // embroidered across the back — or, for the no-name choice,
+      // says so plainly.
+      msg.textContent = r.message + (r.backTextToEmbroider ? ` Back text: “${r.backTextToEmbroider}”` : " Back text: No back text");
     } catch (err) { msg.textContent = "Error: " + err.message; }
   });
 })();
@@ -4504,6 +4557,7 @@ async function loadOwner() {
           <div class="hf-req-body">
             <b>${esc(o.play_title || "Play #" + o.highlight_id)}</b> — status: <b>${esc(o.status)}</b><br>
             Print: ${esc(o.custom_name || "—")}${o.jersey ? ` · #${esc(o.jersey)}` : ""} · HYPE FRAME branding: ${o.branding ? "yes" : "no"}<br>
+            Back text: <b>${o.backTextToEmbroider ? esc(o.backTextToEmbroider) : "NO BACK TEXT"}</b>${o.back_text === "custom" ? (o.back_text_reviewed ? ` <span style="color:var(--muted)">(custom text — reviewed ✓)</span>` : ` <span class="tagchip" style="background:#7a1f1f;color:#fff">⚠ CUSTOM TEXT — REVIEW</span> <button type="button" class="mini-btn" onclick="hfMarkBackTextReviewed197(${o.id})">Mark reviewed</button>`) : ""}<br>
             Apparel: ${esc(o.apparel)} · ${esc(o.colorway)} · Size: ${esc(o.size || "YM")} · Print side: ${o.side === "back" ? "Back" : "Front"} · Image: ${o.image_style === "avatar" ? "Avatar (illustrate first)" : "Real photo"}<br>
             ${(() => { try { const p = JSON.parse(o.placement || ""); return p && p.cx != null ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size<br>` : ""; } catch { return ""; } })()}
             ${src ? `<a class="mini-btn" style="text-decoration:none" href="${src}" download="hypeframe-order-${o.id}.png">⬇ Download print image</a><br>` : ""}
@@ -4795,6 +4849,14 @@ $("#deleteLiveConfirm145")?.addEventListener("click", async () => {
    restore (e.g. the video file went missing) alerts the reason
    and leaves the play in the Trash. Delete forever is the
    panel's one permanent gesture and names itself as final. */
+/* Round 197: the owner has read a custom back-text line — set the
+   order's reviewed flag server-side and reload the panel so the
+   flag clears. The one moderation gesture this feature has. */
+window.hfMarkBackTextReviewed197 = async (id) => {
+  try { await api(`/api/owner/hype-frames/${id}/back-text-reviewed`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); }
+  catch (e) { alert(e.message); }
+  loadOwner();
+};
 window.restorePlay146 = async (id) => {
   try { await api(`/api/highlights/${id}/restore`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }); }
   catch (e) { alert(e.message); }

@@ -1372,6 +1372,21 @@
 
         <div class="hf-col">
           <h4 class="form-sec-title">Make it yours</h4>
+          <!-- Words on the back (Round 197, 2026-11-25): the
+               embroidered back text is the family's choice — the
+               player's name, name + number, no name, or their own
+               words. The choice rides on the order request. -->
+          <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Words on the back">
+            <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
+            <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
+            <button type="button" data-hf-back-text="none" aria-pressed="false">No name</button>
+            <button type="button" data-hf-back-text="custom" aria-pressed="false">Your own words</button>
+          </div>
+          <p class="small">The words embroidered across the back of the hoodie.</p>
+          <div id="hfBackCustomRow197" hidden>
+            <label>Your words for the back <input type="text" id="hfBackCustom197" maxlength="16" placeholder="e.g. GO HAWKS!"></label>
+            <p class="small">Up to 16 characters — letters, numbers, spaces and basic punctuation. Embroidery can't stitch emoji, and we read every custom line before it's made.</p>
+          </div>
           <label>Name on the print <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
           <div class="row2">
             <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
@@ -2192,6 +2207,6 @@
   </div>
 </div>
 
-<script src="app.js?v=194"></script>
+<script src="app.js?v=197"></script>
 </body>
 </html>
