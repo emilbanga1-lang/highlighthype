@@ -846,6 +846,21 @@ try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN image_style TEXT DEFAULT
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text TEXT DEFAULT 'name'"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_custom TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_reviewed INTEGER DEFAULT 0"); } catch {}
+// Payment handoff (Round 200, 2026-11-26): the studio stays the
+// order book; Shopify is the register. payment_status is '' for
+// every pre-R200 row (the legacy request flow — the owner email
+// fired at create and nothing about those rows changes); with the
+// handoff on (HH_SHOPIFY_CHECKOUT=1) a new order starts
+// 'awaiting_payment' and flips to 'paid' only when Shopify's
+// signed orders/paid webhook lands, or 'refunded' on the refund
+// webhook. paid_at stamps the flip; shopify_order_id carries
+// Shopify's order id for reconciliation; paid_email_sent_at is
+// the parent confirmation email's once-only guard (checked
+// before the send, stamped after it resolves — the R188 rule).
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN payment_status TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN paid_at TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN shopify_order_id TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN paid_email_sent_at TEXT DEFAULT ''"); } catch {}
 const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
 function athleteDisplayName(raw) {
   const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
@@ -1499,14 +1514,164 @@ function notifyApproved(title, id, to) {
 }
 // Owner notification for a new Hype Frame order request — same pattern
 // as notifyPending: silent no-op when SMTP is not configured.
-function notifyHypeFrameRequest(order, play) {
+// Round 200: with { paid: true } this is the PRODUCTION notification,
+// fired by the Shopify orders/paid webhook instead of at create —
+// the same order detail, with a clear PAID marker and the Shopify
+// order id, so the owner can reconcile the two systems at a glance.
+function notifyHypeFrameRequest(order, play, opts = {}) {
+  const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+  if (!user || !pass) return;
+  const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
+  const paid200 = !!opts.paid;
+  smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+    subject: paid200 ? `HighlightHype: Hype Frame order PAID — ${play.title}` : `HighlightHype: new Hype Frame request — ${play.title}`,
+    body: `${paid200 ? `PAYMENT CONFIRMED on Shopify — this Hype Frame order is PAID and cleared for production.\nShopify order: ${order.shopify_order_id || "—"} · Site order #${order.id}` : "A family just submitted a Hype Frame order request on highlighthype.com."}\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: ${paid200 ? "PAID — payment confirmed via Shopify; cleared for production." : "pending-guardian — nothing is printed until you confirm with the parent/guardian."}\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
+    .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
+}
+// ---- Round 200: Shopify payment handoff helpers ----
+// The variant map for the Hype Frame product (Shopify product
+// 15536451584213, every variant $110 — the price lives ONLY in
+// Shopify; the site never passes one). Keys are the studio's ten
+// sizes (Round 199), 1:1 with the product's variants.
+const HF_VARIANTS_200 = {
+  YXXS: "68266140827861", YXS: "68266140860629", YS: "68266140893397",
+  YM: "68266140926165", YL: "68266140958933", YXL: "68266140991701",
+  S: "68717544734933", M: "68717544767701", L: "68717544800469", XL: "68717544833237",
+};
+const hfShopifyCheckoutOn200 = () => process.env.HH_SHOPIFY_CHECKOUT === "1";
+// The readable one-line order summary that rides the Shopify cart
+// (and lands on the Shopify order) so a human can match the two
+// systems without opening the site. The back-text segment reuses
+// the R197 derivation — the exact words to embroider.
+function hfSummary200(order, play) {
+  const back = hfBackTextToEmbroider197(order);
+  return `${play.title} — ${order.custom_name || "No name"} · Size ${order.size || "YM"} · ${order.colorway} · Back: ${back || "No back text"}`;
+}
+// Cart permalink for the order's size variant, quantity 1. The
+// site order id rides TWICE: as a line-item property (shows on
+// the Shopify order's line, the primary match key) and as a cart
+// attribute (surfaces as the order's note_attributes — the
+// fallback match key if a theme/checkout drops line properties).
+function hfCheckoutUrl200(order, play) {
+  const domain = String(process.env.HH_SHOP_DOMAIN || "shop.highlighthype.com").replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const variant = HF_VARIANTS_200[String(order.size || "YM").toUpperCase()] || HF_VARIANTS_200.YM;
+  const q = [
+    `attributes[${encodeURIComponent("HH Order #")}]=${encodeURIComponent(String(order.id))}`,
+    `properties[${encodeURIComponent("HH Order #")}]=${encodeURIComponent(String(order.id))}`,
+    `properties[Summary]=${encodeURIComponent(hfSummary200(order, play))}`,
+  ].join("&");
+  return `https://${domain}/cart/${variant}:1?${q}`;
+}
+// Owner alert for handoff anomalies (unmatched payments, refunds,
+// payments against legacy rows): plain house mail to the owner
+// address, silent no-op without SMTP, never throws.
+function notifyOwnerAlert200(subject, body) {
   const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
   if (!user || !pass) return;
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
-    subject: `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
-    .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
+    subject, body: `${body}\n\nOwner view: https://highlighthype.com/#owner\n` })
+    .catch((e) => console.error("notifyOwnerAlert200 failed:", e.message));
+}
+function hfPaidConfirmText200({ greeting, orderId, title, size, colorway, backText }) {
+  return `Payment confirmed — your Hype Frame is in production\n\nHi ${greeting},\n\nGreat news: your payment is confirmed, and your Hype Frame is now in production.\n\nOrder #${orderId}\nPlay: ${title}\nSize: ${size} · Color: ${colorway}\nBack text: ${backText || "No back text"}\n\nEvery Hype Frame hoodie is made to order on Long Island, NY. Made to order — ships in 5–7 business days. You'll get a tracking email when it ships.\n\nQuestions about your order? Email hello@highlighthype.com.\n\n— The HighlightHype Family\nhighlighthype.com\n\nAthletes — Strength — Memories — Motivation\nWe believe every young athlete should be celebrated.\n`;
+}
+function hfPaidConfirmHtml200({ greeting, orderId, title, size, colorway, backText }) {
+  const g = escHtml(greeting), t = escHtml(title), s = escHtml(size), c = escHtml(colorway), b = escHtml(backText || "No back text");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HighlightHype — Payment confirmed</title></head>
+<body style="margin:0;padding:0;background:#0a0a0a;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#0a0a0a;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:600px;max-width:600px;background:#0a0a0a;">
+  <tr><td style="background:#0a0a0a;padding:30px 40px 6px;text-align:center;">
+    <img src="https://highlighthype.com/logo-header-gold.png" width="340" alt="HighlightHype" style="display:block;margin:0 auto;width:340px;max-width:85%;height:auto;">
+    <div style="font-size:10.5px;letter-spacing:.3em;color:#B39B63;text-transform:uppercase;margin-top:7px;font-family:Arial,Helvetica,sans-serif;">Athletes — Strength — Memories — Motivation</div>
+  </td></tr>
+  <tr><td style="padding:18px 40px 0;"><div style="border-top:1px solid #2a2517;font-size:0;line-height:0;">&nbsp;</div></td></tr>
+  <tr><td style="padding:22px 40px 0;color:#e8e8e8;font-size:16px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+    <div style="font-family:'Arial Narrow',Arial,sans-serif;font-size:25px;font-weight:bold;text-transform:uppercase;letter-spacing:.03em;color:#ffffff;line-height:1.2;">Payment confirmed</div>
+    <p style="margin:14px 0 0;">Hi ${g},</p>
+    <p style="margin:12px 0 0;">Great news: your payment is confirmed, and your Hype Frame is now in production.</p>
+  </td></tr>
+  <tr><td style="padding:22px 40px 0;">
+    <div style="border:1px solid #2a2517;border-radius:12px;background:#141414;padding:18px 22px;color:#e8e8e8;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;">
+      <div style="font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#B39B63;font-weight:bold;">Order #${orderId}</div>
+      <div style="margin-top:8px;">Play: <b style="color:#ffffff;">${t}</b></div>
+      <div>Size: ${s} · Color: ${c}</div>
+      <div>Back text: ${b}</div>
+    </div>
+  </td></tr>
+  <tr><td style="padding:22px 40px 0;color:#e8e8e8;font-size:15.5px;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">
+    <p style="margin:0;">Every Hype Frame hoodie is made to order on Long Island, NY. <b style="color:#ffffff;">Made to order — ships in 5–7 business days.</b> You'll get a tracking email when it ships.</p>
+    <p style="margin:14px 0 0;">Questions about your order? Email <a href="mailto:hello@highlighthype.com" style="color:#e8cf8f;">hello@highlighthype.com</a>.</p>
+    <p style="margin:14px 0 0;color:#ffffff;">— The HighlightHype Family<br><span style="font-size:13px;color:#9a958a;">highlighthype.com</span></p>
+  </td></tr>
+  <tr><td style="padding:26px 40px 30px;">
+    <div style="border-top:1px solid #2a2517;padding-top:16px;text-align:center;font-family:Arial,Helvetica,sans-serif;">
+      <div style="font-size:10.5px;letter-spacing:.26em;color:#B39B63;text-transform:uppercase;">Athletes — Strength — Memories — Motivation</div>
+      <div style="font-size:12px;color:#8a857a;line-height:1.6;margin-top:10px;">
+        We believe every young athlete should be celebrated.<br>
+        HighlightHype · hello@highlighthype.com · <a href="https://highlighthype.com" style="color:#8a857a;">highlighthype.com</a>
+      </div>
+    </div>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+// The parent's payment-confirmed email. Fire-and-forget from the
+// webhook: a mail failure can never fail the webhook, and the
+// paid_email_sent_at guard (checked before, stamped only after
+// smtpSend resolves — the R188 discipline) means it can only
+// ever be sent once per order, even across webhook re-deliveries.
+async function notifyHfPaymentConfirmed200(order, play) {
+  try {
+    const user = process.env.SMTP_USER, pass = process.env.SMTP_PASS;
+    if (!user || !pass) return; // mailer unconfigured — silent no-op, the house rule
+    const fresh = db.prepare("SELECT paid_email_sent_at FROM hype_frame_orders WHERE id=?").get(order.id);
+    if (!fresh || fresh.paid_email_sent_at) return; // already sent — never twice
+    const to = String(order.guardian_email || "").trim();
+    if (!to) return;
+    const merges = {
+      greeting: String(order.guardian_name || "").trim().split(/\s+/)[0] || "there",
+      orderId: order.id,
+      title: String(play.title || "").trim() || "Your play",
+      size: order.size || "YM",
+      colorway: order.colorway || "",
+      backText: hfBackTextToEmbroider197(order),
+    };
+    await smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
+      subject: `Payment confirmed — your Hype Frame is in production (order #${order.id})`,
+      body: hfPaidConfirmText200(merges), html: hfPaidConfirmHtml200(merges) });
+    db.prepare("UPDATE hype_frame_orders SET paid_email_sent_at=? WHERE id=?").run(new Date().toISOString(), order.id);
+  } catch (e) {
+    console.error("notifyHfPaymentConfirmed200 failed:", e.message);
+  }
+}
+// The site order id a Shopify payload points at: the line-item
+// property "HH Order #" first (it is set per line), then the cart
+// attribute of the same name (order.note_attributes). Null when
+// the payload carries neither — an order placed straight off the
+// Shopify product page, with no studio order behind it.
+function hfShopifyOrderRef200(payload) {
+  const fromProps = (items) => {
+    for (const li of Array.isArray(items) ? items : []) {
+      for (const pr of Array.isArray(li && li.properties) ? li.properties : []) {
+        if (pr && pr.name === "HH Order #" && Number.isInteger(Number(pr.value)) && Number(pr.value) > 0) return Number(pr.value);
+      }
+    }
+    return null;
+  };
+  const byLine = fromProps(payload && payload.line_items);
+  if (byLine) return byLine;
+  for (const na of Array.isArray(payload && payload.note_attributes) ? payload.note_attributes : []) {
+    if (na && na.name === "HH Order #" && Number.isInteger(Number(na.value)) && Number(na.value) > 0) return Number(na.value);
+  }
+  return null;
 }
 // ---- Round 197: Hype Frame back text ----
 // The exact string the embroiderer stitches across the back of the
@@ -3961,6 +4126,86 @@ const server = http.createServer(async (req, res) => {
 
     if (p === "/api/health") return sendJson(res, 200, { ok: true, period: currentPeriod() });
 
+    // ---- Round 200: Shopify webhooks (orders/paid, orders/refunded) ----
+    // Emil creates these in Shopify Admin; the signing secret lives
+    // ONLY in the HH_SHOPIFY_WEBHOOK_SECRET env var. The HMAC is
+    // computed over the RAW request body and compared timing-safe
+    // BEFORE the payload is parsed or trusted — nothing is stored
+    // on a bad signature (401). With the secret unset the endpoints
+    // are inert (503): a misconfigured deploy answers honestly
+    // instead of accepting unsigned money events. Every verified
+    // delivery gets a 200 — including duplicates and unmatched
+    // orders — so Shopify never retry-storms us; anomalies go to
+    // the owner by email instead.
+    if (p === "/api/webhooks/shopify/orders-paid" || p === "/api/webhooks/shopify/orders-refunded") {
+      if (req.method !== "POST") return sendJson(res, 405, { ok: false, message: "POST only." });
+      const secret200 = process.env.HH_SHOPIFY_WEBHOOK_SECRET || "";
+      if (!secret200) return sendJson(res, 503, { ok: false, message: "Webhook endpoint not configured." });
+      let raw200;
+      try { raw200 = await readBody(req, 2 * 1024 * 1024); } catch { return sendJson(res, 400, { ok: false, message: "Unreadable body." }); }
+      const expected200 = crypto.createHmac("sha256", secret200).update(raw200).digest("base64");
+      const givenBuf200 = Buffer.from(String(req.headers["x-shopify-hmac-sha256"] || ""), "utf8");
+      const expectBuf200 = Buffer.from(expected200, "utf8");
+      if (givenBuf200.length !== expectBuf200.length || !crypto.timingSafeEqual(givenBuf200, expectBuf200))
+        return sendJson(res, 401, { ok: false, message: "Bad signature." });
+      let payload200 = null;
+      try { payload200 = JSON.parse(raw200.toString("utf8") || "{}"); } catch { return sendJson(res, 400, { ok: false, message: "Payload is not JSON." }); }
+      const shopifyOrderId200 = String(payload200.id || payload200.order_id || "");
+      const refId200 = hfShopifyOrderRef200(payload200);
+      const order200 = refId200 ? db.prepare("SELECT * FROM hype_frame_orders WHERE id=?").get(refId200) : null;
+      if (p === "/api/webhooks/shopify/orders-paid") {
+        if (!order200) {
+          console.error(`[r200] orders/paid UNMATCHED — Shopify order ${shopifyOrderId200 || "?"} carries no known HH Order #`);
+          notifyOwnerAlert200(`HighlightHype: unmatched Shopify payment (order ${shopifyOrderId200 || "?"})`,
+            `Shopify reported a PAID order that does not match any Hype Frame studio order.\n\nShopify order: ${shopifyOrderId200 || "—"}\nHH Order # on the payment: ${refId200 || "none"}\nBuyer email: ${String(payload200.email || payload200.customer?.email || "—")}\nTotal: ${String(payload200.total_price || "—")}\n\nThis usually means the hoodie was bought straight off the Shopify product page. The money is in Shopify; the studio order (frame, print, back text) is NOT on file — contact the buyer for their play details before producing anything.`);
+          return sendJson(res, 200, { ok: true, matched: false });
+        }
+        if (order200.payment_status === "paid" || order200.payment_status === "refunded")
+          return sendJson(res, 200, { ok: true, matched: true, duplicate: true }); // re-delivery — already processed, no second emails
+        if (order200.payment_status !== "awaiting_payment") {
+          // A legacy (pre-handoff) request: its owner email already
+          // fired at create, so a production email here would double
+          // the notification. Alert instead; state stays untouched.
+          console.error(`[r200] orders/paid for LEGACY order #${order200.id} (Shopify order ${shopifyOrderId200 || "?"}) — no state change`);
+          notifyOwnerAlert200(`HighlightHype: Shopify payment for legacy request #${order200.id}`,
+            `Shopify reported a payment (order ${shopifyOrderId200 || "—"}) against Hype Frame request #${order200.id}, which predates the payment handoff — its owner email already went out when the request was created, so no second production email was sent and the request's state was left untouched.\n\nCheck Shopify and the request in Owner view and reconcile by hand.`);
+          return sendJson(res, 200, { ok: true, matched: true, legacy: true });
+        }
+        db.prepare("UPDATE hype_frame_orders SET payment_status='paid', paid_at=?, shopify_order_id=? WHERE id=?")
+          .run(new Date().toISOString(), shopifyOrderId200, order200.id);
+        const paidOrder200 = db.prepare("SELECT * FROM hype_frame_orders WHERE id=?").get(order200.id);
+        const play200 = getPlayRow(paidOrder200.highlight_id) || { id: paidOrder200.highlight_id, title: `Play #${paidOrder200.highlight_id}` };
+        notifyHypeFrameRequest(paidOrder200, play200, { paid: true });
+        notifyHfPaymentConfirmed200(paidOrder200, play200);
+        return sendJson(res, 200, { ok: true, matched: true });
+      }
+      // orders-refunded
+      if (!order200) {
+        console.error(`[r200] orders/refunded UNMATCHED — Shopify order ${shopifyOrderId200 || "?"}`);
+        return sendJson(res, 200, { ok: true, matched: false });
+      }
+      if (order200.payment_status === "refunded") return sendJson(res, 200, { ok: true, matched: true, duplicate: true });
+      if (order200.payment_status === "paid" || order200.payment_status === "awaiting_payment") {
+        db.prepare("UPDATE hype_frame_orders SET payment_status='refunded' WHERE id=?").run(order200.id);
+        notifyOwnerAlert200(`HighlightHype: Hype Frame order #${order200.id} REFUNDED on Shopify`,
+          `Shopify refunded the payment for Hype Frame order #${order200.id} (Shopify order ${order200.shopify_order_id || shopifyOrderId200 || "—"}).\n\nThe order is marked REFUNDED. If it has not been produced yet, do NOT produce it; if it already shipped, this is a money matter only.\n\nParent/guardian: ${order200.guardian_name ? order200.guardian_name + " — " : ""}${order200.guardian_email}`);
+        return sendJson(res, 200, { ok: true, matched: true });
+      }
+      console.error(`[r200] orders/refunded for LEGACY order #${order200.id} — no state change`);
+      return sendJson(res, 200, { ok: true, matched: true, legacy: true });
+    }
+
+    // ---- Round 200: public payment status for the return landing ----
+    // The studio's post-checkout landing polls this. It returns ONLY
+    // the payment status — no email, no name, no order detail — so
+    // the order id on its own reveals nothing private.
+    const hfPayStatusMatch200 = p.match(/^\/api\/hype-frame\/orders\/(\d+)\/payment-status$/);
+    if (hfPayStatusMatch200 && req.method === "GET") {
+      const o200 = db.prepare("SELECT payment_status FROM hype_frame_orders WHERE id=?").get(Number(hfPayStatusMatch200[1]));
+      if (!o200) return sendJson(res, 404, { ok: false, message: "Order not found." });
+      return sendJson(res, 200, { payment_status: o200.payment_status || "" });
+    }
+
     // ---- Backup pull (token-gated; 403 for everyone when off) ----
     if (p.startsWith("/api/backup/")) {
       if (!backupAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Backup access required." });
@@ -4767,6 +5012,19 @@ const server = http.createServer(async (req, res) => {
       const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom);
       if (imgProblem) console.error(`hype-frame order ${Number(info.lastInsertRowid)} saved WITHOUT its print image: ${imgProblem}`);
+      // Round 200: with the Shopify handoff ON, the order starts
+      // as awaiting_payment and the owner email is DEFERRED to the
+      // orders/paid webhook — an unpaid order must never reach
+      // production. The response carries the checkout URL and the
+      // studio offers "Continue to payment". With the handoff OFF
+      // (the dark-launch default), the flow below is byte-identical
+      // to the pre-R200 behavior.
+      if (hfShopifyCheckoutOn200()) {
+        const newId200 = Number(info.lastInsertRowid);
+        db.prepare("UPDATE hype_frame_orders SET payment_status='awaiting_payment' WHERE id=?").run(newId200);
+        const saved200 = { ...order, id: newId200 };
+        return sendJson(res, 201, { ok: true, id: newId200, status: "awaiting_payment", paymentStatus: "awaiting_payment", checkoutUrl: hfCheckoutUrl200(saved200, play), imageSaved: !!imgName, backTextToEmbroider: hfBackTextToEmbroider197(order), message: "Your Hype Frame is saved — one step left: complete payment to send it to production." });
+      }
       notifyHypeFrameRequest({ ...order, id: Number(info.lastInsertRowid) }, play);
       return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", imageSaved: !!imgName, backTextToEmbroider: hfBackTextToEmbroider197(order), message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
     }
