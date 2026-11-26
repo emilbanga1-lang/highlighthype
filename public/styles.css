@@ -3691,8 +3691,14 @@ body.feed-open189{overflow:hidden}
    inserted before the media block in the DOM, so it paints
    behind the sharp video, caption and rail with no z-index
    juggling; the overscan (scale 1.12) keeps the blur's soft edge
-   off-screen. Pure scenery: never interactive. */
-.feed196-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(26px) brightness(.5) saturate(1.25);transform:scale(1.12);pointer-events:none}
+   off-screen. Pure scenery: never interactive.
+   Round 198 (2026-11-26): z-index:0 pins the fill as the slide's
+   explicit bottom layer. A playing, filtered, transformed
+   <video> is exactly the kind of layer a mobile compositor
+   promotes; the stacking order is now stated, not implied by
+   DOM order, so the slide's chrome (caption, rail, hint) can
+   never end up painted under the scenery. */
+.feed196-fill{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;filter:blur(26px) brightness(.5) saturate(1.25);transform:scale(1.12);pointer-events:none}
 .feed191-wide .feed189-vs{position:relative;left:auto;right:auto;bottom:auto;order:2;margin:10px 84px 0 12px}
 /* Title-first caption hierarchy (both placements). */
 .feed189-title{font-size:17px;font-weight:800;color:#fff;margin:0}
@@ -3705,8 +3711,14 @@ body.feed-open189{overflow:hidden}
 .feed189-railitem{gap:0}
 .feed189-count{line-height:1.2;margin-top:3px}
 .feed189-raillabel{margin-top:1px}
-/* The swipe hint: its own space, once, then faded for good. */
-.feed189-hint{bottom:156px;animation:feed191hintfade 3.4s ease forwards}
+/* The swipe hint: its own space, once, then faded for good.
+   Round 198: z-index:6 pins it above EVERY in-slide layer —
+   the Round 196 fill included (stated z-index:0) — after Emil
+   reported the icon missing on his iPhone; the base rule's
+   z-index:4 tied it with the caption/rail and left the order
+   to the compositor. Its perch (bottom:156px) overlaps no
+   other chrome, so the raise changes nothing visually. */
+.feed189-hint{bottom:156px;z-index:6;animation:feed191hintfade 3.4s ease forwards}
 .feed189-slide[data-feed-battle="1"] .feed189-hint{bottom:258px}
 .feed189-slide.feed191-wide[data-feed-battle="1"] .feed189-hint{bottom:148px}
 @keyframes feed191hintfade{0%{opacity:0;transform:translateY(6px)}10%{opacity:1;transform:translateY(0)}72%{opacity:1}100%{opacity:0;visibility:hidden}}

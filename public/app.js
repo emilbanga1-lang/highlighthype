@@ -7972,7 +7972,18 @@ initA2HS161();
    copy of the SAME video filling the whole slide behind
    the sharp one (feed196 below); the sharp video, the
    caption placement and every other shape are exactly as
-   Round 191 left them. */
+   Round 191 left them.
+   Round 198 (2026-11-26): the settle guarantee + hint
+   stacking (feed198 below) — Round 196's fill is the first
+   full-screen, continuously playing, filtered + transformed
+   VIDEO layer inside a snap slide, and on Emil's iPhone the
+   native snap could lose its point around it: swipes came
+   to rest between slides and the swipe hint went missing.
+   The DOM/CSS contract itself never broke (slides are
+   exactly one track-height; snap points sit at exact
+   multiples), so Round 198 enforces the settle in JS and
+   pins the hint's stacking in CSS rather than trusting the
+   engine's compositor. */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
 const feed191 = { hintSeen: false };
 /* Round 193 (2026-11-25): the slight delay between swipes.
@@ -8561,6 +8572,51 @@ function feedOnScroll189() {
   if (!h) return;
   const idx = Math.round((track.scrollTop || 0) / h);
   if (idx !== feed189.index) feedActivate189(idx);
+  /* Round 198: every scroll event re-arms the settle
+     corrector — it fires only once scrolling has stopped. */
+  feedSettleSoon198();
+}
+/* Round 198 (2026-11-26): the settle guarantee. Emil, on his
+   iPhone hours after Round 196 shipped: "some issues on the
+   swiping" — a swipe could come to rest BETWEEN slides (his
+   screenshot: Nicholas's slide filling the top two-thirds,
+   the next play's video below the seam) — "and the swipe
+   icon is gone." The geometry contract never actually broke:
+   every slide is exactly one track-height and the snap
+   points sit at exact multiples (verified in a real engine).
+   What Round 196 changed is the slide's CONTENTS: the fill
+   is a full-screen <video>, playing, with a blur(26px)
+   filter and a scale(1.12) transform — the first layer of
+   its kind inside a snap slide since Round 191 retired the
+   blurred poster backdrop, and that one was a still image.
+   Around such a layer iOS's compositor can drop the native
+   scroll-snap mid-gesture, and the track coasts to a stop
+   off-boundary. So the settle is enforced here instead of
+   trusted to the engine: when scrolling STOPS — no scroll
+   event for a beat, and no finger down — an off-boundary
+   rest is pulled onto the ACTIVE slide's boundary.
+   feedActivate189 remains the only place that sets the
+   index, counts play_open and pauses: the corrector never
+   picks a slide, it only aligns the track to the slide the
+   scroll handler already chose, so wherever native snap
+   landed cleanly it is a strict no-op. It never fights a
+   held finger (feed198.touching gates it; lifting the
+   finger re-arms it, so a released rest is still repaired
+   once momentum dies). */
+const feed198 = { timer: null, touching: false };
+function feedSettle198() {
+  feed198.timer = null;
+  if (feed198.touching || !feed189.open) return;
+  const track = typeof $ === "function" ? $("#feedTrack189") : null;
+  if (!track) return;
+  const h = track.clientHeight || 0;
+  if (!h || feed189.index < 0) return;
+  const target = feed189.index * h;
+  try { if (Math.abs((track.scrollTop || 0) - target) > 1) track.scrollTop = target; } catch (e) { /* a track that refuses the nudge keeps the native rest — the feed never breaks over a repair */ }
+}
+function feedSettleSoon198() {
+  try { if (feed198.timer) clearTimeout(feed198.timer); } catch (e) { /* no timer support in a partial slice — the native snap is the fallback, exactly as before */ }
+  try { feed198.timer = setTimeout(feedSettle198, 140); } catch (e) { feed198.timer = null; }
 }
 window.openFeed189 = (ids, startId, battle) => {
   if (!feedEnabled189()) return false;
@@ -8613,6 +8669,10 @@ window.closeFeed189 = () => {
      feed is closed. */
   if (feed193.observer) { try { feed193.observer.disconnect(); } catch (e) {} }
   feed193.early.clear();
+  /* Round 198: no settle correction outlives the feed. */
+  try { if (feed198.timer) clearTimeout(feed198.timer); } catch (e) {}
+  feed198.timer = null;
+  feed198.touching = false;
   const wrap = typeof $ === "function" ? $("#feed189") : null;
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (track && typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => { try { v.pause(); } catch (e) {} });
@@ -8670,6 +8730,16 @@ function feedSyncCounts189() {
     feedSyncSoundBtn194();
     const track = typeof $ === "function" ? $("#feedTrack189") : null;
     if (track && typeof track.addEventListener === "function") track.addEventListener("scroll", () => { if (typeof requestAnimationFrame === "function") requestAnimationFrame(feedOnScroll189); else feedOnScroll189(); }, { passive: true });
+    /* Round 198: the settle corrector never fights a held
+       finger — touch state gates it, and lifting the finger
+       re-arms it so a released-between-slides rest is still
+       repaired once momentum dies. */
+    if (track && typeof track.addEventListener === "function") {
+      track.addEventListener("touchstart", () => { feed198.touching = true; }, { passive: true });
+      const touchDone198 = () => { feed198.touching = false; feedSettleSoon198(); };
+      track.addEventListener("touchend", touchDone198, { passive: true });
+      track.addEventListener("touchcancel", touchDone198, { passive: true });
+    }
     const btn = typeof document !== "undefined" && typeof document.getElementById === "function" ? document.getElementById("btlFeedBtn189") : null;
     if (btn && typeof btn.addEventListener === "function") {
       if (!feedEnabled189()) btn.hidden = true;
