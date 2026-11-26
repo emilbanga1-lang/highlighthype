@@ -245,20 +245,34 @@ function applyDefaultView() {
 }
 
 /* ---------------- media + cards ---------------- */
-function mediaHtml(h) {
+function mediaHtml(h, opts = {}) {
   /* Round 123: every video this renders carries the Round 118
      poster pattern from FIRST paint (banked action frame when one
      exists, else the branded placeholder; the attribute set is
      computed by posterAttr123 in the Round 123 block, reached
      through a typeof guard so sandbox slices without it render
-     exactly as before). */
+     exactly as before).
+     Round 192: uploaded-file videos load the streaming
+     rendition when the play has one (playSrc192 in the Round
+     192 block, typeof-guarded the same way) — the master stays
+     canonical for downloads and the Hype Frame studio, never
+     for in-page playback. And opts.rest192 (board cards pass
+     it) drops preload="auto" + autoplay for preload="metadata":
+     at rest the card paints its poster and fetches only the
+     clip's metadata, so a homepage of cards no longer pulls
+     megabytes of video before anyone taps. The watch/detail
+     form (no opts) keeps preload="auto" + autoplay — opening
+     a play IS the intent to watch it. */
   const poster123 = (typeof posterAttr123 === "function") ? posterAttr123(h) : "";
+  const rest192 = !!(opts && opts.rest192);
+  const vidAttrs192 = rest192 ? `controls playsinline muted loop preload="metadata"` : `controls playsinline muted loop preload="auto" autoplay`;
   if (h.media_kind === "file") {
     if ((h.mime || "").startsWith("image/")) return `<img src="${esc(h.media_url)}" alt="">`;
-    return `<video src="${esc(h.media_url)}"${poster123} controls playsinline muted loop preload="auto" autoplay></video>`;
+    const src192 = (typeof playSrc192 === "function") ? playSrc192(h) : h.media_url;
+    return `<video src="${esc(src192)}"${poster123} ${vidAttrs192}></video>`;
   }
   if (h.media_kind === "link_embed") return `<iframe src="${esc(h.embed_url)}" allowfullscreen title="Embedded play"></iframe>`;
-  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${poster123} controls playsinline muted loop preload="auto" autoplay></video>`;
+  if (h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${poster123} ${vidAttrs192}></video>`;
   return `<a class="watch-link" href="${esc(h.media_url)}" target="_blank" rel="noopener">▶ Watch on ${esc(h.host_label || "link")} ↗</a>`;
 }
 function athleteLine(h) {
@@ -324,7 +338,7 @@ function cardHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="card" data-play-id="${h.id}">
-    <div class="thumb">${mediaHtml(h)}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="thumb">${mediaHtml(h, { rest192: true })}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
     <div class="card-body">
       <h3>${esc(h.title)}</h3>
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
@@ -401,7 +415,11 @@ function fmtDur(t) { t = Math.max(0, Math.floor(Number(t) || 0)); return Math.fl
 function playHasVideo(h) { return h.media_kind === "link_video" || (h.media_kind === "file" && !(h.mime || "").startsWith("image/")); }
 function durPillHtml(h) {
   if (!playHasVideo(h)) return "";
-  const secs = TILE_DURATIONS.get(h.media_url);
+  /* Round 192: fillDurPill caches under the <video>'s actual
+     src, which for an uploaded play is now the streaming
+     rendition — check the rendition key as well as the
+     master's, so a re-render still paints the pill instantly. */
+  const secs = TILE_DURATIONS.get(h.media_url) ?? (h.stream_url ? TILE_DURATIONS.get(h.stream_url) : undefined);
   if (secs != null) return `<span class="dur-pill" aria-hidden="true">${fmtDur(secs)}</span>`;
   return `<span class="dur-pill" aria-hidden="true" hidden></span>`;
 }
@@ -1269,7 +1287,7 @@ function fameThumbHtml(h, opts) {
      plays only in the detail view on tap. Every other caller
      (Watch tiles, Hall of Fame thumbs) renders exactly as
      before, autoplay included. */
-  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc(h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline${opts && opts.rest133 ? "" : " autoplay"} preload="metadata"></video>`;
+  if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc((typeof playSrc192 === "function") ? playSrc192(h) : h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline${opts && opts.rest133 ? "" : " autoplay"} preload="metadata"></video>`;
   return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
 }
 /* Round 134 (2026-11-13): the poster URL for a play, as a raw
@@ -7510,7 +7528,13 @@ function upgradeSurfacePosters123(url) {
 function bankSurfaceFrame123(v) {
   try {
     if (!v || typeof v.addEventListener !== "function" || !v.dataset || v.dataset.bankWired123 === "1") return;
-    const url = v.getAttribute("src") || "";
+    /* Round 192: bank under the MASTER url, not the element's
+       src — a rendition-carrying tile's src is the stream file,
+       but every poster lookup (btlPosterFor118) keys on
+       media_url. posterAttr123 already stamps the master url
+       on exactly the elements that need banking (the
+       data-poster123 hook), so prefer it when present. */
+    const url = v.getAttribute("data-poster123") || v.getAttribute("src") || "";
     if (!url) return;
     if (typeof btlPosters104 !== "undefined" && btlPosters104[url]) return;
     v.dataset.bankWired123 = "1";
@@ -7968,7 +7992,7 @@ function feedMediaHtml189(h, kind) {
   const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
   if (kind === "photo") return `<img class="feed189-fit" src="${esc(h.media_url)}" alt="">`;
   if (kind === "embed") return `<iframe class="feed189-fit" src="${esc(h.embed_url || "")}" allowfullscreen title="Embedded play"></iframe>`;
-  if (kind === "video") return `<video class="feed189-fit" src="${esc(h.media_url)}"${poster ? ` poster="${esc(poster)}"` : ""} playsinline muted loop preload="metadata"></video>`;
+  if (kind === "video") return `<video class="feed189-fit" src="${esc((typeof playSrc192 === "function") ? playSrc192(h) : h.media_url)}"${poster ? ` poster="${esc(poster)}"` : ""} playsinline muted loop preload="metadata"></video>`;
   return `<a class="feed189-watchlink" href="${esc(h.media_url)}" target="_blank" rel="noopener">▶ Watch on ${esc(h.host_label || "link")} ↗</a>`;
 }
 function feedHypeRail189(h) {
@@ -8214,3 +8238,22 @@ function feedSyncCounts189() {
     if (typeof document !== "undefined" && typeof document.addEventListener === "function") document.addEventListener("keydown", (e) => { if (e && e.key === "Escape" && feed189.open) window.closeFeed189(); });
   } catch (e) { /* the feed is an enhancement — a wiring hiccup never breaks the boards */ }
 })();
+
+/* ---------------- Round 192 (2026-11-25): streaming renditions ----------------
+   The playback source for a play: the Round 192 streaming
+   rendition (stream_url — a ~1 MB faststart H.264 sibling the
+   server generates from the final display file) when the play
+   has one, else the master media_url exactly as before. Only
+   uploaded-file videos ever carry a rendition; photo plays,
+   link videos and embeds resolve to media_url untouched.
+   In-page players (mediaHtml, fameThumbHtml, the watch feed)
+   reach this through a typeof guard, so a sandbox slice
+   without this block renders the master — the pre-192
+   behavior. Downloads (saveClip) and the Hype Frame studio
+   deliberately do NOT use this helper: they work from the
+   master, which stays canonical. */
+function playSrc192(h) {
+  if (!h) return "";
+  if (h.media_kind === "file" && h.stream_url) return h.stream_url;
+  return h.media_url || "";
+}
