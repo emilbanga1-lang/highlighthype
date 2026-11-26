@@ -7966,7 +7966,13 @@ initA2HS161();
    preloading + mid-swipe early playback (feed193 below).
    Round 194 (2026-11-25): the feed's sound toggle
    (feed194 below) — the speaker button in the top bar,
-   left of the close button. */
+   left of the close button.
+   Round 196 (2026-11-26): extra-wide clips — wider than
+   16:9, like Juliana's 960×444 — get a blurred, blown-up
+   copy of the SAME video filling the whole slide behind
+   the sharp one (feed196 below); the sharp video, the
+   caption placement and every other shape are exactly as
+   Round 191 left them. */
 const feed189 = { open: false, kind: "board", ids: [], index: -1, start: 0, battle: null, counted: new Set() };
 const feed191 = { hintSeen: false };
 /* Round 193 (2026-11-25): the slight delay between swipes.
@@ -8034,6 +8040,10 @@ function feedSoundPref194() {
 const feed194 = { sound: feedSoundPref194() };
 function feedApplySound194(v) {
   if (!v) return;
+  /* Round 196: a blur-fill backdrop is ALWAYS muted — it is
+     scenery, never a sound source — so the sound state never
+     reaches it, whichever way the toggle sits. */
+  try { if (typeof v.getAttribute === "function" && v.getAttribute("data-feed-fill")) { v.muted = true; return; } } catch (e) {}
   try { v.muted = !feed194.sound; } catch (e) { /* a video that refuses a mute flip never breaks the feed */ }
 }
 function feedSyncSoundBtn194() {
@@ -8062,7 +8072,29 @@ function feedSlides193() {
 function feedWarm193(index) {
   if (!feed189.open) return;
   feedSlides193().forEach((s, i) => {
-    const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
+    /* Round 196: the MAIN video is picked by name now — a
+       wide slide can carry a blur-fill <video> ahead of it
+       in the DOM, and the warm window belongs to the sharp
+       copy. */
+    const v = feedMainVideo196(s);
+    /* Round 196: a slide's blur fill rides the SAME warm
+       window — warmed (preload auto + load) inside ±2 so an
+       incoming wide slide's backdrop is buffered too, and
+       stood down outside it (preload metadata + paused) so
+       far slides never hold a playing or fetching fill. */
+    const fill = feedFillVideo196(s);
+    if (fill) {
+      try { fill.muted = true; } catch (e) {}
+      try {
+        if (Math.abs(i - index) <= 2) {
+          if (fill.preload !== "auto") fill.preload = "auto";
+          if (i !== index && typeof fill.load === "function") fill.load();
+        } else {
+          if (fill.preload !== "metadata") fill.preload = "metadata";
+          try { fill.pause(); } catch (e) {}
+        }
+      } catch (e) { /* a fill that refuses a preload hint never breaks the feed */ }
+    }
     if (!v) return;
     /* Round 194: a warmed video carries the current sound
        state before it can ever be played. */
@@ -8089,7 +8121,10 @@ function feedObserve193() {
           const idx = slides.indexOf(en.target);
           if (idx < 0 || idx === feed189.index) return;
           const s = slides[idx];
-          const v = s && typeof s.querySelector === "function" ? s.querySelector("video") : null;
+          /* Round 196: the early start drives the MAIN video
+             (a wide slide's fill rides along via feedFillPlay196,
+             never instead of it). */
+          const v = s ? feedMainVideo196(s) : null;
           if (!v) return;
           /* Round 194: the early start applies the sound
              state BEFORE it plays — an early-started video
@@ -8097,6 +8132,10 @@ function feedObserve193() {
           feedApplySound194(v);
           feed193.early.add(idx);
           try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused early play: the settle pass plays it instead */ }
+          /* Round 196: the incoming wide slide's backdrop
+             starts with it, so the fill is already moving
+             when the swipe lands. */
+          feedFillPlay196(feedFillVideo196(s), v);
         });
       }, { root: track, threshold: 0.5 });
     }
@@ -8189,6 +8228,167 @@ function feedWireShape191(slide) {
       if (media.complete && media.naturalWidth > 0) applyMeta(media.naturalWidth, media.naturalHeight);
     }
   } catch (e) { /* an unclassified slide keeps the base layout — classification never breaks the feed */ }
+}
+/* Round 196 (2026-11-26): the extra-wide blur fill. Round
+   191 retired the blurred backdrop for classified shapes:
+   portrait fills the viewer, and a wide clip runs edge-to-
+   edge with its caption below the band — which leaves a
+   clip WIDER than the viewer's own 16:9 (Juliana's 960×444
+   "Caught stealing home!" is the case on the board) floating
+   in dead space above and below its band. This round fills
+   ONLY that case, exactly as mocked and approved:
+   - Behind the sharp video, the whole slide is filled by a
+     blown-up, blurred copy of the SAME video (the same R192
+     rendition source), playing in loose sync — play/pause
+     together, a one-time drift nudge at play time; no frame-
+     sync machinery for a backdrop.
+   - The sharp video is untouched: edge-to-edge full width,
+     completely visible, never cropped; the caption stays
+     directly below the band (the .feed191-wide layout).
+   - At-or-narrower than 16:9 — portrait, square, standard
+     landscape — gets NO fill element and NO behavior change.
+   - Battle slides are left untouched, deliberately.
+   - The fill is scenery: always muted (feedApplySound194
+     refuses to unmute it), never counted (play_open still
+     counts exactly once, in feedActivate189 alone), and it
+     rides the Round 193 warm window — warmed inside ±2,
+     stood down (metadata + paused) outside it.
+   - Kill switch: HH_NO_FEEDFILL196=1 makes the server stamp
+     window.HH_NO_FEEDFILL196 into index.html and no fill is
+     ever built.
+   The fill is created lazily — when the slide's real shape
+   is known (loadedmetadata, with the poster probe as the
+   pre-metadata stand-in, mirroring feedWireShape191) — so
+   the rendered markup of every slide is byte-identical to
+   Round 194 until a wide shape is proven. */
+function feedFillEnabled196() { return !(typeof window !== "undefined" && window && window.HH_NO_FEEDFILL196); }
+/* Wider than 16:9, strictly — a true 16:9 clip (1920×1080,
+   1280×720) is NOT wide for this purpose. Integer cross-
+   multiplication, no float fuzz. PURE on purpose. */
+function feedIsWide196(w, h) {
+  const W = Number(w) || 0, H = Number(h) || 0;
+  if (!W || !H) return false;
+  return W * 9 > H * 16;
+}
+function feedIsFill196(v) {
+  try { return !!(v && typeof v.getAttribute === "function" && v.getAttribute("data-feed-fill")); } catch (e) { return false; }
+}
+/* A slide's blur fill, or null. Found by attribute, never by
+   position — the fill sits BEFORE the media block in the
+   DOM (it is the backdrop), so a bare querySelector("video")
+   would return the scenery instead of the play. */
+function feedFillVideo196(slide) {
+  try {
+    if (!slide || typeof slide.querySelectorAll !== "function") return null;
+    const vs = slide.querySelectorAll("video");
+    for (let i = 0; i < vs.length; i++) if (feedIsFill196(vs[i])) return vs[i];
+  } catch (e) {}
+  return null;
+}
+/* A slide's MAIN (sharp) video, or null — the first video
+   that is not a fill. Falls back to the plain selector on
+   partial slices whose stubs grow no fills. */
+function feedMainVideo196(slide) {
+  try {
+    if (!slide) return null;
+    if (typeof slide.querySelectorAll === "function") {
+      const vs = slide.querySelectorAll("video");
+      for (let i = 0; i < vs.length; i++) if (!feedIsFill196(vs[i])) return vs[i];
+      return null;
+    }
+    if (typeof slide.querySelector === "function") return slide.querySelector("video");
+  } catch (e) {}
+  return null;
+}
+/* Start a fill alongside its main video: re-seat it near the
+   main video's position when it has drifted (a blurred
+   backdrop earns a nudge, not a sync engine), then play.
+   Always muted. A refused play is swallowed like every
+   other feed play. */
+function feedFillPlay196(fill, main) {
+  if (!fill) return;
+  try { fill.muted = true; } catch (e) {}
+  try {
+    if (main && typeof fill.currentTime === "number" && typeof main.currentTime === "number" && Math.abs(fill.currentTime - main.currentTime) > 1.5) fill.currentTime = main.currentTime;
+  } catch (e) { /* a fill that refuses to seek still plays */ }
+  try { const pr = fill.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused fill play leaves the poster backdrop — the pre-196 look */ }
+}
+function feedAddFill196(slide, main) {
+  try {
+    if (!feedFillEnabled196() || !slide || !main) return null;
+    const existing = feedFillVideo196(slide);
+    if (existing) return existing;
+    if (typeof document === "undefined" || typeof document.createElement !== "function") return null;
+    const src = typeof main.getAttribute === "function" ? main.getAttribute("src") : main.src;
+    if (!src) return null;
+    const fill = document.createElement("video");
+    fill.className = "feed196-fill";
+    if (typeof fill.setAttribute === "function") {
+      fill.setAttribute("data-feed-fill", "1");
+      fill.setAttribute("aria-hidden", "true");
+      fill.setAttribute("playsinline", "");
+    }
+    try { fill.dataset.feedFill = "1"; } catch (e) {}
+    fill.muted = true;
+    fill.playsInline = true;
+    fill.loop = true;
+    fill.preload = "metadata";
+    if (typeof fill.setAttribute === "function") fill.setAttribute("src", src);
+    fill.src = src;
+    /* The backdrop goes in ahead of the media block (and
+       after the retired poster backdrop div) so it paints
+       behind everything the slide already had. */
+    const media = typeof slide.querySelector === "function" ? slide.querySelector(".feed189-media") : null;
+    if (media && typeof slide.insertBefore === "function") slide.insertBefore(fill, media);
+    else if (typeof slide.appendChild === "function") slide.appendChild(fill);
+    else return null;
+    if (slide.classList && typeof slide.classList.add === "function") slide.classList.add("feed196-hasfill");
+    /* Join the lifecycle at whatever point the slide is in:
+       the settled slide's fill starts now; a neighbor inside
+       the warm window buffers; anything farther waits. */
+    if (feed189.open && typeof feedSlides193 === "function") {
+      const slides = feedSlides193();
+      const idx = slides.indexOf(slide);
+      if (idx === feed189.index) feedFillPlay196(fill, main);
+      else if (idx >= 0 && Math.abs(idx - feed189.index) <= 2) {
+        fill.preload = "auto";
+        if (typeof fill.load === "function") fill.load();
+      }
+    }
+    return fill;
+  } catch (e) { return null; }
+}
+/* Round 196: wire one rendered slide's fill decision. The
+   video's loadedmetadata dimensions are the truth; the
+   POSTER's dimensions are the pre-metadata stand-in (a
+   poster answer never overrides a metadata answer) — the
+   same discipline as feedWireShape191, and the two wirings
+   listen side by side. Only board video slides are wired:
+   battle slides keep their Round 189 rendering untouched,
+   and photo/embed/link slides have no motion to fill with. */
+function feedWireFill196(slide) {
+  try {
+    if (!feedFillEnabled196()) return;
+    if (!slide || typeof slide.querySelector !== "function") return;
+    if (typeof slide.getAttribute === "function") {
+      if (slide.getAttribute("data-feed-kind") !== "video") return;
+      if (slide.getAttribute("data-feed-battle")) return;
+    }
+    const media = slide.querySelector("video");
+    if (!media) return;
+    let metaDone = false;
+    const consider = (w, h) => { if (Number(w) > 0 && Number(h) > 0 && feedIsWide196(w, h)) feedAddFill196(slide, media); };
+    const applyMeta = (w, h) => { metaDone = true; consider(w, h); };
+    const applyStandIn = (w, h) => { if (!metaDone) consider(w, h); };
+    if (typeof media.addEventListener === "function") media.addEventListener("loadedmetadata", () => applyMeta(media.videoWidth, media.videoHeight));
+    if (media.videoWidth > 0) applyMeta(media.videoWidth, media.videoHeight);
+    const poster = typeof media.getAttribute === "function" ? media.getAttribute("poster") : "";
+    if (poster && typeof Image !== "undefined") {
+      const probe = new Image();
+      probe.onload = () => applyStandIn(probe.naturalWidth, probe.naturalHeight);
+      probe.src = poster;
+    }
+  } catch (e) { /* an unfilled wide slide keeps the Round 191 band look — the fill never breaks the feed */ }
 }
 function feedMediaHtml189(h, kind) {
   const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
@@ -8295,7 +8495,7 @@ function feedRender189(seq, battle) {
   /* Round 191: classify each slide by its media's real shape
      (portrait fills, wide runs edge-to-edge — see
      feedWireShape191). */
-  if (typeof track.querySelectorAll === "function") track.querySelectorAll("[data-feed-slide]").forEach((s) => feedWireShape191(s));
+  if (typeof track.querySelectorAll === "function") track.querySelectorAll("[data-feed-slide]").forEach((s) => { feedWireShape191(s); feedWireFill196(s); });
   if (typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => {
     if (typeof v.addEventListener !== "function") return;
     v.addEventListener("timeupdate", () => {
@@ -8316,7 +8516,14 @@ function feedActivate189(index) {
   const track = typeof $ === "function" ? $("#feedTrack189") : null;
   if (track && typeof track.querySelectorAll === "function") {
     feedSlides193().forEach((s, i) => {
-      const v = typeof s.querySelector === "function" ? s.querySelector("video") : null;
+      /* Round 196: the MAIN video drives the settle (a wide
+         slide's fill follows it, below). */
+      const v = feedMainVideo196(s);
+      const fill = feedFillVideo196(s);
+      if (fill) {
+        if (i === index) feedFillPlay196(fill, v);
+        else { try { fill.pause(); } catch (e) {} }
+      }
       if (!v) return;
       /* Round 194: every activation restates the sound
          state on every slide's video before the settled one

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0a0a" />
+<!-- Demo org board (2026-11-26): sibling of the demo team page —
+     same standalone pattern, same fiction. The Riverside Rockets
+     are a fictional organization; keep it out of search indexes
+     so the Rockets never surface as if they were a real org. -->
+<meta name="robots" content="noindex" />
+<title>Riverside Rockets · Summer Season Board — HighlightHype (Demo Org Board)</title>
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+<!-- STANDALONE page like /demo: it deliberately does NOT load the
+     app's stylesheet or script. Isolation is the point: no API
+     calls, no visit beacons, no tracking, no worker registration,
+     no writes; the fictional content below is baked into the
+     markup and the only script is the avatar hue + a local
+     vote-pill toggle, inherited verbatim from the demo page.
+     The stylesheet is the demo page's own, plus a small block of
+     org-board additions at the end (org- / demo-credo166 /
+     demo-back166). -->
+<style>
+:root{
+  --bg:#0a0a0a; --bg2:#101010; --card:#141414; --card2:#1a1a1a;
+  --white:#ffffff; --muted:#a8a8a0; --muted2:#7c7c74;
+  --volt:#c8ff00; --volt-ink:#131a00;
+  --gold:#D4AF37;
+  --line:#262622; --line2:#33332c;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--white);font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+button{font:inherit}
+.demo-wrap166{max-width:480px;margin:0 auto;padding:0 16px 34px}
+::selection{background:var(--volt);color:var(--volt-ink)}
+
+/* ---------- top chrome ---------- */
+.demo-topbar166{display:flex;align-items:center;gap:9px;padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.demo-brand166{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
+.demo-topbar166 img{height:30px;width:auto}
+.demo-wordmark166{font-weight:800;font-size:13.5px;letter-spacing:.22em}
+.demo-wordmark166 em{font-style:normal;color:var(--gold)}
+.demo-pill166{margin-left:auto;background:var(--volt);color:var(--volt-ink);font-size:10.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
+
+/* ---------- team header ---------- */
+.team-head166{padding:24px 0 4px}
+.team-head166 .demo-crest166{height:78px;width:auto;margin-bottom:12px}
+.team-head166 h1{font-family:"Anton",sans-serif;font-style:italic;font-size:44px;line-height:.97;margin:0;text-transform:uppercase;letter-spacing:.005em}
+.team-head166 h1 .lime{color:var(--volt)}
+.team-meta166{color:var(--muted);font-size:15px;font-weight:600;margin:8px 0 0}
+.demo-note166{display:flex;gap:8px;align-items:flex-start;margin:14px 0 0;background:rgba(212,175,55,.08);border:1px solid rgba(212,175,55,.35);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600;color:#e9d48a;line-height:1.45}
+.demo-note166 b{color:#fff}
+
+/* ---------- stat strip ---------- */
+.demo-stats166{display:grid;grid-template-columns:1fr 1fr 1fr;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:18px;overflow:hidden}
+.demo-stats166 div{padding:13px 6px 11px;text-align:center}
+.demo-stats166 div + div{border-left:1px solid var(--line)}
+.demo-stats166 b{font-family:"Anton",sans-serif;font-size:29px;line-height:1;display:block}
+.demo-stats166 .gold b{color:var(--gold)}
+.demo-stats166 span{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
+
+/* ---------- sections ---------- */
+.demo-sec166{margin-top:32px}
+.demo-sec-tag166{display:block;font-size:12px;font-weight:800;font-style:italic;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.demo-sec166 h2{font-family:"Anton",sans-serif;font-style:italic;font-size:30px;line-height:1;margin:0;text-transform:uppercase}
+.demo-sec-sub166{margin:7px 0 0;color:var(--muted);font-size:14px;font-weight:500}
+
+/* ---------- roster ---------- */
+.demo-roster166{margin-top:12px;border-top:1px solid var(--line)}
+.demo-rrow166{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.tile-avatar153{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.02em;color:#141414;background:hsl(var(--avh153,52) 82% 62%)}
+.demo-r-main166{flex:1;min-width:0}
+.demo-r-name166{font-weight:800;font-size:15.5px;line-height:1.25}
+.demo-r-meta166{color:var(--muted);font-size:13px;font-weight:500}
+.demo-r-meta166 b{color:var(--gold);font-weight:800}
+.demo-r-plays166{flex:0 0 auto;font-size:12px;font-weight:800;color:var(--muted);border:1px solid var(--line2);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.demo-r-plays166 b{color:#fff}
+
+/* ---------- play cards (Round 153 hybrid board card) ---------- */
+.demo-tiles166{display:flex;flex-direction:column;gap:16px;margin-top:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.tile-media{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden;cursor:pointer}
+/* Round 171: the five card stages carry Emil-approved AI
+   stills (fictional team, generated kids) — the img fills the
+   16/9 stage cover-cropped, under the unchanged overlays.
+   The gradient field / ghost number / diamond placeholder
+   art retired from the cards; the standings thumbs keep it. */
+.demo-still171{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.demo-ghost166{position:absolute;right:6px;top:-24px;font-family:"Anton",sans-serif;font-style:italic;font-size:150px;line-height:1;color:rgba(255,255,255,.07);pointer-events:none}
+.demo-field166{position:absolute;inset:0;opacity:.9}
+.g1{background:radial-gradient(120% 130% at 18% 0%,#1d4d2b 0%,#0d2817 46%,#050f08 100%)}
+.g2{background:radial-gradient(120% 130% at 82% 0%,#274a7d 0%,#12233d 48%,#060b14 100%)}
+.g3{background:radial-gradient(120% 130% at 20% 0%,#6e2430 0%,#38121a 48%,#12060a 100%)}
+.g4{background:radial-gradient(120% 130% at 80% 0%,#4b2a75 0%,#241238 50%,#0a0514 100%)}
+.g5{background:radial-gradient(120% 130% at 22% 0%,#155e5e 0%,#0b3030 48%,#040f0f 100%)}
+.demo-diamond166{position:absolute;left:50%;bottom:-58px;transform:translateX(-50%) rotate(45deg);width:120px;height:120px;border:2px solid rgba(255,255,255,.10);border-radius:10px;pointer-events:none}
+.tile-disc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:52px;height:52px;border-radius:50%;background:rgba(5,5,5,.45);border:2px solid rgba(255,255,255,.92);display:grid;place-items:center;transition:transform .15s ease}
+.tile-disc svg{margin-left:2px}
+.tile-media:active .tile-disc{transform:translate(-50%,-50%) scale(.92)}
+.dur-pill{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.82);color:#fff;font-size:11px;font-weight:700;line-height:1;padding:4px 6px;border-radius:6px;letter-spacing:.02em;z-index:3}
+.views-chip151{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.82);color:#fff;font-size:11px;font-weight:700;line-height:1;padding:4px 7px;border-radius:6px;z-index:3}
+.badge.demo-badge166{position:absolute;top:10px;left:10px;background:#fff;color:#0a0a0a;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;z-index:3}
+.tile-body{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px}
+.tile-head153{display:flex;gap:10px;align-items:flex-start}
+.tile-head-main153{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.tile-toprow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.tile-title{font-family:"Anton",sans-serif;font-style:italic;font-size:17px;margin:0;text-transform:uppercase;letter-spacing:.02em;line-height:1.12;color:#fff;flex:1;min-width:0}
+.tile-dots{color:var(--muted2);font-weight:800;line-height:1;padding-top:1px}
+.tile-meta{color:var(--muted);font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile-meta b{color:#fff;font-weight:700}
+.moment-row162{margin:2px 0 0}
+.moment-chip162{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.45);color:#f3d98b;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.tile-votes{margin-top:auto;padding-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.vote-chip.vote-chip-btn.vote-pill153{display:inline-flex;align-items:center;gap:6px;background:var(--volt);border:1px solid transparent;color:var(--volt-ink);font-weight:800;font-size:13.5px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.vote-chip.vote-chip-btn.vote-pill153 b{color:var(--volt-ink);font-size:15px}
+.vote-chip.vote-chip-btn.vote-pill153:active{transform:scale(.97)}
+.vote-chip.vote-chip-btn.vote-pill153.voted{background:rgba(200,255,0,.10);border-color:var(--volt);color:var(--volt)}
+.vote-chip.vote-chip-btn.vote-pill153.voted b{color:var(--volt)}
+.mini-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:999px;font-size:13px;font-weight:700;padding:8px 13px;cursor:pointer}
+.mini-btn:active{transform:scale(.97)}
+
+/* ---------- standings (Month-board fame rows) ---------- */
+.demo-fame-list166{margin-top:12px;border-top:1px solid var(--line)}
+.fame-row{display:grid;grid-template-columns:38px 88px 1fr auto;gap:12px;align-items:center;padding:13px 2px;border-bottom:1px solid var(--line)}
+.fame-row.top{background:linear-gradient(90deg,rgba(212,175,55,.13),rgba(212,175,55,.02));border:1px solid rgba(212,175,55,.45);border-radius:12px;padding:13px 10px;margin-top:10px}
+.fame-rank{font-family:"Anton",sans-serif;font-size:28px;line-height:1;color:var(--muted2)}
+.fame-row.top .fame-rank{color:var(--gold)}
+.fame-thumb{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:16/9;background:#000;display:block;width:88px}
+.fame-play134{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:rgba(5,5,5,.45);border:1.5px solid rgba(255,255,255,.92);display:grid;place-items:center}
+.fame-play134 svg{margin-left:1px}
+.fame-info{min-width:0}
+.fame-info h4{font-family:"Anton",sans-serif;font-size:17px;margin:0;text-transform:uppercase;letter-spacing:.02em;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fame-info p{margin:3px 0 0;color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fame-votes{text-align:right}
+.fame-votes b{font-family:"Anton",sans-serif;font-size:22px;line-height:1;display:block}
+.fame-row.top .fame-votes b{color:var(--gold)}
+.fame-votes span{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2)}
+
+/* ---------- closing strip ---------- */
+.demo-closing166{margin-top:36px;background:var(--card);border:1px solid rgba(212,175,55,.5);border-radius:16px;padding:24px 18px 20px;text-align:center}
+.demo-closing166 img{height:46px;width:auto;margin:0 auto 12px}
+.demo-closing166 h3{font-family:"Anton",sans-serif;font-style:italic;font-size:26px;line-height:1.05;margin:0;text-transform:uppercase}
+.demo-closing166 p{color:var(--muted);font-size:14.5px;font-weight:500;margin:9px auto 0;max-width:300px}
+.demo-cta166{display:inline-flex;margin-top:16px;background:var(--volt);color:var(--volt-ink);border:0;font-weight:800;font-size:15px;padding:12px 22px;border-radius:999px;cursor:pointer;text-decoration:none}
+.demo-cta166:active{transform:scale(.97)}
+.demo-wordmark-line166{font-family:"Anton",sans-serif;font-size:19px;letter-spacing:.04em;text-transform:uppercase;color:var(--volt);margin:20px 0 0}
+.demo-foot166{margin-top:18px;text-align:center;color:var(--muted2);font-size:12px;font-weight:600}
+.demo-foot166 a{color:var(--muted);font-weight:700;text-decoration:none}
+
+/* ---------- org board additions (demo-rockets, 2026-11-26) ---------- */
+.demo-credo166{color:var(--gold);font-style:italic;font-weight:600;font-size:15.5px;margin:8px 0 0}
+.demo-back166{display:inline-block;margin-top:12px;color:var(--muted);font-size:13px;font-weight:700;text-decoration:none}
+.org-give166{margin-top:18px;background:linear-gradient(90deg,rgba(212,175,55,.16),rgba(212,175,55,.04));border:1px solid rgba(212,175,55,.55);border-radius:14px;padding:15px 16px}
+.org-give-tag166{display:block;font-size:11.5px;font-weight:800;font-style:italic;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+.org-give166 p{margin:0;font-size:14.5px;font-weight:600;line-height:1.5}
+.org-give166 p b{color:#f3d98b}
+.org-give-amt166{display:block;margin-top:9px;font-family:"Anton",sans-serif;font-size:24px;line-height:1;color:#fff}
+.org-give-amt166 span{font-family:"Archivo",sans-serif;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2);margin-left:7px}
+.org-tiles166{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.org-tile166{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 13px 12px;display:flex;flex-direction:column}
+a.org-tile166{text-decoration:none;color:inherit}
+.org-age166{font-family:"Anton",sans-serif;font-style:italic;font-size:30px;line-height:1;text-transform:uppercase}
+.org-age166 .lime{color:var(--volt)}
+.org-counts166{color:var(--muted);font-size:12.5px;font-weight:600;margin-top:4px}
+.org-top166{margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.org-top-tag166{display:block;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+.org-top-title166{font-weight:800;font-size:13.5px;line-height:1.3}
+.org-top-meta166{color:var(--muted);font-size:12px;font-weight:500;margin-top:2px}
+.org-open166{margin-top:9px;color:var(--volt);font-size:12.5px;font-weight:800}
+.org-battle166{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 14px}
+.org-vs166{display:flex;align-items:center;gap:10px}
+.org-side166{flex:1;text-align:center;background:var(--card2);border:1px solid var(--line2);border-radius:12px;padding:11px 6px 10px}
+.org-side166 b{font-family:"Anton",sans-serif;font-style:italic;font-size:25px;line-height:1;display:block}
+.org-side166 .org-side-sub166{display:block;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2);margin-top:5px}
+.org-side166 .org-score166{display:block;font-family:"Anton",sans-serif;font-size:20px;line-height:1;color:var(--gold);margin-top:5px}
+.org-disc166{flex:0 0 auto;width:42px;height:42px;border-radius:50%;background:var(--volt);color:var(--volt-ink);display:grid;place-items:center;font-family:"Anton",sans-serif;font-style:italic;font-size:16px}
+.org-battle-copy166{color:var(--muted);font-size:14px;font-weight:500;margin:12px 0 0;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="demo-wrap166">
+
+  <!-- top chrome -->
+  <div class="demo-topbar166">
+    <a class="demo-brand166" href="/demo" aria-label="Back to the Rockets demo board"><img src="/crest-watermark.png?v=169" alt="HighlightHype crest" /><span class="demo-wordmark166">HIGHLIGHT<em>HYPE</em></span></a>
+    <span class="demo-pill166">Demo</span>
+  </div>
+  <a class="demo-back166" href="/demo">← Back to the Rockets 10U board</a>
+
+  <!-- 1 · org header -->
+  <header class="team-head166">
+    <img class="demo-crest166" src="/crest-watermark.png?v=169" alt="Riverside Rockets crest" />
+    <h1>Riverside <span class="lime">Rockets</span></h1>
+    <p class="team-meta166">Summer Season Board · Riverside League · Baseball</p>
+    <p class="demo-credo166">We believe every young athlete should be celebrated.</p>
+    <p class="demo-note166"><span>⭐</span><span><b>Demo org board.</b> The Rockets are fictional — this page shows what a whole organization's summer looks like on HighlightHype: six teams, one link, every play in one place.</span></p>
+  </header>
+
+  <!-- give-back strip -->
+  <div class="org-give166">
+    <span class="org-give-tag166">Team give-back</span>
+    <p>HighlightHype gives <b>10% of every order</b> back to the Rockets program — for equipment, field time, and tournament fees.</p>
+    <span class="org-give-amt166">$612<span>given back so far this summer</span></span>
+  </div>
+
+  <!-- 2 · stat strip -->
+  <div class="demo-stats166">
+    <div><b>6</b><span>Teams</span></div>
+    <div><b>71</b><span>Players</span></div>
+    <div class="gold"><b>89</b><span>Plays posted</span></div>
+  </div>
+
+  <!-- 3 · age-group tiles -->
+  <section class="demo-sec166" id="teams">
+    <span class="demo-sec-tag166">Every age group</span>
+    <h2>One link, every Rockets team</h2>
+    <p class="demo-sec-sub166">The org shares one link — families land here and tap into their team's board. No group-chat chaos, no hunting for links.</p>
+    <div class="org-tiles166">
+      <div class="org-tile166"><div class="org-age166">7<span class="lime">U</span></div><div class="org-counts166">11 players · 9 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">First career hit — a liner to left</div><div class="org-top-meta166">Teddy M. · 23 votes</div></div></div>
+      <div class="org-tile166"><div class="org-age166">8<span class="lime">U</span></div><div class="org-counts166">12 players · 14 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">Straight steal of home</div><div class="org-top-meta166">Ben O. · 36 votes</div></div></div>
+      <div class="org-tile166"><div class="org-age166">9<span class="lime">U</span></div><div class="org-counts166">12 players · 17 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">Inside-the-park home run</div><div class="org-top-meta166">Caleb J. · 44 votes</div></div></div>
+      <a class="org-tile166" href="/demo"><div class="org-age166">10<span class="lime">U</span></div><div class="org-counts166">12 players · 18 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">Walk-off double off the wall</div><div class="org-top-meta166">Mason R. · 47 votes</div></div><span class="org-open166">Open the 10U board →</span></a>
+      <div class="org-tile166"><div class="org-age166">11<span class="lime">U</span></div><div class="org-counts166">12 players · 16 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">12-strikeout gem</div><div class="org-top-meta166">Ava P. · 52 votes</div></div></div>
+      <div class="org-tile166"><div class="org-age166">12<span class="lime">U</span></div><div class="org-counts166">12 players · 15 plays</div><div class="org-top166"><span class="org-top-tag166">★ Top play</span><div class="org-top-title166">Diving stop up the middle</div><div class="org-top-meta166">Dylan H. · 49 votes</div></div></div>
+    </div>
+  </section>
+
+  <!-- 4 · top plays of the week -->
+  <section class="demo-sec166" id="week">
+    <span class="demo-sec-tag166">Across the org</span>
+    <h2>Rockets top plays of the week</h2>
+    <p class="demo-sec-sub166">The best plays from every Rockets team this week — one board, all ages, all in the running for Hype of the Month.</p>
+    <div class="demo-tiles166">
+
+      <article class="tile">
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-strikeout.jpg" alt="Demo still — Ava P. deals the last strike of her 12-strikeout gem" /><span class="badge demo-badge166">🏆 This week's #1</span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 402</span><span class="dur-pill">0:09</span></div>
+        <div class="tile-body">
+          <div class="tile-head153"><span class="tile-avatar153" data-name="Ava Price">AP</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">12-strikeout gem</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Ava P.</span><span class="meta-rest153"> · Rockets 11U · Jul 12</span></p></div></div>
+          
+          <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="52" aria-pressed="false" aria-label="Vote for this play">Vote · <b>52</b></button></div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-diving-catch.jpg" alt="Demo still — Dylan H. goes full extension for the diving stop" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 377</span><span class="dur-pill">0:11</span></div>
+        <div class="tile-body">
+          <div class="tile-head153"><span class="tile-avatar153" data-name="Dylan Hughes">DH</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Diving stop up the middle</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Dylan H.</span><span class="meta-rest153"> · Rockets 12U · Jul 11</span></p></div></div>
+          
+          <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="49" aria-pressed="false" aria-label="Vote for this play">Vote · <b>49</b></button></div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-walkoff.jpg" alt="Demo still — Mason R. rounds the bases on his walk-off double" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 312</span><span class="dur-pill">0:24</span></div>
+        <div class="tile-body">
+          <div class="tile-head153"><span class="tile-avatar153" data-name="Mason Reyes">MR</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Walk-off double off the wall</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Mason R.</span><span class="meta-rest153"> · Rockets 10U · Jul 9</span></p></div></div>
+          
+          <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="47" aria-pressed="false" aria-label="Vote for this play">Vote · <b>47</b></button></div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-grand-slam.jpg" alt="Demo still — Caleb J. circles the bases on his inside-the-park home run" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 289</span><span class="dur-pill">0:31</span></div>
+        <div class="tile-body">
+          <div class="tile-head153"><span class="tile-avatar153" data-name="Caleb Jones">CJ</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Inside-the-park home run</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Caleb J.</span><span class="meta-rest153"> · Rockets 9U · Jul 10</span></p></div></div>
+          <p class="play-badges moment-row162"><span class="moment-chip162">🔥 Big play</span></p>
+          <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="44" aria-pressed="false" aria-label="Vote for this play">Vote · <b>44</b></button></div>
+        </div>
+      </article>
+
+      <article class="tile">
+        <div class="tile-media"><img class="demo-still171" src="/demo-img/demo-play-steal-home.jpg" alt="Demo still — Ben O. slides home ahead of the tag" /><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span><span class="views-chip151">👁 203</span><span class="dur-pill">0:14</span></div>
+        <div class="tile-body">
+          <div class="tile-head153"><span class="tile-avatar153" data-name="Ben Ortiz">BO</span><div class="tile-head-main153"><div class="tile-toprow"><h3 class="tile-title">Straight steal of home</h3><span class="tile-dots" aria-hidden="true">⋮</span></div><p class="tile-meta tile-info tile-meta153"><span class="meta-name153">Ben O.</span><span class="meta-rest153"> · Rockets 8U · Jul 8</span></p></div></div>
+          
+          <div class="tile-votes"><button type="button" class="mini-btn">📸 Frame</button><button type="button" class="vote-chip vote-chip-btn vote-pill153 demo-vote166" data-votes="36" aria-pressed="false" aria-label="Vote for this play">Vote · <b>36</b></button></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- 5 · play of the summer -->
+  <section class="demo-sec166" id="summer">
+    <span class="demo-sec-tag166">Season race</span>
+    <h2>Rockets play of the summer</h2>
+    <p class="demo-sec-sub166">Ranked by votes all season — the org-wide crown is decided Labor Day weekend.</p>
+    <div class="demo-fame-list166">
+      <div class="fame-row top"><span class="fame-rank">1</span><span class="fame-thumb"><span class="demo-field166 g1"></span><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></span><div class="fame-info"><h4>12-strikeout gem</h4><p>Ava P. · #4 · P · 11U</p></div><div class="fame-votes"><b>486</b><span>Votes</span></div></div>
+      <div class="fame-row"><span class="fame-rank">2</span><span class="fame-thumb"><span class="demo-field166 g2"></span><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></span><div class="fame-info"><h4>Grand slam to deep left</h4><p>Jayden T. · #12 · C · 10U</p></div><div class="fame-votes"><b>451</b><span>Votes</span></div></div>
+      <div class="fame-row"><span class="fame-rank">3</span><span class="fame-thumb"><span class="demo-field166 g3"></span><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></span><div class="fame-info"><h4>Diving stop up the middle</h4><p>Dylan H. · #8 · SS · 12U</p></div><div class="fame-votes"><b>429</b><span>Votes</span></div></div>
+      <div class="fame-row"><span class="fame-rank">4</span><span class="fame-thumb"><span class="demo-field166 g4"></span><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></span><div class="fame-info"><h4>Walk-off double off the wall</h4><p>Mason R. · #7 · SS · 10U</p></div><div class="fame-votes"><b>405</b><span>Votes</span></div></div>
+      <div class="fame-row"><span class="fame-rank">5</span><span class="fame-thumb"><span class="demo-field166 g5"></span><span class="fame-play134" aria-hidden="true"><svg width="11" height="12" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></span><div class="fame-info"><h4>Inside-the-park home run</h4><p>Caleb J. · #5 · CF · 9U</p></div><div class="fame-votes"><b>388</b><span>Votes</span></div></div>
+    </div>
+  </section>
+
+  <!-- 6 · team battles teaser -->
+  <section class="demo-sec166" id="battles">
+    <span class="demo-sec-tag166">Team Battles</span>
+    <h2>Rockets 10U vs Rockets 9U</h2>
+    <div class="org-battle166">
+      <div class="org-vs166">
+        <div class="org-side166"><b>10U</b><span class="org-side-sub166">Top 3 combined</span><span class="org-score166">119</span></div>
+        <span class="org-disc166">VS</span>
+        <div class="org-side166"><b>9U</b><span class="org-side-sub166">Top 3 combined</span><span class="org-score166">117</span></div>
+      </div>
+      <p class="org-battle-copy166">Each team fields its top 3 plays — combined votes decide it, and the winner's banner flies on both team boards.</p>
+      <p class="play-badges moment-row162"><span class="moment-chip162">⚔️ Battle week · Ends Sunday</span></p>
+    </div>
+  </section>
+
+  <!-- 7 · closing strip -->
+  <div class="demo-closing166">
+    <img src="/crest-watermark.png?v=169" alt="HighlightHype crest" />
+    <h3>One link for the whole organization</h3>
+    <p>Every Rockets team, every age group — one board for the whole summer.</p>
+    <a class="demo-cta166" href="/demo">See the 10U team board</a>
+    <p class="demo-wordmark-line166">Your moment. Your hype.</p>
+  </div>
+
+  <p class="demo-foot166"><a href="/demo">HighlightHype</a> · Demo page — the Riverside Rockets are a fictional team.</p>
+
+</div>
+<script>
+(function(){
+  /* Round 166: the demo page's ONLY script. Avatar hues use
+     the board's own hash (avatarHue153, Round 153) so the
+     discs match what the real board would render for these
+     names, and the vote pills toggle locally — no network,
+     no beacon, no storage; nothing leaves the page. */
+  function avatarHue153(name){ let x = 0; for (const c of String(name || "")) x = (x * 31 + c.charCodeAt(0)) % 360; return x; }
+  document.querySelectorAll(".tile-avatar153[data-name]").forEach(function(el){
+    el.style.setProperty("--avh153", avatarHue153(el.getAttribute("data-name")));
+  });
+  document.querySelectorAll(".demo-vote166").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var n = parseInt(btn.getAttribute("data-votes"), 10);
+      var voted = btn.classList.toggle("voted");
+      btn.innerHTML = (voted ? "Voted" : "Vote") + " · <b>" + (voted ? n + 1 : n) + "</b>";
+      btn.setAttribute("aria-pressed", voted ? "true" : "false");
+      btn.setAttribute("aria-label", voted ? "You voted for this play — tap to remove your vote" : "Vote for this play");
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -3685,6 +3685,14 @@ body.feed-open189{overflow:hidden}
 .feed191-wide .feed189-media{position:relative;inset:auto;display:block}
 .feed191-wide .feed189-fit{width:100%;height:auto;max-height:68vh;object-fit:contain}
 .feed191-wide .feed189-caption{position:relative;left:auto;right:auto;bottom:auto;order:1;margin:12px 84px 0 12px;text-shadow:none}
+/* Round 196 (2026-11-26): the extra-wide blur fill — a blown-up,
+   blurred copy of the slide's own video filling the whole slide
+   behind the sharp band, for clips wider than 16:9 only. It is
+   inserted before the media block in the DOM, so it paints
+   behind the sharp video, caption and rail with no z-index
+   juggling; the overscan (scale 1.12) keeps the blur's soft edge
+   off-screen. Pure scenery: never interactive. */
+.feed196-fill{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(26px) brightness(.5) saturate(1.25);transform:scale(1.12);pointer-events:none}
 .feed191-wide .feed189-vs{position:relative;left:auto;right:auto;bottom:auto;order:2;margin:10px 84px 0 12px}
 /* Title-first caption hierarchy (both placements). */
 .feed189-title{font-size:17px;font-weight:800;color:#fff;margin:0}
