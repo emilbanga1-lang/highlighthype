@@ -113,7 +113,7 @@ try {
 
     // Served wiring + the app.js string sweep.
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=192"'), "pins: app.js rides ?v=190 (Round 190 changed app.js) — →191: app.js now v191 (Round 191)");
+    assert(home.includes('src="app.js?v=193"'), "pins: app.js rides ?v=190 (Round 190 changed app.js) — →191: app.js now v191 (Round 191) — →192: app.js now v192 (Round 192) — →193: app.js now v193 (Round 193)");
     assert(home.includes('href="styles.css?v=191"'), "pins: styles.css keeps ?v=189 (unchanged this round — the standing pin discipline) — →191: styles now v191 (Round 191 changed styles.css)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     assert(!appJs.includes('aria-label="Hype this play"'), "sweep: no vote button anywhere still carries the \"Hype this play\" aria-label");
