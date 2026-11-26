@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=199" />
+<link rel="stylesheet" href="styles.css?v=200" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1568,67 +1568,62 @@
   </div>
 </div>
 
-<!-- ============ MERCH TEASER (Round 125, 2026-11-13) ============
-     Dyanna's board-first homepage: merch is a TEASER here, opened
-     through the ☰ menu or these links — the full Store stays its
-     own view. This replaces the Round 55 Rep The Hype photo band
-     (preserved in .bak-r125-pre125). Products, names only:
-     NO prices on the homepage — prices live inside the Store
-     only (Emil's standing rule).
-     Round 126 (2026-11-13, Emil's phone review): the sweatshirt
-     cards default to the BACK view (the equipment back) with
-     the Swag Shop's Front/Back switch on the card (app.js swaps
-     the photo in place); the teaser's per-sport drop-notify
-     form is GONE entirely (the Store's own notify is
-     untouched); and the products render in TWO layouts Emil is
-     choosing between — A (default): the two hoodies in a row,
-     the bottle in its own slim row underneath; B (?teaser=B):
-     one hoodie (Baseball) + the bottle in a single two-card
-     row. The hoodies-and-bottle single row he saw in Round 125
-     is gone either way ("I don't like how the sweat shirts and
-     then water bottle looks together"). -->
+<!-- ============ MERCH TEASER (Round 125 → Round 201, 2026-11-26) ============
+     Round 201 (Emil): the homepage merch section is the HYPE
+     FRAME FEATURE now — Variant B of the Nov 26 mock (the
+     feature only), plus the "See how it works" film Emil asked
+     to add. The old teaser product cards, the bottle row and
+     the full-store footer line are GONE from the homepage; the
+     Store view below is untouched and stays reachable via the
+     nav/menu links. The section element, its id and the
+     view-home class are unchanged, so view routing is
+     untouched. The film is this section's OWN instance
+     (hfFilmCoverHome201 / hfHomeFilm201 / playHfHomeFilm201) —
+     the board strip's film (app.js) and the Store feature's
+     film keep their own ids and handlers, so all three play
+     independently. The settled Hype Frame price rides here by
+     Emil's launch decision, superseding the Round 125
+     price-free teaser rule for this section. (Rounds 125/126 built the
+     teaser this replaces: board-first homepage, back-view
+     cards with the Front/Back switch, two layouts.) -->
 <div class="merch-teaser125 view-home" id="merchTeaser125">
   <div class="wrap">
-    <div class="mt125-head">
-      <b>👑 Merch — Hype Sports Drop 001</b>
-      <span class="mt125-soon">Coming soon</span>
-    </div>
-    <p class="mt125-sub">Crest-and-sport hoodies for baseball, basketball, soccer, softball &amp; volleyball — plus the bottle every dugout and gym bag needs. Tap any product to open the full store.</p>
-    <div class="mt126-products" id="mtProducts126" data-teaser-variant="A">
-      <div class="mt126-hoodies">
-        <div class="mt125-prod" data-prod="baseball-hoodie" data-front="/swag/hs/baseball-front.jpg" data-back="/swag/hs/baseball-back.jpg">
-          <a class="mt125-prod-link" href="/store" data-store-link>
-            <img src="/swag/hs/baseball-back.jpg" loading="lazy" data-alt-front="Baseball Hype Hoodie — front: the HH crest over BASEBALL" data-alt-back="Baseball Hype Hoodie — back: the baseball gear graphic" alt="Baseball Hype Hoodie — back: the baseball gear graphic">
-            <b>Baseball Hoodie</b>
-            <span>Crest front · gear back</span>
-          </a>
-          <div class="mt126-sides" role="group" aria-label="Baseball Hoodie — view side">
-            <button type="button" class="mt126-side-btn" data-mt-side="front" aria-pressed="false">Front</button>
-            <button type="button" class="mt126-side-btn" data-mt-side="back" aria-pressed="true">Back</button>
+    <div class="hft201-card">
+      <div class="hft201-media">
+        <div class="hf-film-box">
+          <div class="hf-film-cover" id="hfFilmCoverHome201">
+            <img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async">
+            <span class="hft201-badge">The Swag Shop</span>
+            <button type="button" class="hf-film-btn" onclick="playHfHomeFilm201()">▶ See how it works</button>
           </div>
-        </div>
-        <div class="mt125-prod" data-prod="basketball-hoodie" data-front="/swag/hs/basketball-front.jpg" data-back="/swag/hs/basketball-back.jpg">
-          <a class="mt125-prod-link" href="/store" data-store-link>
-            <img src="/swag/hs/basketball-back.jpg" loading="lazy" data-alt-front="Basketball Hype Hoodie — front: the HH crest over BASKETBALL" data-alt-back="Basketball Hype Hoodie — back: the basketball gear graphic" alt="Basketball Hype Hoodie — back: the basketball gear graphic">
-            <b>Basketball Hoodie</b>
-            <span>Crest front · gear back</span>
-          </a>
-          <div class="mt126-sides" role="group" aria-label="Basketball Hoodie — view side">
-            <button type="button" class="mt126-side-btn" data-mt-side="front" aria-pressed="false">Front</button>
-            <button type="button" class="mt126-side-btn" data-mt-side="back" aria-pressed="true">Back</button>
-          </div>
+          <video id="hfHomeFilm201" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video>
         </div>
       </div>
-      <div class="mt126-bottle-row">
-        <div class="mt125-prod mt126-bottle" data-prod="bottle">
-          <a class="mt125-prod-link" href="/store" data-store-link>
-            <img src="/swag/hs/bottle-baseball.jpg" loading="lazy" alt="Hype Water Bottle — Baseball: the giant baseball graphic, gold crown and HYPE brush letters">
-            <span class="mt126-bottle-copy"><b>Hype Water Bottle</b><span>32 oz · insulated</span></span>
-          </a>
+      <div class="hft201-body">
+        <p class="hft201-eyebrow">📸 Hype Frame</p>
+        <h2 class="hft201-title">Your moment on a hoodie</h2>
+        <p class="hft201-pitch">Your highlight becomes the print. <strong>Pick a frame from your play</strong> — we embroider the crest and print your moment, with your name, name + number, or your own words on the back.</p>
+        <ul class="hft201-facts">
+          <li class="hft201-gold">$110</li>
+          <li>Black or Heather Gray</li>
+          <li>Youth YXXS–YXL</li>
+          <li>Adult S–XL</li>
+          <li>Made to order — ships in 5–7 business days</li>
+        </ul>
+        <div class="hft201-thumbs">
+          <figure>
+            <img src="/swag/hf-example-hoodie-back.jpg" alt="Back of a finished Hype Frame hoodie example" loading="lazy" decoding="async">
+            <figcaption>Your play, printed large on the back.</figcaption>
+          </figure>
+          <figure>
+            <img src="/swag/hf-example-lineup.jpg" alt="Lineup of finished Hype Frame hoodie examples" loading="lazy" decoding="async">
+            <figcaption>Photo or avatar — your call in the studio.</figcaption>
+          </figure>
         </div>
+        <button type="button" class="hft201-cta" onclick="openHfChoice()">Create yours →</button>
+        <p class="hft201-sub">Opens the Hype Frame studio — pick your play, frame, size, color, and back text.</p>
       </div>
     </div>
-    <p class="mt125-foot"><a href="/store" data-store-link>Open the full store →</a> <span class="mt125-note">Drop 001 · Youth sizes YXXS–YXL · No checkout yet — notify list only</span></p>
   </div>
 </div>
 
@@ -2225,6 +2220,6 @@
   </div>
 </div>
 
-<script src="app.js?v=201"></script>
+<script src="app.js?v=202"></script>
 </body>
 </html>

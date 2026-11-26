@@ -1945,7 +1945,7 @@ function hhSilence158(el) {
   try {
     if (!el || el.paused) return false;
     if (!el.muted) return true;
-    if (el.id === "hfVideo" || el.id === "storyVideo" || el.id === "swagVideo" || el.id === "hfStoreFilm" || el.id === "hfFeedFilm126") return true;
+    if (el.id === "hfVideo" || el.id === "storyVideo" || el.id === "swagVideo" || el.id === "hfStoreFilm" || el.id === "hfFeedFilm126" || el.id === "hfHomeFilm201") return true;
     if (typeof el.closest === "function" && (el.closest(".btl-player") || el.closest(".watch-player") || el.closest("#playDetail"))) return true;
     return false;
   } catch (e) { return false; }
@@ -5367,6 +5367,18 @@ function playHfStoreFilm() {
    in, playing. */
 function playHfFeedFilm126() {
   const cover = $("#hfFilmCoverFeed126"), vid = $("#hfFeedFilm126");
+  if (!vid) return;
+  if (cover) cover.hidden = true;
+  vid.hidden = false;
+  const p = vid.play(); if (p && p.catch) p.catch(() => {});
+}
+
+/* Round 201 (2026-11-26, Emil): the homepage merch section's
+   own film instance — the same cover swap as the feed strip's
+   (above) and the store feature's (playHfStoreFilm), on its
+   own ids so all three films play and pause independently. */
+function playHfHomeFilm201() {
+  const cover = $("#hfFilmCoverHome201"), vid = $("#hfHomeFilm201");
   if (!vid) return;
   if (cover) cover.hidden = true;
   vid.hidden = false;
