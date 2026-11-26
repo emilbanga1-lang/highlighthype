@@ -3081,7 +3081,25 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
    The R204 film-button stacking rule and the media-scoped
    film-box radius are REMOVED with the markup they served;
    the button's [hidden] guard stays (it is a link now, and
-   hidden still has to win). */
+   hidden still has to win).
+   Round 210 (Emil, same day): the hero is a fixed 4:5
+   frame and the photo is CENTERED on its print — measured
+   on the asset (1440×1680), the framed print spans
+   x 130–880 (center 0.351) and y 570–1250 (0.339–0.744).
+   Pure cover in a 4:5 frame could only shift the window
+   ±3.3% horizontally (the photo's 6:7 aspect is barely
+   wider than the frame), so the image renders at 143%
+   width (0.5 / 0.351 ≈ 1.425, rounded): the print's
+   center lands on the frame's center, the visible window
+   is the photo's left 70% × top 75% — hood (0–0.283),
+   shoulders and the whole print stay in frame; the right
+   sleeve's tip and the script under the print crop away.
+   And the film leaves the section body for a lightbox
+   (the Round 128 idiom): .hf-film-overlay210 is the dim
+   backdrop + centering shell, .hf-film-box210 sizes the
+   shared .hf-film-box inside it. The in-place film-box
+   margin and its [hidden] guard are REMOVED with the
+   reveal they served. */
 .hft201-card{background:linear-gradient(180deg,#151512,#101010);border:1px solid var(--line2);border-radius:20px;overflow:hidden;margin-bottom:26px}
 .hft201-badges{position:absolute;top:12px;left:12px;z-index:2;display:flex;flex-wrap:wrap;gap:6px}
 .hft201-badge{background:rgba(10,10,12,.78);border:1px solid rgba(212,175,55,.55);color:#e8d5a3;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:6px 9px;border-radius:999px}
@@ -3089,13 +3107,15 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
 .hft201-body{padding:18px 20px 20px}
 .hft201-title{font-family:"Archivo",sans-serif;font-size:28px;font-weight:800;line-height:1.08;letter-spacing:-.01em;color:#fff;margin:0}
 .hft201-cta{display:block;width:100%;margin-top:16px;background:var(--gold);color:#171200;border:0;border-radius:14px;padding:14px 16px;font:inherit;font-weight:800;font-size:16px;cursor:pointer}
-.hft207-hero{position:relative}
-.hft207-hero-img{display:block;width:100%;height:auto}
+.hft207-hero{position:relative;overflow:hidden;aspect-ratio:4/5}
+.hft207-hero-img{display:block;width:143%;max-width:none;height:100%;object-fit:cover;object-position:50% 0%}
 .hft207-badges{top:6px}
 .hft207-sub{color:var(--muted);font-size:15px;line-height:1.45;margin:8px 0 0}
 .hft207-film-link{display:block;width:100%;margin-top:12px;background:none;border:0;color:#e8d5a3;font:inherit;font-weight:700;font-size:14.5px;text-align:center;padding:10px 8px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
-.hft207-film{margin-top:14px}
-#hfHomeFilmBox207[hidden]{display:none}
+.hf-film-overlay210{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;padding:18px}
+.hf-film-overlay210[hidden]{display:none}
+.hf-film-box210{width:min(680px,94vw)}
+.hf-film-close210{position:absolute;top:14px;right:14px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:rgba(16,16,16,.9);color:#fff;font-size:19px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center;padding:0;z-index:1}
 @media (min-width:861px){
   .hft201-card{display:grid;grid-template-columns:1.15fr 1fr;align-items:center}
 }
@@ -3332,6 +3352,29 @@ body.hf-studio-open205 .float-submit{display:none}
 .fame-info h4{font-family:"Archivo",sans-serif;font-weight:700;font-size:15.5px;text-transform:none;letter-spacing:0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .fame-info p{margin:2px 0 0;font-size:13px}
 .fame-votes-pill134{flex:none;background:rgba(240,185,62,.14);border:1px solid rgba(240,185,62,.45);color:#f3d98b;font-size:12.5px;font-weight:800;padding:6px 10px;border-radius:999px;white-space:nowrap}
+
+/* ---- Round 209 (2026-11-26, Emil): ranked rows get a REAL
+   preview. The 76px thumb with the white play badge parked
+   on its center hid the athlete ("On Nicholas's double, I
+   see the button and the fence before I can tell where
+   Nicholas is"). Now: the thumbnail takes ~40% of the row's
+   width (capped so desktop rows stay sane), at a fixed
+   height with a centered cover crop — the poster itself is
+   action-picked server-side (Round 209's smart poster), so
+   the crop shows the moment. The rank stays tucked at the
+   left; the right column groups athlete, title, sport line
+   and the votes pill (the pill moves INTO .fame-info). The
+   play icon leaves the center: a small triangle in a dark
+   translucent chip pinned to the thumb's bottom-right
+   corner. Rows are taller — Emil accepts one fewer visible
+   row on mobile. Applies to BOTH ranked lists: renderMonth
+   and renderFame share fameRowHtml134. ---- */
+.fame-row{grid-template-columns:30px min(40%,260px) 1fr;gap:12px;padding:12px 2px}
+.fame-thumb134{position:relative;width:100%;height:108px;aspect-ratio:auto;flex:none}
+.fame-play134{left:auto;top:auto;right:6px;bottom:6px;transform:none;width:22px;height:22px;border-radius:6px;background:rgba(5,5,5,.62);border:1px solid rgba(255,255,255,.35)}
+.fame-play134 svg{margin-left:1px}
+.fame-info .fame-votes-pill134{display:inline-block;margin-top:7px}
+@media (max-width:640px){ .fame-thumb134{height:96px} }
 
 /* ---- Round 140 (2026-11-13, Emil): the board tabs centered
    as a group. Watch / Battles / Hype of the Month keep their

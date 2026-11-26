@@ -1316,7 +1316,16 @@ function posterUrlFor134(h) {
    renderMonth renders the This Month leaderboard with it
    too. Same markup, same tap; the /api/contest payload's
    voteCount override (month count, month order) is what
-   makes the shared pill tell the month story on that tab. */
+   makes the shared pill tell the month story on that tab.
+   Round 209 (2026-11-26, Emil): the row's preview grows —
+   the thumbnail takes ~40% of the row's width at a fixed
+   height (styles.css .fame-thumb134 →209), the play icon
+   leaves the thumb's center for a small dark chip in its
+   bottom-right corner (.fame-play134 →209), and the votes
+   pill moves into .fame-info so the right column groups
+   athlete, title, sport line and votes. Every row element
+   and the tap behavior are unchanged; the poster the thumb
+   shows is now action-picked server-side (Round 209). */
 function fameRowHtml134(h, i, opts = {}) {
   const name = firstNameOf(h);
   const poster = posterUrlFor134(h);
@@ -1330,8 +1339,7 @@ function fameRowHtml134(h, i, opts = {}) {
   return `<div class="fame-row${i === 0 ? " top" : ""}" data-tile-id="${h.id}" role="button" tabindex="0" title="See this play's card" onclick="${tap134}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${tap134}}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
-      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p></div>
-      <span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p><span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span></div>
     </div>`;
 }
 function renderFame() {
@@ -6112,12 +6120,34 @@ function playHfFeedFilm126() {
    the sync (still wired to play/pause/ended) remains the
    authority that restores it — on pause, on ended, and via
    the play() promise's rejection path if playback fails to
-   start at all. */
+   start at all.
+   Round 210 (Emil, same day): the film OPENS AS AN OVERLAY
+   — "I don't like how the video opens underneath." The
+   in-place reveal is retired: the same cover / video pair
+   now lives in a centered lightbox (hfHomeFilmOverlay210,
+   the Round 128 idiom) and the tap opens THAT and starts
+   the film. The instant-hide contract is unchanged (the
+   link hides at tap; the sync restores it on pause/ended,
+   and a failed start now also closes the overlay, landing
+   the visitor back on the restored link). ✕, a backdrop
+   tap (the overlay's own inline handler) or Escape closes
+   via closeHfHomeFilm210, which pauses the film, restores
+   the page scroll and returns focus to the link. */
 let hfHomeFilmWired204 = false;
 function hfHomeFilmBtnSync204() {
   const btn = $("#hfHomeFilmBtn201"), vid = $("#hfHomeFilm201");
   if (!btn || !vid) return;
   btn.hidden = !(vid.paused || vid.ended);
+}
+function closeHfHomeFilm210() {
+  const ov = $("#hfHomeFilmOverlay210");
+  if (!ov || ov.hidden) return;
+  const vid = $("#hfHomeFilm201");
+  if (vid && typeof vid.pause === "function" && !vid.paused) { try { vid.pause(); } catch (e) { /* fine */ } }
+  ov.hidden = true;
+  if (typeof document !== "undefined" && document.body && document.body.style) document.body.style.overflow = "";
+  const btn = $("#hfHomeFilmBtn201");
+  if (btn) { btn.hidden = false; if (typeof btn.focus === "function") { try { btn.focus(); } catch (e) { /* fine */ } } }
 }
 function playHfHomeFilm201() {
   const cover = $("#hfFilmCoverHome201"), vid = $("#hfHomeFilm201");
@@ -6129,14 +6159,22 @@ function playHfHomeFilm201() {
     vid.addEventListener("ended", hfHomeFilmBtnSync204);
   }
   // Round 207: hide the link the moment it is tapped — do
-  // NOT wait for the (buffering-lagged) 'play' event — and
-  // reveal the film in place below the CTA.
+  // NOT wait for the (buffering-lagged) 'play' event.
+  // Round 210: and open the film overlay over the page —
+  // the section itself no longer grows to hold the film.
   const btn = $("#hfHomeFilmBtn201"); if (btn) btn.hidden = true;
-  const box = $("#hfHomeFilmBox207"); if (box) box.hidden = false;
+  const ov = $("#hfHomeFilmOverlay210");
+  if (ov) {
+    if (typeof document !== "undefined" && document.body && ov.parentElement !== document.body) document.body.appendChild(ov);
+    ov.hidden = false;
+    if (typeof document !== "undefined" && document.body && document.body.style) document.body.style.overflow = "hidden";
+    const x = $("#hfHomeFilmClose210"); if (x && typeof x.focus === "function") { try { x.focus(); } catch (e) { /* fine */ } }
+  }
   if (cover) cover.hidden = true;
   vid.hidden = false;
-  const p = vid.play(); if (p && p.catch) p.catch(() => { hfHomeFilmBtnSync204(); });
+  const p = vid.play(); if (p && p.catch) p.catch(() => { closeHfHomeFilm210(); hfHomeFilmBtnSync204(); });
 }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHfHomeFilm210(); });
 
 /* Round 84 (2026-11-09, Emil): warm the store's landing pictures
    in the background once the page settles, so clicking Swag Shop
