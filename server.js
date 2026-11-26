@@ -773,6 +773,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN enhance_json TEXT DEFAULT ''");
 // checked before any send, so a play can never be welcomed twice
 // (see the Round 188 section at the media pipeline). '' = not sent.
 try { db.exec("ALTER TABLE highlights ADD COLUMN welcome_sent_at TEXT DEFAULT ''"); } catch {}
+// Round 192 (2026-11-25): the streaming rendition's URL — a
+// smaller, faststart H.264 sibling (<base>-stream.mp4) the
+// in-page players load instead of the 8–20 MB master (see the
+// Round 192 section at the media pipeline). '' = no rendition
+// yet; every surface falls back to media_url. The master stays
+// canonical for downloads and Hype Frame frame-picking.
+try { db.exec("ALTER TABLE highlights ADD COLUMN stream_url TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -1814,6 +1821,12 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     // exists yet; see the music_track migration note). Public
     // and safe: it is a track title, never guardian data.
     musicTrack: row.music_track || "",
+    // Round 192: the streaming rendition URL for in-page
+    // playback ('' when the play has none — clients fall back
+    // to media_url). The HH_NO_STREAM192=1 kill switch serves
+    // '' everywhere, which restores master-file playback
+    // without touching a single row.
+    stream_url: process.env.HH_NO_STREAM192 === "1" ? "" : (row.stream_url || ""),
   };
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
@@ -2057,6 +2070,13 @@ async function r124ProcessUpload(id, name) {
     // here must never become an unhandled rejection.
     r186EnhanceUpload(bins, id, abs, meta186)
       .catch((e) => console.error(`[r186] upload ${id}: stage error (display file kept):`, e.message))
+      // Round 192: the streaming rendition is made from the
+      // FINAL display file (the enhanced one, when it enhanced),
+      // so it rides after the agent settles. Its catch-all is
+      // inside; this .catch is the belt to its suspenders — a
+      // failed rendition never touches the upload or the email.
+      .then(() => r192StreamAfterEnhance(id))
+      .catch((e) => console.error(`[r192] upload ${id}: stream stage error (master kept):`, e.message))
       // Round 188: the welcome email rides the very end of this
       // chain — only once the agent has fully settled is the
       // poster final (the enhanced poster, when it enhanced), so
@@ -2115,6 +2135,165 @@ async function r124RunMigration() {
     console.log("[r124] media migration complete");
   } catch (e) { console.error("[r124] migration error:", e.message); }
 }
+/* ================= Round 192 (2026-11-25): streaming renditions + homepage load discipline =================
+   WHY: Emil, from his iPhone (2026-11-25): "It's taking awhile
+   for videos to load on the homepage," with a screenshot of
+   Leaderboard rows sitting on black thumbnails. The diagnosis,
+   verified against the production backup before building:
+   * Range serving was NOT the problem — /uploads has carried
+     RFC-correct Range (206/Content-Range, suffix ranges, If-
+     Range, ETag/304) since Rounds 97/117. What was missing is
+     payload: the masters are 8–20 MB phone files and every
+     in-page player loaded the master itself. On a phone
+     connection through this small server, a board of autoplaying
+     masters takes seconds-to-minutes to settle.
+   * The black Leaderboard rows were the same contention, one
+     step removed: the row renderer (fameRowHtml134) already
+     renders the poster as an <img> when one exists, and the
+     black-row plays (Nicholas 71, christian 66) HAVE posters —
+     files verified present and non-black (mean luma ~113–116).
+     Their posters are the two LARGEST (150–183 KB vs 39–54 KB
+     for the rows that painted), queued behind megabytes of
+     autoplaying master video on first load; the unloaded <img>
+     over the dark row reads as a black thumb with the play badge.
+   THE FIX, three parts: (1) every video play gets a streaming
+   rendition — H.264/yuv420p/AAC, faststart, fit inside
+   1280×720 and never upscaled, CRF 28 under a 2 Mbps cap —
+   stored as <base>-stream.mp4 and carried on the row as
+   stream_url; every in-page player (board cards + tiles,
+   featured, watch/detail, the R189 feed) loads the rendition
+   and falls back to media_url when there is none. The master
+   is untouched and stays canonical for downloads and the Hype
+   Frame studio. (2) A boot-time backfill makes renditions (and
+   any missing posters) for existing plays, sequentially behind
+   the same ffmpeg serializer, never blocking startup; it is
+   idempotent by construction (a play that has its rendition
+   file is skipped), so there is no settings marker to strand
+   it. (3) At-rest homepage cards stop preloading whole clips:
+   mediaHtml's board-card form drops preload="auto" + autoplay
+   for preload="metadata" on the poster (the watch/detail form
+   keeps its behavior — opening a play is the intent to watch).
+   HH_NO_STREAM192=1 disables generation AND serving (the
+   payload carries ''), restoring master playback exactly.
+   FALLBACK CONTRACT (the house rule): a rendition is
+   best-effort, never a gate — any failure leaves the master
+   serving and a log line saying why. A rendition that comes
+   out no smaller than its master is discarded: the master was
+   already small enough to serve. */
+function r192FitDims192(w, h) {
+  // Fit inside 1280×720, never upscale, even dimensions for
+  // yuv420p. Portrait phone clips come out 404×720-ish; a
+  // 1080p GameChanger clip lands exactly 1280×720.
+  const s = Math.min(1, 1280 / w, 720 / h);
+  return {
+    w: Math.max(2, Math.floor((w * s) / 2) * 2),
+    h: Math.max(2, Math.floor((h * s) / 2) * 2),
+  };
+}
+async function r192EncodeStream(bins, inFile, outFile, dims) {
+  return r138SerializeFfmpeg(() => r192EncodeStreamNow(bins, inFile, outFile, dims));
+}
+async function r192EncodeStreamNow(bins, inFile, outFile, dims) {
+  // Same encode conventions as r124ConvertNow (autorotate on
+  // decode, no global metadata — a kids' platform keeps no GPS
+  // in any display file, renditions included — capped threads),
+  // tuned for delivery instead of archival: CRF 28 under a
+  // 2 Mbps cap is the 0.5–1.5 MB band for a typical 10–15s play.
+  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
+    "-map_metadata", "-1",
+    "-vf", `scale=${dims.w}:${dims.h}`,
+    "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "28", "-preset", "veryfast",
+    "-maxrate", "2000k", "-bufsize", "4000k",
+    "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", "-threads", "2", outFile];
+  const { err, stderr } = await r124Run(bins.ffmpeg, args, 240000);
+  if (err) { console.error("[r192] rendition encode failed:", err.message, stderr.slice(-300)); return false; }
+  return true;
+}
+// Make the rendition for one play if it lacks one. Resolves
+// true when the play ends up with a servable rendition (made or
+// already present), false when it stays master-only. Never
+// throws — the fallback contract lives here.
+async function r192EnsureStream(bins, id) {
+  try {
+    if (process.env.HH_NO_STREAM192 === "1") return false;
+    const row = db.prepare("SELECT media_kind, media_url, stream_url FROM highlights WHERE id=?").get(id);
+    if (!row || row.media_kind !== "file") return false;
+    const name = path.basename(row.media_url || "");
+    if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return false;
+    const abs = path.join(UPLOAD_DIR, name);
+    if (!fs.existsSync(abs)) return false;
+    const base = name.replace(/\.[^.]+$/, "");
+    const streamName = `${base}-stream.mp4`;
+    const streamAbs = path.join(UPLOAD_DIR, streamName);
+    if (row.stream_url === `/uploads/${streamName}` && fs.existsSync(streamAbs)) return true;
+    const info = r124VideoInfo(await r124Probe(bins, abs));
+    if (!info || !info.width || !info.height) { console.error(`[r192] play ${id}: source did not probe as video — no rendition`); return false; }
+    const dims = r192FitDims192(info.width, info.height);
+    const tmpOut = path.join(UPLOAD_DIR, `${base}.r192tmp.mp4`);
+    if (!(await r192EncodeStream(bins, abs, tmpOut, dims))) { try { fs.unlinkSync(tmpOut); } catch {} return false; }
+    const chk = r124VideoInfo(await r124Probe(bins, tmpOut));
+    if (!chk || chk.codec !== "h264" || chk.pixFmt !== "yuv420p" || !r124IsFaststart(tmpOut)) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      console.error(`[r192] play ${id}: rendition did not verify as H.264/yuv420p/faststart — master kept`);
+      return false;
+    }
+    const inBytes = fs.statSync(abs).size, outBytes = fs.statSync(tmpOut).size;
+    if (outBytes >= inBytes) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      console.log(`[r192] play ${id}: rendition (${outBytes}B) is not smaller than the master (${inBytes}B) — master serves`);
+      return false;
+    }
+    fs.renameSync(tmpOut, streamAbs);
+    db.prepare("UPDATE highlights SET stream_url=? WHERE id=?").run(`/uploads/${streamName}`, id);
+    console.log(`[r192] play ${id}: rendition ${streamName} (${inBytes} → ${outBytes} bytes, ${dims.w}x${dims.h})`);
+    return true;
+  } catch (e) { console.error(`[r192] play ${id}: rendition failed (master kept):`, e.message); return false; }
+}
+// The upload-pipeline stage: chained after the Round 186 agent
+// settles, so the rendition is made from the FINAL display file
+// (the enhanced one, when it enhanced). Catch-all inside, like
+// every stage on this chain.
+async function r192StreamAfterEnhance(id) {
+  try {
+    if (process.env.HH_NO_STREAM192 === "1") return;
+    const bins = await r124ResolveBins();
+    if (!bins) return;
+    await r192EnsureStream(bins, id);
+  } catch (e) { console.error(`[r192] upload ${id}: stream stage error (master kept):`, e.message); }
+}
+// Boot-time backfill: existing plays get their renditions (and
+// any missing posters) without a re-upload. Fire-and-forget
+// from the listen callback — startup never waits on it; the
+// ffmpeg serializer keeps it to one encode at a time, and each
+// play is independent (skip-and-log). No settings marker: the
+// scan is idempotent, so a boot that finds everything done
+// costs one query, and a boot after a partial run simply
+// finishes the job.
+async function r192Backfill() {
+  try {
+    if (process.env.HH_NO_STREAM192 === "1") { console.log("[r192] backfill disabled via HH_NO_STREAM192"); return; }
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r192] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id, media_url, poster_url, stream_url FROM highlights WHERE media_kind='file' AND status!='trashed'").all();
+    let made = 0, posters = 0;
+    for (const row of rows) {
+      try {
+        const name = path.basename(row.media_url || "");
+        if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) continue;
+        const abs = path.join(UPLOAD_DIR, name);
+        if (!fs.existsSync(abs)) continue;
+        if (!row.poster_url) {
+          const info = r124VideoInfo(await r124Probe(bins, abs));
+          if (info && (await r124PosterFor(bins, row.id, abs, info))) posters++;
+        }
+        const hadStream = !!row.stream_url && fs.existsSync(path.join(UPLOAD_DIR, path.basename(row.stream_url)));
+        if ((await r192EnsureStream(bins, row.id)) && !hadStream) made++;
+      } catch (e) { console.error(`[r192] backfill row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r192] backfill complete (${made} renditions made, ${posters} posters made, ${rows.length} file plays scanned)`);
+  } catch (e) { console.error("[r192] backfill error:", e.message); }
+}
+
 /* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
    WHY: parents upload phone video of youth plays, and a lot of it
    is a shaky, flickery recording of a TV across the room — the
@@ -5040,10 +5219,21 @@ const server = http.createServer(async (req, res) => {
          all, so repeat visits re-downloaded the board's videos in
          full. Same one-day media policy as static files, plus
          ETag/Last-Modified validators so browsers can revalidate
-         with a 304 instead. Range support unchanged. */
+         with a 304 instead. Range support unchanged.
+         Round 192 (2026-11-25): video files go long-cache
+         immutable. An upload's filename is unique (timestamp +
+         random), and every pipeline stage that changes a play's
+         bytes mints a NEW filename (-h264, -enhanced, -stream)
+         and repoints the row — the bytes at a video URL never
+         change, so a year of immutable caching is safe and a
+         repeat visit never re-fetches a clip. Images keep the
+         one-day policy: poster-<id>.jpg IS regenerated in place
+         (the enhancement stage re-grabs it), so posters must
+         stay revalidatable. */
       const upEtag = `"${size.toString(16)}-${Math.floor(upStat.mtimeMs).toString(16)}"`;
       const upLastMod = upStat.mtime.toUTCString();
-      const upCache = { "cache-control": "public, max-age=86400", etag: upEtag, "last-modified": upLastMod };
+      const upCacheControl = [".mp4", ".webm", ".mov"].includes(ext) ? "public, max-age=31536000, immutable" : "public, max-age=86400";
+      const upCache = { "cache-control": upCacheControl, etag: upEtag, "last-modified": upLastMod };
       const inm = req.headers["if-none-match"];
       const ims = req.headers["if-modified-since"];
       if ((inm && inm.split(",").map((s) => s.trim()).includes(upEtag)) || (!inm && ims && Date.parse(ims) >= Math.floor(upStat.mtimeMs / 1000) * 1000)) {
@@ -5147,4 +5337,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); });
