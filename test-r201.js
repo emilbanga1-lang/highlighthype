@@ -58,7 +58,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=200"') && home.includes('src="app.js?v=202"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed)");
+assert(home.includes('href="styles.css?v=201"') && home.includes('src="app.js?v=203"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed) — →203: app.js now v203 / styles now v201 (Round 202; both files changed again)");
 
 // ---- B. the section ----
 const secStart = home.indexOf('id="merchTeaser125"');

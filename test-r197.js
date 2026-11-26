@@ -60,7 +60,7 @@ try {
   const s = await boot(3521);
   try {
     const home = await s.text("/");
-    assert(home.includes('src="app.js?v=202"') && home.includes('href="styles.css?v=200"'), "A: asset pins — app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201)");
+    assert(home.includes('src="app.js?v=203"') && home.includes('href="styles.css?v=201"'), "A: asset pins — app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202)");
     for (const v of ["name", "name_number", "none", "custom"])
       assert(home.includes(`data-hf-back-text="${v}"`), `A: studio picker carries the back-text option: ${v}`);
     assert(home.includes('id="hfBackText197"') && home.includes('id="hfBackCustom197"') && home.includes('id="hfBackCustomRow197"'), "A: studio markup carries the picker, the custom-words input and its row");
