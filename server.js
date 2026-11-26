@@ -856,6 +856,14 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN r195_checked_at TEXT DEFAULT ''
 // evaluated play is never re-processed (see the Round 203
 // section at the media pipeline). '' = not yet evaluated.
 try { db.exec("ALTER TABLE highlights ADD COLUMN r203_checked_at TEXT DEFAULT ''"); } catch {}
+// Round 209 (2026-11-26): the smart-poster stage's per-play
+// evaluation stamp — set when the Round 209 stage has
+// evaluated a play (poster re-picked or deliberately kept),
+// and read by the boot backfill, which selects on the empty
+// stamp so an evaluated play is never re-processed (see the
+// Round 209 section at the media pipeline). '' = not yet
+// evaluated.
+try { db.exec("ALTER TABLE highlights ADD COLUMN r209_checked_at TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -2383,6 +2391,15 @@ async function r124ProcessUpload(id, name) {
       // discipline as every stage on this chain.
       .then(() => r203AfterR195(id))
       .catch((e) => console.error(`[r203] upload ${id}: reframe stage error (display file kept):`, e.message))
+      // Round 209: the smart-poster stage rides after the
+      // reframe settles and before the rendition, so the
+      // poster is re-picked from the FINAL display file's
+      // action peak — the poster the leaderboard rows,
+      // boards and the welcome email show. Its own catch-all
+      // is inside; this .catch is the belt to its suspenders,
+      // the same discipline as every stage on this chain.
+      .then(() => r209PosterAfterR203(id))
+      .catch((e) => console.error(`[r209] upload ${id}: smart-poster stage error (poster kept):`, e.message))
       // Round 192: the streaming rendition is made from the
       // FINAL display file (the enhanced one, when it enhanced),
       // so it rides after the agent settles. Its catch-all is
@@ -2907,12 +2924,23 @@ async function r195ProcessPlayNow(bins, id, origin) {
       // A rendition made from the pre-trim / pre-upscale file
       // is stale: drop it and make a fresh one from the new
       // master (Round 192's own kill switch still binds).
+      // →209: the ensure now runs UNCONDITIONALLY after the
+      // swap, not only when a rendition already existed. At
+      // boot, the Round 192 scan can straddle this swap —
+      // reading the old name just before the rename, finding
+      // no file, and moving on — while stream_url is still
+      // empty here, so the conditional form left the play
+      // rendition-less until the NEXT boot (observed in
+      // test-r195 §E once the Round 209 backfill lengthened
+      // the interleaving window). Ensuring here leaves the
+      // play with a correct rendition in every interleaving;
+      // Round 192's per-play gate keeps it one encode.
       const rowAfter = db.prepare("SELECT stream_url FROM highlights WHERE id=?").get(id);
       if (rowAfter && rowAfter.stream_url) {
         try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(rowAfter.stream_url))); } catch {}
         db.prepare("UPDATE highlights SET stream_url='' WHERE id=?").run(id);
-        await r192EnsureStream(bins, id);
       }
+      await r192EnsureStream(bins, id);
       r195StoreEval(id, r195);
       console.log(`[r195] play ${id}: ${wantTrim ? `trimmed ${r195.trim.trimmedSec}s (onset ${r195.trim.onsetSec}s)` : "no trim"}${up ? `, upscaled ${up.srcW}x${up.srcH} → ${up.outW}x${up.outH} (x${up.factor}${up.capped ? ", capped" : ""})` : ""} → ${finalName}; previous display file kept as ${preName}`);
     } catch (e) {
@@ -3269,12 +3297,17 @@ async function r203ProcessPlayNow(bins, id, origin) {
       // A rendition made from the pre-reframe file is
       // stale: drop it and make a fresh one from the new
       // master (Round 192's own kill switch still binds).
+      // →209: the ensure runs unconditionally after the
+      // swap — the same boot-interleaving fix as the
+      // Round 195 swap above (a straddling Round 192 scan
+      // plus an empty stream_url otherwise leaves the play
+      // rendition-less until the next boot).
       const rowAfter = db.prepare("SELECT stream_url FROM highlights WHERE id=?").get(id);
       if (rowAfter && rowAfter.stream_url) {
         try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(rowAfter.stream_url))); } catch {}
         db.prepare("UPDATE highlights SET stream_url='' WHERE id=?").run(id);
-        await r192EnsureStream(bins, id);
       }
+      await r192EnsureStream(bins, id);
       r203StoreEval(id, r203);
       out.reframed = 1;
       console.log(`[r203] play ${id}: reframed ${info.width}x${info.height} → ${rect.w}x${rect.h} (crop x${rect.x} y${rect.y}) → ${finalName}; previous display file kept as ${preName}`);
@@ -3320,6 +3353,337 @@ async function r203Backfill() {
     }
     console.log(`[r203] backfill complete (${reframed} reframed, ${rows.length} file plays scanned)`);
   } catch (e) { console.error("[r203] backfill error:", e.message); }
+}
+
+/* ================= Round 209 (2026-11-26): smart poster — the poster is picked for the action =================
+   WHY: Emil, on the Hype of the Month leaderboard (2026-11-26):
+   the poster is doing no work — "On Nicholas's double, I see
+   the button and the fence before I can tell where Nicholas
+   is… For Nicholas, show the swing or him rounding first.
+   For Juliana, show the tag at home. A well-chosen frame
+   makes a bigger difference than enlarging a wide shot."
+   The client half of this round grows the ranked rows'
+   thumbnails (~40% of the row) and moves the play icon to a
+   corner chip; this stage is the server half: the poster
+   itself is re-picked at the action.
+   METHOD: (1) a motion series — mean absolute frame-
+   difference luma over time on a small gray working copy,
+   the same decode discipline as Round 203's band energies —
+   smoothed over 3 samples; the peak is decisive only when
+   it clears an absolute floor AND 3× the series' background
+   (lower median). A flat series (locked-off shot, uniform
+   motion) has no peak worth chasing: the existing poster is
+   KEPT — no churn. (2) Around the peak (±1s at 3fps) each
+   candidate frame is scored with ffmpeg's blurdetect filter
+   (verified present in this environment's ffmpeg 8.1.2, and
+   verified discriminating: a sharp testsrc2 frame scores
+   ~4.9, the same frame gaussian-blurred scores ~19.7 —
+   lower is sharper) plus signalstats mean luma; near-black
+   candidates are disqualified — mean luma < 10 absolutely
+   (the Round 205 client rule) and, because blurdetect reads
+   a flat dark frame as "sharp", also any candidate under
+   35% of the brightest candidate's luma — and the sharpest
+   survivor is grabbed at
+   full size into the SAME poster path the app already
+   serves (poster-<id>.jpg) — no client change is needed for
+   the new poster to appear on boards, the feed, the
+   leaderboard and the studio. If blurdetect yields nothing
+   parseable, the fallback is the frame AT the peak.
+   INTEGRATION: one stage chained after Round 203 (which
+   itself rides after R195/R186), so the poster always
+   reflects the final framing — R203 regenerates the poster
+   when it reframes, and this stage then re-picks from the
+   reframed file. Plays with a hand-set Round 124 freeze
+   override (R124_FREEZE_OVERRIDES — a human already chose
+   that frame) are kept as-is. Photo and link plays never
+   enter. Every outcome is recorded under `r209` in
+   highlights.enhance_json, and highlights.r209_checked_at
+   is stamped as the evaluation completes — the boot
+   backfill selects on the empty stamp.
+   HH_NO_SMARTPOSTER=1 disables the stage (recorded as
+   skipped; the rest of the chain is unaffected).
+   FALLBACK CONTRACT (the house rule): best-effort, never a
+   gate — any failure keeps the current poster, leaves the
+   stamp empty for a later retry, and logs why. */
+const R209_SAMPLE_FPS = 5;       // motion-series sampling rate on the working copy
+const R209_SCAN_SEC = 60;        // analysis window cap (mirrors Round 203)
+const R209_WORK_MAX_W = 360;     // working-copy width cap
+const R209_WORK_MAX_H = 960;     // working-copy height cap
+const R209_MIN_PEAK = 3;         // absolute decisiveness floor (full-frame mean luma-difference units)
+const R209_RATIO = 3;            // peak must clear 3× the background (lower-median) level
+const R209_CAND_FPS = 3;         // candidate sampling rate around the peak
+const R209_CAND_HALF_SEC = 1;    // candidate window half-width (±1s)
+const R209_CAND_MAX_W = 480;     // candidate scoring width cap (scores are relative within a clip)
+const R209_LUMA_FLOOR = 10;      // near-black disqualifier (mean luma), cf. Round 205's client rule
+// The per-frame-pair motion series of one display file:
+// mean absolute luma difference per pair on a small gray
+// working copy, decoded once into a temp raw file that is
+// always cleaned up. Returns { series, frames } (series
+// values rounded for the report) or null when the
+// measurement itself failed — the caller treats null as
+// "never re-pick, never stamp".
+async function r209MotionSeries(bins, abs, info) {
+  const s = Math.min(1, R209_WORK_MAX_W / info.width, R209_WORK_MAX_H / info.height);
+  const even = (v) => Math.max(2, Math.round(v / 2) * 2);
+  const workW = even(info.width * s), workH = even(info.height * s);
+  const base = path.basename(abs).replace(/\.[^.]+$/, "");
+  const tmp = path.join(UPLOAD_DIR, `${base}.r209tmp.raw`);
+  try {
+    const { err } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-vf", `fps=${R209_SAMPLE_FPS},scale=${workW}:${workH},format=gray`, "-t", String(R209_SCAN_SEC), "-f", "rawvideo", tmp], 300000));
+    if (err) return null;
+    const frameSize = workW * workH;
+    const nFrames = Math.floor(fs.statSync(tmp).size / frameSize);
+    if (!(nFrames >= 2) || frameSize <= 0) return null;
+    const series = [];
+    const fd = fs.openSync(tmp, "r");
+    try {
+      let prev = Buffer.alloc(frameSize), cur = Buffer.alloc(frameSize);
+      if (fs.readSync(fd, prev, 0, frameSize, 0) < frameSize) return null;
+      for (let f = 1; f < nFrames; f++) {
+        if (fs.readSync(fd, cur, 0, frameSize, f * frameSize) < frameSize) break;
+        let sum = 0;
+        for (let i = 0; i < frameSize; i++) { const d = cur[i] - prev[i]; if (d !== 0) sum += d < 0 ? -d : d; }
+        series.push(r186Round(sum / frameSize, 2));
+        const swap = prev; prev = cur; cur = swap;
+      }
+    } finally { try { fs.closeSync(fd); } catch {} }
+    return { series, frames: nFrames };
+  } catch { return null; } finally { try { fs.unlinkSync(tmp); } catch {} }
+}
+// The decisive peak of a motion series: 3-sample moving
+// average, peak vs the lower-median background. Returns
+// { peak, background, peakIdx, decisive }.
+function r209PeakOf(series) {
+  const sm = series.map((_, i) => {
+    const a = series[Math.max(0, i - 1)], b = series[i], c = series[Math.min(series.length - 1, i + 1)];
+    return (a + b + c) / 3;
+  });
+  let peakIdx = 0;
+  for (let i = 1; i < sm.length; i++) if (sm[i] > sm[peakIdx]) peakIdx = i;
+  const peak = sm[peakIdx] || 0;
+  const sorted = [...sm].sort((a, b) => a - b);
+  const background = sorted[Math.floor((sorted.length - 1) / 2)] || 0;
+  return { peak: r186Round(peak, 2), background: r186Round(background, 2), peakIdx, decisive: sm.length >= 3 && peak >= R209_MIN_PEAK && peak >= R209_RATIO * background };
+}
+// Score the candidate frames around the peak: one ffmpeg
+// pass at R209_CAND_FPS over the window, blurdetect +
+// signalstats metadata printed to stderr and parsed in
+// frame order. Returns [{ t, blur, luma }] or null when
+// nothing parseable came back (the caller falls back to
+// the peak frame itself).
+async function r209Candidates(bins, abs, peakTime, duration) {
+  const start = Math.max(0, peakTime - R209_CAND_HALF_SEC);
+  const end = duration > 0 ? Math.min(duration, peakTime + R209_CAND_HALF_SEC) : peakTime + R209_CAND_HALF_SEC;
+  if (!(end > start)) return null;
+  const run = () => r124Run(bins.ffmpeg, ["-nostats", "-y", "-ss", String(r186Round(start, 3)), "-i", abs,
+    "-vf", `fps=${R209_CAND_FPS},scale=${R209_CAND_MAX_W}:-2,blurdetect,signalstats,metadata=print:key=lavfi.blur,metadata=print:key=lavfi.signalstats.YAVG`,
+    "-t", String(r186Round(end - start, 3)), "-f", "null", "-"], 120000);
+  const { err, stderr } = await r138SerializeFfmpeg(run);
+  if (err) return null;
+  const blurs = [...stderr.matchAll(/lavfi\.blur=([\d.]+)/g)].map((m) => Number(m[1]));
+  const lumas = [...stderr.matchAll(/lavfi\.signalstats\.YAVG=([\d.]+)/g)].map((m) => Number(m[1]));
+  const n = Math.min(blurs.length, lumas.length);
+  if (!n) return null;
+  const out = [];
+  for (let k = 0; k < n; k++) out.push({ t: r186Round(start + k / R209_CAND_FPS, 3), blur: blurs[k], luma: lumas[k] });
+  return out;
+}
+// Merge this round's evaluation into the play's
+// enhance_json (the Round 186 report and the r195/r203
+// keys, when they exist, are preserved) and stamp
+// r209_checked_at in the same write — the stamp is what
+// the boot backfill selects on.
+function r209StoreEval(id, r209) {
+  const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+  let obj = {};
+  if (row && row.enhance_json) { try { obj = JSON.parse(row.enhance_json); } catch { obj = {}; } }
+  obj.r209 = r209;
+  db.prepare("UPDATE highlights SET enhance_json=?, r209_checked_at=? WHERE id=?").run(JSON.stringify(obj), new Date().toISOString(), id);
+}
+// Evaluate one play and re-pick its poster at the action
+// when the measurement calls for it. Shared by the upload
+// chain (origin "upload") and the boot backfill (origin
+// "backfill") — serialized per play through the same
+// promise-gate discipline as Rounds 195/203. Never throws;
+// returns the tallies the backfill summary reports. The
+// stamp is written only when the evaluation actually
+// completed — a measurement failure leaves it empty so a
+// later boot retries.
+const r209InFlight = new Map();
+async function r209ProcessPlay(bins, id, origin) {
+  while (r209InFlight.has(id)) { try { await r209InFlight.get(id); } catch {} }
+  const p = r209ProcessPlayNow(bins, id, origin);
+  r209InFlight.set(id, p);
+  try { return await p; } finally { if (r209InFlight.get(id) === p) r209InFlight.delete(id); }
+}
+async function r209ProcessPlayNow(bins, id, origin) {
+  // A sibling boot scan (Round 195's trim, Round 203's
+  // reframe) can swap a play's display file while this
+  // stage is evaluating the old one — the poster grab then
+  // fails on a file that was renamed away. That is not a
+  // failure of this stage: the evaluation signals a retry
+  // and this wrapper re-evaluates the CURRENT file (the
+  // sibling's swap is complete by then — its rename is
+  // what broke the grab). Bounded at 3 attempts; beyond
+  // that the play stays unstamped for the next boot, the
+  // house fallback.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const out = await r209EvaluateOnce(bins, id, origin);
+    if (!out.retry) return out;
+    console.log(`[r209] play ${id}: display file changed mid-evaluation — re-evaluating the current file`);
+  }
+  return { picked: 0 };
+}
+async function r209EvaluateOnce(bins, id, origin) {
+  const out = { picked: 0 };
+  try {
+    const row = db.prepare("SELECT media_kind, media_url, poster_url FROM highlights WHERE id=?").get(id);
+    if (!row || row.media_kind !== "file") return out;
+    const name = path.basename(row.media_url || "");
+    if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return out;
+    const abs = path.join(UPLOAD_DIR, name);
+    if (!fs.existsSync(abs)) return out; // missing file: a later boot retries — never stamp it
+    const info = r124VideoInfo(await r124Probe(bins, abs));
+    const r209 = { at: new Date().toISOString(), origin, status: null, peakTime: null, chosenTime: null, method: null, peak: null, background: null, candidates: 0 };
+    if (!info || !info.width || !info.height) {
+      // A file play that does not probe as video:
+      // evaluated, nothing to do, stamped so backfill
+      // scans stay cheap (photo plays land here too when
+      // the backfill meets one under a video name).
+      r209.status = "not-video";
+      r209StoreEval(id, r209);
+      return out;
+    }
+    if (process.env.HH_NO_SMARTPOSTER === "1") {
+      r209.status = "skipped";
+      r209.reason = "HH_NO_SMARTPOSTER=1";
+      r209StoreEval(id, r209);
+      console.log(`[r209] play ${id}: evaluated — smart poster skipped (HH_NO_SMARTPOSTER=1) (poster unchanged)`);
+      return out;
+    }
+    if (typeof R124_FREEZE_OVERRIDES[id] === "number") {
+      // A human already hand-chose this play's freeze
+      // frame (Round 124) — the hand pick stands.
+      r209.status = "kept-override";
+      r209.chosenTime = R124_FREEZE_OVERRIDES[id];
+      r209.method = "freeze-override";
+      r209StoreEval(id, r209);
+      console.log(`[r209] play ${id}: evaluated — hand-set freeze override kept (poster unchanged)`);
+      return out;
+    }
+    const motion = await r209MotionSeries(bins, abs, info);
+    if (!motion) {
+      const rowGone = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+      if (!rowGone || path.basename(rowGone.media_url || "") !== name) { out.retry = true; return out; }
+      console.error(`[r209] play ${id}: motion measurement failed — left unstamped for a later retry`);
+      return out;
+    }
+    const pk = r209PeakOf(motion.series);
+    r209.peak = pk.peak;
+    r209.background = pk.background;
+    r209.peakTime = r186Round((pk.peakIdx + 1) / R209_SAMPLE_FPS, 3);
+    if (!pk.decisive) {
+      r209.status = "kept-flat";
+      r209.method = "flat";
+      r209StoreEval(id, r209);
+      console.log(`[r209] play ${id}: evaluated — no decisive action peak (peak ${pk.peak} vs background ${pk.background}) (poster unchanged)`);
+      return out;
+    }
+    const cands = await r209Candidates(bins, abs, r209.peakTime, info.duration || 0);
+    let chosen = null;
+    if (cands && cands.length) {
+      r209.candidates = cands.length;
+      // The luma gate is RELATIVE as well as absolute:
+      // blurdetect reads a flat near-black frame as
+      // "sharp" (there is nothing in it to blur), so a
+      // dark transition frame at the window's edge could
+      // otherwise beat the action. A candidate must clear
+      // the absolute near-black floor (10, the Round 205
+      // rule) AND reach 35% of the brightest candidate's
+      // luma — in a genuinely dark scene every candidate
+      // is dim together and the relative gate passes them
+      // all, exactly as it should.
+      const maxLuma = Math.max(...cands.map((c) => c.luma));
+      const lumaGate = Math.max(R209_LUMA_FLOOR, 0.35 * maxLuma);
+      r209.lumaGate = r186Round(lumaGate, 1);
+      const live = cands.filter((c) => c.luma >= lumaGate);
+      if (live.length) {
+        live.sort((a, b) => a.blur - b.blur || Math.abs(a.t - r209.peakTime) - Math.abs(b.t - r209.peakTime));
+        chosen = live[0];
+        r209.method = "blurdetect";
+        r209.chosenBlur = chosen.blur;
+        r209.chosenLuma = r186Round(chosen.luma, 1);
+      }
+    }
+    if (!chosen) {
+      // blurdetect yielded nothing usable (or every
+      // candidate was near-black): the frame AT the peak
+      // is the fallback — unless the peak itself sits in
+      // the near-black set, which the candidate pass just
+      // told us; then there is nothing better to show and
+      // the existing poster stands.
+      if (cands && cands.length) {
+        r209.status = "kept-dark";
+        r209.method = "blurdetect";
+        r209StoreEval(id, r209);
+        console.log(`[r209] play ${id}: evaluated — every candidate near the peak is near-black (poster unchanged)`);
+        return out;
+      }
+      chosen = { t: r209.peakTime };
+      r209.method = "peak-fallback";
+    }
+    const chosenTime = info.duration > 0 ? Math.min(chosen.t, Math.max(0, info.duration - 0.1)) : chosen.t;
+    r209.chosenTime = r186Round(chosenTime, 3);
+    const rowNow = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+    if (!rowNow || path.basename(rowNow.media_url || "") !== name) { out.retry = true; return out; }
+    const posterName = `poster-${id}.jpg`;
+    if (!(await r124MakePoster(bins, abs, path.join(UPLOAD_DIR, posterName), chosenTime))) {
+      const rowGone = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+      if (!rowGone || path.basename(rowGone.media_url || "") !== name) { out.retry = true; return out; }
+      console.error(`[r209] play ${id}: poster grab failed — left unstamped for a later retry`);
+      return out;
+    }
+    db.prepare("UPDATE highlights SET poster_url=? WHERE id=?").run(`/uploads/${posterName}`, id);
+    r209.status = "poster";
+    r209StoreEval(id, r209);
+    out.picked = 1;
+    console.log(`[r209] play ${id}: poster re-picked at ${r209.chosenTime}s (peak ${r209.peakTime}s, method ${r209.method}${r209.chosenBlur !== undefined ? `, blur ${chosen.blur}` : ""})`);
+  } catch (e) { console.error(`[r209] play ${id}: evaluation failed (poster kept):`, e.message); }
+  return out;
+}
+// The upload-pipeline stage: chained after the Round 203
+// reframe stage settles and before the Round 192 rendition,
+// so the poster is picked from the final display file.
+// Catch-all inside, like every stage on this chain.
+async function r209PosterAfterR203(id) {
+  try {
+    const bins = await r124ResolveBins();
+    if (!bins) return;
+    await r209ProcessPlay(bins, id, "upload");
+  } catch (e) { console.error(`[r209] upload ${id}: smart-poster stage error (poster kept):`, e.message); }
+}
+// Boot-time backfill: existing plays are evaluated once —
+// sequentially, behind the same ffmpeg serializer, never
+// blocking startup. Selection is the empty
+// r209_checked_at stamp, so a boot that finds everything
+// evaluated costs one query, a partial run simply finishes
+// on the next boot, and a play processed at upload is
+// never selected.
+async function r209Backfill() {
+  try {
+    if (process.env.HH_NO_SMARTPOSTER === "1") { console.log("[r209] backfill disabled via HH_NO_SMARTPOSTER"); return; }
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r209] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r209_checked_at='' OR r209_checked_at IS NULL)").all();
+    let picked = 0;
+    for (const row of rows) {
+      try {
+        const o = await r209ProcessPlay(bins, row.id, "backfill");
+        picked += o.picked;
+      } catch (e) { console.error(`[r209] backfill row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r209] backfill complete (${picked} posters re-picked, ${rows.length} file plays scanned)`);
+  } catch (e) { console.error("[r209] backfill error:", e.message); }
 }
 
 /* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
@@ -6582,4 +6946,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });

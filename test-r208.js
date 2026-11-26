@@ -2,6 +2,7 @@
 // Run: node test-r208.js
 // What this suite pins down:
 //   A. Pins: app.js v209 (this round); styles keeps v205.
+//      →210: app.js now v210 / styles now v206 (Round 209).
 //   B. Statics: every place the default lives now says Back —
 //      the hfState literal, the initHfStudio reset, the picker
 //      markup's pressed button, hfPickSide's fallback, the
@@ -56,7 +57,7 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=209"') && home.includes('href="styles.css?v=205"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round)");
+assert(home.includes('src="app.js?v=211"') && home.includes('href="styles.css?v=207"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
 
 // ---- B. statics: the default's every home now says Back ----
 assert(appJs.includes('apparel: "hoodie", side: "back", imageStyle: "photo"'), "B: the hfState literal opens on side 'back'");

@@ -44,6 +44,9 @@
 //      nor fires 'play', the buffering lag Emil saw) and pins:
 //      hidden at tap BEFORE any play event, the film box
 //      revealed at tap, back on pause, back on ended.
+//      →210: the revealed box is the film OVERLAY now
+//      (hfHomeFilmOverlay210) — the drive's stub map and the
+//      reveal assertion below were updated to match.
 // Exits non-zero on failure.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -75,7 +78,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
+assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v205 / styles v202 (Round 204; both files changed) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
 
 // ---- B. the slim section: order + removals ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -92,14 +95,14 @@ const iFilm = sec.indexOf('id="hfHomeFilm201"');
 const iTitle = sec.indexOf("Your moment on a hoodie");
 const iCta = sec.indexOf('onclick="openHfChoice()"');
 const iFilmBtn = sec.indexOf('id="hfHomeFilmBtn201"');
-const iFilmBox = sec.indexOf('id="hfHomeFilmBox207"');
-assert(iBadges > -1 && iTitle > iBadges && iCta > iTitle && iFilmBtn > iCta && iFilmBox > iFilmBtn && iFilm > iFilmBox, "B: DOM order — label pills on the hero, then the headline, then the CTA, then the film link, then the film (→207 redesign; was pills -> film -> headline -> CTA in Round 204)");
+const iFilmBox = sec.indexOf('id="hfHomeFilmOverlay210"');
+assert(iBadges > -1 && iTitle > iBadges && iCta > iTitle && iFilmBtn > iCta && iFilmBox > iFilmBtn && iFilm > iFilmBox, "B: DOM order — label pills on the hero, then the headline, then the CTA, then the film link, then the film (→207 redesign; was pills -> film -> headline -> CTA in Round 204 — →210: the film sits in its overlay after the section)");
 const badges = sec.slice(iBadges, sec.indexOf("</div>", iBadges));
 assert(badges.includes("The Swag Shop") && badges.includes("📸 Hype Frame"), "B: the label row carries BOTH pills — The Swag Shop and 📸 Hype Frame");
 assert((sec.match(/hft201-badge"/g) || []).length === 2, "B: exactly two label pills ride the product hero (→207; they rode the film in Round 204)");
 assert(sec.includes('id="hfFilmCoverHome201"') && sec.includes('id="hfHomeFilm201"') && sec.includes('src="/hype-frame-film.mp4?v=7"') && sec.includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the film is unchanged — its own cover / video ids, the shared cut, the softball cover (→207: the softball photo ALSO serves as the hero still; the film keeps its own cover)");
 assert(sec.includes('id="hfHomeFilmBtn201"') && sec.includes('onclick="playHfHomeFilm201()"'), "B: the film's play button carries its own id and the section handler");
-assert(iFilmBtn > iCta && iFilmBtn < iFilmBox, "B: the play button is the 'See how it works' link BELOW the CTA and OUTSIDE the film box (→207; in Round 204 it sat between cover and video, overlaying the film)");
+assert(iFilmBtn > iCta && iFilmBtn < iFilmBox, "B: the play button is the 'See how it works' link BELOW the CTA and OUTSIDE the film box (→207; in Round 204 it sat between cover and video, overlaying the film — →210: the box rides in the overlay after the section)");
 const coverSlice = sec.slice(sec.indexOf('id="hfFilmCoverHome201"'), sec.indexOf("</div>", sec.indexOf('id="hfFilmCoverHome201"')));
 assert(!coverSlice.includes("hf-film-btn") && !coverSlice.includes("hfHomeFilmBtn201"), "B: no play button remains inside the cover");
 assert(sec.includes("Build your hoodie") && !sec.includes("Create yours"), "B: the CTA label rides — 'Build your hoodie →' (→207; was 'Create yours →')");
@@ -121,7 +124,7 @@ assert(!home.includes("$110"), "B: the $110 string is absent from the homepage m
 for (const dead of [".hft201-eyebrow", ".hft201-pitch", ".hft201-facts", ".hft201-thumbs", ".hft201-sub", ".hft201-gold"])
   assert(!css.includes(dead), "B: dead CSS removed: " + dead);
 assert(css.includes(".hft201-badges{") && css.includes("#hfHomeFilmBtn201[hidden]"), "B: the badges row and the film button's explicit [hidden] guard ride in styles.css");
-assert(!css.includes(".hft201-film-btn") && css.includes(".hft207-badges{") && css.includes(".hft207-film-link{") && css.includes("#hfHomeFilmBox207[hidden]"), "B: →207 — the R204 film-button stacking rule is REMOVED with the overlay markup; the raised hero badges, the film link and the film box's [hidden] guard ride instead");
+assert(!css.includes(".hft201-film-btn") && css.includes(".hft207-badges{") && css.includes(".hft207-film-link{") && css.includes(".hf-film-overlay210[hidden]") && !css.includes("hfHomeFilmBox207"), "B: →207 — the R204 film-button stacking rule is REMOVED with the overlay markup; the raised hero badges, the film link and the film box's [hidden] guard ride instead — →210: the guard is the film OVERLAY's now, and the retired box's rules are gone");
 assert(css.includes(".hft201-card{") && css.includes(".hft201-title{") && css.includes(".hft201-cta{"), "B: the surviving section styles ride (card / headline / CTA)");
 
 // The /store section is unchanged.
@@ -166,13 +169,13 @@ const vidE = {
   play() { this.plays++; return { catch() {} }; },
 };
 const coverE = { hidden: false }, btnE = { hidden: false }, boxE = { hidden: true };
-const elMapE = { "#hfFilmCoverHome201": coverE, "#hfHomeFilm201": vidE, "#hfHomeFilmBtn201": btnE, "#hfHomeFilmBox207": boxE };
+const elMapE = { "#hfFilmCoverHome201": coverE, "#hfHomeFilm201": vidE, "#hfHomeFilmBtn201": btnE, "#hfHomeFilmOverlay210": boxE };
 const sbE = { console, $: (s) => elMapE[s] || null };
 vm.runInContext(filmBlock, vm.createContext(sbE));
-assert(btnE.hidden === false && boxE.hidden === true, "E: before play, the link is visible under the CTA and the film box is hidden (→207)");
+assert(btnE.hidden === false && boxE.hidden === true, "E: before play, the link is visible under the CTA and the film overlay is hidden (→207; overlay →210)");
 sbE.playHfHomeFilm201();
 assert(coverE.hidden === true && vidE.hidden === false && vidE.plays === 1, "E: the handler still swaps the cover out and plays the film");
-assert(boxE.hidden === false, "E: the tap reveals the film box in place below the CTA (→207)");
+assert(boxE.hidden === false, "E: the tap opens the film overlay over the page (→210; it revealed the box in place below the CTA in Round 207)");
 assert(btnE.hidden === true, "E: the button hides INSTANTLY on tap — before any 'play' event fires (→207, the 3-second-sit fix)");
 vidE.paused = false; vidE.fire("play");
 assert(btnE.hidden === true, "E: when the (lagging) play event finally lands, the button stays hidden");
@@ -200,7 +203,7 @@ try {
   assert(vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours."), "C: the served section carries the renamed CTA and the sub-line (→207)");
   assert(!vSec.includes("hft201-pitch") && !vSec.includes("hft201-facts") && !vSec.includes("hf-example-hoodie-back.jpg") && !vSec.includes("hf-example-lineup.jpg") && !vSec.includes("Drop 001") && !vSec.includes("Coming soon"), "C: the served section is slim — no pitch, no facts, no example thumbnails, no Drop 001 / Coming soon");
   assert(!served.includes("$110"), "C: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=209"') && served.includes('href="styles.css?v=205"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
+  assert(served.includes('src="app.js?v=211"') && served.includes('href="styles.css?v=207"'), "C: the served homepage carries the Round 204 pins — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R204 CHECKS PASSED");

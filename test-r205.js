@@ -68,7 +68,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "A: asset pins — app.js v206 / styles v203 (Round 205; both files changed) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
+assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v206 / styles v203 (Round 205; both files changed) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
 
 // ---- B. item 1: Sample out of the dialog ----
 const mStart = home.indexOf('id="hfChoiceModal"');
@@ -294,7 +294,7 @@ for (const id of ["hfInstant205", "hfSelected205", "hfJerseyRow205", "hfSizeGuid
 const s = await boot(8955);
 try {
   const served = await (await fetch(s.base + "/")).text();
-  assert(served.includes("Two ways to start:") && served.includes("Send hoodie request") && served.includes('id="hfSummary205"') && served.includes('id="hfInstant205"') && served.includes("app.js?v=209") && served.includes("styles.css?v=205"), "I: the served homepage carries the two-way card, the renamed submit, the summary + instant preview, and the v206/v203 pins — →207: now v207/v204 (Round 206)");
+  assert(served.includes("Two ways to start:") && served.includes("Send hoodie request") && served.includes('id="hfSummary205"') && served.includes('id="hfInstant205"') && served.includes("app.js?v=211") && served.includes("styles.css?v=207"), "I: the served homepage carries the two-way card, the renamed submit, the summary + instant preview, and the v206/v203 pins — →207: now v207/v204 (Round 206) — →208: now v208/v205 (Round 207) — →209: now v209 (Round 208) — →210: now v210/v206 (Round 209) — →211: now v211/v207 (Round 210)");
   const servedJs = await (await fetch(s.base + "/app.js")).text();
   assert(!servedJs.includes("window.hfChoiceSample") && servedJs.includes("function hfRecommend205") && servedJs.includes("function hfScoreStills205") && servedJs.includes("hf-studio-open205"), "I: the served app.js carries the recommendation + studio pill stand-down, and no Sample handler");
   const servedCss = await (await fetch(s.base + "/styles.css")).text();

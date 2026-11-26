@@ -30,6 +30,13 @@
 //      The B assertions below were updated again where the
 //      redesign supersedes them; test-r207.js pins the new
 //      shape in full.
+//      → Round 210 (Emil, same day): the link now opens the
+//      film in a centered OVERLAY (hfHomeFilmOverlay210)
+//      instead of revealing its box in place — same cover /
+//      video / handler ids, so the B/C/E assertions below
+//      stand as written (the handler's overlay lookup
+//      null-guards in the §E drive); test-r210.js pins the
+//      overlay and the centered hero in full.
 //   C. The board strip is untouched (its own film ids and
 //      handler, still spliced into renderAll's deck) and the
 //      two film instances share no ids; no duplicate element
@@ -75,7 +82,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=205"') && home.includes('src="app.js?v=209"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed) — →203: app.js now v203 / styles now v201 (Round 202; both files changed again) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round)");
+assert(home.includes('href="styles.css?v=207"') && home.includes('src="app.js?v=211"'), "A: asset pins — app.js v202 / styles v200 (Round 201; both files changed) — →203: app.js now v203 / styles now v201 (Round 202; both files changed again) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210)");
 
 // ---- B. the section ----
 const secStart = home.indexOf('id="merchTeaser125"');
