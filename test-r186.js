@@ -61,7 +61,11 @@ const waitReport = async (id, timeoutMs = 240000) => {
   const t0 = Date.now();
   for (;;) {
     const row = readRow(id);
-    if (row && row.enhance_json) return { row, report: JSON.parse(row.enhance_json) };
+    // Round 195 note: enhance_json is shared now — the boot
+    // backfill's r195 evaluation can land first on a fresh
+    // upload, so "some JSON" is not yet the R186 report. The
+    // agent's report is the object carrying a status.
+    if (row && row.enhance_json) { const parsed = JSON.parse(row.enhance_json); if (parsed && parsed.status) return { row, report: parsed }; }
     if (Date.now() - t0 > timeoutMs) throw new Error(`timed out waiting for the r186 report on play ${id}`);
     await wait(1500);
   }

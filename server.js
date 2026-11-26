@@ -780,6 +780,13 @@ try { db.exec("ALTER TABLE highlights ADD COLUMN welcome_sent_at TEXT DEFAULT ''
 // yet; every surface falls back to media_url. The master stays
 // canonical for downloads and Hype Frame frame-picking.
 try { db.exec("ALTER TABLE highlights ADD COLUMN stream_url TEXT DEFAULT ''"); } catch {}
+// Round 195 (2026-11-25): the head-trim + upscale stage's
+// per-play evaluation stamp — set when the Round 195 stage has
+// evaluated a play (both stages decided, applied or not), and
+// read by the boot backfill, which selects on the empty stamp
+// so an evaluated play is never re-processed (see the Round
+// 195 section at the media pipeline). '' = not yet evaluated.
+try { db.exec("ALTER TABLE highlights ADD COLUMN r195_checked_at TEXT DEFAULT ''"); } catch {}
 // ---- Hype Frame order requests (2026-11-04) ----
 // A Hype Frame starts from an APPROVED play: a family freezes a frame of
 // the athlete's own highlight in the studio, customizes it, previews it on
@@ -825,6 +832,20 @@ try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN size TEXT DEFAULT ''"); 
 // the owner confirms with the guardian — the order only carries the
 // choice. Added additively, same pattern; older rows read 'photo'.
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN image_style TEXT DEFAULT 'photo'"); } catch {}
+// Back text (Round 197, 2026-11-25): what is embroidered across the
+// back of the garment — the parent's choice at order time, from
+// parent feedback Emil received with the first delivered sweatshirt:
+// 'name' (the order's name — exactly the pre-R197 behavior),
+// 'name_number' (the name plus the jersey number), 'none' (no back
+// text at all), or 'custom' (the parent's own words, stored in
+// back_text_custom). Added additively, same pattern; existing rows
+// read 'name' with no data change. back_text_reviewed is the
+// owner's read-it flag for custom lines: a custom order starts
+// unreviewed (0) and the Owner view flags it until the owner marks
+// it reviewed.
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text TEXT DEFAULT 'name'"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_custom TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_reviewed INTEGER DEFAULT 0"); } catch {}
 const normIdentity = (s) => String(s || "").toLowerCase().trim().replace(/\s+/g, " ");
 function athleteDisplayName(raw) {
   const parts = String(raw || "").trim().split(/\s+/).filter(Boolean);
@@ -1484,8 +1505,40 @@ function notifyHypeFrameRequest(order, play) {
   const to = process.env.NOTIFY_TO || "hello@highlighthype.com";
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
+    body: `A family just submitted a Hype Frame order request on highlighthype.com.\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "back" ? "Back" : "Front"} · Image: ${order.image_style === "avatar" ? "Avatar — illustrate the frame before printing" : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: pending-guardian — nothing is printed until you confirm with the parent/guardian.\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
+}
+// ---- Round 197: Hype Frame back text ----
+// The exact string the embroiderer stitches across the back of the
+// garment, derived from the order's stored choice. "" means there is
+// NO back text (the 'none' choice, or a name choice with no name on
+// file). Name typography follows the flow's existing form: the name
+// as entered, the number as " · #N" (the owner view's Print line).
+function hfBackTextToEmbroider197(o) {
+  const choice = String((o && o.back_text) || "name");
+  if (choice === "none") return "";
+  if (choice === "custom") return String(o.back_text_custom || "").trim();
+  const name = String(o.custom_name || "").trim();
+  if (!name) return "";
+  if (choice === "name_number") {
+    const digits = String(o.jersey || "").replace(/\D/g, "");
+    return digits ? `${name} · #${digits}` : name;
+  }
+  return name;
+}
+// Custom back words: up to 16 characters of letters, numbers, spaces
+// and basic punctuation — the embroidery constraint (no emoji, no
+// symbols, no control characters; the character class itself
+// excludes them). Returns a plain-language problem, or "" when the
+// line is stitchable. The studio runs the same check client-side;
+// this is the enforcing copy.
+const HF_CUSTOM_TEXT_RE197 = /^[\p{L}\p{N} .,'&#!-]+$/u;
+function hfCustomTextError197(raw) {
+  const t = String(raw || "").trim();
+  if (!t) return "Write the words you'd like on the back — or pick one of the other back-text options.";
+  if (t.length > 16) return "Custom words are limited to 16 characters — the embroidery space across the back is tight.";
+  if (!HF_CUSTOM_TEXT_RE197.test(t)) return "Custom words can use letters, numbers, spaces and basic punctuation only — embroidery can't stitch emoji or other symbols.";
+  return "";
 }
 // ---- Round 100: Daily Battle helpers ----
 // All Daily Battle dates are ET calendar dates (America/New_York),
@@ -2070,6 +2123,14 @@ async function r124ProcessUpload(id, name) {
     // here must never become an unhandled rejection.
     r186EnhanceUpload(bins, id, abs, meta186)
       .catch((e) => console.error(`[r186] upload ${id}: stage error (display file kept):`, e.message))
+      // Round 195: the head-trim + upscale stage rides between
+      // the agent and the rendition, so the rendition — and the
+      // poster the welcome email carries — is made from the
+      // trimmed / upscaled file. Its own catch-all is inside;
+      // this .catch is the belt to its suspenders, the same
+      // discipline as every stage on this chain.
+      .then(() => r195AfterEnhance(id))
+      .catch((e) => console.error(`[r195] upload ${id}: trim/upscale stage error (display file kept):`, e.message))
       // Round 192: the streaming rendition is made from the
       // FINAL display file (the enhanced one, when it enhanced),
       // so it rides after the agent settles. Its catch-all is
@@ -2213,7 +2274,24 @@ async function r192EncodeStreamNow(bins, inFile, outFile, dims) {
 // true when the play ends up with a servable rendition (made or
 // already present), false when it stays master-only. Never
 // throws — the fallback contract lives here.
+// Round 195 note: ensures for one play are serialized through
+// a per-play promise gate (the same pattern as r195ProcessPlay).
+// Three callers can now meet on one play — the upload chain,
+// the boot backfill, and the Round 195 stage regenerating a
+// rendition its swap just staled — and two unserialized ensures
+// share the <base>.r192tmp.mp4 path: one invocation's cleanup
+// can unlink the file another's ffmpeg is mid-faststart on
+// (observed in test-r192 after Round 195 lengthened the chain).
+// A gated second caller re-reads the row when its turn comes
+// and normally finds the rendition already correct.
+const r192InFlight = new Map();
 async function r192EnsureStream(bins, id) {
+  while (r192InFlight.has(id)) { try { await r192InFlight.get(id); } catch {} }
+  const p = r192EnsureStreamNow(bins, id);
+  r192InFlight.set(id, p);
+  try { return await p; } finally { if (r192InFlight.get(id) === p) r192InFlight.delete(id); }
+}
+async function r192EnsureStreamNow(bins, id) {
   try {
     if (process.env.HH_NO_STREAM192 === "1") return false;
     const row = db.prepare("SELECT media_kind, media_url, stream_url FROM highlights WHERE id=?").get(id);
@@ -2292,6 +2370,310 @@ async function r192Backfill() {
     }
     console.log(`[r192] backfill complete (${made} renditions made, ${posters} posters made, ${rows.length} file plays scanned)`);
   } catch (e) { console.error("[r192] backfill error:", e.message); }
+}
+
+/* ================= Round 195 (2026-11-25): head trim + sub-720 upscale =================
+   WHY: Emil, watching the R189 feed (2026-11-25): plays like
+   Kameron's walk-off and Juliana's caught-stealing sit on a
+   still frame for seconds before the action starts — dead air
+   at the head. Measured against the production backup before
+   building: Kameron (id 75) ~4.0s of near-frozen head,
+   Juliana (id 51) ~3.16s (freezedetect n=-50dB). He approved
+   teaching the Round 186 agent to trim that head — this
+   reopens R186's report-only dead-time handling for the head
+   only (the tail is untouched) — and, the same evening, an
+   upscale for the "smaller format" clips: Juliana's 960x444
+   arrives under 720 on its small side and reads soft
+   everywhere it is stretched.
+   TRIM DETECTION: freezedetect at the same noise floor the
+   R186 dead-time read uses (n=0.003 ≈ -50dB) with d=1.0 over
+   the first 12 seconds. The motion onset is the end of the
+   FIRST freeze interval that touches t=0 — deliberately no
+   merging across later intervals: an interruption can only
+   move the onset earlier (trim less), never later into the
+   action. Dry-run calibration on the two real files before
+   building: Kameron onset 4.0s (reference ~4.0s), Juliana
+   3.12s (reference ~3.16s — one frame at 25fps). DECISION:
+   trim only when the still head is ≥1.5s, cutting to 0.4s
+   before the onset so the play does not start mid-motion; a
+   still head over 6s is NOT trimmed — it is flagged in the
+   report (that much stillness is content, not dead air: a
+   held graphic, a ceremony); a head whose action never
+   arrives inside the file is inconclusive and left alone. A
+   head with real motion (a windup, a settles-in stance) never
+   trips freezedetect and never trims; a detector error never
+   trims and leaves the play unstamped so a later boot
+   retries. The failure mode is trimming too little, by
+   design.
+   UPSCALE: when the smaller dimension is under 720, scale so
+   it becomes 720 — lanczos plus a mild unsharp, following the
+   chain's encode conventions — with the factor capped at 2×
+   (a source under 360 on its small side lands at the cap and
+   the report says so). Exactly 720 does NOT trigger: a
+   720x1280 portrait is already at the line.
+   INTEGRATION: one stage chained between the Round 186 agent
+   and the Round 192 rendition, so the poster, the rendition
+   and the Round 188 welcome all inherit the result. Trim and
+   upscale share ONE encode when both apply. The swap follows
+   the Round 186 discipline exactly: the encode is produced
+   and verified first (codec / pix_fmt / faststart / dims /
+   duration against the plan), the current display file is
+   preserved as <base>-preenhance.mp4 (a timestamped variant
+   when that name is taken — the TRUE original is never
+   overwritten), and only then does the row move. A play that
+   already had a rendition gets it regenerated from the new
+   master (the old rendition file is deleted — it was made
+   from the pre-trim file). Every outcome is recorded under
+   `r195` in highlights.enhance_json, and
+   highlights.r195_checked_at is stamped as the evaluation
+   completes — the boot backfill selects on the empty stamp,
+   so a restart never re-trims or re-upscales, and a play
+   processed at upload is invisible to it; a recorded
+   trim/upscale outcome is also honored directly, belt to the
+   stamp's suspenders. HH_NO_TRIM=1 / HH_NO_UPSCALE=1 disable
+   their stage alone (the disabled stage is recorded as
+   skipped in the report; the rest of the chain is
+   unaffected). FALLBACK CONTRACT (the house rule):
+   best-effort, never a gate — any failure keeps the current
+   display file, leaves the stamp empty for a later retry,
+   and logs why. Photo uploads never enter the chain (Round
+   124 returns before it); a photo the backfill meets is
+   stamped not-a-video and left byte-for-byte alone. */
+const R195_FREEZE_NOISE = "0.003";  // freezedetect noise floor ≈ -50dB — the R186 dead-time read's floor
+const R195_FREEZE_MIN_DUR = "1.0";  // freezedetect d: stills shorter than this never even register
+const R195_SCAN_SEC = 12;           // head window scanned — comfortably past the 6s flag line
+const R195_MIN_STILL_SEC = 1.5;     // a still head shorter than this is a beat, not dead air
+const R195_MAX_STILL_SEC = 6;       // a still head longer than this is flagged, never trimmed
+const R195_LEAD_SEC = 0.4;          // kept before the onset so the play doesn't start mid-motion
+const R195_MIN_DIM = 720;           // the upscale line: smaller dimension under this qualifies
+const R195_MAX_FACTOR = 2;          // upscale factor cap
+// Scan the head and report the still span that touches t=0.
+// Returns { headStillSec, onsetSec, openEnded } — onsetSec is
+// the end of the first head-touching freeze (or the scan
+// window when the freeze outlasts it) — or null when the scan
+// itself failed, which the caller treats as "never trim,
+// never stamp".
+async function r195DetectHead(bins, abs) {
+  const { err, stderr } = await r138SerializeFfmpeg(() => r124Run(bins.ffmpeg, ["-nostats", "-i", abs, "-vf", `freezedetect=n=${R195_FREEZE_NOISE}:d=${R195_FREEZE_MIN_DUR}`, "-t", String(R195_SCAN_SEC), "-f", "null", "-"], 120000));
+  if (err) return null;
+  const starts = [...stderr.matchAll(/freeze_start:\s*([\d.]+)/g)].map((m) => +m[1]);
+  const ends = [...stderr.matchAll(/freeze_end:\s*([\d.]+)/g)].map((m) => +m[1]);
+  if (!starts.length || starts[0] > 0.15) return { headStillSec: 0, onsetSec: 0, openEnded: false };
+  const openEnded = ends.length === 0;
+  const onset = openEnded ? R195_SCAN_SEC : ends[0];
+  return { headStillSec: r186Round(onset, 2), onsetSec: r186Round(onset, 2), openEnded };
+}
+function r195UpscalePlan(info) {
+  const w = info.width | 0, h = info.height | 0;
+  if (!w || !h) return null;
+  const minDim = Math.min(w, h);
+  if (minDim >= R195_MIN_DIM) return null;
+  const raw = R195_MIN_DIM / minDim;
+  const factor = Math.min(raw, R195_MAX_FACTOR);
+  const even = (v) => Math.max(2, Math.round(v / 2) * 2);
+  return { factor: r186Round(factor, 3), capped: raw > R195_MAX_FACTOR, outW: even(w * factor), outH: even(h * factor), srcW: w, srcH: h };
+}
+async function r195Encode(bins, abs, tmpOut, cutStart, up) {
+  return r138SerializeFfmpeg(() => r195EncodeNow(bins, abs, tmpOut, cutStart, up));
+}
+async function r195EncodeNow(bins, abs, tmpOut, cutStart, up) {
+  // The Round 186 encode spec (libx264 CRF 23 / yuv420p / AAC
+  // 128k / faststart / no global metadata — the kids'-platform
+  // GPS rule binds every display file), plus this round's two
+  // moves: an input seek to the cut point when trimming, and
+  // the lanczos + mild-unsharp scale when upscaling. A
+  // trim-only encode carries no scale filter at all, so the
+  // dimensions pass through untouched.
+  const args = ["-nostats", "-y"];
+  if (cutStart > 0) args.push("-ss", String(r186Round(cutStart, 3)));
+  args.push("-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1");
+  if (up) args.push("-vf", `scale=${up.outW}:${up.outH}:flags=lanczos,unsharp=5:5:0.8:5:5:0.0`);
+  args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut);
+  const { err, stderr } = await r124Run(bins.ffmpeg, args, 600000);
+  if (err) { console.error("[r195] encode failed:", err.message, stderr.slice(-300)); return false; }
+  return true;
+}
+// Merge this round's evaluation into the play's enhance_json
+// (the Round 186 report, when one exists, is preserved) and
+// stamp r195_checked_at in the same write — the stamp is what
+// the boot backfill selects on.
+function r195StoreEval(id, r195) {
+  const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+  let obj = {};
+  if (row && row.enhance_json) { try { obj = JSON.parse(row.enhance_json); } catch { obj = {}; } }
+  obj.r195 = r195;
+  db.prepare("UPDATE highlights SET enhance_json=?, r195_checked_at=? WHERE id=?").run(JSON.stringify(obj), new Date().toISOString(), id);
+}
+// Evaluate one play for both stages and apply what trips.
+// Shared by the upload chain (origin "upload") and the boot
+// backfill (origin "backfill") — and those two callers can
+// meet on the same fresh upload (the backfill fires seconds
+// after boot; a chain can still be mid-flight), so evaluations
+// of one play are serialized through a per-play promise gate:
+// two evaluators share the temp/output paths, and an
+// unserialized pair could rename a half-written encode into
+// place. A second caller waits, then evaluates fresh against
+// whatever the first left (usually: the stamp + recorded
+// outcome, and nothing to do). Never throws; returns the
+// tallies the backfill summary reports. The stamp is written
+// only when the evaluation actually completed — a detector or
+// encode failure leaves it empty so a later boot retries.
+const r195InFlight = new Map();
+async function r195ProcessPlay(bins, id, origin) {
+  while (r195InFlight.has(id)) { try { await r195InFlight.get(id); } catch {} }
+  const p = r195ProcessPlayNow(bins, id, origin);
+  r195InFlight.set(id, p);
+  try { return await p; } finally { if (r195InFlight.get(id) === p) r195InFlight.delete(id); }
+}
+async function r195ProcessPlayNow(bins, id, origin) {
+  const out = { trimmed: 0, upscaled: 0, flagged: 0 };
+  try {
+    const row = db.prepare("SELECT media_kind, media_url, stream_url, enhance_json FROM highlights WHERE id=?").get(id);
+    if (!row || row.media_kind !== "file") return out;
+    const name = path.basename(row.media_url || "");
+    if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return out;
+    const abs = path.join(UPLOAD_DIR, name);
+    if (!fs.existsSync(abs)) return out; // missing file: a later boot retries — never stamp it
+    const info = r124VideoInfo(await r124Probe(bins, abs));
+    const r195 = { at: new Date().toISOString(), origin, trim: null, upscale: null, preEnhanceFile: null };
+    if (!info || !info.width || !info.height) {
+      // A file play that does not probe as video (a photo):
+      // evaluated, nothing to do, stamped so backfill scans
+      // stay cheap and the file is left exactly as it is.
+      r195.trim = { status: "not-video" };
+      r195.upscale = { status: "not-video" };
+      r195StoreEval(id, r195);
+      return out;
+    }
+    let prior = null;
+    if (row.enhance_json) { try { prior = JSON.parse(row.enhance_json).r195 || null; } catch { prior = null; } }
+    // ---- trim decision ----
+    let cutStart = 0;
+    if (prior && prior.trim && prior.trim.status === "trimmed") {
+      r195.trim = prior.trim; // already trimmed once — never twice
+    } else if (process.env.HH_NO_TRIM === "1") {
+      r195.trim = { status: "skipped", reason: "HH_NO_TRIM=1", sourceDuration: r186Round(info.duration, 2) };
+    } else {
+      const det = await r195DetectHead(bins, abs);
+      if (!det) { console.error(`[r195] play ${id}: head detection failed — left unstamped for a later retry`); return out; }
+      const still = Math.min(det.headStillSec, info.duration || det.headStillSec);
+      const onset = Math.min(det.onsetSec, info.duration || det.onsetSec);
+      const t = { status: "no-trim", headStillSec: r186Round(still, 2), onsetSec: r186Round(onset, 2), sourceDuration: r186Round(info.duration, 2) };
+      if (still >= R195_MIN_STILL_SEC) {
+        if (onset >= (info.duration || 0) - 0.75) { t.status = "inconclusive"; t.reason = "no sustained action follows the still head inside the file"; }
+        else if (still > R195_MAX_STILL_SEC) { t.status = "flagged"; t.reason = `still head of ${t.headStillSec}s exceeds the ${R195_MAX_STILL_SEC}s cap — recorded, not trimmed`; out.flagged = 1; }
+        else { t.status = "trimmed"; cutStart = Math.max(0, onset - R195_LEAD_SEC); t.trimmedSec = r186Round(cutStart, 2); t.leadKeptSec = R195_LEAD_SEC; }
+      }
+      r195.trim = t;
+    }
+    // ---- upscale decision ----
+    let up = null;
+    if (prior && prior.upscale && prior.upscale.status === "upscaled") {
+      r195.upscale = prior.upscale; // already upscaled once — never twice
+    } else if (process.env.HH_NO_UPSCALE === "1") {
+      r195.upscale = { status: "skipped", reason: "HH_NO_UPSCALE=1", sourceWidth: info.width, sourceHeight: info.height };
+    } else {
+      up = r195UpscalePlan(info);
+      r195.upscale = up
+        ? { status: "upscaled", sourceWidth: up.srcW, sourceHeight: up.srcH, outputWidth: up.outW, outputHeight: up.outH, factor: up.factor, capped: up.capped }
+        : { status: "not-needed", sourceWidth: info.width, sourceHeight: info.height };
+    }
+    const wantTrim = !!(r195.trim && r195.trim.status === "trimmed" && cutStart > 0);
+    if (!wantTrim && !up) {
+      r195StoreEval(id, r195);
+      console.log(`[r195] play ${id}: evaluated — trim=${r195.trim.status}, upscale=${r195.upscale.status} (display file unchanged)`);
+      return out;
+    }
+    // ---- one encode for whichever stages tripped ----
+    const base = name.replace(/\.[^.]+$/, "");
+    const tmpOut = path.join(UPLOAD_DIR, `${base}.r195tmp.mp4`);
+    const finalName = `${base}${wantTrim ? "-trimmed" : ""}${up ? "-upscaled" : ""}.mp4`;
+    try {
+      if (!(await r195Encode(bins, abs, tmpOut, wantTrim ? cutStart : 0, up))) { try { fs.unlinkSync(tmpOut); } catch {} return out; }
+      const outInfo = r124VideoInfo(await r124Probe(bins, tmpOut));
+      const expW = up ? up.outW : info.width, expH = up ? up.outH : info.height;
+      const expDur = info.duration - (wantTrim ? cutStart : 0);
+      const verified = outInfo && outInfo.codec === "h264" && outInfo.pixFmt === "yuv420p" && r124IsFaststart(tmpOut)
+        && Math.abs(outInfo.width - expW) <= 4 && Math.abs(outInfo.height - expH) <= 4
+        && Math.abs(outInfo.duration - expDur) <= 0.75;
+      if (!verified) {
+        try { fs.unlinkSync(tmpOut); } catch {}
+        console.error(`[r195] play ${id}: output did not verify (codec/dims/duration) — display file kept`);
+        return out;
+      }
+      const rowNow = db.prepare("SELECT media_url FROM highlights WHERE id=?").get(id);
+      if (!rowNow || path.basename(rowNow.media_url || "") !== name) {
+        try { fs.unlinkSync(tmpOut); } catch {}
+        console.log(`[r195] play ${id}: media changed since evaluation — standing down`);
+        return out;
+      }
+      // Swap order matters (the Round 186 discipline): the new
+      // file lands first, then the current display file is
+      // preserved under its pre-enhancement name, and only
+      // then does the row move — at every instant the row
+      // points at a file that exists.
+      let preName = `${base}-preenhance.mp4`;
+      if (fs.existsSync(path.join(UPLOAD_DIR, preName))) preName = `${base}-preenhance-${Date.now()}.mp4`;
+      fs.renameSync(tmpOut, path.join(UPLOAD_DIR, finalName));
+      fs.renameSync(abs, path.join(UPLOAD_DIR, preName));
+      db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${finalName}`, id);
+      r195.preEnhanceFile = preName;
+      if (wantTrim) { out.trimmed = 1; r195.trim.outputFile = finalName; r195.trim.outputDuration = r186Round(outInfo.duration, 2); }
+      if (up) { out.upscaled = 1; r195.upscale.outputFile = finalName; }
+      await r124PosterFor(bins, id, path.join(UPLOAD_DIR, finalName), outInfo);
+      // A rendition made from the pre-trim / pre-upscale file
+      // is stale: drop it and make a fresh one from the new
+      // master (Round 192's own kill switch still binds).
+      const rowAfter = db.prepare("SELECT stream_url FROM highlights WHERE id=?").get(id);
+      if (rowAfter && rowAfter.stream_url) {
+        try { fs.unlinkSync(path.join(UPLOAD_DIR, path.basename(rowAfter.stream_url))); } catch {}
+        db.prepare("UPDATE highlights SET stream_url='' WHERE id=?").run(id);
+        await r192EnsureStream(bins, id);
+      }
+      r195StoreEval(id, r195);
+      console.log(`[r195] play ${id}: ${wantTrim ? `trimmed ${r195.trim.trimmedSec}s (onset ${r195.trim.onsetSec}s)` : "no trim"}${up ? `, upscaled ${up.srcW}x${up.srcH} → ${up.outW}x${up.outH} (x${up.factor}${up.capped ? ", capped" : ""})` : ""} → ${finalName}; previous display file kept as ${preName}`);
+    } catch (e) {
+      try { fs.unlinkSync(tmpOut); } catch {}
+      console.error(`[r195] play ${id}: stage failed (display file kept):`, e.message);
+      return out;
+    }
+  } catch (e) { console.error(`[r195] play ${id}: evaluation failed (display file kept):`, e.message); }
+  return out;
+}
+// The upload-pipeline stage: chained after the Round 186
+// agent settles and before the Round 192 rendition, so
+// everything downstream is made from the final file.
+// Catch-all inside, like every stage on this chain.
+async function r195AfterEnhance(id) {
+  try {
+    const bins = await r124ResolveBins();
+    if (!bins) return;
+    await r195ProcessPlay(bins, id, "upload");
+  } catch (e) { console.error(`[r195] upload ${id}: trim/upscale stage error (display file kept):`, e.message); }
+}
+// Boot-time backfill: existing plays are evaluated once —
+// sequentially, behind the same ffmpeg serializer, never
+// blocking startup. Selection is the empty r195_checked_at
+// stamp, so a boot that finds everything evaluated costs one
+// query, a partial run simply finishes on the next boot, and
+// a play processed at upload is never selected. The summary
+// line is the deploy verification's read: what was trimmed,
+// what was upscaled, what was flagged.
+async function r195Backfill() {
+  try {
+    if (process.env.HH_NO_TRIM === "1" && process.env.HH_NO_UPSCALE === "1") { console.log("[r195] backfill disabled via HH_NO_TRIM + HH_NO_UPSCALE"); return; }
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r195] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r195_checked_at='' OR r195_checked_at IS NULL)").all();
+    let trimmed = 0, upscaled = 0, flagged = 0;
+    for (const row of rows) {
+      try {
+        const o = await r195ProcessPlay(bins, row.id, "backfill");
+        trimmed += o.trimmed; upscaled += o.upscaled; flagged += o.flagged;
+      } catch (e) { console.error(`[r195] backfill row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r195] backfill complete (${trimmed} trimmed, ${upscaled} upscaled, ${flagged} flagged, ${rows.length} file plays scanned)`);
+  } catch (e) { console.error("[r195] backfill error:", e.message); }
 }
 
 /* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
@@ -4295,6 +4677,27 @@ const server = http.createServer(async (req, res) => {
       const guardianEmail = String(body.guardianEmail || "").trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail))
         return sendJson(res, 400, { ok: false, message: "A parent/guardian email is required so we can confirm the order before printing." });
+      // Back text (Round 197): the parent's choice for the words
+      // embroidered across the back. An absent or unknown choice
+      // reads 'name' — exactly the pre-R197 behavior. 'custom' is
+      // validated hard: an empty, over-length or un-stitchable line
+      // rejects the order with a clear message rather than saving a
+      // bad order. 'name_number' stores the jersey digits (and only
+      // the digits) in the order's jersey field.
+      const backTextChoice = ["name", "name_number", "none", "custom"].includes(String(body.backText || "").trim().toLowerCase())
+        ? String(body.backText).trim().toLowerCase() : "name";
+      let backTextCustom = "";
+      if (backTextChoice === "custom") {
+        const err197 = hfCustomTextError197(body.backTextCustom);
+        if (err197) return sendJson(res, 400, { ok: false, message: err197 });
+        backTextCustom = String(body.backTextCustom || "").trim();
+      }
+      let jersey197 = String(body.jersey || "").trim().slice(0, 8);
+      if (backTextChoice === "name_number") {
+        const digits197 = String(body.jersey || "").replace(/\D/g, "").slice(0, 3);
+        if (!digits197) return sendJson(res, 400, { ok: false, message: "Add the jersey number — you picked name + number for the back." });
+        jersey197 = digits197;
+      }
       // Print image (Round 128): the composed PNG rides on the order
       // and is stored as a file in HYPEFRAME_DIR (DATA_DIR/hype-frames
       // — inside BACKUP_FILE_DIRS, so the nightly backup carries it).
@@ -4335,7 +4738,9 @@ const server = http.createServer(async (req, res) => {
         athlete_id: play.athlete_id || "",
         print_image: imgName,
         custom_name: String(body.customName || "").trim().slice(0, 60),
-        jersey: String(body.jersey || "").trim().slice(0, 8),
+        jersey: jersey197,
+        back_text: backTextChoice,
+        back_text_custom: backTextCustom,
         branding: body.branding === false ? 0 : 1,
         apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
         side: String(body.side || "").trim().toLowerCase() === "back" ? "back" : "front",
@@ -4346,11 +4751,11 @@ const server = http.createServer(async (req, res) => {
         guardian_email: guardianEmail,
         placement,
       };
-      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,colorway,size,guardian_name,guardian_email,placement)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement);
+      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom);
       if (imgProblem) console.error(`hype-frame order ${Number(info.lastInsertRowid)} saved WITHOUT its print image: ${imgProblem}`);
       notifyHypeFrameRequest({ ...order, id: Number(info.lastInsertRowid) }, play);
-      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", imageSaved: !!imgName, message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
+      return sendJson(res, 201, { ok: true, id: Number(info.lastInsertRowid), status: "pending-guardian", imageSaved: !!imgName, backTextToEmbroider: hfBackTextToEmbroider197(order), message: "Request received — we'll email the parent/guardian to confirm before anything is printed." });
     }
 
     // ---- Round 100: Daily Battle ----
@@ -4835,7 +5240,7 @@ const server = http.createServer(async (req, res) => {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const rows = db.prepare(`SELECT o.*, h.title AS play_title FROM hype_frame_orders o
         LEFT JOIN highlights h ON h.id=o.highlight_id ORDER BY o.id DESC`).all();
-      return sendJson(res, 200, { requests: rows.map((o) => ({ ...o, branding: !!o.branding, imageUrl: `/api/owner/hype-frames/${o.id}/image` })) });
+      return sendJson(res, 200, { requests: rows.map((o) => ({ ...o, branding: !!o.branding, back_text_reviewed: !!o.back_text_reviewed, backTextToEmbroider: hfBackTextToEmbroider197(o), imageUrl: `/api/owner/hype-frames/${o.id}/image` })) });
     }
     // ---- Owner: bottle drop notifications (owner-authorized ONLY) ----
     // The only place drop-notify emails are ever returned. Counts are
@@ -4846,6 +5251,18 @@ const server = http.createServer(async (req, res) => {
       const signups = db.prepare("SELECT email, sport, created_at FROM drop_notifications ORDER BY id DESC").all();
       const counts = DROP_NOTIFY_SPORTS.map((sport) => ({ sport, count: signups.filter((s) => s.sport === sport).length }));
       return sendJson(res, 200, { signups, counts });
+    }
+    // ---- Round 197: owner marks a custom back-text line reviewed ----
+    // The Owner view flags every custom-words order until the owner
+    // has read the line; this is the whole "review" — one flag, set
+    // here, owner-authorized only, idempotent.
+    const hfReviewedMatch197 = p.match(/^\/api\/owner\/hype-frames\/(\d+)\/back-text-reviewed$/);
+    if (hfReviewedMatch197 && req.method === "POST") {
+      if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
+      const o197 = db.prepare("SELECT id FROM hype_frame_orders WHERE id=?").get(Number(hfReviewedMatch197[1]));
+      if (!o197) return sendJson(res, 404, { ok: false, message: "That order isn't on file." });
+      db.prepare("UPDATE hype_frame_orders SET back_text_reviewed=1 WHERE id=?").run(o197.id);
+      return sendJson(res, 200, { ok: true, id: o197.id, backTextReviewed: true });
     }
     const hfImgMatch = p.match(/^\/api\/owner\/hype-frames\/(\d+)\/image$/);
     if (hfImgMatch && req.method === "GET") {
@@ -5337,4 +5754,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); });
