@@ -197,7 +197,7 @@ try {
   let appJs = "";
   try {
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=201"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round)");
+    assert(home.includes('src="app.js?v=202"') && home.includes('href="styles.css?v=200"'), "A: asset pins — app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201)");
     appJs = await (await fetch(s.base + "/app.js")).text();
     const block = appJs.slice(appJs.indexOf("/* Round 189 (2026-11-25): the watch feed"));
     assert(block.includes("feedIsWide196") && block.includes("feedWireFill196") && block.includes("feedAddFill196") && block.includes("feedFillPlay196"), "A: app.js wires the wide test, the fill wiring, the builder and the sync-play");

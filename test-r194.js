@@ -198,7 +198,7 @@ try {
     await s.waitFor(async () => { const r = await s.j("/api/highlights?division=all&sort=newest"); return r.body.highlights && r.body.highlights.length === 1 ? r.body : null; }, "A: the play is public");
 
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=201"') && home.includes('href="styles.css?v=199"'), "A: asset pins — app.js + styles now v194 (Round 194 changed both) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round)");
+    assert(home.includes('src="app.js?v=202"') && home.includes('href="styles.css?v=200"'), "A: asset pins — app.js + styles now v194 (Round 194 changed both) — →197: app.js now v197 (Round 197); styles keeps v194 (unchanged this round) — →198: app.js + styles now v198 (Round 196 changed both) — →199: app.js + styles now v199 (Round 198) — →200: app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201)");
     const header = home.slice(home.indexOf('id="feed189"'), home.indexOf('id="feedTrack189"'));
     assert(header.includes('id="feedSound194"') && header.includes('class="feed194-sound"'), "A: the feed top bar carries the sound toggle button");
     assert(header.indexOf('id="feedSound194"') < header.indexOf('id="feedClose189"'), "A: the sound toggle rides LEFT of the close button");

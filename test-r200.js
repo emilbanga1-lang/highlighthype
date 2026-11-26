@@ -102,7 +102,7 @@ try {
   const homeFile = fs.readFileSync(path.join(ROOT, "public", "index.html"), "utf8");
 
   // ---------- A. Source + VM drive of the chip ----------
-  assert(homeFile.includes('src="app.js?v=201"') && homeFile.includes('href="styles.css?v=199"'), "A: asset pins — app.js now v201 (Round 200); styles keeps v199 (chips ride the existing .tagchip)");
+  assert(homeFile.includes('src="app.js?v=202"') && homeFile.includes('href="styles.css?v=200"'), "A: asset pins — app.js now v201 (Round 200); styles keeps v199 (chips ride the existing .tagchip) — →202: app.js now v202 (Round 201); styles now v200 (Round 201)");
   assert(homeFile.includes('id="hfReturn200"'), "A: the return landing box is in the studio markup");
   assert(appJs.includes("Continue to payment") && appJs.includes("hfReturnLanding200") && appJs.includes("payment-status"), "A: app.js carries the Continue-to-payment step, the return landing and the status poll");
   const fnSrc = appJs.slice(appJs.indexOf("function hfPayChip200"), appJs.indexOf("\n}", appJs.indexOf("function hfPayChip200")) + 2);

@@ -141,7 +141,7 @@ try {
   const s = await boot(3531);
   try {
     const home = await s.text("/");
-    assert(home.includes('src="app.js?v=201"') && home.includes('href="styles.css?v=199"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round)");
+    assert(home.includes('src="app.js?v=202"') && home.includes('href="styles.css?v=200"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201)");
     for (const sz of SIZES10)
       assert(home.includes(`data-hf-size="${sz}"`), `C: studio size picker offers ${sz}`);
     assert(home.includes('id="hfSizes"') && home.includes('aria-label="Size"') && home.includes(">Youth</span>") && home.includes(">Adult</span>"), "C: the size picker is one group with Youth / Adult labels");
