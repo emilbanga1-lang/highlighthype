@@ -1356,8 +1356,11 @@ function posterUrlFor134(h) {
    just before it scrolls in) assigns poster + src and plays on
    approach, and pauses + unloads (src removed, load()) when the
    tile leaves, returning it to its poster and freeing the
-   connection. bindTileGate233 runs after every board render:
-   it disconnects the previous observer first, so re-renders
+   connection. bindTileGate233 runs after every render that
+   can produce gated tiles — Round 234: document-wide, from
+   renderAll2 and renderHome230, so coverage never depends
+   on the container a tile landed in. It disconnects the
+   previous observer first, so re-renders
    (tab switches, filters, sport selects) never stack observers
    and never leave a detached tile playing. With no
    IntersectionObserver the gate degrades to today: every tile
@@ -1800,8 +1803,17 @@ function renderAll2() { /* All Hypes view */
   hydrateDurPills();
   /* Round 233: bind the tile gate to the fresh grid — the
      binder disconnects the previous observer, so a re-render
-     never stacks observers or strands a playing tile. */
-  if (typeof bindTileGate233 === "function") { const b233 = $("#allBoard"); if (b233) bindTileGate233(b233); }
+     never stacks observers or strands a playing tile.
+     Round 234 (2026-11-27): the bind is DOCUMENT-WIDE, not
+     scoped to #allBoard. A scoped bind makes gate coverage
+     depend on which container a renderer happened to use —
+     a gated tile rendered anywhere else would sit unobserved
+     at zero fetch state forever (a permanently black tile).
+     The binder now rescans the whole document after every
+     render that can produce gated tiles (here, and at the
+     end of renderHome230), so no gated tile can exist in
+     the document without gate coverage. */
+  if (typeof bindTileGate233 === "function") bindTileGate233();
   emptyEl.style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): while every play on the board is a sample,
      the strip above the grid says so plainly — demos vs the contest. */
@@ -11972,12 +11984,26 @@ function renderHomeFeatured230() {
 }
 
 function homeMoreTile230(h) {
+  /* Round 234 (2026-11-27, Emil — "Still some load issues",
+     13:32 phone screenshot): the tile still is NO LONGER
+     loading="lazy". These were the only homepage section
+     stills still lazy — the battle and featured stills have
+     ridden fetchpriority="high" since R232 and painted in
+     the same screenshot where all four More tiles sat solid
+     black on their .hm230-media ground, page-load bar still
+     running: WebKit defers lazy images behind the page's
+     video traffic (the autoplaying hero, the gated board
+     renditions pre-rolling below the fold). The still IS
+     this tile's whole content, so it now fetches with the
+     render and decodes async. (These tiles never carried
+     the R233 video gate — they are <img> stills by
+     construction since R232's homePosterMedia230.) */
   const votes = h.voteCount;
   const pill = h.isSample
     ? `<span class="hm230-votebtn is-static">Vote</span>`
     : `<button type="button" class="hm230-votebtn${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "✓ Voted" : "Vote"}</button>`;
   return `<article class="hm230-tile">
-    <div class="hm230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(h))} — ${esc(shortTitle(h.title))}" onclick="homeOpenPlay232(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();homeOpenPlay232(${h.id})}">${homePosterMedia230(h, ' loading="lazy"')}${Number(h.viewCount) >= 1 ? `<span class="hm230-watches">▶ ${fmtCount151(h.viewCount)}</span>` : ""}</div>
+    <div class="hm230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(h))} — ${esc(shortTitle(h.title))}" onclick="homeOpenPlay232(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();homeOpenPlay232(${h.id})}">${homePosterMedia230(h, ' decoding="async"')}${Number(h.viewCount) >= 1 ? `<span class="hm230-watches">▶ ${fmtCount151(h.viewCount)}</span>` : ""}</div>
     <div class="hm230-body"><h4>${esc(shortTitle(h.title))}</h4><p>${esc(homeAthleteLabel230(h))} · ${esc(cap(h.sport))}</p>${pill}</div>
   </article>`;
 }
@@ -12041,6 +12067,12 @@ function renderHome230() {
       const sec = document.getElementById("homeBattle230"); if (sec) sec.hidden = true;
       if (!homeDailyKicked230 && typeof loadDaily100 === "function") { homeDailyKicked230 = true; loadDaily100(); }
     }
+    /* Round 234: document-wide tile-gate bind — the home
+       sections render after the board in renderAll, and
+       loadDaily100 lands here too; binding the gate against
+       the whole document at the end of this render means no
+       gated tile from ANY section can sit unobserved. */
+    if (typeof bindTileGate233 === "function") bindTileGate233();
   } catch (e) { /* the B2 sections are decoration — a hiccup here never breaks the board load */ }
 }
 (function homeLbWire230() {
