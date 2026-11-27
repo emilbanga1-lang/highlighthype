@@ -100,7 +100,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=213"') && home.includes('href="styles.css?v=209"'), "A: asset pins — app.js v210 / styles v206 (Round 209; both files changed) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
+assert(home.includes('src="app.js?v=214"') && home.includes('href="styles.css?v=210"'), "A: asset pins — app.js v210 / styles v206 (Round 209; both files changed) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 
 // ---- B. statics ----
 const css209 = css.slice(css.indexOf("Round 209"));

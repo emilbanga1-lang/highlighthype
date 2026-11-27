@@ -8,7 +8,8 @@
 // hype frame section from the home page").
 // Run: node test-r214.js
 // What this suite pins down:
-//   A. Pins: app.js v213 / styles v209 (both files changed).
+//   A. Pins: app.js v213 / styles v209 (both files changed) —
+//      →214: app.js now v214 / styles now v210 (Round 215).
 //   B. The CSS: under body.hf-studio-open205 (the Round 205
 //      body class showPanel already toggles) every .view-home
 //      element is display:none, with the ONE carve-out the
@@ -82,7 +83,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v213 / styles v209 (Round 214; both files changed)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v213 / styles v209 (Round 214; both files changed) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 
 // ---- B. the CSS hide rule + the deck carve-out ----
 assert(css.includes("body.hf-studio-open205 .view-home{display:none}"), "B: while the studio is open, every .view-home element is display:none under the Round 205 body class");
@@ -195,7 +196,7 @@ assert((appJs.match(/classList\.toggle\("hf-studio-open205"/g) || []).length ===
   const s = await boot(41214);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "G: the served homepage carries the Round 214 pins");
+    assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "G: the served homepage carries the Round 214 pins");
     assert(served.includes('id="merchTeaser125"') && served.includes('class="merch-teaser125 view-home"'), "G: the served homepage still ships the teaser on the home page — it is hidden only while the studio is open");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();
     assert(servedCss.includes("body.hf-studio-open205 .view-home{display:none}") && servedCss.includes("body.hf-studio-open205 #deck.view-home{display:block}"), "G: the served styles carry the hide rule + the deck carve-out");

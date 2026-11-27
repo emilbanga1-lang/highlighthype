@@ -43,7 +43,8 @@
 //      wire exactly once. (→210: "box revealed" is now
 //      the overlay opening — same contract, new shell.)
 //   G. The served homepage carries the redesign, in order,
-//      and still carries no $110 anywhere.
+//      and still carries no $110 anywhere — →215: the $110
+//      now lives in the studio's buy card (§G pins it there).
 // Exits non-zero on failure.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -75,7 +76,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 
 // ---- the section ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -128,7 +129,7 @@ const stripStart = appJs.indexOf("function hypeFrameStrip126()");
 const strip = appJs.slice(stripStart, appJs.indexOf("`;", stripStart)).replace(/\\"/g, '"');
 assert(strip.includes('id="hfFilmCoverFeed126"') && strip.includes('id="hfFeedFilm126"') && strip.includes('onclick="playHfFeedFilm126()"'), "E: the board strip's film (All Hypes) is untouched");
 assert(css.includes(".hft207-film-link{") && css.includes(".hf-film-overlay210[hidden]") && css.includes("#hfHomeFilmBtn201[hidden]") && !css.includes("hfHomeFilmBox207"), "E: the film link's style, the overlay's [hidden] guard and the button's [hidden] guard ride in styles.css (→210: the retired box's guard is gone)");
-assert(!home.includes("$110") && !sec.includes("Drop 001") && !sec.includes("Coming soon"), "E: the homepage stays price-free; no Drop 001 / Coming soon in the section");
+assert(!sec.includes("$110") && !sec.includes("Drop 001") && !sec.includes("Coming soon"), "E: the homepage SECTION stays price-free; no Drop 001 / Coming soon in the section — →215: the $110 now lives in the studio's buy card on the same document (the one-page product page shows its price), no longer nowhere on the page");
 
 // ---- F. VM drives ----
 function lineSrc(startNeedle) { const i = appJs.indexOf(startNeedle); return appJs.slice(i, appJs.indexOf("\n", i)); }
@@ -204,8 +205,8 @@ try {
   const vHero = vSec.indexOf("hft207-hero"), vTitle = vSec.indexOf("Your moment on a hoodie"), vCta = vSec.indexOf('onclick="openHfChoice()"'), vBtn = vSec.indexOf('id="hfHomeFilmBtn201"'), vFilm = vSec.indexOf('id="hfHomeFilm201"');
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vFilm > vBtn, "G: the served section reads hero -> headline -> CTA -> film link -> film");
   assert(vSec.includes('src="/swag/hf-hoodie-softball.jpg"') && vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours.") && !vSec.includes("Create yours"), "G: the served section carries the product hero, the renamed CTA and the sub-line — and no 'Create yours'");
-  assert(!served.includes("$110"), "G: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
+  assert(served.slice(served.indexOf('id="hfBuyCard215"'), served.indexOf('id="hfRowPhoto215"')).includes("$110"), "G: the served homepage carries the $110 in the studio's buy card — →215: the one-page studio shows its price (before R215 it appeared nowhere in the document)");
+  assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R207 CHECKS PASSED");

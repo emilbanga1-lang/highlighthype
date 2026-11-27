@@ -5,7 +5,9 @@
 //      →208: app.js now v208 / styles now v205 (Round 207).
 //   B. Part A statics: the on-garment preview block in the studio
 //      (stage, garment img, print area + print img, back-words
-//      treatment, front/back flip, wide-shot note); app.js points
+//      treatment, front/back flip, wide-shot note — →215: the
+//      note + dashed guide are retired; §B pins their absence
+//      and the one-page layout order); app.js points
 //      at the four derived garment illustrations; the SVGs exist
 //      on disk with the baked-in street graphics stripped.
 //      →211: the garment art is the photoreal hf-blank-*211.jpg
@@ -16,8 +18,9 @@
 //      print at its placement; back view shows the embroidered
 //      words (name / custom / none), the garment follows the
 //      colorway, the print rides the side it sits on, a wide
-//      frame flags the print-area outline + note, and nothing
-//      shows before a freeze.
+//      frame flags the print-area outline + note (→215: NO
+//      frame flags any guide — the painter never draws one),
+//      and nothing shows before a freeze.
 //   D. Part C: fine scrubbing — the ±0.1s steppers ride
 //      hfJumpToFrame (so the capture uses the nudged time),
 //      accumulate from the picked frame, clamp at the ends, and
@@ -106,11 +109,12 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 
 // ---- B. Part A statics ----
-for (const id of ["hfGarment206", "hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentBackText206", "hfGarmentWide206"])
+for (const id of ["hfGarment206", "hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentBackText206"])
   assert(studio.includes(`id="${id}"`), "B: garment preview carries #" + id);
+assert(!studio.includes('id="hfGarmentWide206"'), "B: →215: the wide-frame note is retired with the dashed guide — the garment block carries no guide element");
 assert(studio.includes('data-hf-garment-view="front"') && studio.includes('data-hf-garment-view="back"'), "B: the preview flips front / back");
 assert(studio.includes("Preview — your design on the hoodie"), "B: the preview is labeled as a preview");
 for (const f of ["hf-blank-front-black211.jpg", "hf-blank-back-black211.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
@@ -123,18 +127,24 @@ for (const f of ["hf-garment-front-black206.svg", "hf-garment-back-black206.svg"
 }
 assert(css.includes(".hf-garment-stage206{") && !css.includes("aspect-ratio:640/720") && css.includes(".hf-garment-img206{display:block;width:100%;height:auto}") && css.includes(".hf-garment206[hidden]{display:none}"), "B: garment CSS — →211: the stage wraps the photo at its natural aspect (no fixed illustration aspect), [hidden] guarded");
 assert(css.includes(".hf-garment-shade211{") && css.includes("mix-blend-mode:soft-light") && css.includes(".hf-garment-crest211{") && css.includes("mix-blend-mode:screen"), "B: →211: the shade layer (soft-light fabric shading over the print) + the screen-blended crest ship");
-assert(!home.includes('id="hfReview206"') && !css.includes(".hf-review206{") && css.includes(".hf-step-panel211[hidden]{display:none}") && css.includes(".hf-changeframe206[hidden]{display:none}"), "B: →211: the review stage is retired (Review is Step 3 now); step panels + change-frame CSS guards ship");
+assert(!home.includes('id="hfReview206"') && !css.includes(".hf-review206{") && !css.includes(".hf-step-panel211") && css.includes(".hf-stickybar215{") && css.includes("#hfProduct215[hidden]{display:none}") && css.includes(".hf-changeframe206[hidden]{display:none}"), "B: →211: the review stage is retired (Review is Step 3 now) — →215: the step panels are retired too (the studio is one product page + Review); the sticky bar + product-page [hidden] guards ship");
 // Scope update layout (see also M): hero position + section order.
 // →211: the hero rides Step 1 (Moment) and moves to Step 2
 // (Design); the sections live inside their steps.
-assert(studio.indexOf('id="hfStepMoment211"') > -1 && studio.indexOf('id="hfGarment206"') > studio.indexOf('id="hfStepMoment211"') && studio.indexOf('id="hfGarment206"') < studio.indexOf('id="hfStepDesign211"'), "B: →211: the garment preview is the Moment step's hero (it moves to Design on step 2)");
-const design211 = studio.slice(studio.indexOf('id="hfStepDesign211"'), studio.indexOf('id="hfStepReview211"'));
-const ord206 = [">Artwork</h4>", ">Hoodie color</h4>", ">Print placement</h4>"].map((n) => design211.indexOf(n));
-assert(ord206.every((i) => i > -1) && ord206.every((v, i) => i === 0 || v > ord206[i - 1]), "B: →211: the Design step runs Artwork → Hoodie color → Print placement (Emil's mockup order)");
-const review211 = studio.slice(studio.indexOf('id="hfStepReview211"'));
-assert(review211.indexOf("Size <button") > -1 && review211.indexOf(">Personalization</h4>") > review211.indexOf("Size <button"), "B: →211: the Review step runs Size → Personalization");
+// →215: one product page — hero, buy card, collapsed rows.
+assert(studio.indexOf('id="hfGarment206"') > studio.indexOf('id="hfProduct215"') && studio.indexOf('id="hfGarment206"') < studio.indexOf('id="hfBuyCard215"'), "B: →215: the garment preview is the product page's hero, above the buy card (it no longer moves between step slots)");
+const prod215 = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
+const buy215 = studio.slice(studio.indexOf('id="hfBuyCard215"'), studio.indexOf('id="hfRowPhoto215"'));
+assert(buy215.indexOf('id="hfColors"') > -1 && buy215.indexOf('id="hfSizes"') > buy215.indexOf('id="hfColors"') && buy215.indexOf("$110") > buy215.indexOf('id="hfSizes"'), "B: →215: the buy card runs Color → Size → $110");
+const art215 = studio.slice(studio.indexOf('id="hfArtworkPanel215"'), studio.indexOf('id="hfRowPlacement215"'));
+assert(art215.indexOf('id="hfImageStyles"') > -1 && art215.indexOf('data-hf-preset="classic"') > art215.indexOf('id="hfImageStyles"'), "B: →215: the Artwork panel runs Photo/Avatar → print style");
+assert(prod215.indexOf('id="hfSides"') > prod215.indexOf('id="hfPlacementPanel215"'), "B: →215: Print placement lives in its own collapsed panel");
+const review215 = studio.slice(studio.indexOf('id="hfReview215"'));
+assert(!review215.includes('id="hfSizes"') && !review215.includes('id="hfBackText197"'), "B: →215: Review hosts no Size or Personalization control — they live on the product page now");
+assert(review215.includes('id="hfReviewSize206"') && review215.includes('id="hfReviewBack206"'), "B: →215: Review SUMMARIZES the size + back-text choices instead");
+assert(prod215.indexOf('id="hfSizes"') > -1 && prod215.indexOf('id="hfBackText197"') > -1 && (studio.match(/id="hfBackText197"/g) || []).length === 1, "B: →215: Size + the personalization control live on the product page, the control exactly once");
 assert(studio.includes('id="hfChangeFrame206"') && studio.includes(">Change frame</button>"), "B: 'Your moment' carries the Change frame action");
-assert(studio.includes('id="hfStepReview211"') && studio.includes('id="hfReviewImg206"') && studio.includes('id="hfReviewSize206"') && studio.includes('id="hfReviewPlacement206"') && studio.includes('id="hfReviewArt206"'), "B: →211: the Review step ships (compact garment + size / placement / artwork rows; the send is the form's own submit)");
+assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg206"') && studio.includes('id="hfReviewSize206"') && studio.includes('id="hfReviewPlacement206"') && studio.includes('id="hfReviewArt206"'), "B: →211: the Review step ships (compact garment + size / placement / artwork rows; the send is the form's own submit) — →215: as the Review SCREEN (#hfReview215)");
 
 // ---- C. Part A drive (VM) ----
 {
@@ -147,7 +157,7 @@ assert(studio.includes('id="hfStepReview211"') && studio.includes('id="hfReviewI
   });
   const els = {
     "#hfGarment206": mkEl(), "#hfGarmentImg206": mkEl(), "#hfGarmentPrintArea206": mkEl(),
-    "#hfGarmentPrint206": mkEl(), "#hfGarmentBackText206": mkEl(), "#hfGarmentWide206": mkEl(),
+    "#hfGarmentPrint206": mkEl(), "#hfGarmentBackText206": mkEl(),
     "#hfCanvas": { width: 1280, height: 720 },
     "#hfName": { value: "Nick" }, "#hfJersey": { value: "13" }, "#hfBackCustom197": { value: "GO HAWKS!" },
   };
@@ -163,14 +173,14 @@ assert(studio.includes('id="hfStepReview211"') && studio.includes('id="hfReviewI
   };
   sb.window = sb;
   vm.runInContext(block, vm.createContext(sb));
-  const S = sb.hfState, G = els["#hfGarment206"], GI = els["#hfGarmentImg206"], GA = els["#hfGarmentPrintArea206"], GP = els["#hfGarmentPrint206"], GB = els["#hfGarmentBackText206"], GW = els["#hfGarmentWide206"];
+  const S = sb.hfState, G = els["#hfGarment206"], GI = els["#hfGarmentImg206"], GA = els["#hfGarmentPrintArea206"], GP = els["#hfGarmentPrint206"], GB = els["#hfGarmentBackText206"];
 
   sb.hfGarmentSync206();
   assert(G.hidden === false, "C: a frozen frame shows the garment preview");
   assert(GI.src === "/swag/hf-blank-front-black211.jpg", "C: front view wears the Black front photo blank — →211: photoreal blanks replace the illustrations");
   assert(GA.hidden === false && GP.src === "data:print", "C: the composed print rides the front (the side it sits on)");
   assert(GP.style.width === "78%" && GP.style.left === "50%" && GP.style.top === "42%", "C: the print sits at its true placement (size / cx / cy)");
-  assert(GA.classList.set.has("hf-garment-area-wide206") && GW.hidden === false, "C: Part D — a 16:9 frame flags the wide-shot outline + note");
+  assert(!GA.classList.set.has("hf-garment-area-wide206"), "C: →215: a 16:9 frame draws NO dashed guide on the garment (the Part D outline + note are retired)");
   assert(GB.hidden === true, "C: no back words on the front view");
 
   S.garmentView206 = "back";
@@ -197,9 +207,9 @@ assert(studio.includes('id="hfStepReview211"') && studio.includes('id="hfReviewI
   sb.hfGarmentSync206();
   assert(GI.src === "/swag/hf-blank-front-gray211.jpg", "C: the garment follows the Heather Gray colorway — →211: the gray photo blank");
 
-  els["#hfCanvas"] = { width: 720, height: 1280 }; // portrait art: not wide
+  els["#hfCanvas"] = { width: 720, height: 1280 }; // portrait art
   sb.hfGarmentSync206();
-  assert(!GA.classList.set.has("hf-garment-area-wide206") && GW.hidden === true, "C: Part D — a portrait frame clears the wide-shot flag");
+  assert(!GA.classList.set.has("hf-garment-area-wide206"), "C: →215: a portrait frame likewise carries no guide class — the painter never flags width");
 
   // Approval gate: an unapproved generation previews on the
   // garment while the print art stays the photo composition.
@@ -263,7 +273,10 @@ assert(studio.includes('id="hfStepReview211"') && studio.includes('id="hfReviewI
 
 // ---- F. Part B statics ----
 {
-  const panel = studio.slice(studio.indexOf('id="hfAvatarPanel206"'), studio.indexOf('id="hfColors"'));
+  // →215: the slice end moves — the buy card's #hfColors now
+  // precedes the avatar panel on the one-page studio, so the
+  // panel slice runs to the Print placement row instead.
+  const panel = studio.slice(studio.indexOf('id="hfAvatarPanel206"'), studio.indexOf('id="hfRowPlacement215"'));
   assert(panel.includes("Avatar previews are made by OpenAI's image AI — your chosen frame is sent to OpenAI to create it."), "F: the consent line sits in the avatar panel, verbatim");
   assert(panel.indexOf("hfAvatarConsent206") < panel.indexOf("hfAvatarMake206"), "F: the consent line reads BEFORE the Make button — nothing is sent before it's seen");
   for (const id of ["hfAvatarMake206", "hfAvatarStatus206", "hfAvatarResult206", "hfAvatarImg206", "hfAvatarUse206", "hfAvatarPhoto206"])
@@ -388,7 +401,7 @@ stub.close();
   const s = await boot(4026);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
+    assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
     assert(served.includes('id="hfGarment206"') && served.includes('id="hfAvatarPanel206"') && served.includes("Avatar previews are made by OpenAI's image AI"), "L: the served studio carries the garment preview + avatar panel + consent line");
     const jpgRes = await fetch(s.base + "/swag/hf-blank-front-black211.jpg");
     const jpgBuf = Buffer.from(await jpgRes.arrayBuffer());
@@ -501,7 +514,7 @@ stub.close();
     assert(submitBlock.includes(f), "N: the send payload still carries " + f);
   }
   const formListener = appJs.slice(appJs.indexOf('"#hfOrderForm").addEventListener("submit"'), appJs.indexOf('"#hfOrderForm").addEventListener("submit"') + 800);
-  assert(formListener.includes("hfSubmitOrder206()") && !formListener.includes("hfOpenReview206"), "N: →211: the form lives ON the Review step — its submit IS the send (hfSubmitOrder206 validates first); the retired review stage is never opened");
+  assert(formListener.includes("hfSubmitOrder206()") && !formListener.includes("hfOpenReview206"), "N: →211: the form lives ON the Review step — its submit IS the send (hfSubmitOrder206 validates first); the retired review stage is never opened — →215: the form lives on the Review SCREEN, same send");
   assert(studio.includes(">Send hoodie request</button>") && studio.includes("No payment today"), "N: →211: the form's submit is 'Send hoodie request' (the Round 205 label, kept) + its 'No payment today' sub-line — the Round 206 'Review hoodie request' CTA is retired with the stage");
   // Drive the review sync with a fully-specified order state.
   Object.assign(S, { side: "back", colorway: "Heather Gray", size: "YL", placement: { cx: 50, cy: 46, size: 80 }, preset: "classic", imageStyle: "avatar", avatarApplied206: true });

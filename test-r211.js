@@ -1,41 +1,48 @@
 // Round 211 test: the three-step studio customizer + photoreal
 // garment (Emil, 2026-11-26).
 // Run: node test-r211.js
+// Updated for Round 215 (2026-11-26): the stepper is retired —
+// the studio is ONE product page + Review. §B/§C/§G/§I now pin
+// the one-page structure (hfShowScreen215 screens, the four
+// collapsed option rows, the sticky bar's Review gate); the
+// §D first-paint contract, §E payload invariant, §F kept
+// decisions and §H photo wiring stand as they were.
 // What this suite pins down:
 //   A. Pins: app.js v212 / styles v208 (both files changed).
-//   B. Step structure statics: the stepper (Moment / Design /
-//      Review pills), exactly one panel visible in markup,
-//      per-step CTAs + back buttons, the clip row + collapsible
-//      player area, the hero slots, the Review step's compact
-//      stage + summary headline elements; the Round 206 review
-//      stage is fully retired (markup, JS, CSS).
-//   C. Step machinery drive (VM): one panel visible at a time,
-//      pill states (current / done / locked-ahead), the garment
-//      hero moving between the Moment and Design slots,
-//      entering Review syncs the as-ordered render, and going
-//      back and forth never loses studio state.
+//   B. Structure statics — →215: no stepper pills, no step
+//      panels, no hero slots, no step CTAs anywhere (markup,
+//      JS, CSS); the product page (hero, buy card, four rows,
+//      sticky bar) + the Review screen ship instead; the clip
+//      row + collapsible player area live inside Change photo;
+//      the Round 206 review stage stays retired.
+//   C. Screen machinery drive (VM): exactly one screen visible
+//      at a time, entering Review syncs the as-ordered render,
+//      the sticky bar's gate holds a parent without a frame on
+//      the product page (opening Change photo + saying why),
+//      option rows toggle, and going back and forth never
+//      loses studio state.
 //   D. First-paint contract (VM): with a play open and NO
 //      capture resolved yet (deferred — printDataUrl still
 //      empty), the garment hero is already visible wearing the
 //      play's poster at the print placement — no video-first
 //      flash; when the capture lands, the print swaps to the
 //      composed frame behind the same geometry.
-//   E. Payload byte-identity across step navigation and view
+//   E. Payload byte-identity across screen navigation and view
 //      flips for equivalent choices (the R206 §M invariant
-//      re-expressed over the step flow).
+//      re-expressed over the one-page flow).
 //   F. Kept decisions: embroidery default = "name" (Emil kept
 //      the R197 default — NOT the mockup's None); the submit
 //      label is "Send hoodie request" (R205 — NOT "Send for
 //      approval"); the R205 no-payment copy is verbatim; the
 //      form submit calls hfSubmitOrder206.
-//   G. The avatar maker lives in Step 2 (Design) with its
-//      consent line, and stepping around never clears an
-//      avatar preview / approval.
+//   G. The avatar maker lives in the Artwork panel with its
+//      consent line, and moving between screens never clears
+//      an avatar preview / approval.
 //   H. Photo-asset wiring (VM): the four hf-blank-*211.jpg
 //      blanks land on the hero per colorway × view, and the
 //      Review stage paints the ordered side's blank.
-//   I. Served: the homepage carries the step markup; the four
-//      blanks serve as JPEGs; app.js carries the step flow.
+//   I. Served: the homepage carries the one-page studio; the
+//      four blanks serve as JPEGs; app.js carries the screens.
 // Exits non-zero on failure.
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -69,32 +76,36 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
 
-// ---- B. Step structure statics ----
-for (const [n, label] of [[1, "Moment"], [2, "Design"], [3, "Review"]])
-  assert(studio.includes(`data-hf-step-pill="${n}"`) && studio.includes(`>${n} · ${label}<`), "B: the stepper carries the " + label + " pill");
-for (const id of ["hfStepMoment211", "hfStepDesign211", "hfStepReview211"])
-  assert(studio.includes(`id="${id}"`), "B: step panel #" + id + " ships");
-assert(studio.includes('id="hfStepMoment211">') && studio.includes('id="hfStepDesign211" hidden>') && studio.includes('id="hfStepReview211" hidden>'), "B: exactly one panel (Moment) is visible in the markup — the studio opens on Step 1");
-assert(studio.includes('id="hfUseFrame211"') && studio.includes(">Use this frame</button>"), "B: Step 1's CTA is 'Use this frame'");
-assert(studio.includes('id="hfToReview211"') && studio.includes(">Choose size &amp; review</button>"), "B: Step 2's CTA is 'Choose size & review'");
-assert((studio.match(/data-hf-step-back=/g) || []).length === 2, "B: Steps 2 and 3 each carry a back affordance");
-for (const id of ["hfHeroSlot1-211", "hfHeroSlot2-211", "hfClipRow211", "hfClipRowThumb211", "hfClipRowLabel211", "hfClipArea211", "hfStep1Msg211"])
-  assert(studio.includes(`id="${id}"`), "B: the Moment step carries #" + id);
-assert(studio.includes('aria-expanded="false"') && studio.includes('id="hfClipArea211" hidden>'), "B: the player area starts collapsed behind the clip row (video plays) — the player is not inline by default");
+// ---- B. Structure statics (→215: the stepper is retired) ----
+assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back"), "B: →215: no stepper pills and no step back buttons anywhere in the studio");
+for (const id of ["hfStepMoment211", "hfStepDesign211", "hfStepReview211", "hfHeroSlot1-211", "hfHeroSlot2-211", "hfUseFrame211", "hfToReview211", "hfStep1Msg211"])
+  assert(!studio.includes(`id="${id}"`), "B: →215: the retired step element #" + id + " is gone");
+assert(!appJs.includes("function hfGoStep211(") && !appJs.includes("(function wireHfSteps211()") && !appJs.includes("hfState.step211") && !appJs.includes("hfState.stepMax211"), "B: →215: the step machinery is gone from app.js (no hfGoStep211, no step wiring, no step state reads — the names survive only in retirement comments)");
+assert(!css.includes(".hf-steps211{") && !css.includes(".hf-step-pill211") && !css.includes(".hf-step-panel211") && !css.includes(".hf-step-cta211"), "B: →215: the stepper CSS is retired with it");
+assert(studio.includes('id="hfProduct215">') && studio.includes('id="hfReview215" hidden>'), "B: →215: exactly one screen (the product page) is visible in the markup — Review starts hidden");
+assert(studio.includes('id="hfProductTitle215"') && studio.includes('id="hfProductSub215"'), "B: →215: the product page carries its title + play line");
+assert(studio.includes('id="hfBuyCard215"') && studio.includes("$110"), "B: →215: the buy card ships with the $110 price on the page");
+for (const id of ["hfRowPhoto215", "hfPhotoPanel215", "hfRowArtwork215", "hfArtworkPanel215", "hfRowPlacement215", "hfPlacementPanel215", "hfRowBackText215", "hfBackTextPanel215"])
+  assert(studio.includes(`id="${id}"`), "B: →215: the option row + panel #" + id + " ships");
+assert((studio.match(/class="hf-optpanel215" id="hf\w+Panel215" hidden>/g) || []).length === 4, "B: →215: all four option panels start collapsed");
+assert(studio.includes('id="hfStickyBar215"') && studio.includes('id="hfReviewBtn215"') && studio.includes(">Review hoodie →</button>"), "B: →215: the sticky bar carries the gold 'Review hoodie →' button");
+assert(studio.includes('id="hfReviewBack215"') && studio.includes(">← Back</button>"), "B: →215: Review carries a plain back affordance");
+assert(studio.indexOf('id="hfClipRow211"') > studio.indexOf('id="hfPhotoPanel215"') && studio.indexOf('id="hfClipArea211"') > studio.indexOf('id="hfPhotoPanel215"') && studio.indexOf('id="hfClipArea211"') < studio.indexOf('id="hfReview215"'), "B: →215: the Pick from video row + player area live INSIDE the Change photo panel");
+assert(studio.includes('id="hfPhotoMsg215"'), "B: →215: the photo panel carries the gate message element");
 for (const id of ["hfReviewTitle211", "hfReviewLine211", "hfReviewShade211", "hfReviewCrest211", "hfGarmentShade211", "hfGarmentCrest211"])
   assert(studio.includes(`id="${id}"`), "B: the photo treatment carries #" + id);
 assert(!studio.includes('id="hfReview206"') && !studio.includes('id="hfReviewSend206"') && !studio.includes('id="hfReviewEdit206"') && !studio.includes('id="hfReviewMsg206"'), "B: the Round 206 review stage markup is retired");
 assert(!appJs.includes("function hfOpenReview206") && !appJs.includes("function hfCloseReview206"), "B: the review-stage open/close functions are gone from app.js");
-assert(!css.includes(".hf-review206{") && css.includes(".hf-steps211{") && css.includes(".hf-step-panel211[hidden]{display:none}"), "B: the review-stage CSS is retired; the stepper + panel CSS ships with [hidden] guards");
-assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarmentPaint211") && appJs.includes("HF_GARMENT_AREA211"), "B: app.js carries the step flow + the photo painter + the measured zones");
+assert(!css.includes(".hf-review206{") && css.includes(".hf-stickybar215{") && css.includes("position:fixed") && css.includes("#hfProduct215[hidden]{display:none}"), "B: →215: the review-stage CSS stays retired; the sticky bar (fixed) + screen [hidden] guards ship");
+assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hfSeedPoster215") && appJs.includes("function hfGarmentPaint211") && appJs.includes("HF_GARMENT_AREA211"), "B: →215: app.js carries the screen flow + the poster seed + the photo painter + the measured zones");
 
 // ---- C/D/E/G/H share one VM drive of the studio machinery ----
 {
   const garmentBlock = appJs.slice(appJs.indexOf("const HF_GARMENT_ART206"), appJs.indexOf("function hfFineStep206"));
   const reviewSlice = appJs.slice(appJs.indexOf("function hfReviewSync206"), appJs.indexOf("async function hfSubmitOrder206"));
-  const stepsWire = appJs.slice(appJs.indexOf("(function wireHfSteps211()"), appJs.indexOf("/* Round 200"));
+  const wire215 = appJs.slice(appJs.indexOf("(function wireHf215()"), appJs.indexOf("/* Round 200"));
   const mkEl = (name) => ({
     name, hidden: false, textContent: "", value: "", style: {}, attrs: {}, listeners: {}, disabled: false, parentElement: null,
     classList: { set: new Set(), toggle(c, on) { if (on) this.set.add(c); else this.set.delete(c); } },
@@ -105,52 +116,56 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
     scrollIntoView() {},
     appendChild(child) { child.parentElement = this; },
   });
-  const slot1 = mkEl("slot1"), slot2 = mkEl("slot2");
-  const hero = mkEl("hero"); hero.parentElement = slot1;
-  const panels = { 1: mkEl("panel1"), 2: mkEl("panel2"), 3: mkEl("panel3") };
-  panels[2].hidden = true; panels[3].hidden = true;
-  const pills = [1, 2, 3].map((n) => { const p = mkEl("pill" + n); p.dataset = { hfStepPill: String(n) }; return p; });
-  const backs = ["1", "2"].map((n) => { const b = mkEl("back" + n); b.dataset = { hfStepBack: n }; return b; });
+  const hero = mkEl("hero");
+  const prod215 = mkEl("product"), rev215 = mkEl("review"); rev215.hidden = true;
+  const rowPanels215 = { photo: mkEl("photoPanel"), artwork: mkEl("artworkPanel"), placement: mkEl("placementPanel"), backtext: mkEl("backtextPanel") };
+  for (const k of Object.keys(rowPanels215)) rowPanels215[k].hidden = true;
+  const photoMsg215 = mkEl("photoMsg"); photoMsg215.hidden = true;
+  const clipArea215 = mkEl("clipArea"); clipArea215.hidden = true;
   const flips = ["front", "back"].map((v) => ({ dataset: { hfGarmentView: v }, attrs: {}, setAttribute(k, val) { this.attrs[k] = val; } }));
   const els = {
     "#hfGarment206": hero, "#hfGarmentImg206": mkEl(), "#hfGarmentPrintArea206": mkEl(), "#hfGarmentPrint206": mkEl(),
-    "#hfGarmentBackText206": mkEl(), "#hfGarmentWide206": mkEl(), "#hfGarmentShade211": mkEl(), "#hfGarmentCrest211": mkEl(),
+    "#hfGarmentBackText206": mkEl(), "#hfGarmentShade211": mkEl(), "#hfGarmentCrest211": mkEl(),
     "#hfCanvas": { width: 1280, height: 720 },
     "#hfName": { value: "Nick" }, "#hfJersey": { value: "13" }, "#hfBackCustom197": { value: "" },
     "#hfGuardianName": { value: "Pat Parent" }, "#hfGuardianEmail": { value: "parent@example.com" },
-    "#hfStepMoment211": panels[1], "#hfStepDesign211": panels[2], "#hfStepReview211": panels[3],
-    "#hfHeroSlot1-211": slot1, "#hfHeroSlot2-211": slot2, "#hfStudio": mkEl(),
+    "#hfProduct215": prod215, "#hfReview215": rev215, "#hfStudio": mkEl(),
+    "#hfRowPhoto215": mkEl(), "#hfPhotoPanel215": rowPanels215.photo,
+    "#hfRowArtwork215": mkEl(), "#hfArtworkPanel215": rowPanels215.artwork,
+    "#hfRowPlacement215": mkEl(), "#hfPlacementPanel215": rowPanels215.placement,
+    "#hfRowBackText215": mkEl(), "#hfBackTextPanel215": rowPanels215.backtext,
+    "#hfRowPhotoState215": mkEl(), "#hfRowArtworkState215": mkEl(), "#hfRowPlacementState215": mkEl(), "#hfRowBackTextState215": mkEl(),
+    "#hfReviewBtn215": mkEl(), "#hfReviewBack215": mkEl(), "#hfPhotoMsg215": photoMsg215,
     "#hfReviewImg206": mkEl(), "#hfReviewPrintArea206": mkEl(), "#hfReviewPrint206": mkEl(),
     "#hfReviewShade211": mkEl(), "#hfReviewCrest211": mkEl(),
     "#hfReviewSize206": mkEl(), "#hfReviewPlacement206": mkEl(), "#hfReviewArt206": mkEl(), "#hfReviewBack206": mkEl(),
     "#hfReviewTitle211": mkEl(), "#hfReviewLine211": mkEl(),
-    "#hfUseFrame211": mkEl(), "#hfToReview211": mkEl(), "#hfStep1Msg211": mkEl(),
-    "#hfClipRow211": mkEl(), "#hfClipArea211": mkEl(), "#hfClipRowLabel211": mkEl(), "#hfClipRowThumb211": mkEl(),
+    "#hfClipRow211": mkEl(), "#hfClipArea211": clipArea215, "#hfClipRowLabel211": mkEl(), "#hfClipRowThumb211": mkEl(),
     "#hfStripWrap": mkEl(),
   };
-  els["#hfStep1Msg211"].hidden = true;
   const sb = {
     console,
     $: (s) => els[s] || null,
-    $$: (s) => (s.includes("data-hf-step-pill") ? pills : s.includes("data-hf-step-back") ? backs : s.includes("data-hf-garment-view") ? flips : []),
+    $$: (s) => (s.includes("data-hf-garment-view") ? flips : []),
     hfState: {
       play: { id: 7, poster_url: "/uploads/poster-7.jpg", media_url: "/uploads/v7.mp4", sport: "baseball", title: "Walk-off" },
-      mediaType: "video", frozen: false, printDataUrl: "", printAspect: 0,
+      mediaType: "video", frozen: false, printDataUrl: "", printAspect: 0, frameTime205: null,
       colorway: "Black", side: "back", garmentView206: "back", backText: "name", size: "YM",
       preset: "hypeframe", apparel: "hoodie", imageStyle: "photo",
       placement: { cx: 50, cy: 42, size: 78 },
       avatarPreview206: false, avatarDataUrl206: "", avatarApplied206: false,
-      step211: 1, stepMax211: 1, clipOpen211: false,
+      clipOpen211: false, screen215: "product",
     },
     HF_PLACEMENT_DEFAULT: { cx: 50, cy: 42, size: 78 },
     HF_PRESET_LABELS205: { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" },
     hfPrintTone: () => "#f6f1e4",
+    hfFmtTime: (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`,
   };
   sb.window = sb;
   const ctx = vm.createContext(sb);
   vm.runInContext(garmentBlock, ctx);
   vm.runInContext(reviewSlice, ctx);
-  vm.runInContext(stepsWire, ctx);
+  vm.runInContext(wire215, ctx);
   const S = sb.hfState, GI = els["#hfGarmentImg206"], GA = els["#hfGarmentPrintArea206"], GP = els["#hfGarmentPrint206"];
 
   // ---- D. First paint: the poster is composited before any capture resolves ----
@@ -170,39 +185,41 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
   S.play = { id: 7, poster_url: "/uploads/poster-7.jpg", media_url: "/uploads/v7.mp4", sport: "baseball", title: "Walk-off" };
   S.frozen = true; S.printDataUrl = "data:print";
 
-  // ---- C. Step machinery ----
-  sb.hfGoStep211(1, true);
-  assert(panels[1].hidden === false && panels[2].hidden === true && panels[3].hidden === true, "C: Step 1 shows exactly one panel (Moment)");
-  assert(pills[0].classList.set.has("is-current211") && pills[1].disabled === true && pills[2].disabled === true, "C: at open, Moment is current and the unreached steps are locked");
-  assert(hero.parentElement === slot1, "C: the hero starts in the Moment slot");
-  // The "Use this frame" CTA advances (a frame is frozen).
-  els["#hfUseFrame211"].listeners.click();
-  assert(S.step211 === 2 && panels[2].hidden === false && panels[1].hidden === true, "C: 'Use this frame' advances to Design");
-  assert(hero.parentElement === slot2, "C: the hero moves WITH the parent into the Design slot — one preview, still in sync");
-  assert(pills[0].classList.set.has("is-done211") && pills[1].classList.set.has("is-current211") && pills[2].disabled === true, "C: Moment reads done, Design current, Review still locked until reached");
-  els["#hfToReview211"].listeners.click();
-  assert(S.step211 === 3 && panels[3].hidden === false, "C: 'Choose size & review' advances to Review");
+  // ---- C. Screen machinery (→215) ----
+  sb.hfShowScreen215("product", true);
+  assert(prod215.hidden === false && rev215.hidden === true && S.screen215 === "product", "C: the product page is the studio's opening screen — exactly one screen visible");
+  // The sticky bar advances (a frame is frozen).
+  els["#hfReviewBtn215"].listeners.click();
+  assert(S.screen215 === "review" && rev215.hidden === false && prod215.hidden === true, "C: 'Review hoodie →' moves to the Review screen");
   assert(els["#hfReviewImg206"].src === "/swag/hf-blank-back-black211.jpg" && els["#hfReviewPrint206"].src === "data:print", "C: entering Review syncs the as-ordered render (Black, back — the print's side)");
   assert(els["#hfReviewTitle211"].textContent === "Black hoodie" && els["#hfReviewLine211"].textContent === "Back print · Hype Frame", "C: the Review headline derives from live state ('Black hoodie' / 'Back print · Hype Frame')");
-  assert(pills.every((p) => p.disabled === false), "C: once reached, every step is tappable");
   // State survives a full round trip.
   S.backText = "custom"; els["#hfBackCustom197"].value = "GO HAWKS!";
   S.avatarDataUrl206 = "data:avatar"; S.avatarPreview206 = true; S.avatarApplied206 = true;
   const snapshot = JSON.stringify({ bt: S.backText, custom: els["#hfBackCustom197"].value, av: S.avatarDataUrl206, avp: S.avatarPreview206, ava: S.avatarApplied206, pd: S.printDataUrl, side: S.side, size: S.size, pl: S.placement });
-  pills[0].listeners.click();
-  assert(S.step211 === 1 && hero.parentElement === slot1, "C: the Moment pill goes back — and the hero comes home");
-  backs[0].listeners.click(); // Step 2's back button targets 1 — already there; harmless
-  els["#hfUseFrame211"].listeners.click();
-  els["#hfToReview211"].listeners.click();
-  assert(JSON.stringify({ bt: S.backText, custom: els["#hfBackCustom197"].value, av: S.avatarDataUrl206, avp: S.avatarPreview206, ava: S.avatarApplied206, pd: S.printDataUrl, side: S.side, size: S.size, pl: S.placement }) === snapshot, "C+G: stepping 1→2→3→1→2→3 loses nothing — frame, custom words, avatar preview + approval all persist");
-  // The gate: without a frozen frame, "Use this frame" stays put and says why.
+  els["#hfReviewBack215"].listeners.click();
+  assert(S.screen215 === "product" && prod215.hidden === false && rev215.hidden === true, "C: Review's back affordance returns to the product page");
+  els["#hfReviewBtn215"].listeners.click();
+  assert(JSON.stringify({ bt: S.backText, custom: els["#hfBackCustom197"].value, av: S.avatarDataUrl206, avp: S.avatarPreview206, ava: S.avatarApplied206, pd: S.printDataUrl, side: S.side, size: S.size, pl: S.placement }) === snapshot, "C+G: product → Review → product → Review loses nothing — frame, custom words, avatar preview + approval all persist");
+  // Option rows toggle their panels.
+  els["#hfReviewBack215"].listeners.click();
+  els["#hfRowArtwork215"].listeners.click();
+  assert(rowPanels215.artwork.hidden === false && els["#hfRowArtwork215"].attrs["aria-expanded"] === "true", "C: the Artwork row opens its panel");
+  els["#hfRowArtwork215"].listeners.click();
+  assert(rowPanels215.artwork.hidden === true, "C: tapping the row again closes it");
+  // The Pick from video expander toggles inside Change photo.
+  els["#hfClipRow211"].listeners.click();
+  assert(clipArea215.hidden === false && S.clipOpen211 === true, "C: the Pick from video row expands the player area");
+  els["#hfClipRow211"].listeners.click();
+  assert(clipArea215.hidden === true && S.clipOpen211 === false, "C: ...and collapses it again");
+  // The gate: without a frozen frame, the sticky button holds
+  // the parent on the product page, opens Change photo, says why.
   S.frozen = false; S.printDataUrl = "";
-  sb.hfGoStep211(1);
-  els["#hfUseFrame211"].listeners.click();
-  assert(S.step211 === 1 && els["#hfStep1Msg211"].hidden === false && els["#hfStep1Msg211"].textContent.includes("Pick the frame"), "C: without a frame, the Step 1 CTA holds the parent on Moment and says what to do");
+  els["#hfReviewBtn215"].listeners.click();
+  assert(S.screen215 === "product" && rev215.hidden === true && rowPanels215.photo.hidden === false && photoMsg215.hidden === false && photoMsg215.textContent.includes("Pick the frame"), "C: without a frame, 'Review hoodie →' holds the parent, opens Change photo and says what to do");
   S.frozen = true; S.printDataUrl = "data:print";
 
-  // ---- E. Payload byte-identity across steps + view flips ----
+  // ---- E. Payload byte-identity across screens + view flips ----
   const buildPayload = () => JSON.stringify({
     highlightId: S.play.id,
     customName: els["#hfName"].value.trim(),
@@ -222,10 +239,10 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
     image: S.printDataUrl,
   });
   const before = buildPayload();
-  sb.hfGoStep211(2); S.garmentView206 = "front"; sb.hfGarmentSync206();
-  sb.hfGoStep211(3); S.garmentView206 = "back"; sb.hfGarmentSync206();
-  sb.hfGoStep211(1); sb.hfGoStep211(2); sb.hfGoStep211(3);
-  assert(buildPayload() === before, "E: the order payload is BYTE-IDENTICAL before and after a full step round trip with view flips interleaved");
+  S.garmentView206 = "front"; sb.hfGarmentSync206();
+  sb.hfShowScreen215("review"); S.garmentView206 = "back"; sb.hfGarmentSync206();
+  sb.hfShowScreen215("product"); sb.hfShowScreen215("review");
+  assert(buildPayload() === before, "E: the order payload is BYTE-IDENTICAL before and after a full screen round trip with view flips interleaved");
   assert(S.side === "back" && S.garmentView206 === "back", "E: navigation never touched the order's print side");
 
   // ---- H. Photo wiring per colorway × view ----
@@ -247,7 +264,7 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
   assert(btSeg.includes('data-hf-back-text="name" aria-pressed="true"'), "F: the back-text default is 'Name' — Emil kept the R197 default (the mockup's None-by-default was NOT adopted)");
   assert(appJs.includes('backText: "name"'), "F: hfState opens with backText 'name'");
   assert(studio.includes(">Send hoodie request</button>"), "F: the submit label is 'Send hoodie request' (R205 — the mockup's 'Send for approval' was NOT adopted)");
-  assert(studio.includes("No payment is collected today. We'll email your parent or guardian to confirm the design before we print."), "F: the R205 no-payment copy is verbatim on the Review step");
+  assert(studio.includes("No payment is collected today. We'll email your parent or guardian to confirm the design before we print."), "F: the R205 no-payment copy is verbatim on the Review screen");
   assert(studio.includes("Private — never shown on the site."), "F: the privacy line rides with the email field");
   const formListener = appJs.slice(appJs.indexOf('"#hfOrderForm").addEventListener("submit"'), appJs.indexOf('"#hfOrderForm").addEventListener("submit"') + 900);
   assert(formListener.includes("hfSubmitOrder206()") && !formListener.includes("hfOpenReview206"), "F: the form submit IS the send (hfSubmitOrder206 — the exact pre-existing order path)");
@@ -255,10 +272,10 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
 
 // ---- G. Avatar maker placement (statics; the gate behavior is pinned in test-r206 §C/§F) ----
 {
-  const design = studio.slice(studio.indexOf('id="hfStepDesign211"'), studio.indexOf('id="hfStepReview211"'));
-  assert(design.includes('id="hfAvatarPanel206"') && design.includes('id="hfImageStyles"'), "G: the avatar maker + Artwork picker live in Step 2 (Design)");
-  assert(design.indexOf('id="hfAvatarPanel206"') > design.indexOf('id="hfImageStyles"'), "G: the avatar panel reveals under the Artwork picker, as before");
-  assert(!studio.slice(studio.indexOf('id="hfStepMoment211"'), studio.indexOf('id="hfStepDesign211"')).includes('id="hfAvatarPanel206"'), "G: the avatar maker is not duplicated into Step 1");
+  const art215 = studio.slice(studio.indexOf('id="hfArtworkPanel215"'), studio.indexOf('id="hfRowPlacement215"'));
+  assert(art215.includes('id="hfAvatarPanel206"') && art215.includes('id="hfImageStyles"'), "G: →215: the avatar maker + Artwork picker live in the Artwork panel");
+  assert(art215.indexOf('id="hfAvatarPanel206"') > art215.indexOf('id="hfImageStyles"'), "G: the avatar panel reveals under the Artwork picker, as before");
+  assert((studio.match(/id="hfAvatarPanel206"/g) || []).length === 1, "G: →215: the avatar maker exists exactly once on the page");
 }
 
 // ---- I. Served ----
@@ -266,15 +283,15 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
   const s = await boot(41211);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "I: the served homepage carries the Round 211 pins");
-    assert(served.includes('id="hfStepMoment211"') && served.includes('id="hfStepDesign211"') && served.includes('id="hfStepReview211"') && served.includes('data-hf-step-pill="3"'), "I: the served studio carries the three steps + stepper");
+    assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "I: the served homepage carries the current pins");
+    assert(served.includes('id="hfProduct215"') && served.includes('id="hfReview215"') && served.includes('id="hfStickyBar215"') && !served.includes("data-hf-step-pill"), "I: →215: the served studio is the one-page studio — product page + Review + sticky bar, no stepper");
     for (const f of ["hf-blank-front-black211.jpg", "hf-blank-back-black211.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
       const r = await fetch(s.base + "/swag/" + f);
       const buf = Buffer.from(await r.arrayBuffer());
       assert(r.status === 200 && buf[0] === 0xff && buf[1] === 0xd8, "I: " + f + " serves as a JPEG");
     }
     const servedApp = await (await fetch(s.base + "/app.js")).text();
-    assert(servedApp.includes("hfGoStep211") && servedApp.includes("hfGarmentPaint211"), "I: the served app.js carries the round");
+    assert(servedApp.includes("hfShowScreen215") && servedApp.includes("hfSeedPoster215") && servedApp.includes("hfGarmentPaint211") && !servedApp.includes("function hfGoStep211"), "I: →215: the served app.js carries the screens + the seed, and no step flow");
   } finally { s.stop(); }
 }
 
