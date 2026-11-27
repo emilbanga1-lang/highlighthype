@@ -19,6 +19,10 @@
 //      unknown mode → name) and builds the format prompt from
 //      fixed slots — all four name modes verified against a stub
 //      upstream; a client-sent "prompt" never reaches upstream.
+//      →221: the prompt's illustration paragraph gained
+//      composition-lock clauses (additions only — every slot and
+//      assertion below still holds verbatim); test-r221 pins the
+//      new clauses.
 //   E. Studio (VM): an approved avatar design becomes the print
 //      WHOLESALE (composeHfPrint passes the design through —
 //      printDataUrl IS the design, aspect from the design); the
@@ -73,7 +77,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const merch = home.slice(home.indexOf('id="merchTeaser125"'), home.indexOf("<!-- ============ THE STORE"));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=217"') && home.includes('href="styles.css?v=211"'), "A: asset pins — app.js v216 / styles v210 (Round 218; styles unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
+assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js v216 / styles v210 (Round 218; styles unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
 
 // ---- B. Homepage card ----
 {
@@ -125,7 +129,7 @@ const stubBase = `http://127.0.0.1:${stub.address().port}`;
     assert(r.status === 200 && r.body.image === PNG, "D: name mode — the generation round-trips");
     assert(lastBody().includes('the text "Nicholas" in huge bright blue brush-stroke lettering'), "D: name mode — the top line is the first name in BLUE (boys)");
     assert(lastBody().includes('the label "HOME RUN" in small white letter-spaced capital letters'), "D: the label slot rides uppercased, with its gold-stroke line");
-    assert(lastBody().includes("solid black background") && lastBody().includes("gold brush-stroke crown") && lastBody().includes("distressed white grunge frame") && lastBody().includes("stylized illustrated avatar"), "D: the format anatomy is in the server-built prompt (black ground, crown, grunge frame, faithful illustration)");
+    assert(lastBody().includes("solid black background") && lastBody().includes("gold brush-stroke crown") && lastBody().includes("distressed white grunge frame") && lastBody().includes("stylized illustrated avatar"), "D: the format anatomy is in the server-built prompt (black ground, crown, grunge frame, faithful illustration) — →221: the illustration paragraph also carries composition-lock clauses now (additions only; this anatomy is unchanged)");
     assert(!lastBody().includes("CLIENT INJECTION 218"), "D: a client-sent prompt field NEVER reaches upstream");
 
     r = await post({ nameMode: "name_number", name: "Charlotte", number: "7", label: "Karate", tone: "pink" });

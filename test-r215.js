@@ -63,7 +63,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=211"') && home.includes('src="app.js?v=217"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed) — →217: app.js now v215 (Round 217) — →218: app.js now v216 (Round 218); styles keeps v210 — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
+assert(home.includes('href="styles.css?v=213"') && home.includes('src="app.js?v=219"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed) — →217: app.js now v215 (Round 217) — →218: app.js now v216 (Round 218); styles keeps v210 — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
 
 // ---- B. statics ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back") && !appJs.includes("function hfGoStep211(") && !css.includes(".hf-step-pill211"), "B: no stepper — no pills or step backs in the markup, no step flow in app.js, no pill CSS");
@@ -233,7 +233,7 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
   const s = await boot(41215);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "F: the served homepage carries the Round 215 pins — →219: app.js now v217 / styles now v211 (Round 219)");
+    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "F: the served homepage carries the Round 215 pins — →219: app.js now v217 / styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfStickyBar215"') && served.includes('id="hfReview215"') && !served.includes("data-hf-step-pill"), "F: the served studio is the one-page studio");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfSeedPoster215") && servedApp.includes("function hfShowScreen215") && !servedApp.includes("function hfGoStep211("), "F: the served app.js carries the seed + screens, and no step flow");

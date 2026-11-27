@@ -100,7 +100,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=217"') && home.includes('href="styles.css?v=211"'), "A: asset pins — app.js v210 / styles v206 (Round 209; both files changed) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
+assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js v210 / styles v206 (Round 209; both files changed) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
 
 // ---- B. statics ----
 const css209 = css.slice(css.indexOf("Round 209"));

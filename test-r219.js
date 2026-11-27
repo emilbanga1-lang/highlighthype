@@ -3,6 +3,7 @@
 // What this suite pins down:
 //   A. Pins: app.js v217 / styles v211 (both files changed —
 //      app.js for the markup, styles.css for the meta-row rule).
+//      →220: app.js now v218, styles now v212 (Round 220).
 //   B. The featured #1 card (featCardHtml134): the moment chip
 //      (the "🔥 Big Play" badge) and the watches count share ONE
 //      meta line (.feat-meta-row219) under the title — Emil:
@@ -19,6 +20,12 @@
 //      its place in .fame-info, and the row's tap wiring
 //      (openPlay189 for Month, goToPlayCard for Fame, no
 //      toggleVote on the row) are exactly as built.
+//      →220: the pill is now a real toggleVote BUTTON (Emil:
+//      "I want people to be able to vote") — the R219 label
+//      format is kept for the un-voted state, the click is
+//      stopped so the row tap still only opens the play, and
+//      the voted state mirrors the tile chip. §C below asserts
+//      the new wiring; test-r220.js owns the round's suite.
 //   D. Untouched surfaces stay untouched: the board tile's
 //      vote chip already reads "Vote · N" (asserted so the
 //      sweep that changed the pill can never "fix" it into a
@@ -40,14 +47,15 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=217"') && home.includes('href="styles.css?v=211"'), "A: asset pins — app.js v217 / styles v211 (Round 219; both files changed)");
+assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js v217 / styles v211 (Round 219; both files changed) — →220: app.js now v218, styles now v212 (Round 220; both files changed) — →221: app.js now v219, styles now v213 (Round 221; both files changed)");
 
 // ---- B/C statics ----
 assert(css.includes(".feat-meta-row219{display:flex") && css.includes(".feat-meta-row219 .feat-views151{margin:0}"), "B: the meta row ships as a flex row and the watches span loses its block margin inside it");
 const featSlice = appJs.slice(appJs.indexOf("function featCardHtml134"), appJs.indexOf("function renderMonth"));
 assert(featSlice.includes("feat-meta-row219") && featSlice.includes("momentChipInline162(h)"), "B: the featured card builds the one-line meta row from the chip's inline form");
 assert(!appJs.includes('<p class="feat-views151">'), "B: the stacked watches paragraph is gone from app.js (the watches count is a span in the meta row now)");
-assert(appJs.includes('fame-votes-pill134">Vote · ${h.voteCount} vote'), "C: the fame pill's source label reads \"Vote · N votes\"");
+assert(appJs.includes('fame-votes-pill134">Vote · ${h.voteCount} vote'), "C: the fame pill's source label reads \"Vote · N votes\" — →220: this exact source line is now the SAMPLE branch; real plays render the button form asserted next");
+assert(appJs.includes('class="fame-votes-pill134 fame-vote-btn220') && appJs.includes('onclick="event.stopPropagation();toggleVote(${h.id}, this)"'), "C: →220: the fame pill's real-play form is a toggleVote button with its click stopped (Round 220)");
 
 // ---- VM drives of the real renderers (the house pattern) ----
 const plays = [
@@ -109,13 +117,17 @@ const run = (code) => vm.runInContext(code, ctx);
 }
 
 // ---- C. the fame pill says Vote ----
+// →220: the pill is a real vote button now — the label format
+// is R219's, the element and wiring are Round 220's. The row
+// tap assertions keep their meaning: the ROW's own onclick
+// still opens the play; toggleVote lives only on the pill.
 {
   const monthRow = run("fameRowHtml134(ALL_PLAYS[0], 0, { feed189: true })");
-  assert(monthRow.includes('<span class="fame-votes-pill134">Vote · 13 votes</span>'), "C: the Month row's pill reads \"Vote · 13 votes\"");
-  assert(monthRow.includes("openPlay189(201, this)") && !monthRow.includes("toggleVote"), "C: the Month row's tap wiring is unchanged (opens the feed; no vote handler on the row)");
+  assert(monthRow.includes('<button type="button" class="fame-votes-pill134 fame-vote-btn220"') && monthRow.includes(">Vote · 13 votes</button>"), "C: the Month row's pill reads \"Vote · 13 votes\" — →220: as a real <button> (Round 220)");
+  assert(monthRow.includes('onclick="openPlay189(201, this)"') && monthRow.includes('onclick="event.stopPropagation();toggleVote(201, this)"'), "C: the Month row's tap wiring is unchanged (the row opens the feed) — →220: and the pill carries toggleVote with its click stopped (Round 220)");
   const fameRow = run("fameRowHtml134(ALL_PLAYS[3], 3)");
-  assert(fameRow.includes('<span class="fame-votes-pill134">Vote · 1 vote</span>'), "C: the Hall of Fame row's pill reads \"Vote · 1 vote\" (singular intact)");
-  assert(fameRow.includes("goToPlayCard(204)") && !fameRow.includes("toggleVote"), "C: the Hall of Fame row's tap wiring is unchanged (opens the play card)");
+  assert(fameRow.includes(">Vote · 1 vote</button>"), "C: the Hall of Fame row's pill reads \"Vote · 1 vote\" (singular intact) — →220: button form (Round 220)");
+  assert(fameRow.includes('onclick="goToPlayCard(204)"') && fameRow.includes('onclick="event.stopPropagation();toggleVote(204, this)"'), "C: the Hall of Fame row's tap wiring is unchanged (opens the play card) — →220: Fame pills vote identically (Round 220)");
 }
 
 // ---- D. already-Vote surfaces unchanged ----
@@ -145,9 +157,9 @@ async function boot(port, extraEnv = {}) {
   const s = await boot(4219);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "served: the homepage carries the Round 219 pins");
+    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "served: the homepage carries the Round 219 pins — →220: now the Round 220 pins (app.js v218 / styles v212) — →221: now the Round 221 pins (app.js v219 / styles v213)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
-    assert(servedApp.includes("feat-meta-row219") && servedApp.includes('fame-votes-pill134">Vote · '), "served: app.js carries the meta row + the Vote pill");
+    assert(servedApp.includes("feat-meta-row219") && servedApp.includes('fame-votes-pill134">Vote · '), "served: app.js carries the meta row + the Vote pill — →220: the sample-span source line still ships; the button form rides pill220 (Round 220)");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();
     assert(servedCss.includes(".feat-meta-row219{display:flex"), "served: styles.css carries the meta-row rule");
   } finally { s.stop(); fs.rmSync(s.tmp, { recursive: true, force: true }); }
