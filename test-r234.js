@@ -66,7 +66,7 @@ const home = fs.readFileSync(path.join(ROOT, "public/index.html"), "utf8");
 const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=225"') && home.includes('src="app.js?v=235"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round)");
+assert(home.includes('href="styles.css?v=226"') && home.includes('src="app.js?v=236"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240)");
 
 // ---- B. statics ----
 // B1: the emitter census — exactly one gated template, one threading site.

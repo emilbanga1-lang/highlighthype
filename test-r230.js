@@ -54,7 +54,7 @@ const css = read("public/styles.css");
 const serverJs = read("server.js");
 
 // ---------- A. statics: pins, hero, section order, stories ----------
-assert(home.includes('src="app.js?v=235"') && home.includes('href="styles.css?v=225"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round)");
+assert(home.includes('src="app.js?v=236"') && home.includes('href="styles.css?v=226"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240)");
 {
   const hero = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf('id="homeBattle230"'));
   assert(hero.includes('id="heroVideo"') && hero.includes('data-src="/hero-film.mp4"'), "A: the hero film is untouched (same video, same source)");
@@ -220,16 +220,21 @@ try {
   assert(grid.indexOf("homeOpenPlay232(50)") < grid.indexOf("homeOpenPlay232(77)") && grid.indexOf("homeOpenPlay232(77)") < grid.indexOf("homeOpenPlay232(76)"), "C: tiles keep the payload's order");
 
   // C8: the leaderboard inside the section — complete, leader first; Fame tab mirrors renderFame.
+  // — →240: the section's first render is SHORT (top 3 + a "View full leaderboard"
+  // link, Emil's homepage review); the complete rankings paint on the landing.
   const lb = $id("homeLbRows230").innerHTML;
-  assert([75, 71, 50, 51].every((id) => lb.includes(`data-tile-id="${id}"`)), "C: the This Month leaderboard renders EVERY contest entry inside the More Highlights section");
+  assert([75, 71, 50].every((id) => lb.includes(`data-tile-id="${id}"`)) && !lb.includes('data-tile-id="51"') && lb.includes("View full leaderboard"), "C: the This Month leaderboard's first render is the top 3 + the View-full link — →240 (was: EVERY contest entry on first render)");
   assert(lb.indexOf('data-tile-id="75"') < lb.indexOf('data-tile-id="71"'), "C: the leader's #1 row is present and first — standings stay complete");
+  vm.runInContext('homeLbLanding232("month")', sb);
+  const lbFull = $id("homeLbRows230").innerHTML;
+  assert([75, 71, 50, 51].every((id) => lbFull.includes(`data-tile-id="${id}"`)) && !lbFull.includes("View full leaderboard"), "C: the full-board landing paints EVERY contest entry in the same section — →240: the complete leaderboard lives one tap away, unchanged");
   const sample = play(500, "Demo Kid", "athS", { voteCount: 999, isSample: true });
   sb.ALL_PLAYS = [P75, P71, P50, P51, P77, P76, P66, P78, sample,
     play(201, "Extra One", "athE1", { voteCount: 9 }), play(202, "Extra Two", "athE2", { voteCount: 8 }), play(203, "Extra Three", "athE3", { voteCount: 7 }), play(204, "Extra Four", "athE4", { voteCount: 6 })];
   $id("homeLbTabFame230").listeners.click();
   const fame = $id("homeLbRows230").innerHTML;
   assert(!fame.includes('data-tile-id="500"'), "C: the Hall of Fame tab excludes samples (renderFame's rule)");
-  assert((fame.match(/data-tile-id=/g) || []).length === 10, "C: the Hall of Fame tab caps at the top 10, like renderFame");
+  assert((fame.match(/data-tile-id=/g) || []).length === 10, "C: the Hall of Fame tab caps at the top 10, like renderFame — →240: the tab inherits the section's expanded state from the landing above (a cold tab click renders the top 3 + link; test-r240 D drives both states)");
   assert(fame.indexOf('data-tile-id="75"') > -1 && fame.indexOf('data-tile-id="75"') < fame.indexOf('data-tile-id="201"'), "C: the Fame ranking sorts by all-time votes (14-vote leader ahead of the 9-vote play)");
   assert($id("homeLbTabFame230").attrs["aria-pressed"] === "true" && $id("homeLbTabMonth230").attrs["aria-pressed"] === "false", "C: the tabs track the active list");
 

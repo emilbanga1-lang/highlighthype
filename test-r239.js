@@ -34,6 +34,7 @@
 //
 // Pins: app.js v235 / styles v225 (styles unchanged this
 // round — the fix is JS + one data attribute + one asset).
+// — →240: app.js now v236 (Round 240); styles now v226 (Round 240)
 // Run: node test-r239.js — exits non-zero on failure.
 import fs from "node:fs";
 import path from "node:path";
@@ -48,7 +49,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + the mobile asset (ffprobe) ----
-assert(home.includes('src="app.js?v=235"') && home.includes('href="styles.css?v=225"'), "A: asset pins — app.js v235 (Round 239); styles keeps v225 (unchanged this round)");
+assert(home.includes('src="app.js?v=236"') && home.includes('href="styles.css?v=226"'), "A: asset pins — app.js v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240)");
 const heroTag = home.slice(home.indexOf('<video id="heroVideo"'), home.indexOf(">", home.indexOf('<video id="heroVideo"')) + 1);
 assert(heroTag.includes('data-src="/hero-film.mp4"') && heroTag.includes('data-src-lite="/hero-film-lite.mp4"') && heroTag.includes('data-src-mobile="/hero-film-mobile.mp4"') && !heroTag.includes(" src="), "A: the hero carries all three film URLs in data attributes and NO src — nothing is fetched before the pick");
 const probe = (f) => JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration,size,bit_rate", "-show_entries", "stream=codec_type,codec_name,width,height,bit_rate", "-of", "json", path.join(ROOT, "public", f)], { encoding: "utf8" }));
