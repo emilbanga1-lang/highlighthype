@@ -101,7 +101,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=220"') && home.includes('src="app.js?v=228"'), "A: asset pins — app.js v228 / styles v220 (Round 232)");
+assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=229"'), "A: asset pins — app.js v228 / styles v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
 
 // ---- B. statics ----
 // B1 (item 5): the board's Month view shed + what stays.

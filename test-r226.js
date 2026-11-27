@@ -43,7 +43,7 @@ const css = read("public/styles.css");
 const home = read("public/index.html");
 
 // ---------- statics: pins ----------
-assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "pins: app.js v223 / styles v216 — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
+assert(home.includes('src="app.js?v=229"') && home.includes('href="styles.css?v=221"'), "pins: app.js v223 / styles v216 — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
 
 // ---------- A. Battles statics ----------
 {

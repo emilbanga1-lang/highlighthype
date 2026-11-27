@@ -54,7 +54,7 @@ const css = read("public/styles.css");
 const serverJs = read("server.js");
 
 // ---------- A. statics: pins, hero, section order, stories ----------
-assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
+assert(home.includes('src="app.js?v=229"') && home.includes('href="styles.css?v=221"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
 {
   const hero = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf('id="homeBattle230"'));
   assert(hero.includes('id="heroVideo"') && hero.includes('data-src="/hero-film.mp4"'), "A: the hero film is untouched (same video, same source)");
