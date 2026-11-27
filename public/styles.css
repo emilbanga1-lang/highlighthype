@@ -3704,6 +3704,9 @@ footer{padding-bottom:36px}
 #plays .tile-media .views-chip151{right:10px;bottom:10px;background:rgba(0,0,0,.72)}
 .watch-views151{color:var(--muted);font-size:13.5px;font-weight:600;margin:4px 0 0}
 .feat-views151{color:var(--muted);font-size:13.5px;font-weight:600;margin:5px 0 0}
+/* Round 219: the featured card's badge + watches share one line. */
+.feat-meta-row219{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px}
+.feat-meta-row219 .feat-views151{margin:0}
 .stats-bars151{display:flex;align-items:flex-end;gap:2px;height:64px;margin:10px 0 4px;border-bottom:1px solid var(--line2)}
 .stats-bar151{flex:1 1 0;min-width:2px;background:var(--volt);border-radius:2px 2px 0 0;opacity:.85}
 .stats-bars-cap151{color:var(--muted);font-size:12.5px;margin:2px 0 0}

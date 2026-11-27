@@ -1090,12 +1090,25 @@ function shortTitle(title) {
 function featCardHtml134(h) {
   const votes = h.voteCount;
   const name = firstNameOf(h);
+  /* Round 219 (2026-11-26, Emil): the moment chip (the
+     "🔥 Big Play" badge) and the watches count share ONE meta
+     line under the title — "To gain space where it says big
+     play — same line can have 53 watches." The two stacked
+     rows (the chip's moment-row162 paragraph + the
+     feat-views151 paragraph) collapse into a single flex row
+     (.feat-meta-row219), saving the card a full line of
+     height. Either half renders alone when the other is
+     absent; neither → no row at all. The chip rides its
+     inline form (momentChipInline162) here; every other
+     surface keeps the block chip (momentChip162) as built. */
+  const chip219 = typeof momentChipInline162 === "function" ? momentChipInline162(h) : "";
+  const views219 = Number(h.viewCount) >= 1 ? `<span class="feat-views151">▶ ${watchesText151(h.viewCount)}</span>` : "";
+  const meta219 = chip219 || views219 ? `<div class="feat-meta-row219">${chip219}${views219}</div>` : "";
   return `<article class="feat-card134" data-feat-id="${h.id}">
     <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();featTap163(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
-      ${typeof momentChip162 === "function" ? momentChip162(h) : ""}
-      ${Number(h.viewCount) >= 1 ? `<p class="feat-views151">▶ ${watchesText151(h.viewCount)}</p>` : ""}
+      ${meta219}
       ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
     </div>
   </article>`;
@@ -1325,7 +1338,12 @@ function posterUrlFor134(h) {
    pill moves into .fame-info so the right column groups
    athlete, title, sport line and votes. Every row element
    and the tap behavior are unchanged; the poster the thumb
-   shows is now action-picked server-side (Round 209). */
+   shows is now action-picked server-side (Round 209).
+   Round 219 (2026-11-26, Emil): the pill's label gains the
+   word Vote — "Vote · N votes" — because a bare "N votes"
+   read as a stat, not as the way to vote. Text only: the
+   pill's class, its place in .fame-info and the row's tap
+   behavior are exactly as built. */
 function fameRowHtml134(h, i, opts = {}) {
   const name = firstNameOf(h);
   const poster = posterUrlFor134(h);
@@ -1339,7 +1357,7 @@ function fameRowHtml134(h, i, opts = {}) {
   return `<div class="fame-row${i === 0 ? " top" : ""}" data-tile-id="${h.id}" role="button" tabindex="0" title="See this play's card" onclick="${tap134}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${tap134}}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
-      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p><span class="fame-votes-pill134">${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span></div>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p><span class="fame-votes-pill134">Vote · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span></div>
     </div>`;
 }
 function renderFame() {
@@ -3319,7 +3337,7 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0 };
 // Round 215 state: screen215 (the one-page studio's two
 // screens — "product" / "review" — presentation only, never
 // read by the order path; the Round 211 step211 / stepMax211
@@ -3367,6 +3385,11 @@ function initHfStudio(play) {
   hfPickBackText197("name");
   const hfBackCustomEl197 = $("#hfBackCustom197");
   if (hfBackCustomEl197) hfBackCustomEl197.value = "";
+  // Round 218: the design label starts from the play's title
+  // (uppercased, sanitized, capped) — the parent shortens it in
+  // the Artwork row if it runs long.
+  const hfLabelEl218 = $("#hfLabel218");
+  if (hfLabelEl218) hfLabelEl218.value = hfLabelDefault218(play);
   hfPickColor((HF_COLORWAYS.hoodie[0] || {}).name || "Black");
   hfPickSize("YM");
   const v = $("#hfVideo"), photo = $("#hfPhoto"), scrubRow = $("#hfScrubRow"), freezeBtn = $("#hfFreeze"), linkNote = $("#hfLinkNote");
@@ -3410,6 +3433,7 @@ function initHfStudio(play) {
   hfState.avatarPreview206 = false;
   hfState.avatarBusy206 = false;
   hfState.frameCanvas206 = null;
+  hfState.designAspect218 = 0;
   const fineRow206 = $("#hfFineRow206");
   if (fineRow206) fineRow206.hidden = hfState.mediaType !== "video";
   const fineTime206 = $("#hfFineTime206");
@@ -3768,6 +3792,7 @@ function hfCapturePrint() {
   hfState.avatarDataUrl206 = "";
   hfState.avatarApplied206 = false;
   hfState.avatarPreview206 = false;
+  hfState.designAspect218 = 0;
   if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
   composeHfPrint();
   return true;
@@ -3906,6 +3931,156 @@ function hfDrawLockup(x, W, H, bandH, tone) {
   x.fillText("HIGHLIGHTHYPE", cx, H + bandH * 0.90);
   x.restore();
 }
+/* Round 218 (2026-11-26, Emil): the Hype Frame FORMAT — the
+   print design from Emil's Nicholas artwork, applied to every
+   order. Top to bottom: the athlete's name in huge brush
+   lettering (BLUE for boys, PINK for girls — sampled from his
+   artwork: #0a63f0 / #f00080), a gold brush crown at the top
+   right, the moment's short label in small letter-spaced
+   capitals with a thin gold stroke beneath, the moment inside
+   a distressed white frame, then HYPE FRAME in huge white
+   brush lettering with HIGHLIGHTHYPE beneath. The PHOTO path
+   composes it here on a TRANSPARENT canvas — no background
+   fill anywhere (Emil: "get rid of the black background"): the
+   DTF print carries the elements only, like the shop's own
+   transparent test files. The AVATAR path generates the same
+   format server-side on solid black (the model needs the
+   ground) and the garment previews knock the black out with
+   screen blend (hfGarmentPaint211). */
+const HF_TONE_BLUE218 = "#0a63f0";
+const HF_TONE_PINK218 = "#f00080";
+const HF_GOLD218 = "#f0b400";
+const HF_BONE218 = "#f6f1e4";
+function hfTone218() {
+  return (hfState.play && hfState.play.division) === "girls" ? "pink" : "blue";
+}
+function hfToneColor218() { return hfTone218() === "pink" ? HF_TONE_PINK218 : HF_TONE_BLUE218; }
+/* The design's name slot: the format prints the athlete's FIRST
+   name. The name field itself still carries the full name for
+   the order, exactly as before. */
+function hfDesignFirstName218() {
+  const n = ($("#hfName") ? $("#hfName").value.trim() : "");
+  return n.split(/\s+/)[0] || "";
+}
+const HF_LABEL_RE218 = /^[\p{L}\p{N} .,'&#!-]*$/u;
+function hfDesignLabel218() {
+  const raw = (($("#hfLabel218") ? $("#hfLabel218").value : "") || "").trim().replace(/\s+/g, " ");
+  return (HF_LABEL_RE218.test(raw) ? raw : "").slice(0, 24).toUpperCase();
+}
+function hfLabelDefault218(play) {
+  return String((play && play.title) || "").replace(/[^\p{L}\p{N} .,'&#!-]/gu, "").replace(/\s+/g, " ").trim().slice(0, 24).toUpperCase();
+}
+/* The format's top line, from the R197 name-mode choice (the
+   studio's "Name on design" control): the name, the name with
+   the number riding with it, nothing, or the custom words. */
+function hfDesignTopLine218() {
+  if (hfState.backText === "none") return "";
+  if (hfState.backText === "custom") return ($("#hfBackCustom197") ? $("#hfBackCustom197").value.trim() : "");
+  const first = hfDesignFirstName218();
+  if (hfState.backText === "name_number") {
+    const num = ($("#hfJersey") ? $("#hfJersey").value.trim().replace(/^#/, "").replace(/\D/g, "") : "");
+    return [first, num].filter(Boolean).join(" ");
+  }
+  return first;
+}
+/* The crown asset for the composed design (public/crown.png —
+   gold on transparency, the same crown the homepage card
+   header wears). Loaded lazily; a compose that beats the load
+   draws without it and the load's arrival recomposes. */
+let hfCrownImg218 = null;
+function hfCrown218() {
+  if (!hfCrownImg218) {
+    hfCrownImg218 = new Image();
+    hfCrownImg218.onload = () => { if (hfState.frozen && typeof composeHfPrint === "function") composeHfPrint(); };
+    hfCrownImg218.src = "/crown.png";
+  }
+  return (hfCrownImg218.naturalWidth || 0) > 0 ? hfCrownImg218 : null;
+}
+/* Format geometry, in units of the canvas width W — pure math,
+   shared by the full-size composition and the style minis, so
+   the mini mirrors the real composition exactly. The photo is
+   contain-fit into the frame (never cropped); the canvas
+   height adapts to the photo's shape between the header and
+   the branding footer. */
+function hfFormatLayout218(W, artW, artH, hasTop) {
+  const frameW = W * 0.90;
+  const maxFrameH = W * 0.98;
+  const aW = Math.max(1, artW || 1), aH = Math.max(1, artH || 1);
+  const scale = Math.min(frameW / aW, maxFrameH / aH);
+  const fw = Math.max(1, Math.round(aW * scale)), fh = Math.max(1, Math.round(aH * scale));
+  const headerH = hasTop ? W * 0.235 : W * 0.125;
+  const footerH = W * 0.205;
+  return { headerH, footerH, fw, fh, frameX: Math.round((W - fw) / 2), frameY: Math.round(headerH), totalH: Math.round(headerH + fh + footerH) };
+}
+/* Draw the format onto a 2d context of width W. NOTHING fills
+   the background — the canvas stays transparent outside the
+   elements (the name, the label + gold rule, the crown, the
+   framed photo, the branding). */
+function hfDrawFormat218(x, W, art, lay) {
+  const top = hfDesignTopLine218();
+  const label = hfDesignLabel218();
+  const cx = W / 2;
+  x.save();
+  x.textAlign = "center"; x.textBaseline = "middle";
+  if (top) {
+    const fs = Math.round(W * 0.115);
+    x.save();
+    x.translate(cx, W * 0.082); x.rotate(-0.012);
+    x.font = `italic 900 ${fs}px Archivo, "Arial Black", Arial, sans-serif`;
+    x.fillStyle = hfToneColor218();
+    x.fillText(top.toUpperCase(), 0, 0);
+    x.restore();
+  }
+  if (label) {
+    const ly = top ? W * 0.168 : W * 0.062;
+    const fs2 = Math.max(10, Math.round(W * 0.033));
+    x.save();
+    x.font = `800 ${fs2}px Archivo, Arial, sans-serif`;
+    try { x.letterSpacing = Math.max(2, Math.round(W * 0.008)) + "px"; } catch {}
+    x.fillStyle = HF_BONE218;
+    x.fillText(label, cx, ly);
+    x.restore();
+    x.save();
+    x.strokeStyle = HF_GOLD218; x.lineCap = "round"; x.lineWidth = Math.max(2, W * 0.007);
+    x.beginPath();
+    x.moveTo(cx - W * 0.30, ly + W * 0.034);
+    x.quadraticCurveTo(cx, ly + W * 0.042, cx + W * 0.30, ly + W * 0.030);
+    x.stroke();
+    x.restore();
+  }
+  const crown = hfCrown218();
+  if (crown) {
+    const cw = W * 0.155, ch = cw * (crown.naturalHeight / crown.naturalWidth);
+    x.drawImage(crown, W - cw - W * 0.035, W * 0.012, cw, ch);
+  }
+  x.drawImage(art, lay.frameX, lay.frameY, lay.fw, lay.fh);
+  x.save();
+  x.translate(lay.frameX, lay.frameY);
+  hfGrungeFrame(x, lay.fw, lay.fh, HF_BONE218);
+  x.restore();
+  const fy = lay.frameY + lay.fh;
+  const fs3 = Math.round(W * 0.098);
+  x.save();
+  x.translate(cx, fy + lay.footerH * 0.42); x.rotate(-0.015);
+  x.font = `italic 900 ${fs3}px Archivo, "Arial Black", Arial, sans-serif`;
+  x.fillStyle = HF_BONE218;
+  x.fillText("HYPE FRAME", 0, 0);
+  x.restore();
+  const fs4 = Math.max(10, Math.round(W * 0.030));
+  x.save();
+  x.font = `800 ${fs4}px Archivo, Arial, sans-serif`;
+  try { x.letterSpacing = Math.max(2, Math.round(W * 0.010)) + "px"; } catch {}
+  const total = x.measureText("HIGHLIGHTHYPE").width;
+  const hiW = x.measureText("HIGHLIGHT").width;
+  x.textAlign = "left";
+  x.fillStyle = HF_BONE218;
+  x.fillText("HIGHLIGHT", cx - total / 2, fy + lay.footerH * 0.80);
+  x.fillStyle = HF_GOLD218;
+  x.fillText("HYPE", cx - total / 2 + hiW, fy + lay.footerH * 0.80);
+  x.restore();
+  x.restore();
+}
+
 /* Freeze confirmation (Fixes batch, 2026-11-05): Round 2 removed the
    studio preview, and with it went the ONLY visible sign that a
    freeze had worked — users tapped Freeze and saw nothing change.
@@ -3977,31 +4152,45 @@ function hfCloseLightbox128() {
 // studio; it lives in hfState and rides on the order payload.)
 function composeHfPrint() {
   if (!hfState.frozen) { hfState.printDataUrl = ""; hfState.printAspect = 0; hfSyncFrozenThumb(); return; }
+  // Round 218: an approved avatar design IS the print, wholesale —
+  // the generated design already carries the name, label, crown,
+  // frame and branding, so it is never re-wrapped or recomposed;
+  // the order's print image is the design itself.
+  if (hfState.avatarApplied206 && hfState.avatarDataUrl206) {
+    hfState.printDataUrl = hfState.avatarDataUrl206;
+    hfState.printAspect = hfState.designAspect218 || 0;
+    hfSyncFrozenThumb();
+    return;
+  }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
   const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
   // Look presets (2026-11-04): Classic = photo only, Signature = photo
-  // + name/number caption band, Hype Frame = photo + poster treatment.
+  // + name/number caption band, Hype Frame = the full format design.
   const branding = hfState.preset === "hypeframe";
   const caption = hfState.preset === "signature"
     ? [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ")
     : "";
-  const bandH = caption ? Math.round(W * 0.17) : branding ? Math.round(W * 0.30) : 0;
+  if (branding) {
+    // Round 218: the photo path composes the FORMAT around the
+    // real photo on a transparent canvas (hfDrawFormat218) —
+    // the photo itself stays a photo, untouched inside the
+    // distressed frame; only the elements are drawn around it.
+    const lay = hfFormatLayout218(W, W, H, !!hfDesignTopLine218());
+    const c = document.createElement("canvas");
+    c.width = W; c.height = lay.totalH;
+    const x = c.getContext("2d");
+    hfDrawFormat218(x, W, fc, lay);
+    hfState.printDataUrl = c.toDataURL("image/png");
+    hfState.printAspect = c.height / c.width;
+    hfSyncFrozenThumb();
+    return;
+  }
+  const bandH = caption ? Math.round(W * 0.17) : 0;
   const c = document.createElement("canvas");
   c.width = W; c.height = H + bandH;
   const x = c.getContext("2d");
   x.drawImage(fc, 0, 0);
-  if (branding) {
-    // Poster identity (Store v8, from Emil's concept poster): a grunge
-    // brush-stroke frame around the photo, and the lockup — purple
-    // crown, HYPE FRAME script, HIGHLIGHTHYPE — in the band UNDER the
-    // photo, replacing the old corner branding. Frame + script tone
-    // follows the chosen garment colorway (bone on dark, ink on
-    // light) so the print reads on whatever it is printed on.
-    const tone = hfPrintTone();
-    hfGrungeFrame(x, W, H, tone);
-    hfDrawLockup(x, W, H, bandH, tone);
-  }
   if (caption) {
     const fs = Math.round(W * 0.072);
     x.font = `800 ${fs}px Archivo, Arial, sans-serif`;
@@ -4148,6 +4337,9 @@ function hfPickBackText197(choice) {
   // Round 206: the garment preview's back shows the picked
   // treatment — it follows the choice even when the composed
   // print itself doesn't change (the Classic style).
+  // Round 218: the choice IS the design's top line now — a
+  // frozen format print recomposes on the pick.
+  if (hfState.frozen && typeof composeHfPrint === "function") composeHfPrint();
   if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
   if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
 }
@@ -4188,11 +4380,13 @@ function hfBuildColorButtons() {
   const hfSeek = (d) => { if (v.duration) { v.pause(); v.currentTime = Math.min(Math.max(0, (v.currentTime || 0) + d), Math.max(0, v.duration - 0.05)); hfUpdateTime(); } };
   $("#hfStepBack").addEventListener("click", () => hfSeek(-1));
   $("#hfStepFwd").addEventListener("click", () => hfSeek(1));
-  ["hfName", "hfJersey"].forEach((id) => $("#" + id).addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); }));
+  ["hfName", "hfJersey", "hfLabel218"].forEach((id) => { const el218 = $("#" + id); if (el218) el218.addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); }); });
   // Round 206: the custom back words feed the garment preview's
   // back treatment live, like the name fields above.
+  // Round 218: they are the design's top line now — a frozen
+  // print recomposes on the edit too.
   const hfBackCustomInput206 = $("#hfBackCustom197");
-  if (hfBackCustomInput206) hfBackCustomInput206.addEventListener("input", () => { if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); });
+  if (hfBackCustomInput206) hfBackCustomInput206.addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); });
   $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
   // Color + size pickers (Round 3): color buttons are built from
   // HF_COLORWAYS so the list lives in exactly one place; size buttons
@@ -4293,7 +4487,7 @@ function hfBuildColorButtons() {
    over either colorway, and its glyph centers at (.50, .52)
    of the art. */
 const HF_GARMENT_ART206 = {
-  Black: { front: "/swag/hf-blank-front-black211.jpg", back: "/swag/hf-blank-back-black211.jpg", aspect: 1344 / 1792 },
+  Black: { front: "/swag/hf-blank-front-black218.jpg", back: "/swag/hf-blank-back-black218.jpg", aspect: 1046 / 1225 },
   "Heather Gray": { front: "/swag/hf-blank-front-gray211.jpg", back: "/swag/hf-blank-back-gray211.jpg", aspect: 1280 / 1920 },
 };
 const HF_GARMENT_AREA211 = {
@@ -4309,6 +4503,26 @@ const HF_GARMENT_AREA211 = {
 const HF_GARMENT_CREST211 = {
   Black: { cx: 0.635, cy: 0.335, w: 0.17 },
   "Heather Gray": { cx: 0.65, cy: 0.335, w: 0.17 },
+};
+/* Round 218 (2026-11-26, Emil): the Black garment is now HIS
+   washed-black hoodie — clean blank front/back photos generated
+   in the exact style of his front-and-back product shot (warm
+   brown backdrop, faded wash), cropped to the garment. Geometry
+   measured from the new assets (visual grounding, 2026-11-26):
+   back panel seams x .180–.831, hood tip y≈.263, hem top y≈.890;
+   front panel x .192–.845, pocket top y≈.622. Zones are insets
+   of those panels by the same proportions Round 211 used; the
+   crest anchor is the wearer's left chest. Heather Gray keeps
+   the Round 211 blanks, zones and anchor (looked up first here,
+   falling back to the 211 tables). */
+const HF_GARMENT_AREA218 = {
+  Black: {
+    back: { left: 0.26, top: 0.28, width: 0.49, height: 0.585 },
+    front: { left: 0.30, top: 0.315, width: 0.43, height: 0.29 },
+  },
+};
+const HF_GARMENT_CREST218 = {
+  Black: { cx: 0.64, cy: 0.33, w: 0.17 },
 };
 const HF_CREST_ART_ASPECT211 = 1100 / 1122; // crest-watermark.png, h/w
 
@@ -4377,6 +4591,7 @@ function hfSeedPoster215(play) {
       hfState.avatarDataUrl206 = "";
       hfState.avatarApplied206 = false;
       hfState.avatarPreview206 = false;
+      hfState.designAspect218 = 0;
       if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
       composeHfPrint();
       if (!hfState.printDataUrl) throw new Error("empty print");
@@ -4413,7 +4628,7 @@ function hfGarmentPaint211(refs, opts) {
   if (!refs || !refs.img) return { printHere: false };
   const P = (n) => (Math.round(n * 1000) / 1000) + "%"; // percent strings, float dust rounded off
   const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
-  const areas = HF_GARMENT_AREA211[hfState.colorway] || HF_GARMENT_AREA211.Black;
+  const areas = HF_GARMENT_AREA218[hfState.colorway] || HF_GARMENT_AREA211[hfState.colorway] || HF_GARMENT_AREA211.Black;
   const view = opts.view === "front" ? "front" : "back";
   const src = view === "back" ? art.back : art.front;
   if (refs.img.getAttribute("src") !== src) refs.img.src = src;
@@ -4422,6 +4637,12 @@ function hfGarmentPaint211(refs, opts) {
   const printHere = !!opts.printSrc && ((view === "front") === (hfState.side !== "back"));
   if (refs.area && refs.print) {
     refs.area.hidden = !printHere;
+    // Round 218: an approved avatar design is composited with
+    // screen blend — its black background knocks out against the
+    // garment, so the design's elements sit directly on the
+    // garment color (identical on Black; on Heather Gray there
+    // is NO black panel). Any other print clears the blend.
+    if (refs.print) refs.print.style.mixBlendMode = (printHere && opts.blendScreen) ? "screen" : "";
     if (printHere) {
       refs.area.style.left = P(area.left * 100);
       refs.area.style.top = P(area.top * 100);
@@ -4434,19 +4655,27 @@ function hfGarmentPaint211(refs, opts) {
       let aspect = hfState.printAspect || 0;
       if (refs.print.naturalWidth) aspect = refs.print.naturalHeight / refs.print.naturalWidth;
       const pl = hfState.placement || HF_PLACEMENT_DEFAULT;
-      const nameBand = (view === "back" && opts.words) ? 0.05 : 0; // stage-height fraction the embroidered words reserve
-      const availH = Math.max(0.05, area.height - nameBand);
+      // Round 218: the embroidered-name band is RETIRED — the
+      // name lives inside the artwork now, so no band is
+      // reserved at the zone's top; the print fits the full zone.
+      const availH = area.height;
       let wFrac = (pl.size / 100) * area.width;
       let hFrac = aspect > 0 ? wFrac * aspect * art.aspect : 0;
       if (hFrac > availH) { wFrac *= availH / hFrac; hFrac = availH; }
       const cxStage = area.left + (pl.cx / 100) * area.width;
-      const cyStage = area.top + nameBand + (pl.cy / 100) * availH;
+      const cyStage = area.top + (pl.cy / 100) * availH;
       refs.print.style.width = P(wFrac / area.width * 100);
       refs.print.style.left = pl.cx + "%";
       refs.print.style.top = P((cyStage - area.top) / area.height * 100);
       if (refs.shade) {
-        refs.shade.hidden = false;
-        refs.shade.style.clipPath = `inset(${P((cyStage - hFrac / 2) * 100)} ${P((1 - cxStage - wFrac / 2) * 100)} ${P((1 - cyStage - hFrac / 2) * 100)} ${P((cxStage - wFrac / 2) * 100)})`;
+        // Round 218: with the screen-blended design the blend
+        // itself seats the art in the cloth — the soft-light
+        // shade pass stands down (it would double-process it).
+        if (opts.blendScreen) { refs.shade.hidden = true; }
+        else {
+          refs.shade.hidden = false;
+          refs.shade.style.clipPath = `inset(${P((cyStage - hFrac / 2) * 100)} ${P((1 - cxStage - wFrac / 2) * 100)} ${P((1 - cyStage - hFrac / 2) * 100)} ${P((cxStage - wFrac / 2) * 100)})`;
+        }
       }
       // Round 215: the Round 206 Part D wide-frame dashed
       // outline is RETIRED — the product-page garment preview
@@ -4463,7 +4692,7 @@ function hfGarmentPaint211(refs, opts) {
   // whenever the print itself is on the back — with a front
   // print, the print IS the front design.
   if (refs.crest) {
-    const crest = HF_GARMENT_CREST211[hfState.colorway] || HF_GARMENT_CREST211.Black;
+    const crest = HF_GARMENT_CREST218[hfState.colorway] || HF_GARMENT_CREST211[hfState.colorway] || HF_GARMENT_CREST211.Black;
     const showCrest = view === "front" && hfState.side === "back";
     refs.crest.hidden = !showCrest;
     if (showCrest) {
@@ -4474,15 +4703,12 @@ function hfGarmentPaint211(refs, opts) {
     }
   }
   if (refs.backText) {
-    const words = view === "back" ? (opts.words || "") : "";
-    refs.backText.hidden = !words;
-    if (words) {
-      refs.backText.textContent = words.toUpperCase();
-      refs.backText.style.color = hfPrintTone();
-      refs.backText.style.left = P(area.left * 100);
-      refs.backText.style.width = P(area.width * 100);
-      refs.backText.style.top = P((area.top + 0.008) * 100);
-    }
+    // Round 218: the back-words treatment is retired with the
+    // embroidered band — the element stays in the markup (older
+    // suites pin it) but the painter never shows it: the name
+    // is part of the artwork itself now.
+    refs.backText.hidden = true;
+    refs.backText.textContent = "";
   }
   return { printHere };
 }
@@ -4519,7 +4745,10 @@ function hfGarmentSync206() {
   hfGarmentPaint211({
     img: $("#hfGarmentImg206"), area: $("#hfGarmentPrintArea206"), print: $("#hfGarmentPrint206"),
     shade: $("#hfGarmentShade211"), crest: $("#hfGarmentCrest211"), backText: $("#hfGarmentBackText206"),
-  }, { view, printSrc, words: hfGarmentBackText206() });
+    // Round 218: when the garment is wearing the generated
+    // design (previewing or approved), it composites with
+    // screen blend so the design's black knocks out.
+  }, { view, printSrc, words: "", blendScreen: !!(hfState.avatarDataUrl206 && printSrc === hfState.avatarDataUrl206) });
   // Round 215: the wide-frame note that used to follow the
   // paint is gone with the dashed guide (see hfGarmentPaint211).
 }
@@ -4647,16 +4876,18 @@ function hfRenderPresetMinis206() {
     // composition contain-fit into the button's mini canvas.
     const artW = art.width || art.naturalWidth, artH = art.height || art.naturalHeight;
     if (!artW || !artH) continue;
-    const bandH = preset === "signature" ? Math.round(W * 0.17) : preset === "hypeframe" ? Math.round(W * 0.30) : 0;
+    const bandH = preset === "signature" ? Math.round(W * 0.17) : 0;
     const comp = document.createElement("canvas");
-    comp.width = W; comp.height = Math.round(W * artH / artW) + bandH;
+    comp.width = W;
+    comp.height = preset === "hypeframe" ? hfFormatLayout218(W, artW, artH, !!hfDesignTopLine218()).totalH : Math.round(W * artH / artW) + bandH;
     const cx2 = comp.getContext("2d");
-    cx2.drawImage(art, 0, 0, W, comp.height - bandH);
     if (preset === "hypeframe") {
-      const tone = hfPrintTone();
-      hfGrungeFrame(cx2, W, comp.height - bandH, tone);
-      hfDrawLockup(cx2, W, comp.height - bandH, bandH, tone);
-    } else if (preset === "signature") {
+      // Round 218: the mini mirrors the real format composition
+      // (the shared hfDrawFormat218), not the retired lockup band.
+      hfDrawFormat218(cx2, W, art, hfFormatLayout218(W, artW, artH, !!hfDesignTopLine218()));
+    } else {
+      cx2.drawImage(art, 0, 0, W, comp.height - bandH);
+      if (preset === "signature") {
       const caption = [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ");
       if (caption) {
         const fs = Math.round(W * 0.072);
@@ -4666,6 +4897,7 @@ function hfRenderPresetMinis206() {
         const cy = (comp.height - bandH) + bandH / 2;
         cx2.strokeText(caption, W / 2, cy);
         cx2.fillStyle = "#ffffff"; cx2.fillText(caption, W / 2, cy);
+      }
       }
     }
     const scale = Math.min(W / comp.width, H / comp.height);
@@ -4718,15 +4950,26 @@ function hfSyncAvatar206() {
 async function hfMakeAvatar206() {
   if (hfState.avatarBusy206) return;
   if (!hfState.frozen || !hfState.frameCanvas206) { hfAvatarNote206("Freeze a frame first — the avatar is made from your frozen still."); return; }
+  // Round 218: the design's text slots ride along with the
+  // frame — the name modes that need words check them before
+  // anything is sent, so a design never comes back missing the
+  // line the family picked.
+  const mode218 = hfState.backText;
+  const first218 = hfDesignFirstName218();
+  const jersey218 = ($("#hfJersey") ? $("#hfJersey").value.replace(/\D/g, "").slice(0, 3) : "");
+  const custom218 = ($("#hfBackCustom197") ? $("#hfBackCustom197").value.trim() : "");
+  if ((mode218 === "name" || mode218 === "name_number") && !first218) { hfAvatarNote206("Add the athlete's name under “Name on design” first — it prints at the top of the design."); return; }
+  if (mode218 === "name_number" && !jersey218) { hfAvatarNote206("Add the jersey number under “Name on design” — you picked name + number."); return; }
+  if (mode218 === "custom" && !custom218) { hfAvatarNote206("Write your words under “Name on design” first — they print at the top of the design."); return; }
   hfState.avatarBusy206 = true;
   hfSyncAvatar206();
   hfAvatarNote206("Creating your avatar… this can take up to a minute. Your photo stays put until it's ready.");
   try {
     // The frame the maker sees: the frozen still itself, capped
     // at 1024px on its long edge as a JPEG — plenty for the
-    // model, kind to the connection. ONLY the image is posted;
-    // the style recipe lives server-side and can't be reached
-    // from here.
+    // model, kind to the connection. The frame plus the design
+    // slots above are posted; the recipe that assembles them
+    // lives server-side and can't be reached from here.
     const src = hfState.frameCanvas206;
     const scale = Math.min(1, 1024 / Math.max(src.width, src.height));
     const tc = document.createElement("canvas");
@@ -4734,11 +4977,12 @@ async function hfMakeAvatar206() {
     tc.height = Math.max(1, Math.round(src.height * scale));
     tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
     const image = tc.toDataURL("image/jpeg", 0.87);
+    const design218 = { nameMode: mode218, name: first218, number: jersey218, customText: custom218, label: hfDesignLabel218(), tone: hfTone218() };
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 120000);
     let j = null;
     try {
-      const r = await fetch("/api/hype-frame/avatar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image }), signal: ctl.signal });
+      const r = await fetch("/api/hype-frame/avatar", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image, nameMode: design218.nameMode, name: design218.name, number: design218.number, customText: design218.customText, label: design218.label, tone: design218.tone }), signal: ctl.signal });
       j = await r.json().catch(() => null);
       if (!r.ok || !j || !j.ok || !j.image) throw new Error((j && j.message) || "The avatar maker couldn't finish that one.");
     } finally { clearTimeout(timer); }
@@ -4758,16 +5002,21 @@ async function hfMakeAvatar206() {
     hfSyncAvatar206();
   }
 }
-/* Choosing the avatar: it becomes the frame in #hfCanvas, so
-   the composed print, the garment preview and the submitted
-   order all carry it through the existing paths. */
+/* Choosing the avatar. Round 218: the approved design becomes
+   the print WHOLESALE — it is a complete artwork (name, label,
+   crown, framed illustration, branding), so it is NOT drawn
+   into the frame canvas and no wrapper is composed around it:
+   composeHfPrint passes it through as the print image itself,
+   and the garment preview composites it with screen blend so
+   its black ground knocks out. Only the design's aspect is
+   recorded here, for the garment fit math before it loads. The
+   frozen frame's canvas snapshot is untouched, so "Use my
+   photo" restores the photo path exactly. */
 function hfApplyAvatar206() {
   if (!hfState.avatarDataUrl206) return;
   const im = new Image();
   im.onload = () => {
-    const c = $("#hfCanvas"); if (!c) return;
-    c.width = im.naturalWidth; c.height = im.naturalHeight;
-    c.getContext("2d").drawImage(im, 0, 0);
+    hfState.designAspect218 = (im.naturalWidth || 0) > 0 ? (im.naturalHeight / im.naturalWidth) : 0;
     hfState.avatarApplied206 = true;
     hfState.avatarPreview206 = false; // approved: it IS the print now, no longer a preview
     if (hfState.imageStyle !== "avatar") hfPickImageStyle("avatar");
@@ -4826,7 +5075,10 @@ function hfReviewSync206() {
   hfGarmentPaint211({
     img: $("#hfReviewImg206"), area: $("#hfReviewPrintArea206"), print: $("#hfReviewPrint206"),
     shade: $("#hfReviewShade211"), crest: $("#hfReviewCrest211"), backText: null,
-  }, { view, printSrc: hfState.printDataUrl, words: "" });
+    // Round 218: an approved design shows composited on the
+    // ordered garment with screen blend — never as a standalone
+    // black rectangle.
+  }, { view, printSrc: hfState.printDataUrl, words: "", blendScreen: hfState.avatarApplied206 === true });
   // Round 211: the summary headline in the mockup's form,
   // derived from live state — "Black hoodie" over
   // "Back print · Hype Frame".
@@ -4843,7 +5095,7 @@ function hfReviewSync206() {
     ? (hfState.avatarApplied206 ? "Illustrated avatar — the AI avatar you approved in the studio" : "Illustrated avatar — illustrated from your frame before printing")
     : "Real photo — your frozen frame";
   const backEl = $("#hfReviewBack206");
-  if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `“${words}” embroidered across the back` : "No back text"; }
+  if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `In the design: “${words}”` : "No name in the design"; }
 }
 /* Round 211 → 215: the Round 206 review stage became the
    studio's Review screen — hfOpenReview206 / hfCloseReview206
@@ -4876,6 +5128,11 @@ async function hfSubmitOrder206() {
       guardianName: $("#hfGuardianName").value.trim(),
       guardianEmail,
       image: hfState.printDataUrl,
+      // Round 218: the design's name mode + label ride with the
+      // back-text info (nameMode mirrors the backText choice
+      // under its design name; the server stores both).
+      nameMode: hfState.backText,
+      designLabel: hfDesignLabel218(),
     }) });
     // Round 200: when the server hands back a checkout URL, the
     // order is saved as awaiting payment and the end state is a
