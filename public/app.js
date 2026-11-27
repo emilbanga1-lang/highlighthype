@@ -4415,20 +4415,37 @@ function hfCrown218() {
   return (hfCrownImg218.naturalWidth || 0) > 0 ? hfCrownImg218 : null;
 }
 /* Format geometry, in units of the canvas width W — pure math,
-   shared by the full-size composition and the style minis, so
-   the mini mirrors the real composition exactly. The photo is
-   contain-fit into the frame (never cropped); the canvas
-   height adapts to the photo's shape between the header and
-   the branding footer. */
+   the ONE layout every render of the design shares (the studio
+   composition, the garment fit via printAspect, the order's
+   print file), so they can never drift apart.
+   Round 237 (2026-11-27, Emil — approved from his own reference
+   shot: "The image on the sweatshirt is just too small"): the
+   frame window is WIDE and fixed — 620×465 at W=720 (31/36 of
+   the width, 4:3), sitting where the old portrait window sat
+   in the flow (header above, branding below, header/footer
+   heights unchanged). At the locked 12-inch print width the
+   window prints 10.33" × 7.75" and the design is 13.0" tall.
+   The art COVER-fits the window (never letterboxed, never
+   distorted): the layout also returns the source crop rect
+   (sx/sy/sw/sh). The crop centers horizontally; vertically,
+   when the source is taller than the window's shape, the band
+   centers at 60% of the source height — where the action
+   usually sits — clamped inside the source. (Before R237 the
+   photo was contain-fit, whole and uncropped, into a window
+   shaped by the photo itself: a 9:16 frame produced the
+   narrow 397×706 sliver Emil rejected.) */
 function hfFormatLayout218(W, artW, artH, hasTop) {
-  const frameW = W * 0.90;
-  const maxFrameH = W * 0.98;
+  const fw = Math.max(1, Math.round(W * 31 / 36));
+  const fh = Math.max(1, Math.round(fw * 3 / 4));
   const aW = Math.max(1, artW || 1), aH = Math.max(1, artH || 1);
-  const scale = Math.min(frameW / aW, maxFrameH / aH);
-  const fw = Math.max(1, Math.round(aW * scale)), fh = Math.max(1, Math.round(aH * scale));
+  const scale = Math.max(fw / aW, fh / aH);
+  const sw = Math.min(aW, Math.round(fw / scale)), sh = Math.min(aH, Math.round(fh / scale));
+  const sx = Math.round((aW - sw) / 2);
+  let sy = 0;
+  if (sh < aH) sy = Math.round(Math.min(Math.max(0.60 * aH - sh / 2, 0), aH - sh));
   const headerH = hasTop ? W * 0.235 : W * 0.125;
   const footerH = W * 0.205;
-  return { headerH, footerH, fw, fh, frameX: Math.round((W - fw) / 2), frameY: Math.round(headerH), totalH: Math.round(headerH + fh + footerH) };
+  return { headerH, footerH, fw, fh, sx, sy, sw, sh, frameX: Math.round((W - fw) / 2), frameY: Math.round(headerH), totalH: Math.round(headerH + fh + footerH) };
 }
 /* Draw the format onto a 2d context of width W. NOTHING fills
    the background — the canvas stays transparent outside the
@@ -4471,7 +4488,10 @@ function hfDrawFormat218(x, W, art, lay) {
     const cw = W * 0.155, ch = cw * (crown.naturalHeight / crown.naturalWidth);
     x.drawImage(crown, W - cw - W * 0.035, W * 0.012, cw, ch);
   }
-  x.drawImage(art, lay.frameX, lay.frameY, lay.fw, lay.fh);
+  // Round 237: the art is drawn through the layout's cover-fit
+  // crop rect (source rect → window rect) — the wide window
+  // filled edge to edge, no letterbox, no distortion.
+  x.drawImage(art, lay.sx, lay.sy, lay.sw, lay.sh, lay.frameX, lay.frameY, lay.fw, lay.fh);
   x.save();
   x.translate(lay.frameX, lay.frameY);
   hfGrungeFrame(x, lay.fw, lay.fh, HF_BONE218);
