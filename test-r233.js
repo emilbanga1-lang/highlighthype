@@ -49,7 +49,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + the lite asset ----
-assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=230"'), "A: asset pins — app.js v229 / styles v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round)");
+assert(home.includes('href="styles.css?v=222"') && home.includes('src="app.js?v=231"'), "A: asset pins — app.js v229 / styles v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235)");
 const fullSize = fs.statSync(path.join(ROOT, "public/hero-film.mp4")).size;
 const liteSize = fs.statSync(path.join(ROOT, "public/hero-film-lite.mp4")).size;
 assert(fullSize === 6964246, "A: the full hero film is untouched (6,964,246 B)");
