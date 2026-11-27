@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=213" />
+<link rel="stylesheet" href="styles.css?v=214" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -566,6 +566,12 @@
            is the mid-feed banner). The button opens the same
            choice card the homepage section used: sample clip
            into the studio, or your own video into the form. -->
+      <!-- Round 222 (2026-11-26, Emil): while the studio is
+           open the header's Post a Play pill stands down (the
+           studio is a focused page), so the menu carries the
+           entry instead — wired to the same goSubmit as the
+           pill and the floating button. -->
+      <button type="button" id="menuPost222">+ Post a Play</button>
       <button type="button" id="menuHf125">📸 Hype Frame</button>
       <a class="nav-swag" href="/store">Swag Shop — Rep The Hype</a>
     </nav>
@@ -1061,6 +1067,12 @@
         <input type="file" name="file" id="fileInput" accept="video/*,image/*" hidden>
       </div>
 
+      <!-- Round 222 (2026-11-26): the fence shooting tip — one
+           line under the dropzone. A phone lens rested against
+           the chain-link makes the fence nearly vanish in
+           future clips, no clean-up needed. -->
+      <p class="small dz-fence-tip222">📸 Filming through a fence? Rest your phone's lens right against the chain-link — the fence nearly disappears from the shot.</p>
+
       <!-- Upload Assist (Round 99, 2026-11-11): an AI first pass reads
            a few frames of the picked clip and pre-fills the sport,
            division, title and story as suggestions the guardian
@@ -1372,10 +1384,29 @@
            control below is the same control, wired to the same
            hfState and the same order path as before — the step
            state is gone, presentation only ever lived there. -->
+      <!-- Round 222 (2026-11-26, Emil): the studio rebuilt around
+           the pinned hoodie — his verdict on the one-page layout
+           ("This layout doesn't work") and his refinements on the
+           R222 mock. The garment preview is STICKY at the top and
+           never scrolls away; beneath it the controls flow in
+           working order: Your moment (the filmstrip — a few
+           DISTINCT shots first, ★ first — plus Upload a photo,
+           the fence-removal step, and Pick from video as a
+           compact same-page expander) → Artwork (Photo/Avatar,
+           the design label, print style, placement, name on
+           design) → Color & size. The price line sits
+           under the product name; NO size is preselected (the
+           Review gate requires an explicit pick); YXXS is not
+           offered in the studio (it stays in the store). The
+           Round 215 collapsible option rows are retired: the
+           sections stand open, the row/panel ids survive as the
+           section heads/bodies, and every control keeps its id,
+           its hfState wiring and the same order path. -->
       <div id="hfProduct215">
         <h3 class="hf-product-title215" id="hfProductTitle215">Your Hype Frame Hoodie</h3>
         <p class="hf-product-sub215" id="hfProductSub215"></p>
-        <div class="hf-garment206" id="hfGarment206" hidden>
+        <p class="hf-price-top222" id="hfPriceTop222">$110 · Made to order</p>
+<div class="hf-garment206" id="hfGarment206" hidden>
                     <div class="hf-garment-stage206" id="hfGarmentStage206">
                       <img class="hf-garment-img206" id="hfGarmentImg206" alt="Hoodie preview">
                       <div class="hf-garment-printarea206" id="hfGarmentPrintArea206">
@@ -1393,57 +1424,12 @@
                       <span class="hf-garment-cap206">Preview — your design on the hoodie</span>
                     </div>
                   </div>
-        <div class="hf-buycard215" id="hfBuyCard215">
-          <div class="hf-buyrow215">
-            <span class="hf-buylab215">Color</span>
-            <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
-          </div>
-          <div class="hf-buyrow215 hf-buyrow-size215">
-            <span class="hf-buylab215">Size <button type="button" class="hf-sizeguide-btn205" id="hfSizeGuideBtn205" aria-expanded="false" aria-controls="hfSizeGuide205">Size guide</button></span>
-            <div class="hf-sizes" id="hfSizes" role="group" aria-label="Size">
-                      <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Youth</span>
-                      <button type="button" class="hf-size" data-hf-size="YXXS" aria-pressed="false">YXXS</button>
-                      <button type="button" class="hf-size" data-hf-size="YXS" aria-pressed="false">YXS</button>
-                      <button type="button" class="hf-size" data-hf-size="YS" aria-pressed="false">YS</button>
-                      <button type="button" class="hf-size" data-hf-size="YM" aria-pressed="true">YM</button>
-                      <button type="button" class="hf-size" data-hf-size="YL" aria-pressed="false">YL</button>
-                      <button type="button" class="hf-size" data-hf-size="YXL" aria-pressed="false">YXL</button>
-                      <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Adult</span>
-                      <button type="button" class="hf-size" data-hf-size="S" aria-pressed="false">S</button>
-                      <button type="button" class="hf-size" data-hf-size="M" aria-pressed="false">M</button>
-                      <button type="button" class="hf-size" data-hf-size="L" aria-pressed="false">L</button>
-                      <button type="button" class="hf-size" data-hf-size="XL" aria-pressed="false">XL</button>
-                    </div>
-          </div>
-          <div class="hf-sizeguide205" id="hfSizeGuide205" hidden>
-                    <table>
-                      <tr><th>Youth</th><th>Chest</th><th>Length</th></tr>
-                      <tr><td>YXXS</td><td>26″</td><td>17″</td></tr>
-                      <tr><td>YXS</td><td>28″</td><td>19″</td></tr>
-                      <tr><td>YS</td><td>30″</td><td>21″</td></tr>
-                      <tr><td>YM</td><td>32″</td><td>23″</td></tr>
-                      <tr><td>YL</td><td>34″</td><td>25″</td></tr>
-                      <tr><td>YXL</td><td>36″</td><td>26″</td></tr>
-                      <tr><th>Adult</th><th>Chest</th><th>Length</th></tr>
-                      <tr><td>S</td><td>40″</td><td>27″</td></tr>
-                      <tr><td>M</td><td>42″</td><td>28″</td></tr>
-                      <tr><td>L</td><td>44″</td><td>29″</td></tr>
-                      <tr><td>XL</td><td>46″</td><td>30″</td></tr>
-                    </table>
-                    <p class="small">Chest is the garment's width across the chest; length is shoulder to hem. A general guide — between sizes, size up for a growing athlete.</p>
-                  </div>
-          <div class="hf-buyrow215">
-            <span class="hf-buylab215">Price</span>
-            <span class="hf-price215">$110<small>Made to order</small></span>
-          </div>
+        <div class="hf-sec-head222" id="hfRowPhoto215">
+          <span class="hf-sec-k222">Your moment</span>
+          <span class="hf-sec-v222" id="hfRowPhotoState215"></span>
         </div>
-        <div class="hf-optrows215">
-          <button type="button" class="hf-optrow215" id="hfRowPhoto215" aria-expanded="false" aria-controls="hfPhotoPanel215">
-            <span class="hf-optrow-k215">Change photo</span>
-            <span class="hf-optrow-v215"><span id="hfRowPhotoState215"></span><span class="hf-optrow-chev215" aria-hidden="true">›</span></span>
-          </button>
-          <div class="hf-optpanel215" id="hfPhotoPanel215" hidden>
-            <div class="hf-strip-wrap" id="hfStripWrap" hidden>
+        <div class="hf-optpanel215 hf-sec-body222" id="hfPhotoPanel215">
+          <div class="hf-strip-wrap" id="hfStripWrap" hidden>
                       <p class="hf-strip-label">Tap a frame to pick it — that frame becomes your print</p>
                       <div class="hf-strip" id="hfStrip" role="group" aria-label="Frame thumbnails — tap one to pick that frame as your print"></div>
                       <!-- Round 205: the one-tap selection, named — set by
@@ -1451,7 +1437,27 @@
                            the still recommendation's pre-select. -->
                       <p class="hf-selected205" id="hfSelected205" hidden></p>
                     </div>
-            <button type="button" class="hf-cliprow211" id="hfClipRow211" aria-expanded="false" aria-controls="hfClipArea211">
+          <div class="hf-upload-row222">
+            <button type="button" class="btn btn-ghost" id="hfUploadBtn222">📷 Upload a photo</button>
+            <input type="file" id="hfUploadInput222" accept="image/*" hidden>
+            <span class="small">No strong frame in the clip? Upload a photo instead — it becomes the print.</span>
+          </div>
+          <div class="hf-fence222" id="hfFence222" hidden>
+            <p class="hf-fence-title222">Shot through a fence?</p>
+            <p class="small">If the backstop fence is in your frame, we can clean it out of the photo — the play stays exactly as it was, minus the fence.</p>
+            <p class="hf-fence-consent222" id="hfFenceConsent222">Fence removal is done by OpenAI's image AI — your photo is sent to OpenAI to clean it. Nothing is sent until you tap the button below. The AI rebuilds what the fence hid, so look the cleaned photo over before you approve it.</p>
+            <button type="button" class="btn btn-ghost" id="hfFenceBtn222">Remove the fence</button>
+            <p class="hf-fence-status222" id="hfFenceStatus222" aria-live="polite" hidden></p>
+            <div class="hf-fence-result222" id="hfFenceResult222" hidden>
+              <img id="hfFenceImg222" alt="Your photo with the fence removed — check it over before you approve it">
+              <div class="seg hf-fence-use222" role="group" aria-label="Use the cleaned photo or keep the original">
+                <button type="button" id="hfFenceUse222">Use the cleaned photo</button>
+                <button type="button" id="hfFenceKeep222">Keep the original</button>
+              </div>
+              <p class="small">The cleaned photo becomes your print only when you pick it — your original is always here to go back to.</p>
+            </div>
+          </div>
+          <button type="button" class="hf-cliprow211" id="hfClipRow211" aria-expanded="false" aria-controls="hfClipArea211">
                       <img id="hfClipRowThumb211" alt="" hidden>
                       <span class="hf-cliprow-label211" id="hfClipRowLabel211">Open the clip</span>
                       <span class="hf-cliprow-chev211" aria-hidden="true">›</span>
@@ -1515,14 +1521,14 @@
                         <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
                       </div>
                     </div>
-            <p class="hf-photo-msg215" id="hfPhotoMsg215" aria-live="polite" hidden></p>
-          </div>
-          <button type="button" class="hf-optrow215" id="hfRowArtwork215" aria-expanded="false" aria-controls="hfArtworkPanel215">
-            <span class="hf-optrow-k215">Artwork</span>
-            <span class="hf-optrow-v215"><span id="hfRowArtworkState215"></span><span class="hf-optrow-chev215" aria-hidden="true">›</span></span>
-          </button>
-          <div class="hf-optpanel215" id="hfArtworkPanel215" hidden>
-            <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
+          <p class="hf-photo-msg215" id="hfPhotoMsg215" aria-live="polite" hidden></p>
+        </div>
+        <div class="hf-sec-head222" id="hfRowArtwork215">
+          <span class="hf-sec-k222">Artwork</span>
+          <span class="hf-sec-v222" id="hfRowArtworkState215"></span>
+        </div>
+        <div class="hf-optpanel215 hf-sec-body222" id="hfArtworkPanel215">
+          <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
                       <button type="button" data-hf-image-style="photo" aria-pressed="true">Photo</button>
                       <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
                     </div>
@@ -1530,10 +1536,12 @@
             <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
                       <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
                       <!-- Round 221: the avatar's view of the frame — a
-                           zoomed crop (65% wide, 4:5) the parent centers
-                           on the athlete with a tap. Only the crop is
-                           sent; the photo print still uses the full
-                           frame. -->
+                           zoomed crop the parent centers on the
+                           athlete with a tap. Only the crop is sent;
+                           the photo print still uses the full frame.
+                           Round 222: the crop defaults
+                           athlete-dominant (55% wide, 4:5) and is
+                           sent upscaled 2×. -->
                       <div class="hf-avatar-crop221" id="hfAvatarCrop221" hidden>
                         <div class="hf-avatar-crop-stage221" id="hfAvatarCropStage221">
                           <img id="hfAvatarCropImg221" alt="Your frozen frame — the outlined area is what the avatar artist works from">
@@ -1566,23 +1574,22 @@
                       <button type="button" data-hf-preset="hypeframe" aria-pressed="true"><canvas class="hf-preset-mini206" data-hf-preset-mini="hypeframe" width="168" height="126" aria-hidden="true"></canvas><span>Hype Frame</span></button>
                     </div>
             <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
+          <div class="hf-sec-head222 hf-sec-sub222" id="hfRowPlacement215">
+            <span class="hf-sec-k222">Print placement</span>
+            <span class="hf-sec-v222" id="hfRowPlacementState215"></span>
           </div>
-          <button type="button" class="hf-optrow215" id="hfRowPlacement215" aria-expanded="false" aria-controls="hfPlacementPanel215">
-            <span class="hf-optrow-k215">Print placement</span>
-            <span class="hf-optrow-v215"><span id="hfRowPlacementState215"></span><span class="hf-optrow-chev215" aria-hidden="true">›</span></span>
-          </button>
-          <div class="hf-optpanel215" id="hfPlacementPanel215" hidden>
+          <div class="hf-optpanel215 hf-sec-body222" id="hfPlacementPanel215">
             <div class="seg hf-sides" id="hfSides" role="group" aria-label="Print placement">
                       <button type="button" data-hf-side="front" aria-pressed="false">Front</button>
                       <button type="button" data-hf-side="back" aria-pressed="true">Back</button>
                     </div>
             <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above. This is where the print goes — the Front/Back flip on the preview just turns the hoodie around.</p>
           </div>
-          <button type="button" class="hf-optrow215" id="hfRowBackText215" aria-expanded="false" aria-controls="hfBackTextPanel215">
-            <span class="hf-optrow-k215">Name on design</span>
-            <span class="hf-optrow-v215"><span id="hfRowBackTextState215"></span><span class="hf-optrow-chev215" aria-hidden="true">›</span></span>
-          </button>
-          <div class="hf-optpanel215" id="hfBackTextPanel215" hidden>
+          <div class="hf-sec-head222 hf-sec-sub222" id="hfRowBackText215">
+            <span class="hf-sec-k222">Name on design</span>
+            <span class="hf-sec-v222" id="hfRowBackTextState215"></span>
+          </div>
+          <div class="hf-optpanel215 hf-sec-body222" id="hfBackTextPanel215">
             <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Name on the design">
                       <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
                       <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
@@ -1600,11 +1607,55 @@
                     </div>
           </div>
         </div>
+        <div class="hf-buycard215" id="hfBuyCard215">
+          <div class="hf-sec-head222 hf-sec-in-card222">
+            <span class="hf-sec-k222">Color &amp; size</span>
+          </div>
+          <div class="hf-buyrow215">
+            <span class="hf-buylab215">Color</span>
+            <div class="hf-colors" id="hfColors" role="group" aria-label="Hoodie color"></div>
+          </div>
+          <div class="hf-buyrow215 hf-buyrow-size215">
+            <span class="hf-buylab215">Size <button type="button" class="hf-sizeguide-btn205" id="hfSizeGuideBtn205" aria-expanded="false" aria-controls="hfSizeGuide205">Size guide</button></span>
+            <div class="hf-sizes" id="hfSizes" role="group" aria-label="Size">
+                      <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Youth</span>
+                      <button type="button" class="hf-size" data-hf-size="YXS" aria-pressed="false">YXS</button>
+                      <button type="button" class="hf-size" data-hf-size="YS" aria-pressed="false">YS</button>
+                      <button type="button" class="hf-size" data-hf-size="YM" aria-pressed="false">YM</button>
+                      <button type="button" class="hf-size" data-hf-size="YL" aria-pressed="false">YL</button>
+                      <button type="button" class="hf-size" data-hf-size="YXL" aria-pressed="false">YXL</button>
+                      <span style="flex-basis:100%;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Adult</span>
+                      <button type="button" class="hf-size" data-hf-size="S" aria-pressed="false">S</button>
+                      <button type="button" class="hf-size" data-hf-size="M" aria-pressed="false">M</button>
+                      <button type="button" class="hf-size" data-hf-size="L" aria-pressed="false">L</button>
+                      <button type="button" class="hf-size" data-hf-size="XL" aria-pressed="false">XL</button>
+                    </div>
+          </div>
+          <div class="hf-sizeguide205" id="hfSizeGuide205" hidden>
+                    <table>
+                      <tr><th>Youth</th><th>Chest</th><th>Length</th></tr>
+                      <tr><td>YXXS</td><td>26″</td><td>17″</td></tr>
+                      <tr><td>YXS</td><td>28″</td><td>19″</td></tr>
+                      <tr><td>YS</td><td>30″</td><td>21″</td></tr>
+                      <tr><td>YM</td><td>32″</td><td>23″</td></tr>
+                      <tr><td>YL</td><td>34″</td><td>25″</td></tr>
+                      <tr><td>YXL</td><td>36″</td><td>26″</td></tr>
+                      <tr><th>Adult</th><th>Chest</th><th>Length</th></tr>
+                      <tr><td>S</td><td>40″</td><td>27″</td></tr>
+                      <tr><td>M</td><td>42″</td><td>28″</td></tr>
+                      <tr><td>L</td><td>44″</td><td>29″</td></tr>
+                      <tr><td>XL</td><td>46″</td><td>30″</td></tr>
+                    </table>
+                    <p class="small">Chest is the garment's width across the chest; length is shoulder to hem. A general guide — between sizes, size up for a growing athlete.</p>
+                  </div>
+          <p class="hf-size-msg222" id="hfSizeMsg222" role="alert" hidden></p>
+        </div>
         <div class="hf-stickybar215" id="hfStickyBar215">
           <button type="button" class="hf-review-btn215" id="hfReviewBtn215">Review hoodie →</button>
           <p class="hf-stickybar-note215">No payment today — a parent or guardian confirms first</p>
         </div>
       </div>
+
       <!-- REVIEW: the same final screen as the Round 211 Step 3 /
            Round 206 review — the hoodie AS ORDERED, the summary,
            then the send over the exact same order path
@@ -1649,8 +1700,12 @@
                   <!-- Round 211: the form lives ON the Review step now, so
                        its submit IS the send (hfSubmitOrder206 — the exact
                        pre-R206 order path) under the Round 205 label. -->
-                  <button type="submit" class="btn btn-lime submit-btn">Send hoodie request</button>
-                  <p class="small hf-review-sub206">No payment today</p>
+                  <!-- Round 222 (2026-11-26, Emil): the send is an
+                       order REQUEST — the CTA says so, and the line
+                       directly below it is his verbatim no-payment
+                       line (supersedes the Round 205 label). -->
+                  <button type="submit" class="btn btn-lime submit-btn">Send order request</button>
+                  <p class="small hf-review-sub206">No payment today. A parent or guardian confirms first.</p>
                   <p id="hfMsg"></p>
                 </form>
       </div>
@@ -2455,6 +2510,6 @@
   </div>
 </div>
 
-<script src="app.js?v=219"></script>
+<script src="app.js?v=220"></script>
 </body>
 </html>

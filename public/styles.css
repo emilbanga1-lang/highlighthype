@@ -3353,6 +3353,52 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-stickybar-note215{margin:8px 0 0;text-align:center;font-size:11px;color:var(--muted)}
 .hf-review-backrow215{margin:0 0 8px}
 
+/* Round 222 (2026-11-26, Emil): the studio rebuild —
+   - the garment preview is PINNED (sticky) at the top of the
+     product page: it never scrolls away while the controls
+     flow beneath it (moment → artwork → color & size). It
+     wears a card skin while pinned so scrolled content never
+     bleeds through it;
+   - "$110 · Made to order" sits under the product name;
+   - the sections stand open under quiet heads — the R215
+     collapsible option-row rules above simply go unused;
+   - the Pick from video player is COMPACT (the video caps at
+     300px tall), not the giant full-page player;
+   - the sticky Review bar is compact;
+   - the header's Post a Play pill stands down while the
+     studio is open (the menu carries the entry instead);
+   - the Upload a photo row, the fence step card, the size
+     gate prompt, and the upload flow's fence shooting tip.
+   [hidden] guards explicit, per the standing CSS trap. */
+body.hf-studio-open205 #postPlayBtn{display:none}
+.hf-price-top222{margin:0 0 10px;font-size:15px;font-weight:800;color:#e8d5a3}
+#hfProduct215 .hf-garment206{position:sticky;top:70px;z-index:40;background:#101012;border:1px solid var(--line2);border-radius:16px;padding:10px 10px 8px;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.hf-sec-head222{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:20px 0 8px}
+.hf-sec-k222{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#c9c9cf}
+.hf-sec-v222{font-size:13px;font-weight:700;color:#fff}
+.hf-sec-sub222{margin-top:18px}
+.hf-sec-in-card222{margin:6px 0 2px}
+.hf-sec-body222{border-bottom:0;padding-bottom:2px}
+.hf-upload-row222{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.hf-fence222{margin-top:14px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px 14px}
+.hf-fence222[hidden]{display:none}
+.hf-fence-title222{margin:0 0 4px;font-size:15px;font-weight:800;color:#fff}
+.hf-fence-consent222{margin:8px 0 10px;font-size:13.5px;font-weight:700;color:#fff;line-height:1.45}
+.hf-fence-status222{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
+.hf-fence-status222[hidden]{display:none}
+.hf-fence-result222{margin-top:12px}
+.hf-fence-result222[hidden]{display:none}
+.hf-fence-result222 img{display:block;width:auto;max-width:100%;max-height:220px;border:1px solid var(--line2);border-radius:12px;background:#000}
+.hf-fence-use222{margin-top:10px;width:100%}
+.hf-fence-use222 button{flex:1}
+.hf-size-msg222{margin:10px 0 4px;font-size:13.5px;font-weight:800;color:var(--volt)}
+.hf-size-msg222[hidden]{display:none}
+.dz-fence-tip222{margin:10px 2px 0}
+#hfClipArea211 video#hfVideo{width:100%;max-height:300px;object-fit:contain;background:#000;display:block}
+.hf-stickybar215{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.hf-review-btn215{padding:12px}
+.hf-stickybar-note215{margin-top:5px}
+
 /* Round 128 (2026-11-13): the studio's composed print opens BIG.
    The frozen confirmation (#hfFrozenWrap) is the tap target —
    cursor + zoom chip say so — and the lightbox is a fixed
