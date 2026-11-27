@@ -28,6 +28,13 @@
 //   F. Notify reuse: /api/drop-notify accepts the collection slug
 //      + hoodie keys beside the six bottle sports, still rejects
 //      an unknown key, and the owner list counts all 19 keys.
+//   G. Round 228 (2026-11-27): a sig-matching "skipped-unconfigured"
+//      record does NOT settle a poster — unconfigured passes never
+//      clean and leave the play retryable, the first configured
+//      pass reprocesses it for real (fence poster → "cleaned"),
+//      verdict records (none/cleaned/failed) still settle with
+//      zero churn, and the backfill logs its unconfigured line
+//      exactly once.
 // Exits non-zero on failure. Anthropic + OpenAI are NEVER really
 // called: configured boots point AI_VISION_BASE_URL /
 // HF_AVATAR_BASE_URL at in-process stubs (the house pattern).
@@ -149,6 +156,7 @@ const sigOf = (abs) => { const st = fs.statSync(abs); return st.size + ":" + Mat
   // Workstream 1+2 machinery.
   assert(serverJs.includes("HH_NO_POSTERCLEAN") && serverJs.includes("r227ProcessPoster227") && serverJs.includes("r227Backfill") && serverJs.includes("skipped-unconfigured") && serverJs.includes("poster-${id}-preclean.jpg"), "A: the poster-clean stage, its kill switch, its unconfigured verdict and the preclean preservation are in server.js");
   assert(serverJs.includes("r227time") && serverJs.includes('origin: "initial"') && serverJs.includes("ej223.r227time"), "A: the initial-grab poster-time record (r227time, origin initial) + the publicHighlight fallback are in server.js");
+  assert(serverJs.includes("r227IsSettled228") && serverJs.includes('rec.decision === "none" || rec.decision === "cleaned" || rec.decision === "failed"') && serverJs.includes("[r227] backfill: poster auto-clean not configured (vision key or fence edit missing) — posters left as-is; will retry on a later boot"), "A: Round 228 — the shared settle test (verdicts only, never skipped-unconfigured) + the backfill's unconfigured log line are in server.js");
   assert(serverJs.includes("/api/hype-frame/remove-fence") && serverJs.includes("runHfFence222"), "A: the studio's manual fence endpoint + runner stand untouched");
   // Workstream 4.
   assert(home.includes("Shown publicly — a team or school name works best.") && home.includes('class="small team-hint227"'), "A: the upload form's Team hint rides verbatim under the field");
@@ -309,6 +317,68 @@ const sigOf = (abs) => { const st = fs.statSync(abs); return st.size + ":" + Mat
     const list = await s.j("/api/owner/drop-notifications", { headers: { "x-owner-token": tok } });
     assert(list.body.counts.length === 19 && list.body.counts.find((c) => c.sport === "boys-street").count === 1 && list.body.counts.find((c) => c.sport === "hoodie-baseball").count === 1 && list.body.counts.find((c) => c.sport === "football").count === 1, "F: the owner counts cover all 19 keys with the new signups counted");
   } finally { await s.stop(); }
+}
+
+// ================= G. Round 228: skipped-unconfigured never settles =================
+const patchRecord228 = (dir, id, decision) => {
+  const posterAbs = path.join(dir, "uploads", `poster-${id}.jpg`);
+  const db = new DatabaseSync(path.join(dir, "highlighthype.db"));
+  const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+  const ej = (() => { try { return JSON.parse(row.enhance_json || "{}") || {}; } catch { return {}; } })();
+  ej.r227time = { t: 1, origin: "initial" };
+  ej.r227 = { decision, at: new Date().toISOString(), poster: `poster-${id}.jpg`, sig: sigOf(posterAbs) };
+  db.prepare("UPDATE highlights SET enhance_json=? WHERE id=?").run(JSON.stringify(ej), id);
+  db.close();
+};
+{
+  // (a) + (b) + (d): unconfigured passes write a sig-matching skipped
+  // record and never clean; the first configured pass reprocesses.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r228g-"));
+  const LOGLINE228 = "[r227] backfill: poster auto-clean not configured (vision key or fence edit missing) — posters left as-is; will retry on a later boot";
+  const stU = await stubs(45273, 45274, true);
+  const sU = await boot(45249, { dir, env: { OPENAI_API_KEY: "k", AI_VISION_BASE_URL: stU.visionUrl, HF_AVATAR_BASE_URL: stU.openaiUrl } });
+  let id;
+  try {
+    id = seedVideoPlay(dir, { file: "seed-g.mp4", enhanceJson: JSON.stringify({ r227time: { t: 1, origin: "initial" } }) });
+    const rec = await sU.waitFor(() => { const r = sU.readRow(id); const x = ejOf(r).r227; return x && x.decision ? x : null; }, "the unconfigured pass's skipped record");
+    assert(rec.decision === "skipped-unconfigured" && rec.poster === `poster-${id}.jpg` && rec.sig === sigOf(path.join(dir, "uploads", `poster-${id}.jpg`)), "G: phase 1 — a sig-matching 'skipped-unconfigured' record is written while the vision key is missing");
+    assert(fs.readFileSync(path.join(dir, "uploads", `poster-${id}.jpg`)).equals(POSTER1_BYTES) && stU.calls.vision === 0 && stU.calls.openai === 0, "G: (b) phase 1 — the poster is NOT cleaned while unconfigured (no calls, never blind-clean)");
+    await sU.waitFor(() => sU.getLog().includes(LOGLINE228) || null, "the backfill's unconfigured log line");
+    assert(sU.getLog().split(LOGLINE228).length - 1 === 1, "G: (d) the backfill logs its unconfigured line exactly once");
+  } finally { await sU.stop(); stU.close(); }
+  // A second unconfigured boot: still untouched, still unsettled.
+  const sU2 = await boot(45250, { dir, env: { OPENAI_API_KEY: "k" } });
+  try {
+    await sU2.waitFor(() => sU2.getLog().includes("[r227] backfill complete") || null, "the second unconfigured backfill");
+    assert(fs.readFileSync(path.join(dir, "uploads", `poster-${id}.jpg`)).equals(POSTER1_BYTES), "G: (b) phase 2 — a second unconfigured pass still leaves the poster untouched");
+    const rec2 = ejOf(sU2.readRow(id)).r227;
+    assert(rec2 && rec2.decision === "skipped-unconfigured", "G: (b) phase 2 — the record remains 'skipped-unconfigured' (unsettled, retryable)");
+    assert(sU2.getLog().includes(LOGLINE228), "G: (d) the second unconfigured boot logs the line too");
+  } finally { await sU2.stop(); }
+  // The first configured boot: the skipped record must not settle.
+  const stC = await stubs(45275, 45276, true);
+  const sC = await boot(45251, { dir, env: { AI_VISION_API_KEY: "k", OPENAI_API_KEY: "k", AI_VISION_BASE_URL: stC.visionUrl, HF_AVATAR_BASE_URL: stC.openaiUrl } });
+  try {
+    const rec = await sC.waitFor(() => { const r = sC.readRow(id); const x = ejOf(r).r227; return x && x.decision === "cleaned" ? x : null; }, "the configured pass cleaning the previously-skipped play");
+    assert(stC.calls.vision >= 1 && stC.calls.openai >= 1, `G: (a) once configured, the skipped play is REPROCESSED — detection ran (vision ${stC.calls.vision}), then the edit (openai ${stC.calls.openai})`);
+    assert(rec.sig === sigOf(path.join(dir, "uploads", `poster-${id}.jpg`)) && fs.readFileSync(path.join(dir, "uploads", `poster-${id}-preclean.jpg`)).equals(POSTER1_BYTES) && !fs.readFileSync(path.join(dir, "uploads", `poster-${id}.jpg`)).equals(POSTER1_BYTES), "G: (a) the record becomes 'cleaned', the poster is replaced, and the original is preserved as preclean");
+  } finally { await sC.stop(); stC.close(); }
+}
+{
+  // (c): sig-matching verdict records still settle — no churn.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hh-r228h-"));
+  const st = await stubs(45277, 45278, true);
+  const s = await boot(45252, { dir, env: { AI_VISION_API_KEY: "k", OPENAI_API_KEY: "k", AI_VISION_BASE_URL: st.visionUrl, HF_AVATAR_BASE_URL: st.openaiUrl } });
+  try {
+    const decisions = ["none", "cleaned", "failed"];
+    const ids = decisions.map((d, i) => { const pid = seedVideoPlay(dir, { file: `seed-h${i}.mp4`, enhanceJson: "" }); patchRecord228(dir, pid, d); return pid; });
+    await s.waitFor(() => s.getLog().includes("[r227] backfill complete") || null, "the settled-verdicts backfill");
+    assert(st.calls.vision === 0 && st.calls.openai === 0, "G: (c) sig-matching none/cleaned/failed records still settle — zero vision/edit calls on the pass");
+    ids.forEach((pid, i) => {
+      assert(fs.readFileSync(path.join(dir, "uploads", `poster-${pid}.jpg`)).equals(POSTER1_BYTES), `G: (c) the '${decisions[i]}' play's poster is byte-identical (no churn)`);
+      assert(ejOf(s.readRow(pid)).r227.decision === decisions[i], `G: (c) the '${decisions[i]}' record stands unchanged`);
+    });
+  } finally { await s.stop(); st.close(); }
 }
 
 console.log("\ntest-r227: ALL PASSED");
