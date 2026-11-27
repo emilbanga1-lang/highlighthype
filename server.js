@@ -409,6 +409,15 @@ Gate rules: "play" = clearly a sports play; "unsure" = probably sports but uncle
 // are validated into FIXED SLOTS and interpolated as data —
 // the client still cannot send a prompt; its text only ever
 // lands inside the quoted slots below.
+// Round 221 (2026-11-26, Emil): the first live R218 generation
+// invented a generic at-bat instead of illustrating the frozen
+// frame, so the illustration paragraph gains composition-lock
+// clauses (same camera angle / framing / composition, nobody
+// and nothing added or removed, the exact same instant). Every
+// R218 format slot and the stylized-face rule stay byte-stable;
+// the clauses are additions only. The studio also now sends a
+// zoomed crop of the frame (client-side, R221) — the prompt
+// does not change for that: it still just says "this photo".
 const HF_AVATAR_MODEL206 = process.env.HF_AVATAR_MODEL || "gpt-image-1";
 const HF_AVATAR_NAME_MODES218 = ["name", "name_number", "none", "custom"];
 function hfAvatarSlot218(v, max) {
@@ -437,7 +446,7 @@ function hfAvatarPrompt218(d) {
   const labelLine = d.label
     ? `Near the top, above the frame, the label "${d.label}" in small white letter-spaced capital letters, with a thin gold brush stroke beneath it. `
     : "";
-  return "Turn this youth sports photo into a finished Hype Frame print design on a solid black background: a bold, stylized illustrated avatar of the same athlete in the same moment, staying faithful to the photo — keep the exact pose, sport, action, uniform and uniform colors, and keep the photo's real setting, background, other players, lighting and colors; illustrate the scene that is actually there instead of inventing a new one. Build the design in this exact format, top to bottom. " +
+  return "Turn this youth sports photo into a finished Hype Frame print design on a solid black background: a bold, stylized illustrated avatar of the same athlete in the same moment, staying faithful to the photo — keep the exact pose, sport, action, uniform and uniform colors, and keep the photo's real setting, background, other players, lighting and colors; illustrate the scene that is actually there instead of inventing a new one. Keep the photo's exact camera angle, framing and composition — redraw THIS scene from THIS viewpoint and do not move the camera. Do not add or remove people or objects: whoever and whatever is in the photo stays in the picture, and nothing that is not in the photo appears. The athlete's pose, body position and action must match the photo's moment exactly — the same instant, not a similar play. Build the design in this exact format, top to bottom. " +
     topLine + labelLine +
     "In the top-right corner, a gold brush-stroke crown. In the center, the illustrated moment inside a distressed white grunge frame with rough, splattered edges. At the bottom, the words \"HYPE FRAME\" in huge white brush-stroke lettering, and beneath them \"HIGHLIGHTHYPE\" in small white letter-spaced capital letters with the word HYPE in gold. The ONLY text in the image is the text named in this prompt, spelled exactly as given — no other words, letters, numbers, logos or watermarks anywhere. Premium sports-poster illustration with clean shapes and strong outlines. The athlete's face is a stylized illustration, never photorealistic.";
 }
