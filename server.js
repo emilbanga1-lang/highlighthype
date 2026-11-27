@@ -492,12 +492,21 @@ async function runHfAvatar206(buf, mime, design218) {
   form.append("model", HF_AVATAR_MODEL206);
   form.append("prompt", hfAvatarPrompt218(d222));
   form.append("size", "auto");
-  form.append("image", new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
   // Round 222: the style anchor rides SECOND — the photo stays
   // the first image (the prompt's "this photo"), the tone-matched
   // reference design follows as the style source.
+  // Round 224: OpenAI's /v1/images/edits takes MULTIPLE images
+  // only under the field name "image[]" — two parts both named
+  // "image" earn a fast 400 upstream (the R222 live test 502'd
+  // in ~1s; the local stub accepted any name, so the suite
+  // never saw it). With a reference attached, BOTH parts go
+  // under "image[]" (photo first, reference second); a
+  // single-image request keeps the plain "image" field
+  // exactly as before.
   const ref222 = HF_AVATAR_REF222[d222.tone];
-  if (ref222) form.append("image", new Blob([ref222], { type: "image/jpeg" }), "style-reference.jpg");
+  const imgField224 = ref222 ? "image[]" : "image";
+  form.append(imgField224, new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
+  if (ref222) form.append("image[]", new Blob([ref222], { type: "image/jpeg" }), "style-reference.jpg");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 120000);
   try {
@@ -2352,6 +2361,66 @@ async function r124Probe(bins, file) {
     });
   });
 }
+/* ================= Round 224 (2026-11-27): upload pipeline repair — the iPhone .mov class =================
+   WHY: the 2026-11-26 uploads review (hidden_files/
+   uploads-review-2026-11-26.md) found that one file defeated
+   the entire agent. Play 78 — an iPhone 17 Pro Max .mov —
+   carries an undecodable timed-metadata stream that ffprobe
+   types as AUDIO. Every transcode mapped "-map 0:a?", which
+   selects ALL audio-typed streams, so ffmpeg aborted on the
+   undecodable one ("Decoding requested, but no decoder found
+   for: none") at every stage: no conversion, no enhance, no
+   rendition, no poster re-pick — and the raw master, GPS tag
+   and all, is what the site served. Four repairs:
+   (1) THE MAP: every transcode now maps "-map 0:a:0?" —
+   the first audio stream only, absence tolerated — at all
+   six call sites (r124 convert, r192 rendition, r195
+   encode, r203 encode, r186 strip remux, r186 encode). A
+   clip's real audio is always its first audio stream;
+   extra audio-typed metadata tracks are never selected
+   again. The trailing "?" is load-bearing, not a typo:
+   without it, a clip with NO audio stream hard-fails the
+   map ("matches no streams") — the exact failure the
+   Round 186 suite caught in this round's first pass.
+   (2) DISPLAY DIMENSIONS: r124VideoInfo now also returns
+   dispWidth/dispHeight — the coded dims swapped when the
+   rotation is ±90/270. ffmpeg autorotates on decode, so
+   every filter, fit and verification downstream works in
+   DISPLAY space; feeding the stages coded dims would have
+   given play 78 a 1280×720 rendition with its portrait
+   players stretched flat (its correct fit is 404×720).
+   width/height keep their coded meaning — stream-identity
+   checks (the r186 strip remux's verify) still compare
+   coded-to-coded.
+   (3) METADATA BACKSTOP: when an upload's conversion and
+   strip remux both fail, the settle in r124ProcessUpload
+   logs a distinct [r224] METADATA EXPOSURE error — the
+   served master still carries location-capable tags, and
+   silence is how play 78's GPS tag shipped. The recovery
+   scan below applies the same ladder (convert → strip →
+   loud log) to plays already in that state. File-level
+   only: a play is never held or unpublished over this.
+   (4) RECOVERY + VISIBILITY: r224Backfill (boot, ahead of
+   the other scans) finds file plays with no stream
+   rendition whose master is still non-compliant or still
+   carries strippable tags, converts them in place exactly
+   as the upload path does, and clears the r195/r203/
+   r209/r213 stamps a conversion makes stale, so the
+   existing backfills re-run their stages against the
+   healed file — poster re-pick included (the r213 stamp
+   alone would otherwise block it forever). The Round 209
+   backfill likewise treats a rendition-less play whose
+   master still probes non-compliant as not-yet-processed
+   for poster purposes. And the owner queue now flags a
+   file play that has been rendition-less for over 24h
+   (missing_rendition), so the next deterministic failure
+   is a same-day fix, not a chance discovery in the logs.
+   FALLBACK CONTRACT (the house rule, unchanged):
+   best-effort, never a gate — every step verifies before
+   it swaps, any failure keeps the current display file,
+   and the existing library's processed plays are never
+   touched (the recovery selects only the un-processed
+   state and skips anything compliant). */
 function r124VideoInfo(probe) {
   if (!probe || !Array.isArray(probe.streams)) return null;
   const v = probe.streams.find((s) => s.codec_type === "video");
@@ -2360,7 +2429,11 @@ function r124VideoInfo(probe) {
   if (Array.isArray(v.side_data_list)) for (const sd of v.side_data_list) { if (sd && typeof sd.rotation === "number" && sd.rotation) rotation = sd.rotation; }
   if (v.tags && v.tags.rotate) rotation = Number(v.tags.rotate) || rotation;
   const duration = Number(probe.format && probe.format.duration) || Number(v.duration) || 0;
-  return { codec: v.codec_name || "", pixFmt: v.pix_fmt || "", width: v.width || 0, height: v.height || 0, rotation, duration };
+  const width = v.width || 0, height = v.height || 0;
+  // Round 224: display dimensions — swapped when the frame
+  // is stored sideways (±90/270). See the banner above.
+  const swapped224 = Math.abs(rotation % 180) === 90;
+  return { codec: v.codec_name || "", pixFmt: v.pix_fmt || "", width, height, dispWidth: swapped224 ? height : width, dispHeight: swapped224 ? width : height, rotation, duration };
 }
 // Faststart = the moov atom sits ahead of the media data, so a
 // player can start before the file finishes downloading. Probed
@@ -2430,7 +2503,7 @@ async function r124ConvertNow(bins, inFile, outFile) {
   // this is a kids' platform: no display file may keep them (the
   // metadata half of Round 186; see r186StripRemux for the
   // passthrough case and the Round 186 banner for the whole rule).
-  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
+  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a:0?",
     "-map_metadata", "-1",
     "-vf", "scale=-2:'if(gt(ih,1280),1280,trunc(ih/2)*2)'",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast",
@@ -2511,6 +2584,14 @@ async function r124ProcessUpload(id, name) {
       if (ok) console.log(`[r186] upload ${id}: global metadata stripped by remux (${name})`);
     } else {
       meta186 = { stripped: true, action: "none-needed" };
+    }
+    // Round 224: the remux-failed settle is the one outcome
+    // where the display file goes on serving the phone's
+    // global tags — GPS included. Play 78 shipped exactly
+    // that, silently. Name it as the exposure it is, so it
+    // can never again hide among ordinary stage errors.
+    if (meta186.action === "remux-failed") {
+      console.error(`[r224] METADATA EXPOSURE: upload ${id} is serving ${name} with location-capable metadata — the conversion and the strip remux both failed`);
     }
     await r124PosterFor(bins, id, abs, info);
     // Round 186: chain the enhancement agent without awaiting it
@@ -2609,6 +2690,125 @@ async function r124RunMigration() {
     console.log("[r124] media migration complete");
   } catch (e) { console.error("[r124] migration error:", e.message); }
 }
+/* ================= Round 224 (2026-11-27): recovery for plays the pipeline never processed =================
+   The Round 124 migration above is marker-guarded and
+   codec-shaped; nothing re-runs the upload path's
+   conversion for a play that arrived after it and failed
+   there — play 78 (h264, but rotated, with the audio-map
+   bug breaking its conversion) sat as a raw .mov forever.
+   This scan is that missing door, keyed on the exact
+   signature of the un-processed state: a file play with
+   NO stream rendition whose master still probes
+   non-compliant or still carries strippable global tags.
+   A play whose rendition is legitimately absent (the
+   master was already small enough to serve) probes
+   compliant and tag-free and is skipped untouched, as is
+   every processed play. The 10-minute age grace keeps the
+   scan out of a live upload chain's way — a fresh upload
+   is rendition-less for its first seconds by design.
+   On conversion, the r195/r203/r209/r213 stamps are
+   cleared: whatever those stages recorded (if anything)
+   was evaluated against the un-processed original, and
+   clearing is what lets the existing backfills re-run
+   them against the healed file in the same boot — the
+   Round 213 stamp alone would otherwise block the
+   smart-poster re-pick the recovery exists to deliver.
+   A strip-only heal clears nothing: the remux changes no
+   frame, so every stage's record stays true. */
+// Heal one play in the un-processed state. Returns
+// "converted", "stripped", or "" (nothing done). Never
+// throws to its caller beyond its own catch — the scan
+// wraps it per row regardless.
+async function r224RecoverPlay(bins, id) {
+  const row = db.prepare("SELECT media_kind, media_url, stream_url FROM highlights WHERE id=?").get(id);
+  if (!row || row.media_kind !== "file") return "";
+  if (row.stream_url) return ""; // healed since the scan selected it
+  const name = path.basename(row.media_url || "");
+  if (!name || !/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return "";
+  const abs = path.join(UPLOAD_DIR, name);
+  if (!fs.existsSync(abs)) return "";
+  const probe0 = await r124Probe(bins, abs);
+  const info = r124VideoInfo(probe0);
+  if (!info) return ""; // not a probeable video — leave exactly as it is
+  const tagged = r186StrippableTags(probe0);
+  if (r124Compliant(abs, info) && !tagged) return ""; // fully processed; the rendition is legitimately absent
+  if (!r124Compliant(abs, info)) {
+    // The upload path's conversion, verbatim discipline:
+    // produce and verify first, rename into place, the row
+    // follows, the poster is regenerated from the new file.
+    const base = name.replace(/\.[^.]+$/, "");
+    const tmpOut = path.join(UPLOAD_DIR, `${base}.r224tmp.mp4`);
+    if (await r124Convert(bins, abs, tmpOut)) {
+      const chk = r124VideoInfo(await r124Probe(bins, tmpOut));
+      if (chk && chk.codec === "h264") {
+        const finalName = `${base}.mp4`;
+        const finalAbs = path.join(UPLOAD_DIR, finalName);
+        fs.renameSync(tmpOut, finalAbs);
+        if (finalName !== name) { try { fs.unlinkSync(abs); } catch {} }
+        db.prepare("UPDATE highlights SET media_url=?, mime='video/mp4' WHERE id=?").run(`/uploads/${finalName}`, id);
+        console.log(`[r224] play ${id}: recovered — converted ${name} → ${finalName} (H.264/yuv420p/faststart, metadata stripped by the encode)`);
+        await r124PosterFor(bins, id, finalAbs, chk);
+        db.prepare("UPDATE highlights SET r195_checked_at='', r203_checked_at='', r209_checked_at='', r213_checked_at='' WHERE id=?").run(id);
+        return "converted";
+      }
+      try { fs.unlinkSync(tmpOut); } catch {}
+      console.error(`[r224] play ${id}: recovery conversion did not verify as H.264 — falling through to the strip`);
+    }
+  }
+  // The metadata backstop (Round 224 banner, item 3): the
+  // conversion is unavailable or failed, but the served
+  // master must still not carry the phone's tags — strip
+  // in place. If even that fails, say so as the exposure
+  // it is. File-level only: the play is never held.
+  if (tagged) {
+    if (await r186StripRemux(bins, abs, info)) {
+      console.log(`[r224] play ${id}: recovered — global metadata stripped in place (${name})`);
+      return "stripped";
+    }
+    console.error(`[r224] METADATA EXPOSURE: play ${id} is serving ${name} with location-capable metadata — the conversion and the strip remux both failed`);
+  }
+  return "";
+}
+// Boot-time recovery scan: rendition-less file plays old
+// enough to be done uploading. Fire-and-forget from the
+// listen callback, ahead of the other backfills (which
+// then re-run the cleared stages against healed files);
+// idempotent — a boot that finds nothing in the
+// un-processed state costs one query plus a probe per
+// rendition-less play.
+async function r224Backfill() {
+  try {
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r224] recovery deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (stream_url='' OR stream_url IS NULL) AND created_at < datetime('now','-10 minutes')").all();
+    let converted = 0, stripped = 0;
+    for (const row of rows) {
+      try {
+        const what = await r224RecoverPlay(bins, row.id);
+        if (what === "converted") converted++;
+        else if (what === "stripped") stripped++;
+      } catch (e) { console.error(`[r224] recovery row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r224] recovery scan complete (${converted} converted, ${stripped} stripped, ${rows.length} rendition-less file plays scanned)`);
+  } catch (e) { console.error("[r224] recovery error:", e.message); }
+}
+// Round 224 (owner visibility): is this play a file video
+// that has been rendition-less for over 24 hours? The
+// owner queue carries the flag so a deterministic stage
+// failure surfaces the same day instead of hiding in the
+// logs (the uploads review's recommendation 4). The
+// Round 192 kill switch silences it: with renditions
+// disabled globally, an empty stream_url is the design,
+// not a defect.
+function r224MissingRendition(r) {
+  if (process.env.HH_NO_STREAM192 === "1") return false;
+  if (!r || r.media_kind !== "file" || r.status === "trashed") return false;
+  if (r.stream_url) return false;
+  const name = path.basename(r.media_url || "");
+  if (!/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return false;
+  const t = Date.parse(String(r.created_at || "").replace(" ", "T") + "Z");
+  return !isNaN(t) && Date.now() - t > 24 * 3600 * 1000;
+}
 /* ================= Round 192 (2026-11-25): streaming renditions + homepage load discipline =================
    WHY: Emil, from his iPhone (2026-11-25): "It's taking awhile
    for videos to load on the homepage," with a screenshot of
@@ -2673,7 +2873,7 @@ async function r192EncodeStreamNow(bins, inFile, outFile, dims) {
   // in any display file, renditions included — capped threads),
   // tuned for delivery instead of archival: CRF 28 under a
   // 2 Mbps cap is the 0.5–1.5 MB band for a typical 10–15s play.
-  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a?",
+  const args = ["-y", "-i", inFile, "-map", "0:v:0", "-map", "0:a:0?",
     "-map_metadata", "-1",
     "-vf", `scale=${dims.w}:${dims.h}`,
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "28", "-preset", "veryfast",
@@ -2719,7 +2919,10 @@ async function r192EnsureStreamNow(bins, id, depth = 0) {
     if (row.stream_url === `/uploads/${streamName}` && fs.existsSync(streamAbs)) return true;
     const info = r124VideoInfo(await r124Probe(bins, abs));
     if (!info || !info.width || !info.height) { console.error(`[r192] play ${id}: source did not probe as video — no rendition`); return false; }
-    const dims = r192FitDims192(info.width, info.height);
+    // Round 224: the fit is computed from the DISPLAY dims —
+    // the encode's scale filter sees autorotated frames, so
+    // coded dims would stretch a rotated portrait clip flat.
+    const dims = r192FitDims192(info.dispWidth, info.dispHeight);
     const tmpOut = path.join(UPLOAD_DIR, `${base}.r192tmp.mp4`);
     if (!(await r192EncodeStream(bins, abs, tmpOut, dims))) { try { fs.unlinkSync(tmpOut); } catch {} return false; }
     const chk = r124VideoInfo(await r124Probe(bins, tmpOut));
@@ -2900,7 +3103,11 @@ async function r195DetectHead(bins, abs) {
   return { headStillSec: r186Round(onset, 2), onsetSec: r186Round(onset, 2), openEnded };
 }
 function r195UpscalePlan(info) {
-  const w = info.width | 0, h = info.height | 0;
+  // Round 224: the plan works in DISPLAY dims — the encode's
+  // scale filter sees autorotated frames, and the output
+  // verification below compares against the (rotation-free)
+  // output's display dims.
+  const w = info.dispWidth | 0, h = info.dispHeight | 0;
   if (!w || !h) return null;
   const minDim = Math.min(w, h);
   if (minDim >= R195_MIN_DIM) return null;
@@ -2922,7 +3129,7 @@ async function r195EncodeNow(bins, abs, tmpOut, cutStart, up) {
   // dimensions pass through untouched.
   const args = ["-nostats", "-y"];
   if (cutStart > 0) args.push("-ss", String(r186Round(cutStart, 3)));
-  args.push("-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1");
+  args.push("-i", abs, "-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1");
   if (up) args.push("-vf", `scale=${up.outW}:${up.outH}:flags=lanczos,unsharp=5:5:0.8:5:5:0.0`);
   args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut);
   const { err, stderr } = await r124Run(bins.ffmpeg, args, 600000);
@@ -3015,12 +3222,12 @@ async function r195ProcessPlayNow(bins, id, origin) {
     if (prior && prior.upscale && prior.upscale.status === "upscaled") {
       r195.upscale = prior.upscale; // already upscaled once — never twice
     } else if (process.env.HH_NO_UPSCALE === "1") {
-      r195.upscale = { status: "skipped", reason: "HH_NO_UPSCALE=1", sourceWidth: info.width, sourceHeight: info.height };
+      r195.upscale = { status: "skipped", reason: "HH_NO_UPSCALE=1", sourceWidth: info.dispWidth, sourceHeight: info.dispHeight };
     } else {
       up = r195UpscalePlan(info);
       r195.upscale = up
         ? { status: "upscaled", sourceWidth: up.srcW, sourceHeight: up.srcH, outputWidth: up.outW, outputHeight: up.outH, factor: up.factor, capped: up.capped }
-        : { status: "not-needed", sourceWidth: info.width, sourceHeight: info.height };
+        : { status: "not-needed", sourceWidth: info.dispWidth, sourceHeight: info.dispHeight };
     }
     const wantTrim = !!(r195.trim && r195.trim.status === "trimmed" && cutStart > 0);
     if (!wantTrim && !up) {
@@ -3035,7 +3242,7 @@ async function r195ProcessPlayNow(bins, id, origin) {
     try {
       if (!(await r195Encode(bins, abs, tmpOut, wantTrim ? cutStart : 0, up))) { try { fs.unlinkSync(tmpOut); } catch {} return out; }
       const outInfo = r124VideoInfo(await r124Probe(bins, tmpOut));
-      const expW = up ? up.outW : info.width, expH = up ? up.outH : info.height;
+      const expW = up ? up.outW : info.dispWidth, expH = up ? up.outH : info.dispHeight;
       const expDur = info.duration - (wantTrim ? cutStart : 0);
       const verified = outInfo && outInfo.codec === "h264" && outInfo.pixFmt === "yuv420p" && r124IsFaststart(tmpOut)
         && Math.abs(outInfo.width - expW) <= 4 && Math.abs(outInfo.height - expH) <= 4
@@ -3220,9 +3427,12 @@ const R203_MIN_AREA = 0.40;     // the reframed frame's area floor, as a share o
 // report) or null when the measurement itself failed —
 // the caller treats null as "never reframe, never stamp".
 async function r203BandEnergies(bins, abs, info) {
-  const s = Math.min(1, R203_WORK_MAX_W / info.width, R203_WORK_MAX_H / info.height);
+  // Round 224: DISPLAY dims — the working copy is decoded
+  // (autorotated) frames, so its shape and the band axes
+  // below live in display space.
+  const s = Math.min(1, R203_WORK_MAX_W / info.dispWidth, R203_WORK_MAX_H / info.dispHeight);
   const even = (v) => Math.max(2, Math.round(v / 2) * 2);
-  const workW = even(info.width * s), workH = even(info.height * s);
+  const workW = even(info.dispWidth * s), workH = even(info.dispHeight * s);
   const base = path.basename(abs).replace(/\.[^.]+$/, "");
   const tmp = path.join(UPLOAD_DIR, `${base}.r203tmp.raw`);
   try {
@@ -3291,7 +3501,7 @@ async function r203EncodeNow(bins, abs, tmpOut, rect) {
   // kids'-platform GPS rule binds every display file),
   // plus this round's one move: the crop to the action
   // band.
-  const args = ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1",
+  const args = ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1",
     "-vf", `crop=${rect.w}:${rect.h}:${rect.x}:${rect.y}`,
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut];
   const { err, stderr } = await r124Run(bins.ffmpeg, args, 600000);
@@ -3352,8 +3562,8 @@ async function r203ProcessPlayNow(bins, id, origin) {
       r203StoreEval(id, r203);
       return out;
     }
-    r203.srcW = info.width;
-    r203.srcH = info.height;
+    r203.srcW = info.dispWidth;
+    r203.srcH = info.dispHeight;
     let prior = null;
     if (row.enhance_json) { try { prior = JSON.parse(row.enhance_json).r203 || null; } catch { prior = null; } }
     if (prior && prior.status === "reframed") {
@@ -3374,8 +3584,8 @@ async function r203ProcessPlayNow(bins, id, origin) {
     if (!bands) { console.error(`[r203] play ${id}: band measurement failed — left unstamped for a later retry`); return out; }
     r203.rowBands = bands.rows;
     r203.colBands = bands.cols;
-    const rowsPlan = r203AxisPlan(bands.rows, info.height);
-    const colsPlan = r203AxisPlan(bands.cols, info.width);
+    const rowsPlan = r203AxisPlan(bands.rows, info.dispHeight);
+    const colsPlan = r203AxisPlan(bands.cols, info.dispWidth);
     r203.rows = { peak: rowsPlan.peak, median: rowsPlan.median, decisive: rowsPlan.decisive };
     r203.cols = { peak: colsPlan.peak, median: colsPlan.median, decisive: colsPlan.decisive };
     if (rowsPlan.actionBands) { r203.rows.actionBands = rowsPlan.actionBands; r203.rows.windowBands = rowsPlan.windowBands; }
@@ -3388,11 +3598,11 @@ async function r203ProcessPlayNow(bins, id, origin) {
       rect = {
         x: colsPlan.crop ? colsPlan.crop.start : 0,
         y: rowsPlan.crop ? rowsPlan.crop.start : 0,
-        w: colsPlan.crop ? colsPlan.crop.keep : info.width,
-        h: rowsPlan.crop ? rowsPlan.crop.keep : info.height,
+        w: colsPlan.crop ? colsPlan.crop.keep : info.dispWidth,
+        h: rowsPlan.crop ? rowsPlan.crop.keep : info.dispHeight,
       };
       if (Math.min(rect.w, rect.h) < R203_MIN_DIM) { vetoes.push(`output ${rect.w}x${rect.h} is under the ${R203_MIN_DIM}px smaller-dimension floor`); rect = null; }
-      else if (rect.w * rect.h < R203_MIN_AREA * info.width * info.height) { vetoes.push(`output ${rect.w}x${rect.h} keeps under ${(R203_MIN_AREA * 100) | 0}% of the source area`); rect = null; }
+      else if (rect.w * rect.h < R203_MIN_AREA * info.dispWidth * info.dispHeight) { vetoes.push(`output ${rect.w}x${rect.h} keeps under ${(R203_MIN_AREA * 100) | 0}% of the source area`); rect = null; }
     }
     if (!rect) {
       r203.status = "no-reframe";
@@ -3454,7 +3664,7 @@ async function r203ProcessPlayNow(bins, id, origin) {
       await r192EnsureStream(bins, id);
       r203StoreEval(id, r203);
       out.reframed = 1;
-      console.log(`[r203] play ${id}: reframed ${info.width}x${info.height} → ${rect.w}x${rect.h} (crop x${rect.x} y${rect.y}) → ${finalName}; previous display file kept as ${preName}`);
+      console.log(`[r203] play ${id}: reframed ${info.dispWidth}x${info.dispHeight} → ${rect.w}x${rect.h} (crop x${rect.x} y${rect.y}) → ${finalName}; previous display file kept as ${preName}`);
     } catch (e) {
       try { fs.unlinkSync(tmpOut); } catch {}
       console.error(`[r203] play ${id}: stage failed (display file kept):`, e.message);
@@ -3649,9 +3859,12 @@ function r213Window(duration) {
 // report) or null when the measurement itself failed —
 // the caller treats null as "never re-pick, never stamp".
 async function r209MotionSeries(bins, abs, info) {
-  const s = Math.min(1, R209_WORK_MAX_W / info.width, R209_WORK_MAX_H / info.height);
+  // Round 224: DISPLAY dims — the working copy is decoded
+  // (autorotated) frames; its shape and the Round 213 grid
+  // orientation follow the displayed picture.
+  const s = Math.min(1, R209_WORK_MAX_W / info.dispWidth, R209_WORK_MAX_H / info.dispHeight);
   const even = (v) => Math.max(2, Math.round(v / 2) * 2);
-  const workW = even(info.width * s), workH = even(info.height * s);
+  const workW = even(info.dispWidth * s), workH = even(info.dispHeight * s);
   const base = path.basename(abs).replace(/\.[^.]+$/, "");
   const tmp = path.join(UPLOAD_DIR, `${base}.r209tmp.raw`);
   try {
@@ -4032,15 +4245,38 @@ async function r209PosterAfterR203(id) {
 // under the original Round 209 rules carries the r209
 // stamp only, so it is re-evaluated exactly once under
 // the Round 213 rules (its evaluation stamps both).
+// Round 224: the selection also admits a play with no
+// stream rendition — the signature of the un-processed
+// state — but a play admitted on that ground alone (both
+// stamps already set) is gated on its master still
+// probing non-compliant, so a healthy play whose
+// rendition is legitimately absent is never re-picked
+// (the Round 224 recovery scan normally converts such a
+// master and clears the stamps first; this gate is the
+// belt to its suspenders, and it still improves the
+// poster on the raw file when a conversion is broken).
 async function r209Backfill() {
   try {
     if (process.env.HH_NO_SMARTPOSTER === "1") { console.log("[r209] backfill disabled via HH_NO_SMARTPOSTER"); return; }
     const bins = await r124ResolveBins();
     if (!bins) { console.log("[r209] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
-    const rows = db.prepare("SELECT id FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r209_checked_at='' OR r209_checked_at IS NULL OR r213_checked_at='' OR r213_checked_at IS NULL)").all();
+    const rows = db.prepare("SELECT id, media_url, stream_url, r209_checked_at, r213_checked_at FROM highlights WHERE media_kind='file' AND status!='trashed' AND (r209_checked_at='' OR r209_checked_at IS NULL OR r213_checked_at='' OR r213_checked_at IS NULL OR stream_url='' OR stream_url IS NULL)").all();
     let picked = 0;
     for (const row of rows) {
       try {
+        if (row.r209_checked_at && row.r213_checked_at && !row.stream_url) {
+          // Round 224: admitted only for being
+          // rendition-less — confirm the master is still
+          // in the un-processed state before re-picking.
+          const name = path.basename(row.media_url || "");
+          const abs = name ? path.join(UPLOAD_DIR, name) : "";
+          let unprocessed = false;
+          if (abs && fs.existsSync(abs)) {
+            const info = r124VideoInfo(await r124Probe(bins, abs));
+            unprocessed = !!info && !r124Compliant(abs, info);
+          }
+          if (!unprocessed) continue;
+        }
         const o = await r209ProcessPlay(bins, row.id, "backfill");
         picked += o.picked;
       } catch (e) { console.error(`[r209] backfill row ${row.id} failed:`, e.message); }
@@ -4155,7 +4391,7 @@ async function r186StripRemuxNow(bins, abs, info) {
   const base = path.basename(abs).replace(/\.[^.]+$/, "");
   const tmp = path.join(UPLOAD_DIR, `${base}.r186strip.mp4`);
   try {
-    const { err, stderr } = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-c", "copy", "-map_metadata", "-1", "-movflags", "+faststart", tmp], 120000);
+    const { err, stderr } = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-map_metadata", "-1", "-movflags", "+faststart", tmp], 120000);
     if (err) { console.error("[r186] metadata strip remux failed:", err.message, stderr.slice(-200)); return false; }
     const chkProbe = await r124Probe(bins, tmp);
     const chk = r124VideoInfo(chkProbe);
@@ -4175,14 +4411,16 @@ async function r186StripRemuxNow(bins, abs, info) {
 async function r186TinyFrames(bins, abs, info) {
   const fps = Math.min(30, Math.max(1, Math.round(info.fps || 30)));
   const tw = 128;
-  const th = Math.max(2, Math.round((info.height * tw / info.width) / 2) * 2);
+  // Round 224: DISPLAY aspect — the tiny frames are decoded
+  // (autorotated), and the shake scale is in display pixels.
+  const th = Math.max(2, Math.round((info.dispHeight * tw / info.dispWidth) / 2) * 2);
   const secs = Math.min(info.duration > 0 ? info.duration : 12, 12);
   const { err, stdout } = await r138SerializeFfmpeg(() => r186RunBuffer(bins.ffmpeg, ["-nostats", "-v", "error", "-i", abs, "-vf", `fps=${fps},scale=${tw}:${th},format=gray`, "-t", String(secs), "-f", "rawvideo", "-"], 90000, 48 * 1024 * 1024));
   if (err || !stdout || !stdout.length) return null;
   const frameSize = tw * th;
   const n = Math.floor(stdout.length / frameSize);
   if (n < 2) return null;
-  return { buf: stdout, tw, th, n, fps, scale: info.width / tw };
+  return { buf: stdout, tw, th, n, fps, scale: info.dispWidth / tw };
 }
 // Global translation between two tiny frames: gradient-weighted
 // SAD over an integer search window, with parabolic sub-pixel
@@ -4260,10 +4498,12 @@ async function r186CropDetectRect(bins, abs, info) {
   if (!best || bestN < 3) return null;
   const [w, h, x, y] = best.split(":").map(Number);
   if (!(w > 0 && h > 0)) return null;
-  if (w >= info.width && h >= info.height) return null; // full frame: no borders found
-  const significant = info.width - w >= Math.round(info.width * 0.05) || info.height - h >= Math.round(info.height * 0.05);
+  // Round 224: cropdetect reads decoded (autorotated)
+  // frames — its rect and these bounds live in DISPLAY space.
+  if (w >= info.dispWidth && h >= info.dispHeight) return null; // full frame: no borders found
+  const significant = info.dispWidth - w >= Math.round(info.dispWidth * 0.05) || info.dispHeight - h >= Math.round(info.dispHeight * 0.05);
   if (!significant) return null;
-  if (w < info.width * 0.5 || h < info.height * 0.4) return null; // pathological rect — trust nothing
+  if (w < info.dispWidth * 0.5 || h < info.dispHeight * 0.4) return null; // pathological rect — trust nothing
   return { x, y, w, h };
 }
 // Per-line luma stats (dark fraction + 90th percentile) via a
@@ -4310,8 +4550,11 @@ function r186EdgeMedian(cands, tol) {
 // parked flicker band inside a screen recording sits too high
 // and too inconsistently to pair as a picture edge.
 async function r186BandRect(bins, abs, info) {
-  const bw = Math.min(info.width, 640);
-  const bh = Math.max(2, Math.round((info.height * bw / info.width) / 2) * 2);
+  // Round 224: DISPLAY dims — the scan samples decoded
+  // (autorotated) frames and maps its edges back into
+  // display pixels.
+  const bw = Math.min(info.dispWidth, 640);
+  const bh = Math.max(2, Math.round((info.dispHeight * bw / info.dispWidth) / 2) * 2);
   const dur = info.duration > 0 ? info.duration : 10;
   const sampleFps = Math.min(2, 9 / dur);
   const { err, stdout } = await r138SerializeFfmpeg(() => r186RunBuffer(bins.ffmpeg, ["-nostats", "-v", "error", "-i", abs, "-vf", `fps=${sampleFps.toFixed(4)},scale=${bw}:${bh},format=gray`, "-f", "rawvideo", "-"], 90000, 32 * 1024 * 1024));
@@ -4337,8 +4580,8 @@ async function r186BandRect(bins, abs, info) {
   for (const bands of colBands) { const b = bands.find((bd) => bd.top >= minRightLeft); if (b) rightCands.push(b.top); }
   const rightMed = r186EdgeMedian(rightCands, tolX);
   if (topMed === null && botMed === null && leftMed === null && rightMed === null) return null;
-  const sx = info.width / bw, sy = info.height / bh;
-  let x0 = 0, y0 = 0, x1 = info.width, y1 = info.height;
+  const sx = info.dispWidth / bw, sy = info.dispHeight / bh;
+  let x0 = 0, y0 = 0, x1 = info.dispWidth, y1 = info.dispHeight;
   if (leftMed !== null) x0 = Math.round(leftMed * sx) + 4; // inset past the bezel line itself
   if (rightMed !== null) x1 = Math.round(rightMed * sx) - 4;
   if (topMed !== null) y0 = Math.round(topMed * sy) + 4;
@@ -4346,9 +4589,9 @@ async function r186BandRect(bins, abs, info) {
   x0 -= x0 % 2; y0 -= y0 % 2; // yuv420p crop wants even origins and sizes
   let w = x1 - x0, h = y1 - y0;
   w -= w % 2; h -= h % 2;
-  if (w < info.width * 0.5 || h < info.height * 0.2 || w < 96 || h < 96) return null;
-  if (w * h > info.width * info.height * 0.92) return null; // removes too little to be a content frame
-  if (w >= info.width && h >= info.height) return null;
+  if (w < info.dispWidth * 0.5 || h < info.dispHeight * 0.2 || w < 96 || h < 96) return null;
+  if (w * h > info.dispWidth * info.dispHeight * 0.92) return null; // removes too little to be a content frame
+  if (w >= info.dispWidth && h >= info.dispHeight) return null;
   return { x: x0, y: y0, w, h };
 }
 async function r186Idet(bins, abs) {
@@ -4427,7 +4670,7 @@ async function r186EnhanceUpload(bins, id, abs, meta) {
     const vinfo = r124VideoInfo(probe);
     if (!vinfo) { report.reason = "display file no longer probes as video"; r186StoreReport(id, report); return; }
     const info = { ...vinfo, fps: r186Fps(probe) };
-    report.source = { file: path.basename(abs), width: info.width, height: info.height, duration: r186Round(info.duration, 2), fps: r186Round(info.fps, 2) };
+    report.source = { file: path.basename(abs), width: info.dispWidth, height: info.dispHeight, duration: r186Round(info.duration, 2), fps: r186Round(info.fps, 2) };
     const a = await r186Assess(bins, abs, info);
     report.assessment = a;
     const want = {
@@ -4462,14 +4705,17 @@ async function r186EnhanceUpload(bins, id, abs, meta) {
           const det = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-vf", [...preChain, `vidstabdetect=shakiness=5:accuracy=15:result=${trf}`].join(","), "-f", "null", "-"], 420000);
           if (det.err) { console.error(`[r186] upload ${id}: vidstabdetect failed:`, det.err.message, det.stderr.slice(-200)); return false; }
         }
-        const enc = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a?", "-map_metadata", "-1", "-vf", encChain.join(","), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut], 600000);
+        const enc = await r124Run(bins.ffmpeg, ["-nostats", "-y", "-i", abs, "-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1", "-vf", encChain.join(","), "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-preset", "veryfast", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", "-threads", "2", tmpOut], 600000);
         if (enc.err) { console.error(`[r186] upload ${id}: enhancement encode failed:`, enc.err.message, enc.stderr.slice(-200)); return false; }
         return true;
       });
     } finally { try { fs.unlinkSync(trf); } catch {} }
     if (!encodeOk) { try { fs.unlinkSync(tmpOut); } catch {} report.reason = "enhancement encode failed"; r186StoreReport(id, report); return; }
     const outInfo = r124VideoInfo(await r124Probe(bins, tmpOut));
-    let expW = info.width, expH = info.height;
+    // Round 224: expected dims are DISPLAY dims — the encode
+    // output is rotation-free, and the crop rect (when any)
+    // was measured in display space.
+    let expW = info.dispWidth, expH = info.dispHeight;
     if (want.crop) { expW = a.crop.rect.w; expH = a.crop.rect.h; }
     if (expH > 1280) { expW = Math.round((expW * 1280 / expH) / 2) * 2; expH = 1280; }
     const verified = outInfo && outInfo.codec === "h264" && outInfo.pixFmt === "yuv420p" && Math.abs(outInfo.duration - info.duration) <= 0.5 && Math.abs(outInfo.width - expW) <= 4 && Math.abs(outInfo.height - expH) <= 4;
@@ -6721,7 +6967,12 @@ const server = http.createServer(async (req, res) => {
           // Round 155: the fast-lane marker (owner-only, like the
           // fields above) — the queue card wears the ⚡ chip for a
           // play that skipped the queue via a trusted guardian.
-          fast_laned_at: r.fast_laned_at || "" };
+          fast_laned_at: r.fast_laned_at || "",
+          // Round 224: the missing-rendition flag (owner-only,
+          // like the fields above) — the queue card wears a
+          // warning chip for a file play rendition-less for
+          // over 24h, the state play 78 hid in for a day.
+          missing_rendition: r224MissingRendition(r) };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -7373,4 +7624,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });
