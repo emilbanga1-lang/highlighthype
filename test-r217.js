@@ -225,7 +225,7 @@ try {
     await s.waitFor(async () => { const r = await s.j("/api/highlights?division=all&sort=newest"); return r.body.highlights && r.body.highlights.length === 1 ? r.body : null; }, "A: the play is public");
 
     const home = await (await fetch(s.base + "/")).text();
-    assert(home.includes('src="app.js?v=217"') && home.includes('href="styles.css?v=211"'), "A: asset pins — app.js now v215 (Round 217); styles keeps v210 (unchanged this round) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
+    assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js now v215 (Round 217); styles keeps v210 (unchanged this round) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
     appJs = await (await fetch(s.base + "/app.js")).text();
 
     const block217 = appJs.slice(appJs.indexOf("/* ---------------- Round 217"));
