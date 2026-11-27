@@ -54,7 +54,7 @@ const css = read("public/styles.css");
 const serverJs = read("server.js");
 
 // ---------- A. statics: pins, hero, section order, stories ----------
-assert(home.includes('src="app.js?v=231"') && home.includes('href="styles.css?v=222"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235)");
+assert(home.includes('src="app.js?v=232"') && home.includes('href="styles.css?v=223"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
 {
   const hero = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf('id="homeBattle230"'));
   assert(hero.includes('id="heroVideo"') && hero.includes('data-src="/hero-film.mp4"'), "A: the hero film is untouched (same video, same source)");

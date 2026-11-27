@@ -96,7 +96,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=222"') && home.includes('src="app.js?v=231"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235)");
+assert(home.includes('href="styles.css?v=223"') && home.includes('src="app.js?v=232"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
 
 // ---- B. Item A statics ----
 const captureBlock = appJs.slice(appJs.indexOf("function hfCapturePrint()"), appJs.indexOf("function freezeHfFrame()"));

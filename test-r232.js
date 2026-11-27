@@ -101,12 +101,12 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=222"') && home.includes('src="app.js?v=231"'), "A: asset pins — app.js v228 / styles v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235)");
+assert(home.includes('href="styles.css?v=223"') && home.includes('src="app.js?v=232"'), "A: asset pins — app.js v228 / styles v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
 
 // ---- B. statics ----
 // B1 (item 5): the board's Month view shed + what stays.
 const viewMonth = home.slice(home.indexOf('id="viewMonth"'), home.indexOf('id="viewAll"'));
-assert(viewMonth.includes('id="contestStrip"') && viewMonth.includes('id="stripTitle"') && viewMonth.includes('id="stripEnds"'), "B1: the Hype of the Month banner card stays at the top of the board's Month view");
+assert(!viewMonth.includes('id="contestStrip"') && !viewMonth.includes('id="stripTitle"') && !viewMonth.includes('id="stripEnds"'), "B1: the Hype of the Month banner card stays at the top of the board's Month view — →236: the banner card is REMOVED (Emil's homepage cleanup — it repeated the homepage leaderboard's contest); its app.js writers are guarded no-ops and the Watch slim line's tap now lands on the homepage leaderboard");
 assert(viewMonth.includes('id="lastWinner"') && viewMonth.includes('id="emptyState"') && viewMonth.includes('id="neverDisappear"'), "B1: the last-winner strip, empty state and never-disappear line stay");
 assert(!viewMonth.includes('id="monthFeat"') && !viewMonth.includes('id="monthRows"') && !viewMonth.includes('id="boardFilters"') && !viewMonth.includes('id="monthSportSelect"') && !viewMonth.includes("month-subseg"), "B1: no featured card, no Leaderboard heading/dropdown, no text tabs, no leaderboard rows in the board's Month view");
 assert(!home.includes('id="viewFame"') && !home.includes('id="fameList"') && !home.includes('id="fameSportSelect"'), "B1: the board's Hall of Fame panel is gone from the markup entirely");

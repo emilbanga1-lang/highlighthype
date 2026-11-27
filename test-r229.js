@@ -57,7 +57,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins + sticky statics ----
-assert(home.includes('src="app.js?v=231"') && home.includes('href="styles.css?v=222"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235)");
+assert(home.includes('src="app.js?v=232"') && home.includes('href="styles.css?v=223"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
 {
   const zoneOpen = prod.indexOf('id="hfPinZone229"');
   const garment = prod.indexOf('id="hfGarment206"');
