@@ -92,7 +92,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=221"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed)");
+assert(home.includes('src="app.js?v=222"') && home.includes('href="styles.css?v=215"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed) — →223: app.js now v222 (Round 223); styles now v215 (Round 223)");
 
 // ---- B. Layout statics ----
 {
@@ -372,7 +372,7 @@ assert(home.includes('src="app.js?v=221"') && home.includes('href="styles.css?v=
   const s = await boot(45236);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=221"') && served.includes('href="styles.css?v=214"'), "H: the served homepage carries the Round 222 pins");
+    assert(served.includes('src="app.js?v=222"') && served.includes('href="styles.css?v=215"'), "H: the served homepage carries the Round 222 pins — →223: app.js now v222 (Round 223); styles now v215 (Round 223)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfPriceTop222"') && served.includes('id="hfFence222"') && served.includes('id="menuPost222"') && served.includes("Send order request"), "H: the served studio is the rebuilt studio (price line, fence step, menu entry, renamed submit)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function wireHf222") && servedApp.includes("function hfDistinctPick222") && servedApp.includes("HF_STUDIO_SIZES222") && servedApp.includes("function hfMakeFence222"), "H: the served app.js carries the rebuild (wiring, distinct picker, studio sizes, fence flow)");

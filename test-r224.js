@@ -250,7 +250,7 @@ try {
   const sA = await boot(45241, {});
   try {
     const home = await (await fetch(sA.base + "/")).text();
-    assert(home.includes('src="app.js?v=221"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round)");
+    assert(home.includes('src="app.js?v=222"') && home.includes('href="styles.css?v=215"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223)");
     const up = await sA.upload({ ...F, playerName: "Kameron A.", title: "Touchdown224" }, "fixture-rot.mov", FIX_ROT, "video/quicktime");
     assert(up.status === 201, "A: the play-78-class .mov uploads (201)");
     const id = up.body.id;
