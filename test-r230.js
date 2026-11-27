@@ -54,7 +54,7 @@ const css = read("public/styles.css");
 const serverJs = read("server.js");
 
 // ---------- A. statics: pins, hero, section order, stories ----------
-assert(home.includes('src="app.js?v=226"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v226 / styles v219 (Round 230)");
+assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round)");
 {
   const hero = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf('id="homeBattle230"'));
   assert(hero.includes('id="heroVideo"') && hero.includes('data-src="/hero-film.mp4"'), "A: the hero film is untouched (same video, same source)");

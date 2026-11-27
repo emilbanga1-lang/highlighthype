@@ -25,6 +25,13 @@
 //      NOTHING: samples, photo plays and link plays are all in,
 //      contest-only entries are in, duplicates are deduped,
 //      order is newest first.
+//      →231 (2026-11-27, Emil): samples can't be used in the
+//      studio at all — parity now runs the other way: the picker
+//      excludes samples, the per-play Frame buttons are hidden
+//      on samples, and openHypeFrame refuses a sample seed.
+//      Photo and link plays are still in; dedupe and newest-
+//      first order are unchanged. Sections C and D below carry
+//      the updated assertions with →231 notes.
 //   D. VM drive of the real block: open -> posted -> render,
 //      search by athlete / sport / team / no-match, Back, pick
 //      (opens the studio with the id, closes both layers and
@@ -64,7 +71,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=219"') && home.includes('src="app.js?v=226"'), "A: asset pins — app.js v203 / styles v201 (Round 202; both files changed) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230)");
+assert(home.includes('href="styles.css?v=219"') && home.includes('src="app.js?v=227"'), "A: asset pins — app.js v203 / styles v201 (Round 202; both files changed) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round)");
 
 // ---- B. the dialog ----
 const mStart = home.indexOf('id="hfChoiceModal"');
@@ -88,11 +95,11 @@ const opener = appJs.slice(appJs.indexOf("window.openHypeFrame = (id)"), appJs.i
 assert(opener.includes("ALL_PLAYS.find") && opener.includes("CONTEST.entries"), "C: openHypeFrame resolves a play from ALL_PLAYS, then CONTEST.entries — the set the picker must mirror");
 const card = appJs.slice(appJs.indexOf("function cardHtml("), appJs.indexOf("function tileHtml("));
 const tile = appJs.slice(appJs.indexOf("function tileHtml("), appJs.indexOf("/* Vote hardening"));
-assert(card.includes('onclick="openHypeFrame(${h.id})"') && card.includes("Create a Hype Frame"), "C: cardHtml renders its Hype Frame button for every play");
-assert(tile.includes('onclick="event.stopPropagation();openHypeFrame(${h.id})"'), "C: tileHtml renders its Frame button for every play (it sits outside the isSample vote ternary)");
+assert(card.includes('onclick="openHypeFrame(${h.id})"') && card.includes("Create a Hype Frame"), "C: cardHtml renders its Hype Frame button for every NON-sample play — →231: the button is wrapped in the isSample ternary (hidden on samples); the markup itself rides unchanged");
+assert(tile.includes('onclick="event.stopPropagation();openHypeFrame(${h.id})"'), "C: tileHtml renders its Frame button for every NON-sample play — →231: wrapped in the isSample ternary like cardHtml (it sat outside the isSample vote ternary before)");
 const elig = appJs.slice(appJs.indexOf("function hfPickerEligible202()"), appJs.indexOf("function hfPickerPoster202("));
 assert(elig.includes("ALL_PLAYS") && elig.includes("CONTEST"), "C: the picker's eligible set is built from ALL_PLAYS + CONTEST.entries");
-assert(!elig.includes("isSample") && !elig.includes("media_kind") && !elig.includes("mime"), "C: the eligible set applies NO sample / media-kind exclusion — parity with the unconditional per-play buttons");
+assert(elig.includes("p.isSample") && !elig.includes("media_kind") && !elig.includes("mime"), "C: →231: the eligible set now applies exactly ONE exclusion — samples (parity with the hidden per-play buttons and openHypeFrame's refusal); still NO media-kind exclusion, so photo and link plays stay in");
 
 // ---- D. VM drive ----
 function lineSrc(startNeedle) { const i = appJs.indexOf(startNeedle); return appJs.slice(i, appJs.indexOf("\n", i)); }
@@ -123,17 +130,18 @@ sb.window = sb;
 vm.runInContext(escCapSrc + "\n" + lineSrc("function parsePlayDate(") + "\n" + blockSrc, vm.createContext(sb));
 
 const eligibleIds = sb.hfPickerEligible202().map((p) => p.id);
-assert(JSON.stringify(eligibleIds) === JSON.stringify([15, 12, 11, 13, 14]), "D: the eligible set is ALL of them — contest-only (15), photo (12), regular (11), link (13), sample (14) — deduped and newest first");
+assert(JSON.stringify(eligibleIds) === JSON.stringify([15, 12, 11, 13]), "D: the eligible set — contest-only (15), photo (12), regular (11), link (13) — deduped and newest first — →231: the sample (14) is EXCLUDED now (Round 202's all-in set superseded for samples only)");
 sb.openHfChoice();
 assert(modalEl.hidden === false && choiceEl.hidden === false && pickerEl.hidden === true, "D: opening the card lands on the choices — →205: two choices now (Posted, Own)");
 sb.hfChoicePosted();
 assert(choiceEl.hidden === true && pickerEl.hidden === false, "D: the Posted choice swaps the picker panel in");
 const rows = (listEl.innerHTML.match(/hf-picker-row/g) || []).length;
-assert(rows === 5, "D: the picker lists every eligible play (5 rows)");
-for (const t of ["Contest only gem", "Perfect catch photo", "Walk-off winner", "Coach&#39;s film link", "Sample: first hit"])
+assert(rows === 4, "D: the picker lists every eligible play (4 rows — →231: was 5 with the sample)");
+for (const t of ["Contest only gem", "Perfect catch photo", "Walk-off winner", "Coach&#39;s film link"])
   assert(listEl.innerHTML.includes(t), "D: the list shows: " + t);
+assert(!listEl.innerHTML.includes("Sample: first hit"), "D: →231: the sample play is NOT listed — samples can't be used in the studio at all");
 assert(!listEl.innerHTML.includes("contest dupe"), "D: the ALL_PLAYS copy of a duplicated play wins (no dupe row)");
-assert(listEl.innerHTML.includes("⭐ SAMPLE PLAY"), "D: the sample row keeps its SAMPLE PLAY tag, as the tiles show it");
+assert(!listEl.innerHTML.includes("⭐ SAMPLE PLAY"), "D: →231: no SAMPLE PLAY tag rides the picker anymore (the sample row itself is gone; the tag survives on the board tiles/cards)");
 assert(listEl.innerHTML.includes('src="/posters/a.jpg"') && listEl.innerHTML.includes('src="/uploads/b.jpg"'), "D: rows carry posters — the play's poster, and the photo play's own image as its thumb");
 assert(listEl.innerHTML.includes("hf-picker-thumb-none"), "D: the link play (no poster anywhere) falls back to the sport-name thumb");
 assert(listEl.innerHTML.includes('onclick="hfPickerPick202(15)"'), "D: rows are wired to the pick handler with the play id");
@@ -147,14 +155,14 @@ assert(listEl.innerHTML.includes("Walk-off winner") && !listEl.innerHTML.include
 sb.hfPickerFilter202("zzz-no-match");
 assert(!listEl.innerHTML.includes("hf-picker-row") && emptyEl.hidden === false && emptyEl.textContent.includes("No plays match"), "D: a fruitless search shows the no-match empty state");
 sb.hfPickerFilter202("");
-assert((listEl.innerHTML.match(/hf-picker-row/g) || []).length === 5 && emptyEl.hidden === true, "D: clearing the search restores the full list");
+assert((listEl.innerHTML.match(/hf-picker-row/g) || []).length === 4 && emptyEl.hidden === true, "D: clearing the search restores the full list (4 rows — →231: the sample stays out)");
 sb.hfPickerBack202();
 assert(choiceEl.hidden === false && pickerEl.hidden === true && modalEl.hidden === false, "D: Back returns to the choices without closing the card — →205: two choices now");
 sb.hfChoicePosted();
 sb.hfPickerPick202(12);
 assert(JSON.stringify(calls.open) === JSON.stringify([12]), "D: tapping a row opens the studio with that play's id");
 assert(modalEl.hidden === true && choiceEl.hidden === false && pickerEl.hidden === true, "D: the pick closes both layers and resets the panels for the next open");
-assert(typeof sb.hfChoiceSample === "undefined", "D: →205: the Sample handler no longer exists — Round 202's Sample-path drive is superseded (sample plays still open the studio from their own cards and via the picker)");
+assert(typeof sb.hfChoiceSample === "undefined", "D: →205: the Sample handler no longer exists — Round 202's Sample-path drive is superseded — →231: sample plays no longer open the studio from anywhere (own cards, picker, deep links — openHypeFrame refuses the seed)");
 sb.hfChoiceOwn();
 assert(calls.submit === 1 && modalEl.hidden === true, "D: the Own path is unchanged — the upload form opens, the card closes");
 sb.ALL_PLAYS = []; sb.CONTEST = { entries: [] };
@@ -176,7 +184,7 @@ const s = await boot(8942);
 try {
   const served = await (await fetch(s.base + "/")).text();
   assert(served.includes("Two ways to start:") && served.includes('id="hfPickerPanel"') && served.includes('id="hfPickerList202"'), "F: the served homepage carries the card and the picker panel — →205: the two-way card (Round 202's three-way card superseded)");
-  assert(served.includes('src="app.js?v=226"') && served.includes('href="styles.css?v=219"'), "F: the served homepage carries the current asset pins — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230)");
+  assert(served.includes('src="app.js?v=227"') && served.includes('href="styles.css?v=219"'), "F: the served homepage carries the current asset pins — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R202 CHECKS PASSED");
