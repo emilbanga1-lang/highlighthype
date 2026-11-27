@@ -625,8 +625,14 @@
          and no src — app.js's heroFilmUrl233 picks full vs lite
          by connection class before anything is fetched, and on
          the slowest class (2g / save-data) nothing is fetched
-         until #heroPlay233 is tapped. -->
-    <video id="heroVideo" data-src="/hero-film.mp4" data-src-lite="/hero-film-lite.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
+         until #heroPlay233 is tapped.
+         Round 239 (2026-11-27): a third URL rides along —
+         data-src-mobile is the ~1.27 Mbps mid tier. A reported
+         3g and the no-API phone fallback start there (an iPhone
+         on WiFi was getting the 368 kbps lite film and looked
+         blurry), and a fallback-started hero upgrades itself
+         to the full film once playback runs smoothly. -->
+    <video id="heroVideo" data-src="/hero-film.mp4" data-src-lite="/hero-film-lite.mp4" data-src-mobile="/hero-film-mobile.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
   </div>
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
@@ -2647,6 +2653,6 @@
   </div>
 </div>
 
-<script src="app.js?v=234"></script>
+<script src="app.js?v=235"></script>
 </body>
 </html>

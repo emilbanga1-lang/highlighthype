@@ -6232,31 +6232,43 @@ $$("[data-hf-swipe]").forEach((root) => {
    and #heroPlay233 offers the film; a tap loads the LITE film
    and starts it under the standing Round 125 sound rules.
    With a Network Information API: saveData or 2g/slow-2g →
-   tap; 3g → lite; 4g (and anything unrecognized) → full.
-   Without it (iOS Safari): a phone-class viewport (≤820px)
-   → lite; anything larger → full. The pick memoizes on the
-   element's dataset, so every restart path agrees. */
+   tap; 3g → lite — →239: 3g → "mobile" (hero-film-mobile
+   .mp4, the ~1.27 Mbps mid tier); 4g (and anything
+   unrecognized) → full. Without it (iOS Safari): a
+   phone-class viewport (≤820px) → lite — →239: → "mobile",
+   with the self-upgrade to the full film below; anything
+   larger → full. The pick memoizes on the element's
+   dataset, so every restart path agrees. */
 function heroConnClass233() {
-  let conn = null;
-  try { conn = (typeof navigator !== "undefined" && navigator) ? navigator.connection : null; } catch (e) { conn = null; }
+  const conn = heroConnInfo239();
   if (conn) {
     if (conn.saveData) return "tap";
     const et = String(conn.effectiveType || "");
     if (et === "2g" || et === "slow-2g") return "tap";
-    if (et === "3g") return "lite";
+    if (et === "3g") return "mobile"; /* →239: was "lite" — a reported 3g still earns the sharper mid tier */
     return "full";
   }
   let w = 0;
   try { w = ((typeof window !== "undefined" && window && window.innerWidth) || (typeof document !== "undefined" && document.documentElement && document.documentElement.clientWidth) || 0); } catch (e) { w = 0; }
-  return (w && w <= 820) ? "lite" : "full";
+  return (w && w <= 820) ? "mobile" : "full"; /* →239: was "lite" — nothing is known about an iPhone's connection, so it no longer gets the softest film */
+}
+/* Round 239: the one place the Network Information API is
+   read, so the class pick and the upgrade eligibility can
+   never disagree about whether a connection was reported. */
+function heroConnInfo239() {
+  let conn = null;
+  try { conn = (typeof navigator !== "undefined" && navigator) ? navigator.connection : null; } catch (e) { conn = null; }
+  return conn || null;
 }
 function heroFilmUrl233(v) {
   if (!v) return "";
   const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
   if (d && d.hh233url) return d.hh233url;
   const cls = heroConnClass233();
-  const url = cls === "full" ? ((d && d.src) || "/hero-film.mp4") : ((d && d.srcLite) || "/hero-film-lite.mp4");
-  if (d) { try { d.hh233url = url; d.hh233cls = cls; } catch (e) { /* a read-only dataset stub just recomputes next time */ } }
+  const url = cls === "full" ? ((d && d.src) || "/hero-film.mp4")
+    : cls === "mobile" ? ((d && d.srcMobile) || "/hero-film-mobile.mp4")
+    : ((d && d.srcLite) || "/hero-film-lite.mp4");
+  if (d) { try { d.hh233url = url; d.hh233cls = cls; if (cls === "mobile") d.hh239noconn = heroConnInfo239() ? "" : "1"; } catch (e) { /* a read-only dataset stub just recomputes next time */ } }
   return url;
 }
 /* True while the hero must stay a poster: a tap-class
@@ -6268,6 +6280,146 @@ function heroHeld233(v) {
   heroFilmUrl233(v);
   const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
   return !!d && d.hh233cls === "tap" && d.hh233started !== "1";
+}
+/* Round 239 (2026-11-27, Emil — "The hero video is blurry
+   now."): Round 233's no-API fallback sent every iPhone to
+   the 368 kbps lite film, because iOS Safari has no Network
+   Information API at all — the phone was assumed slow
+   exactly when nothing was known. The fallback (and a
+   reported 3g) now starts on hero-film-mobile.mp4 (720p,
+   ~1.27 Mbps video, audio kept as in the lite encode), and
+   a fallback-started hero UPGRADES itself to the full film
+   once playback has run smoothly: six accumulated seconds
+   of playing with at least 1.5 s buffered ahead, counted on
+   timeupdate. Any waiting/stalled before the swap lands
+   cancels the upgrade for this page view — a connection
+   that stumbled on the mid tier is never handed the heavy
+   film. Reported connections (3g included) and saveData
+   never upgrade: the browser stated the class, the pick
+   stands. The swap preloads the full film in a detached
+   element seeked to the hero's position (so its bytes are
+   cached and its buffer covers the swap point), then
+   switches the hero's src, restores currentTime on
+   loadedmetadata and replays — no restart from 0, and the
+   poster (a frame of the film itself) covers any gap, so
+   nothing flashes black. Muted, loop and playsinline are
+   the element's own state and attributes and ride
+   untouched. If the full film errors mid-swap the hero
+   falls back to the mid tier at the same position. On
+   success the dataset memo moves to the full film, so
+   every restart path (showHome, studio-exit resume) keeps
+   it for the rest of the page view. */
+function heroUpgradeEligible239(v) {
+  if (!v) return false;
+  heroFilmUrl233(v);
+  const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
+  if (!d || d.hh233cls !== "mobile" || d.hh239noconn !== "1") return false;
+  if (heroConnInfo239()) return false; /* a connection API is present after all — the pick was informed, leave it */
+  return true;
+}
+function heroArmUpgrade239(v) {
+  if (!v || typeof v.addEventListener !== "function" || typeof v.removeEventListener !== "function") return false;
+  const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
+  if (!d) return false;
+  if (d.hh239armed === "1" || d.hh239done === "1" || d.hh239dead === "1") return false;
+  if (!heroUpgradeEligible239(v)) return false;
+  let doc = null;
+  try { doc = (typeof document !== "undefined") ? document : null; } catch (e) { doc = null; }
+  if (!doc || typeof doc.createElement !== "function") return false;
+  try { d.hh239armed = "1"; } catch (e) { return false; }
+  const fullUrl = d.src || "/hero-film.mp4";
+  const mobileUrl = d.hh233url || d.srcMobile || "/hero-film-mobile.mp4";
+  let smooth = 0, lastT = -1, phase = "watch"; /* watch → loading → swapping → done / dead */
+  let pre = null, preSeeked = false;
+  const cleanup = () => {
+    v.removeEventListener("timeupdate", onTick);
+    v.removeEventListener("waiting", onStall);
+    v.removeEventListener("stalled", onStall);
+    if (pre) { try { pre.removeEventListener("canplay", onPreReady); pre.removeEventListener("seeked", onPreSeeked); pre.removeEventListener("error", cancel); pre.removeAttribute("src"); if (pre.load) pre.load(); } catch (e) { /* a stub preloader just gets dropped */ } pre = null; }
+  };
+  const cancel = () => { if (phase === "done" || phase === "dead") return; phase = "dead"; try { d.hh239dead = "1"; } catch (e) { /* a read-only dataset cannot hold the flag — the listeners are gone either way */ } cleanup(); };
+  const onStall = () => { if (phase === "watch" || phase === "loading") cancel(); };
+  const bufferedAhead = () => {
+    try {
+      const b = v.buffered, t = v.currentTime || 0;
+      if (!b || !b.length) return 0;
+      for (let i = 0; i < b.length; i++) { if (b.start(i) <= t && t <= b.end(i)) return b.end(i) - t; }
+      return 0;
+    } catch (e) { return 0; }
+  };
+  const beginLoad = () => {
+    if (phase !== "watch") return;
+    phase = "loading";
+    try {
+      pre = doc.createElement("video");
+      pre.muted = true; pre.preload = "auto"; pre.playsInline = true;
+      pre.addEventListener("canplay", onPreReady);
+      pre.addEventListener("seeked", onPreSeeked);
+      pre.addEventListener("error", cancel);
+      pre.src = fullUrl;
+      if (pre.load) pre.load();
+    } catch (e) { cancel(); }
+  };
+  const onPreReady = () => {
+    if (phase !== "loading" || !pre) return;
+    if (!preSeeked) {
+      preSeeked = true;
+      try { pre.currentTime = v.currentTime || 0; } catch (e) { /* the seek is a nicety — the swap restores position itself */ }
+      return; /* 'seeked' (or the next canplay) re-enters below */
+    }
+    doSwap();
+  };
+  const onPreSeeked = () => { if (phase === "loading") doSwap(); };
+  const doSwap = () => {
+    if (phase !== "loading") return;
+    phase = "swapping";
+    const t = v.currentTime || 0;
+    const dur = v.duration || (pre && pre.duration) || 0;
+    const target = dur > 0 ? (t % dur) : t;
+    const onMeta = () => {
+      v.removeEventListener("loadedmetadata", onMeta);
+      try { v.currentTime = target; } catch (e) { /* position restore is best-effort */ }
+      const q = v.play(); if (q && q.catch) q.catch(() => {});
+    };
+    const onErr = () => {
+      v.removeEventListener("error", onErr);
+      v.removeEventListener("loadedmetadata", onMeta);
+      v.removeEventListener("playing", onPlaying);
+      phase = "dead"; try { d.hh239dead = "1"; } catch (e) { /* see cancel() */ }
+      const back = () => { v.removeEventListener("loadedmetadata", back); try { v.currentTime = target; } catch (e) { /* best-effort */ } const q = v.play(); if (q && q.catch) q.catch(() => {}); };
+      v.addEventListener("loadedmetadata", back);
+      try { v.src = mobileUrl; if (v.load) v.load(); } catch (e) { /* nothing more to fall back to */ }
+      cleanup();
+    };
+    const onPlaying = () => {
+      if (phase !== "swapping") return;
+      phase = "done";
+      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("error", onErr);
+      v.removeEventListener("loadedmetadata", onMeta);
+      try { d.hh239done = "1"; d.hh233url = fullUrl; d.hh233cls = "full"; } catch (e) { /* the film itself already upgraded; only the memo missed */ }
+      cleanup();
+    };
+    v.addEventListener("loadedmetadata", onMeta);
+    v.addEventListener("error", onErr);
+    v.addEventListener("playing", onPlaying);
+    try { v.src = fullUrl; if (v.load) v.load(); } catch (e) { onErr(); }
+  };
+  const onTick = () => {
+    if (phase !== "watch") return;
+    const t = v.currentTime || 0;
+    if (lastT >= 0 && !v.paused && !v.ended) {
+      const dt = t - lastT;
+      if (dt > 0 && dt <= 1.5 && bufferedAhead() >= 1.5) smooth += dt;
+      /* a negative or jump delta is a loop wrap or a seek — the count simply resumes from here */
+    }
+    lastT = t;
+    if (smooth >= 6) beginLoad();
+  };
+  v.addEventListener("timeupdate", onTick);
+  v.addEventListener("waiting", onStall);
+  v.addEventListener("stalled", onStall);
+  return true;
 }
 function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
 (function () {
@@ -6346,7 +6498,7 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
   /* A back/forward-cache restore reruns no scripts — re-apply
      the standing preference (Round 98's blanket re-mute is
      retired with the always-muted rule). */
-  window.addEventListener("pageshow", (e) => { if (e.persisted) startHero125(); });
+  window.addEventListener("pageshow", (e) => { if (e.persisted) { startHero125(); if (typeof heroArmUpgrade239 === "function") heroArmUpgrade239(v); } });
   /* Round 233: on a tap-class connection the hero opens on its
      poster — the autoplay attribute comes off (so no later src
      assignment can self-start the film) and #heroPlay233 is
@@ -6367,6 +6519,11 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
     }
   } else {
     startHero125();
+    /* Round 239: a fallback-started mid-tier hero (no
+       connection API — the iPhone case) arms its self-upgrade
+       to the full film; reported-connection starts are not
+       eligible and the call is a no-op for them. */
+    if (typeof heroArmUpgrade239 === "function") heroArmUpgrade239(v);
   }
   mute?.addEventListener("click", () => {
     v.muted = !v.muted;
