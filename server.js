@@ -103,6 +103,12 @@ const reelHitsByIp = new Map();
 const AVATAR_RATE_LIMIT = 6;              // avatar generations per IP per window
 const AVATAR_RATE_WINDOW_MS = 60 * 60 * 1000;
 const avatarHitsByIp = new Map();
+// Same guard for Hype Frame fence removal (Round 222, see
+// POST /api/hype-frame/remove-fence): also a paid OpenAI image
+// call, so the same tight cap, on its own per-IP map.
+const FENCE_RATE_LIMIT = 6;               // fence removals per IP per window
+const FENCE_RATE_WINDOW_MS = 60 * 60 * 1000;
+const fenceHitsByIp = new Map();
 // Backup file downloads may only ever serve files inside these
 // data subdirectories (the DB is served by its own snapshot
 // endpoint). Round 165: reels/ joins the list — cached Hype
@@ -418,6 +424,17 @@ Gate rules: "play" = clearly a sports play; "unsure" = probably sports but uncle
 // the clauses are additions only. The studio also now sends a
 // zoomed crop of the frame (client-side, R221) — the prompt
 // does not change for that: it still just says "this photo".
+// Round 222 (2026-11-26, Emil): two live tests (gpt-image-1.5,
+// then gpt-image-2) rendered the scene faithfully but FLAT —
+// "It doesn't follow the style" — because the model had only
+// ever read a prose description of the house style. Every
+// generation now carries a SECOND image: Emil's own reference
+// design, tone-matched (HF_AVATAR_REF222 below), and the prompt
+// gains a duty split (style from the reference; scene, pose,
+// people and gear from the photo) plus an exact-lettering
+// clause (gpt-image-2's "NiCHOLAS" mixed-case glitch is the
+// failure it guards). All R218 slots and R221 clauses stay
+// byte-stable; the additions are additions only.
 const HF_AVATAR_MODEL206 = process.env.HF_AVATAR_MODEL || "gpt-image-1";
 const HF_AVATAR_NAME_MODES218 = ["name", "name_number", "none", "custom"];
 function hfAvatarSlot218(v, max) {
@@ -446,21 +463,41 @@ function hfAvatarPrompt218(d) {
   const labelLine = d.label
     ? `Near the top, above the frame, the label "${d.label}" in small white letter-spaced capital letters, with a thin gold brush stroke beneath it. `
     : "";
-  return "Turn this youth sports photo into a finished Hype Frame print design on a solid black background: a bold, stylized illustrated avatar of the same athlete in the same moment, staying faithful to the photo — keep the exact pose, sport, action, uniform and uniform colors, and keep the photo's real setting, background, other players, lighting and colors; illustrate the scene that is actually there instead of inventing a new one. Keep the photo's exact camera angle, framing and composition — redraw THIS scene from THIS viewpoint and do not move the camera. Do not add or remove people or objects: whoever and whatever is in the photo stays in the picture, and nothing that is not in the photo appears. The athlete's pose, body position and action must match the photo's moment exactly — the same instant, not a similar play. Build the design in this exact format, top to bottom. " +
+  return "Turn this youth sports photo into a finished Hype Frame print design on a solid black background: a bold, stylized illustrated avatar of the same athlete in the same moment, staying faithful to the photo — keep the exact pose, sport, action, uniform and uniform colors, and keep the photo's real setting, background, other players, lighting and colors; illustrate the scene that is actually there instead of inventing a new one. Keep the photo's exact camera angle, framing and composition — redraw THIS scene from THIS viewpoint and do not move the camera. Do not add or remove people or objects: whoever and whatever is in the photo stays in the picture, and nothing that is not in the photo appears. The athlete's pose, body position and action must match the photo's moment exactly — the same instant, not a similar play. Two images are attached: the photo to illustrate, and a finished Hype Frame design that is the house style reference. Take the illustration STYLE from the reference design — its bold ink outlines, sports-poster energy, radiating speed lines, distressed grunge frame, layout and brush-lettering treatment. Take the SCENE from the photo alone: its camera angle, composition, the athlete's pose and moment, the people in it, and the gear exactly as photographed — the bat's real color and shape, the helmet worn straight, the uniform and its colors. Never copy the reference design's athlete, pose, moment or text — it sets the style, never the scene. Build the design in this exact format, top to bottom. " +
     topLine + labelLine +
-    "In the top-right corner, a gold brush-stroke crown. In the center, the illustrated moment inside a distressed white grunge frame with rough, splattered edges. At the bottom, the words \"HYPE FRAME\" in huge white brush-stroke lettering, and beneath them \"HIGHLIGHTHYPE\" in small white letter-spaced capital letters with the word HYPE in gold. The ONLY text in the image is the text named in this prompt, spelled exactly as given — no other words, letters, numbers, logos or watermarks anywhere. Premium sports-poster illustration with clean shapes and strong outlines. The athlete's face is a stylized illustration, never photorealistic.";
+    "In the top-right corner, a gold brush-stroke crown. In the center, the illustrated moment inside a distressed white grunge frame with rough, splattered edges. At the bottom, the words \"HYPE FRAME\" in huge white brush-stroke lettering, and beneath them \"HIGHLIGHTHYPE\" in small white letter-spaced capital letters with the word HYPE in gold. The ONLY text in the image is the text named in this prompt, spelled exactly as given — no other words, letters, numbers, logos or watermarks anywhere. Premium sports-poster illustration with clean shapes and strong outlines. The athlete's face is a stylized illustration, never photorealistic. Render the name and label text exactly as given in this prompt, letter for letter, in the reference design's brush script — no changed, added or missing letters, and no mixed casing.";
 }
+// Round 222: the style anchor — server-side copies of Emil's
+// own two reference designs (his 2026-11-26 uploads, downscaled
+// to 1024px JPEGs under assets/). Boys/blue takes the Nicholas
+// HOME RUN design; girls/pink takes the Charlotte KARATE design.
+// A missing asset degrades to the pre-222 single-image request
+// rather than breaking the maker.
+const HF_AVATAR_REF222 = (() => {
+  const out = {};
+  for (const [tone, file] of [["blue", "hf-avatar-ref-boys.jpg"], ["pink", "hf-avatar-ref-girls.jpg"]]) {
+    try { out[tone] = fs.readFileSync(path.join(__dirname, "assets", file)); }
+    catch { console.error("hype-frame avatar: style reference missing (" + file + ") — generations go out without the anchor"); }
+  }
+  return out;
+})();
 const HF_AVATAR_MAX206 = 5 * 1024 * 1024; // decoded frame cap (the studio sends a <=1024px JPEG)
 function hfAvatarConfigured206() {
   return !!process.env.OPENAI_API_KEY && process.env.HH_NO_AVATAR !== "1";
 }
 async function runHfAvatar206(buf, mime, design218) {
   const base = String(process.env.HF_AVATAR_BASE_URL || "https://api.openai.com").replace(/\/+$/, "");
+  const d222 = design218 || hfAvatarDesign218(null);
   const form = new FormData();
   form.append("model", HF_AVATAR_MODEL206);
-  form.append("prompt", hfAvatarPrompt218(design218 || hfAvatarDesign218(null)));
+  form.append("prompt", hfAvatarPrompt218(d222));
   form.append("size", "auto");
   form.append("image", new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
+  // Round 222: the style anchor rides SECOND — the photo stays
+  // the first image (the prompt's "this photo"), the tone-matched
+  // reference design follows as the style source.
+  const ref222 = HF_AVATAR_REF222[d222.tone];
+  if (ref222) form.append("image", new Blob([ref222], { type: "image/jpeg" }), "style-reference.jpg");
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 120000);
   try {
@@ -473,6 +510,46 @@ async function runHfAvatar206(buf, mime, design218) {
     const j = await r.json();
     const b64 = j && Array.isArray(j.data) && j.data[0] && typeof j.data[0].b64_json === "string" ? j.data[0].b64_json : "";
     if (!b64) throw new Error("avatar model returned no image");
+    return "data:image/png;base64," + b64;
+  } finally { clearTimeout(timer); }
+}
+
+/* Round 222 (2026-11-26, Emil): fence removal — the photo
+   path's optional clean-up step, approved after a same-day
+   proof ("Love that yes"). Same OpenAI edits machinery as the
+   avatar (same key, model and base URL — HF_AVATAR_MODEL /
+   HF_AVATAR_BASE_URL), its own kill switch (HH_NO_FENCE=1)
+   and a remove-fence-ONLY prompt: the fence goes, everything
+   else in the scene is preserved exactly. The endpoint only
+   returns the cleaned photo — the studio shows it to the
+   parent, who approves it or keeps the original; nothing here
+   ever touches an order, a stored file or the print on its
+   own. The photo is forwarded and dropped, never logged,
+   never stored, exactly like the avatar's frame. */
+const HF_FENCE_MAX222 = 5 * 1024 * 1024; // decoded photo cap (the studio sends a <=1024px JPEG)
+const HF_FENCE_PROMPT222 = "Remove the chain-link fence from this photo. The photo was taken through a chain-link backstop fence: erase the fence wires, mesh and posts completely, and reconstruct the scene behind them exactly as it would look with no fence in front of the camera — the same athletes in the same poses, the same uniforms, the same field, the same lighting, the same camera angle and framing. Change nothing else: do not add, remove or move any person or object other than the fence, do not change any colors, do not stylize or illustrate — return the same photograph, cleaned of the fence.";
+function hfFenceConfigured222() {
+  return !!process.env.OPENAI_API_KEY && process.env.HH_NO_FENCE !== "1";
+}
+async function runHfFence222(buf, mime) {
+  const base = String(process.env.HF_AVATAR_BASE_URL || "https://api.openai.com").replace(/\/+$/, "");
+  const form = new FormData();
+  form.append("model", HF_AVATAR_MODEL206);
+  form.append("prompt", HF_FENCE_PROMPT222);
+  form.append("size", "auto");
+  form.append("image", new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 120000);
+  try {
+    const r = await fetch(base + "/v1/images/edits", {
+      method: "POST", signal: ctl.signal,
+      headers: { authorization: "Bearer " + process.env.OPENAI_API_KEY },
+      body: form,
+    });
+    if (!r.ok) { const t = await r.text().catch(() => ""); throw new Error("fence model answered " + r.status + (t ? ": " + t.replace(/\s+/g, " ").slice(0, 400) : "")); }
+    const j = await r.json();
+    const b64 = j && Array.isArray(j.data) && j.data[0] && typeof j.data[0].b64_json === "string" ? j.data[0].b64_json : "";
+    if (!b64) throw new Error("fence model returned no image");
     return "data:image/png;base64," + b64;
   } finally { clearTimeout(timer); }
 }
@@ -5221,6 +5298,16 @@ function avatarRateLimited(req) {
   avatarHitsByIp.set(ip, hits);
   return false;
 }
+// Same per-IP pattern for Hype Frame fence removal (Round 222, see constants).
+function fenceRateLimited222(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (fenceHitsByIp.get(ip) || []).filter((t) => now - t < FENCE_RATE_WINDOW_MS);
+  if (hits.length >= FENCE_RATE_LIMIT) { fenceHitsByIp.set(ip, hits); return true; }
+  hits.push(now);
+  fenceHitsByIp.set(ip, hits);
+  return false;
+}
 // Same per-IP pattern for the Upload Assist (see constants).
 function assistRateLimited(req) {
   const ip = clientIp(req);
@@ -5851,6 +5938,45 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         console.error("hype-frame avatar failed:", e.message);
         return sendJson(res, 502, { ok: false, configured: true, failed: true, message: "The avatar maker couldn't finish that one — your photo print still works. Try again in a bit." });
+      }
+    }
+
+    // ---- Hype Frame fence removal (Round 222) ----
+    // The status probe lets the studio show the "Remove the
+    // fence" step only when it can actually work (OPENAI_API_KEY
+    // set, HH_NO_FENCE unset) — otherwise the photo path behaves
+    // exactly as it did before this round.
+    if (p === "/api/hype-frame/fence-status" && req.method === "GET") {
+      return sendJson(res, 200, { ok: true, configured: hfFenceConfigured222() });
+    }
+    // Removal: the browser posts the current print-source photo
+    // (a data URL it holds itself); the photo is validated and
+    // forwarded to OpenAI with the remove-fence-only prompt —
+    // dropped, never logged, never stored. The cleaned photo
+    // returns as a data URL; the studio shows it for the
+    // parent's explicit approval before it can become the print
+    // source. Nothing is ever cleaned automatically.
+    if (p === "/api/hype-frame/remove-fence" && req.method === "POST") {
+      if (!hfFenceConfigured222()) return sendJson(res, 503, { ok: false, configured: false, message: "Fence removal isn't switched on right now — your photo still works as it is." });
+      if (fenceRateLimited222(req)) return sendJson(res, 429, { ok: false, configured: true, message: "That's a lot of fence removals in an hour — give it a little while and try again. Your photo still works as it is." });
+      const FENCE_BODY_MAX222 = 8 * 1024 * 1024;
+      if (Number(req.headers["content-length"] || 0) > FENCE_BODY_MAX222) return sendJson(res, 413, { ok: false, configured: true, message: "That photo is too large to send for fence removal." });
+      let raw;
+      try { raw = await readBody(req, FENCE_BODY_MAX222); }
+      catch { try { return sendJson(res, 413, { ok: false, configured: true, message: "That photo is too large to send for fence removal." }); } catch { return; } }
+      let body = null;
+      try { body = JSON.parse(raw.toString("utf8") || "{}"); } catch { body = null; }
+      const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String((body && body.image) || ""));
+      if (!m) return sendJson(res, 400, { ok: false, configured: true, message: "Send the photo as a jpeg/png data URL." });
+      const buf = Buffer.from(m[2], "base64");
+      if (!buf.length || buf.length > HF_FENCE_MAX222) return sendJson(res, 400, { ok: false, configured: true, message: "That photo is too large to send for fence removal." });
+      try {
+        const image = await runHfFence222(buf, "image/" + m[1]);
+        console.log("hype-frame fence: removed (" + HF_AVATAR_MODEL206 + ")");
+        return sendJson(res, 200, { ok: true, configured: true, image });
+      } catch (e) {
+        console.error("hype-frame fence failed:", e.message);
+        return sendJson(res, 502, { ok: false, configured: true, failed: true, message: "Fence removal couldn't finish that one — your photo still works as it is. Try again in a bit." });
       }
     }
 
