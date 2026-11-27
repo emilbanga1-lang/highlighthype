@@ -63,7 +63,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed)");
 
 // ---- B. statics ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back") && !appJs.includes("function hfGoStep211(") && !css.includes(".hf-step-pill211"), "B: no stepper — no pills or step backs in the markup, no step flow in app.js, no pill CSS");
@@ -233,7 +233,7 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
   const s = await boot(41215);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "F: the served homepage carries the Round 215 pins");
+    assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "F: the served homepage carries the Round 215 pins");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfStickyBar215"') && served.includes('id="hfReview215"') && !served.includes("data-hf-step-pill"), "F: the served studio is the one-page studio");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfSeedPoster215") && servedApp.includes("function hfShowScreen215") && !servedApp.includes("function hfGoStep211("), "F: the served app.js carries the seed + screens, and no step flow");

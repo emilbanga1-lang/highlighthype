@@ -69,7 +69,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=214"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
+assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
 
 // ---- the section + the overlay after it ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -197,7 +197,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vOv > vBtn && vFilm > vOv, "G: the served section reads hero -> headline -> CTA -> film link -> overlay -> film");
   assert(!served.includes('id="hfHomeFilmBox207"'), "G: the served homepage carries no trace of the retired in-place film box");
   assert(served.slice(served.indexOf('id="hfBuyCard215"'), served.indexOf('id="hfRowPhoto215"')).includes("$110"), "G: the served homepage carries the $110 in the studio's buy card — →215: the one-page studio shows its price (before R215 it appeared nowhere in the document)");
-  assert(served.includes('src="app.js?v=214"') && served.includes('href="styles.css?v=210"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215); styles now v210 (Round 215)");
+  assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R210 CHECKS PASSED");
