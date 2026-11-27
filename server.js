@@ -423,7 +423,7 @@ async function runHfAvatar206(buf, mime) {
       headers: { authorization: "Bearer " + process.env.OPENAI_API_KEY },
       body: form,
     });
-    if (!r.ok) throw new Error("avatar model answered " + r.status);
+    if (!r.ok) { const t = await r.text().catch(() => ""); throw new Error("avatar model answered " + r.status + (t ? ": " + t.replace(/\s+/g, " ").slice(0, 400) : "")); }
     const j = await r.json();
     const b64 = j && Array.isArray(j.data) && j.data[0] && typeof j.data[0].b64_json === "string" ? j.data[0].b64_json : "";
     if (!b64) throw new Error("avatar model returned no image");
