@@ -4177,3 +4177,17 @@ body.feed-open189{overflow:hidden}
 #dailyCard .btl-mbody{padding:10px 12px 12px}
 .daily-voterow226{display:flex;gap:10px;margin:10px auto 0;align-items:stretch}
 .daily-vote-vs226{flex:0 0 38px}
+
+/* ================================================================
+   Round 227 (2026-11-27): the crown asset on the text line. The
+   👑 emoji is retired from every user-facing render path (site
+   audit, consistency) in favor of the brand's /crown.png — the
+   feed rail's block treatment (.feed191-crown, 30px) is too big
+   inline, so text-line crowns ride at 1em, baseline-aligned with
+   the label they accompany. The coming-soon notify forms reuse
+   the bottles' .btlv-* classes verbatim; the only addition is
+   breathing room inside the two store panels.
+   ================================================================ */
+.crown-ic227{width:1em;height:1em;object-fit:contain;vertical-align:-0.12em}
+.notify227{margin-top:14px;text-align:left}
+.notify227 label{font-weight:700;font-size:14.5px}

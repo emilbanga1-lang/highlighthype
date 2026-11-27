@@ -319,13 +319,22 @@ function momentChipInline162(h) {
    client only renders them. Compact form (tiles, battle minis):
    the LATEST crown plus a "+N more" chip. Full form (cards — the
    athlete page and the play detail): every crown the play holds. */
+/* Round 227 (2026-11-27): the crown asset on the text line. The
+   👑 emoji is retired from every user-facing render path (site
+   audit — consistency with the feed rail, which has worn the
+   brand's gold crown since Round 191); this inline <img> is the
+   one replacement everywhere (chips, badges, vote buttons, battle
+   states), styled by .crown-ic227 to sit on the text line. Plain-
+   text contexts (share strings) keep the emoji — an <img> cannot
+   ride in shared text. */
+const CROWN227 = `<img class="crown-ic227" src="/crown.png" alt="crown">`;
 function crownsHtml105(h, full) {
   if (!h || !Array.isArray(h.crowns) || !h.crowns.length) return "";
-  if (full) return `<p class="play-crowns">${h.crowns.map((c) => `<span class="crown-chip">👑 ${esc(c.title)}</span>`).join("")}</p>`;
+  if (full) return `<p class="play-crowns">${h.crowns.map((c) => `<span class="crown-chip">${CROWN227} ${esc(c.title)}</span>`).join("")}</p>`;
   const more = h.crowns.length > 1 ? `<span class="crown-chip crown-more">+${h.crowns.length - 1} more</span>` : "";
-  return `<p class="play-crowns"><span class="crown-chip">👑 ${esc(h.crowns[0].title)}</span>${more}</p>`;
+  return `<p class="play-crowns"><span class="crown-chip">${CROWN227} ${esc(h.crowns[0].title)}</span>${more}</p>`;
 }
-function crownSuffix105(h) { return h && Array.isArray(h.crowns) && h.crowns.length ? ` · 👑 ${h.crowns[0].title}` : ""; }
+function crownSuffix105(h) { return h && Array.isArray(h.crowns) && h.crowns.length ? ` · ${CROWN227} ${h.crowns[0].title}` : ""; }
 /* Round 105: the My Highlights numbers line (Feature 3) — votes
    this month, views, Daily Battle wins, straight from the payload.
    Truthful zeros render like any other number. */
@@ -693,7 +702,7 @@ function tileHtml(h, opts = {}) {
       <div class="tile-actrow181">
         <div class="tile-chips181">${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}${typeof momentChip162 === "function" ? momentChip162(h) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}</div>
         <div class="tile-votes">
-          ${h.isSample ? `<span class="vote-chip">👑 <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
+          ${h.isSample ? `<span class="vote-chip">${CROWN227} <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
           <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
         </div>
       </div>
@@ -1105,11 +1114,11 @@ function featCardHtml134(h) {
   const views219 = Number(h.viewCount) >= 1 ? `<span class="feat-views151">▶ ${watchesText151(h.viewCount)}</span>` : "";
   const meta219 = chip219 || views219 ? `<div class="feat-meta-row219">${chip219}${views219}</div>` : "";
   return `<article class="feat-card134" data-feat-id="${h.id}">
-    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">👑 Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();featTap163(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
+    <div class="tile-media dur-host feat-media134">${fameThumbHtml(h, { rest133: true })}<span class="feat-badge134">${CROWN227} Currently #1</span><span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();featTap163(${h.id})"></span><span class="feat-disc134" aria-hidden="true"><svg width="26" height="30" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${viewsChip151(h)}</div>
     <div class="feat-body134">
       <h3 class="feat-title134">${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h3>
       ${meta219}
-      ${h.isSample ? `<span class="feat-vote134 is-static">👑 <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
+      ${h.isSample ? `<span class="feat-vote134 is-static">${CROWN227} <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`}
     </div>
   </article>`;
 }
@@ -1777,7 +1786,7 @@ function watchHtml107(h, entry) {
       ${entry && entry.prizeEligible === false ? `<p><span class="tagchip warn">Can't be featured — no parent/guardian contact on file</span></p>` : ""}
     </div>
     <div class="watch-vote">
-      ${h.isSample ? "" : `<button type="button" class="votebtn watch-votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : "👑 Vote for Hype of the Month"}</button>`}
+      ${h.isSample ? "" : `<button type="button" class="votebtn watch-votebtn" aria-pressed="${h.hasVoted ? "true" : "false"}" onclick="toggleVote(${h.id}, this)">${h.hasVoted ? "You voted — tap to remove" : `${CROWN227} Vote for Hype of the Month`}</button>`}
       <p class="watch-count"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</p>
     </div>
     <div class="card-actions watch-actions">
@@ -3089,19 +3098,20 @@ function openQuickView(card) {
     g.scrollTo({ left: (qvGalleryState.photos + Number(b.dataset.qvColor) * 2) * (g.clientWidth || 1), behavior: "smooth" });
   }));
   qvSyncGallery();
-  // Price is set ($69.99 across Drop 001 youth hoodies); the size
-  // selector is selection state only — no cart, no checkout — and it
-  // resets each time the quick view opens.
-  $$("#qvSizes .qv-size").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  // Price is set ($69.99 across Drop 001 youth hoodies). Round 227:
+  // the size selector is GONE — the coming-soon card's only action
+  // is the notify-me capture, which resets each time the quick view
+  // opens so one product's confirmation never greets another.
+  const qvMsg227 = $("#qvNotifyMsg227"); if (qvMsg227) { qvMsg227.textContent = ""; qvMsg227.classList.remove("ok"); }
+  const qvEmail227 = $("#qvEmail227"); if (qvEmail227) qvEmail227.value = "";
   qv.hidden = false;
   document.body.classList.add("qv-open");
   qv.querySelector(".qv-close")?.focus();
   requestAnimationFrame(qvSyncGallery);
 }
 $("#qvGallery")?.addEventListener("scroll", () => requestAnimationFrame(qvSyncGallery), { passive: true });
-$$("#qvSizes .qv-size").forEach((b) => b.addEventListener("click", () => {
-  $$("#qvSizes .qv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-}));
+/* Round 227: the quick view's size-button wiring left with the
+   picker it served — the card's action is the notify form now. */
 function closeQuickView() {
   const qv = $("#quickView"); if (!qv) return;
   qv.hidden = true;
@@ -3199,31 +3209,35 @@ function openHsView(sport) {
   $$("#hsThumbs .hsv-thumb").forEach((b) => b.addEventListener("click", () => hsSetFrame(Number(b.dataset.hsThumb))));
   $("#hsDots").innerHTML = p.gallery.map((_, i) => `<button type="button" class="hsv-dot" data-hs-dot="${i}" aria-label="Show image ${i + 1} of ${p.gallery.length}"></button>`).join("");
   $$("#hsDots .hsv-dot").forEach((b) => b.addEventListener("click", () => hsSetFrame(Number(b.dataset.hsDot))));
-  $$("#hsSizes .hsv-size").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  /* Round 227: the size picker is gone — the notify form resets
+     each open, like the quick view's. */
+  const hsMsg227 = $("#hsNotifyMsg227"); if (hsMsg227) { hsMsg227.textContent = ""; hsMsg227.classList.remove("ok"); }
+  const hsEmail227 = $("#hsEmail227"); if (hsEmail227) hsEmail227.value = "";
   hsSetTab("desc");
   hsSetFrame(0);
   view.hidden = false;
   document.body.classList.add("hsv-open");
   view.querySelector(".hsv-close")?.focus();
   /* Round 183 dormant Shopify path: while HH_SHOP_LIVE183 is false
-     this block NEVER runs — the disabled COMING SOON button in the
-     markup stands exactly as rendered above, untouched. At launch
-     (flag flipped true), a mapped sport swaps its CTA for a link to
-     the Shopify product (all six HS_PRODUCTS sports are mapped);
-     an unmapped sport keeps COMING SOON. Hype Frame never comes
-     through here — it is excluded by design (see HH_SHOPIFY_MAP183). */
+     this block NEVER runs — the view renders exactly as the markup
+     stands, untouched. At launch (flag flipped true), a mapped
+     sport swaps its call-to-action for a link to the Shopify
+     product (all six HS_PRODUCTS sports are mapped); an unmapped
+     sport keeps the coming-soon rendering. Hype Frame never comes
+     through here — it is excluded by design (see HH_SHOPIFY_MAP183).
+     Round 227: the CTA this block swaps is now the notify form
+     (the disabled COMING SOON button it originally targeted was
+     retired with the size picker) — at launch the form hides and
+     a BUY NOW link takes its place. */
   if (HH_SHOP_LIVE183) {
     const shop183 = HH_SHOPIFY_MAP183[sport];
-    const cta183 = view.querySelector(".hsv-cta");
-    if (shop183 && cta183) {
-      if (cta183.tagName === "A") { cta183.href = shop183.url; }
-      else {
-        const a183 = document.createElement("a");
-        a183.className = cta183.className;
-        a183.href = shop183.url;
-        a183.textContent = "BUY NOW";
-        cta183.replaceWith(a183);
-      }
+    const form183 = view.querySelector("#hsNotifyForm227");
+    if (shop183 && form183) {
+      const a183 = document.createElement("a");
+      a183.className = "hsv-cta";
+      a183.href = shop183.url;
+      a183.textContent = "BUY NOW";
+      form183.replaceWith(a183);
     }
   }
 }
@@ -3288,9 +3302,8 @@ document.addEventListener("keydown", (e) => {
   e.preventDefault();
   hsSetFrame(hsState.frame + (e.key === "ArrowRight" ? 1 : -1));
 });
-$$("#hsSizes .hsv-size").forEach((b) => b.addEventListener("click", () => {
-  $$("#hsSizes .hsv-size").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-}));
+/* Round 227: the product view's size-button wiring left with the
+   picker it served — the view's action is the notify form now. */
 $$(".hsv-tab-btn").forEach((b) => b.addEventListener("click", () => hsSetTab(b.dataset.hsTab)));
 $$("#hsChips .hs-chip").forEach((chip) => chip.addEventListener("click", () => {
   $$("#hsChips .hs-chip").forEach((c) => c.setAttribute("aria-pressed", String(c === chip)));
@@ -6314,7 +6327,7 @@ function renderOwnerQueue157() {
        queue head (Select all + Review mode + the batch bar) is
        prepended below, and each PENDING card carries a batch
        checkbox whose state comes from batchSel150. */
-    const queueCards150 = viewRows157.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}${h.fast_laned_at ? ` — <span class="tagchip">⚡ Fast lane</span>` : ""}${h.missing_rendition ? ` — <span class="tagchip">⚠ No rendition</span>` : ""} — ${h.voteCount} votes
+    const queueCards150 = viewRows157.map((h) => groupHeader145(h) + `<div class="queue-item">${h.status === "pending" ? `<label class="qsel150"><input type="checkbox" class="qsel-box150" data-qsel="${h.id}" ${batchSel150.has(h.id) ? "checked" : ""} onchange="toggleBatchSel150(${h.id}, this.checked)"> Select for batch actions</label><br>` : ""}<b>${esc(h.title)}</b> — ${esc(h.sport)} — status: <b>${esc(h.status)}</b>${h.isSample ? ` — <span class="tagchip">⭐ Sample play</span>` : ""}${h.fast_laned_at ? ` — <span class="tagchip">⚡ Fast lane</span>` : ""}${h.missing_rendition ? ` — <span class="tagchip">⚠ No rendition</span>` : ""}${h.text_flag227 ? ` — <span class="tagchip warn">⚠ Check text: ${esc(h.text_flag227)}</span>` : ""} — ${h.voteCount} votes
       ${h.player_name ? `<br>Athlete: ${esc(h.athlete_label || h.player_name)}${h.athlete_tag ? ` · ${esc(h.athlete_tag)}` : ""}${h.team ? ` · ${esc(h.team)}` : ""}` : ""}
       ${(() => { const bits = [];
         if (h.guardian_email) bits.push(`${esc(h.guardian_email)} <a class="mini-btn" style="text-decoration:none" href="mailto:${esc(h.guardian_email)}?subject=${encodeURIComponent("HighlightHype — " + h.title)}">✉️ Contact guardian</a>`);
@@ -6402,13 +6415,18 @@ async function loadOwner() {
       }
       $("#hfRequests").innerHTML = hfHtml || "<p>No Hype Frame requests yet.</p>";
     } catch { $("#hfRequests").innerHTML = "<p>Could not load Hype Frame requests.</p>"; }
-    // Bottle drop notifications (owner only, Round 106): per-sport
-    // counts plus the signup emails — the emails live ONLY in this
-    // owner surface. Own try, same pattern as stats/Hype Frames.
+    // Drop notifications (owner only, Round 106): per-key counts
+    // plus the signup emails — the emails live ONLY in this owner
+    // surface. Own try, same pattern as stats/Hype Frames.
+    // Round 227: the keys now include the coming-soon store cards
+    // (collection slugs + hoodie-<sport>), so the row label names
+    // what was actually signed up for — only the six bottle sports
+    // read "bottle".
     try {
       const dn = await api("/api/owner/drop-notifications");
-      const dnCounts = (dn.counts || []).map((c) => `${esc(cap(c.sport))}: <b>${c.count}</b>`).join(" · ");
-      const dnRows = (dn.signups || []).map((s) => `<p><b>${esc(s.email)}</b> — ${esc(cap(s.sport))} bottle <span style="color:var(--muted)">(${esc(s.created_at)})</span></p>`).join("");
+      const dnLabel227 = (k) => k.startsWith("hoodie-") ? `${cap(k.slice(7))} hoodie` : (typeof BTL106 !== "undefined" && BTL106[k] ? `${cap(k)} bottle` : cap(k.replace(/-/g, " ")));
+      const dnCounts = (dn.counts || []).map((c) => `${esc(dnLabel227(c.sport))}: <b>${c.count}</b>`).join(" · ");
+      const dnRows = (dn.signups || []).map((s) => `<p><b>${esc(s.email)}</b> — ${esc(dnLabel227(s.sport))} <span style="color:var(--muted)">(${esc(s.created_at)})</span></p>`).join("");
       $("#dropNotify").innerHTML = `<p>${dnCounts || "No signups yet."}</p>${dnRows}`;
     } catch { $("#dropNotify").innerHTML = "<p>Could not load drop notifications.</p>"; }
     // Moderation log (owner only, Round 146): the last 50 actions,
@@ -7413,8 +7431,8 @@ function btlMiniHTML(slot) {
   return `<article class="btl-mini${showStreak ? " has-streak" : ""}" id="btlMini${slot}" data-slot="${slot}">
     <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${letter}</span>
-    ${showStreak ? `<span class="btl-streak">👑 Won ${btl.streak} in a row</span>` : ""}
-    <span class="btl-stamp">👑 WINNER</span>
+    ${showStreak ? `<span class="btl-streak">${CROWN227} Won ${btl.streak} in a row</span>` : ""}
+    <span class="btl-stamp">${CROWN227} WINNER</span>
     <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p></div>
   </article>`;
 }
@@ -7833,8 +7851,8 @@ function d100MiniHTML(prefix, slot, p, opts) {
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
     <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}"${poster226} role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${slot}</span>
-    <span class="btl-stamp">👑 WINNER</span>
-    <span class="btl-yourpick">👑 Your pick</span>
+    <span class="btl-stamp">${CROWN227} WINNER</span>
+    <span class="btl-yourpick">${CROWN227} Your pick</span>
     <div class="btl-mbody"><p class="btl-mtitle">${esc(p.title)}</p><p class="btl-mmeta">${esc(cap(p.sport))} · ${p.division === "girls" ? "Girls" : "Boys"}${Number(p.viewCount) >= 1 ? ` · ▶ ${fmtCount151(p.viewCount)}` : ""}</p>${typeof badgesHtml100 === "function" ? badgesHtml100(p) : ""}${crowns179}</div>
   </article>`;
 }
@@ -7940,8 +7958,8 @@ async function loadDaily100() {
   const split = document.getElementById("dailySplit");
   const anotherRow = document.getElementById("dailyAnotherRow");
   if (r.yourPick) {
-    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Vote A"; }
-    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Vote B"; }
+    if (pickA) { pickA.disabled = true; if (r.yourPick === r.a.id) pickA.innerHTML = `${CROWN227} Your pick`; else pickA.textContent = "Vote A"; }
+    if (pickB) { pickB.disabled = true; if (r.yourPick === r.b.id) pickB.innerHTML = `${CROWN227} Your pick`; else pickB.textContent = "Vote B"; }
     const pickedMini = document.getElementById("dailyMini" + (r.yourPick === r.a.id ? "A" : "B"));
     if (pickedMini) pickedMini.classList.add("picked");
     if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice); split.hidden = false; }
@@ -8060,8 +8078,8 @@ function runRender100() {
      design, and a crown chip would leak the historical winner. */
   d100WireMatchup("run", { A: m.a, B: m.b }, (slot) => d100Watch("run", slot, slot === "A" ? m.a : m.b), { crowns: false });
   const pA = document.getElementById("runPickA"), pB = document.getElementById("runPickB");
-  if (pA) { pA.disabled = false; pA.textContent = "👑 This one won"; }
-  if (pB) { pB.disabled = false; pB.textContent = "👑 This one won"; }
+  if (pA) { pA.disabled = false; pA.innerHTML = `${CROWN227} This one won`; }
+  if (pB) { pB.disabled = false; pB.innerHTML = `${CROWN227} This one won`; }
   const reveal = document.getElementById("runReveal"); if (reveal) { reveal.hidden = true; reveal.innerHTML = ""; }
   const next = document.getElementById("runNext"); if (next) next.classList.remove("show");
   const player = document.getElementById("runPlayer");
@@ -8712,6 +8730,32 @@ $("#btlNotifyForm")?.addEventListener("submit", async (e) => {
   } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
   if (btn) btn.disabled = false;
 });
+/* Round 227 (2026-11-27): the coming-soon store cards — the six
+   collection quick views and the per-sport Hype Sports hoodies —
+   reuse the bottles' notify-me capture above: this helper is that
+   handler's exact flow (same email check, same /api/drop-notify
+   POST, same confirmation shape, same error behavior),
+   parameterized only by the form it serves and the signup key +
+   product name it confirms. The bottles handler itself is
+   untouched; the server allowlist grew the store keys beside the
+   six bottle sports (DROP_NOTIFY_KEYS227). */
+async function notifySubmit227(e, formSel, key, name) {
+  e.preventDefault();
+  if (!key) return;
+  const form = $(formSel); if (!form) return;
+  const input = form.querySelector('input[type="email"]'), btn = form.querySelector('button[type="submit"]'), msg = form.querySelector(".btlv-msg");
+  const email = (input?.value || "").trim();
+  const say = (text, ok) => { if (msg) { msg.textContent = text; msg.classList.toggle("ok", !!ok); } };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { say("That email doesn't look right — check it and try again.", false); input?.focus(); return; }
+  if (btn) btn.disabled = true;
+  try {
+    await api("/api/drop-notify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email, sport: key }) });
+    say(`You're on the list ✓ — we'll email you when the ${name} opens for orders.`, true);
+  } catch (err) { say(err.message || "That signup didn't go through — please try again.", false); }
+  if (btn) btn.disabled = false;
+}
+$("#qvNotifyForm227")?.addEventListener("submit", (e) => notifySubmit227(e, "#qvNotifyForm227", qvGalleryState.slug, $("#qvTitle")?.textContent || "this one"));
+$("#hsNotifyForm227")?.addEventListener("submit", (e) => notifySubmit227(e, "#hsNotifyForm227", hsState.sport ? "hoodie-" + hsState.sport : "", $("#hsTitle")?.textContent || "this one"));
 /* Round 126 (2026-11-13, Emil's phone review of Round 125):
    the homepage merch teaser's wiring. The Round 125 per-sport
    drop-notify form is GONE from the teaser (Emil: "get rid of

@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=216" />
+<link rel="stylesheet" href="styles.css?v=217" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -908,7 +908,7 @@
           <p class="daily-another-row" id="dailyAnotherRow" hidden><button type="button" class="daily-another" id="dailyAnother">Play another battle →</button></p>
         </div>
         <div class="daily-strip" id="dailyStrip" hidden role="button" tabindex="0" aria-expanded="false" aria-controls="dailyMain" aria-label="Show the full Daily Battle card">
-          <p class="daily-strip-pick"><span>👑 Your pick: <b id="dailyStripPick"></b><span id="dailyStripStreak"></span></span><span class="daily-strip-open">Tap to view</span></p>
+          <p class="daily-strip-pick"><span><img class="crown-ic227" src="/crown.png" alt="crown"> Your pick: <b id="dailyStripPick"></b><span id="dailyStripStreak"></span></span><span class="daily-strip-open">Tap to view</span></p>
           <div class="daily-strip-split" id="dailyStripSplit"></div>
           <p class="daily-strip-share"><button type="button" class="mini-btn" id="dailyStripShare">🔗 Share this matchup</button> <button type="button" class="mini-btn" id="dailyStripAnother">Play another battle →</button></p>
         </div>
@@ -979,8 +979,8 @@
             <span class="btl-now" id="runNowLabel"></span>
           </div>
           <div class="btl-pickrow">
-            <button type="button" class="btl-pick" id="runPickA">👑 This one won</button>
-            <button type="button" class="btl-pick" id="runPickB">👑 This one won</button>
+            <button type="button" class="btl-pick" id="runPickA"><img class="crown-ic227" src="/crown.png" alt="crown"> This one won</button>
+            <button type="button" class="btl-pick" id="runPickB"><img class="crown-ic227" src="/crown.png" alt="crown"> This one won</button>
           </div>
           <div class="daily-split" id="runReveal" hidden></div>
           <div class="btl-controls"><button type="button" class="btl-next" id="runNext">Next matchup →</button></div>
@@ -1220,6 +1220,10 @@
             <label>Jersey number <input type="text" name="jersey" placeholder="e.g. 13"></label>
             <label>Team name <input type="text" name="team" placeholder="e.g. Plainview Hawks"></label>
           </div>
+          <!-- Round 227: the team name renders publicly on the play —
+               the hint steers posters to a team/school name (the
+               Nov 26 case put a child's full name here). -->
+          <p class="small team-hint227">Shown publicly — a team or school name works best.</p>
         </div>
       </details>
 
@@ -1824,7 +1828,7 @@
       <p style="color:var(--muted2);font-size:13px">One play, featured on the homepage between the hero and the board. The story text appears only when that family gave story consent.</p>
       <div id="momentSpotlight162"></div>
       <h3 style="margin-top:22px">Hype Frame requests</h3><div id="hfRequests"></div>
-      <h3 style="margin-top:22px">Bottle drop notifications</h3><div id="dropNotify"></div>
+      <h3 style="margin-top:22px">Drop notifications</h3><div id="dropNotify"></div>
       <h3 style="margin-top:22px">Reports</h3><div id="reports"></div>
       <h3 style="margin-top:22px">Site stats</h3><div id="ownerStats"></div><div id="ownerStorage149"></div>
       <h3 style="margin-top:22px">Daily Battle</h3><div id="ownerDaily">
@@ -2220,17 +2224,21 @@
         <p class="prod-slogan" id="qvSlogan"></p>
         <p class="prod-desc" id="qvDesc"></p>
         <p class="qv-price" id="qvPrice">$69.99</p>
-        <p class="qv-colors-label">Youth sizes</p>
-        <div class="qv-sizes" id="qvSizes" role="group" aria-label="Youth sizes">
-          <button type="button" class="qv-size" data-qv-size="YXS" aria-pressed="false">YXS</button>
-          <button type="button" class="qv-size" data-qv-size="YS" aria-pressed="false">YS</button>
-          <button type="button" class="qv-size" data-qv-size="YM" aria-pressed="false">YM</button>
-          <button type="button" class="qv-size" data-qv-size="YL" aria-pressed="false">YL</button>
-          <button type="button" class="qv-size" data-qv-size="YXL" aria-pressed="false">YXL</button>
-        </div>
         <p class="qv-colors-label">Colorways</p>
         <p class="qv-colors" id="qvColors"></p>
-        <p class="qv-note">Ordering opens soon — no orders are being taken yet.</p>
+        <!-- Round 227: the size picker + "Ordering opens soon" dead
+             end is replaced by the bottles view's notify-me capture,
+             reused verbatim (same /api/drop-notify endpoint, same
+             form classes, same confirmation behavior) — the card
+             keeps its name/image/gallery; there is nothing to pick,
+             only a list to join. The colorway swatches above stay:
+             they navigate the gallery, they are not an order form. -->
+        <form class="btlv-form notify227" id="qvNotifyForm227" novalidate>
+          <label for="qvEmail227">Get notified when this one opens for orders</label>
+          <input type="email" class="btlv-email" id="qvEmail227" placeholder="Parent/guardian email" autocomplete="email">
+          <button type="submit" class="btlv-notify" id="qvNotifyBtn227">Notify me</button>
+          <p class="btlv-msg" id="qvNotifyMsg227" role="status" aria-live="polite"></p>
+        </form>
       </div>
     </div>
   </div>
@@ -2257,15 +2265,19 @@
       <p class="hsv-line" id="hsLine">Built for the diamond. Made for the hype.</p>
       <p class="hsv-price" id="hsPrice">$69.99</p>
       <p class="hsv-status">Sample phase — sales open soon</p>
-      <p class="qv-colors-label">Youth size</p>
-      <div class="hsv-sizes" id="hsSizes" role="group" aria-label="Youth sizes">
-        <button type="button" class="hsv-size" data-hs-size="YXS" aria-pressed="false">YXS</button>
-        <button type="button" class="hsv-size" data-hs-size="YS" aria-pressed="false">YS</button>
-        <button type="button" class="hsv-size" data-hs-size="YM" aria-pressed="false">YM</button>
-        <button type="button" class="hsv-size" data-hs-size="YL" aria-pressed="false">YL</button>
-        <button type="button" class="hsv-size" data-hs-size="YXL" aria-pressed="false">YXL</button>
-      </div>
-      <button type="button" class="hsv-cta" disabled aria-disabled="true">COMING SOON</button>
+      <!-- Round 227: the size picker + disabled COMING SOON button
+           dead end is replaced by the bottles view's notify-me
+           capture, reused verbatim (same /api/drop-notify endpoint,
+           same form classes, same confirmation behavior). The
+           Round 183 dormant launch wiring now targets this form:
+           when the shop goes live it hides the form and puts the
+           BUY NOW link in its place. -->
+      <form class="btlv-form notify227" id="hsNotifyForm227" novalidate>
+        <label for="hsEmail227">Get notified when this one opens for orders</label>
+        <input type="email" class="btlv-email" id="hsEmail227" placeholder="Parent/guardian email" autocomplete="email">
+        <button type="submit" class="btlv-notify" id="hsNotifyBtn227">Notify me</button>
+        <p class="btlv-msg" id="hsNotifyMsg227" role="status" aria-live="polite"></p>
+      </form>
       <button type="button" class="hsv-guide-link" data-size-guide-open>📏 Size Guide</button>
       <ul class="hsv-feats">
         <li>Premium, soft fabric</li>
@@ -2542,6 +2554,6 @@
   </div>
 </div>
 
-<script src="app.js?v=223"></script>
+<script src="app.js?v=224"></script>
 </body>
 </html>
