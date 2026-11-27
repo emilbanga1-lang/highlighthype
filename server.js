@@ -402,17 +402,54 @@ Gate rules: "play" = clearly a sports play; "unsure" = probably sports but uncle
 //                        pattern).
 // The style recipe is LOCKED server-side: the endpoint accepts
 // only the frame image — no client field can reach the prompt.
+// Round 218 (2026-11-26, Emil): the recipe now builds the full
+// Hype Frame FORMAT design (name line / label / crown / framed
+// illustration / branding on solid black). The studio's design
+// fields (name mode, name, number, custom words, label, tone)
+// are validated into FIXED SLOTS and interpolated as data —
+// the client still cannot send a prompt; its text only ever
+// lands inside the quoted slots below.
 const HF_AVATAR_MODEL206 = process.env.HF_AVATAR_MODEL || "gpt-image-1";
-const HF_AVATAR_PROMPT206 = "Turn this youth sports photo into a bold, stylized illustrated avatar of the same athlete in the same moment: a premium sports-poster illustration with clean shapes, strong outlines and dynamic energy. Keep the same pose, sport, action and uniform colors. Accent the scene with metallic gold and black HighlightHype brand tones and a subtle gold crown motif in the background. The face is a stylized illustration, never photorealistic. Illustrated artwork only — no text, no words, no letters, no logos, no watermark.";
+const HF_AVATAR_NAME_MODES218 = ["name", "name_number", "none", "custom"];
+function hfAvatarSlot218(v, max) {
+  return String(v == null ? "" : v).replace(/[^\p{L}\p{N} .,'&#!-]/gu, "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+function hfAvatarDesign218(body) {
+  const b = body && typeof body === "object" ? body : {};
+  return {
+    nameMode: HF_AVATAR_NAME_MODES218.includes(b.nameMode) ? b.nameMode : "name",
+    name: hfAvatarSlot218(b.name, 16),
+    number: String(b.number == null ? "" : b.number).replace(/\D/g, "").slice(0, 3),
+    customText: hfAvatarSlot218(b.customText, 16),
+    label: hfAvatarSlot218(b.label, 24).toUpperCase(),
+    tone: b.tone === "pink" ? "pink" : "blue",
+  };
+}
+function hfAvatarPrompt218(d) {
+  const top = d.nameMode === "none" ? "" :
+    d.nameMode === "custom" ? d.customText :
+    d.nameMode === "name_number" ? [d.name, d.number].filter(Boolean).join(" ") :
+    d.name;
+  const colorWord = d.tone === "pink" ? "hot pink" : "bright blue";
+  const topLine = top
+    ? `Across the very top, the text "${top}" in huge ${colorWord} brush-stroke lettering. `
+    : "There is NO name or word line across the top — the top of the design carries only the gold crown and the label above the frame. ";
+  const labelLine = d.label
+    ? `Near the top, above the frame, the label "${d.label}" in small white letter-spaced capital letters, with a thin gold brush stroke beneath it. `
+    : "";
+  return "Turn this youth sports photo into a finished Hype Frame print design on a solid black background: a bold, stylized illustrated avatar of the same athlete in the same moment, staying faithful to the photo — keep the exact pose, sport, action, uniform and uniform colors, and keep the photo's real setting, background, other players, lighting and colors; illustrate the scene that is actually there instead of inventing a new one. Build the design in this exact format, top to bottom. " +
+    topLine + labelLine +
+    "In the top-right corner, a gold brush-stroke crown. In the center, the illustrated moment inside a distressed white grunge frame with rough, splattered edges. At the bottom, the words \"HYPE FRAME\" in huge white brush-stroke lettering, and beneath them \"HIGHLIGHTHYPE\" in small white letter-spaced capital letters with the word HYPE in gold. The ONLY text in the image is the text named in this prompt, spelled exactly as given — no other words, letters, numbers, logos or watermarks anywhere. Premium sports-poster illustration with clean shapes and strong outlines. The athlete's face is a stylized illustration, never photorealistic.";
+}
 const HF_AVATAR_MAX206 = 5 * 1024 * 1024; // decoded frame cap (the studio sends a <=1024px JPEG)
 function hfAvatarConfigured206() {
   return !!process.env.OPENAI_API_KEY && process.env.HH_NO_AVATAR !== "1";
 }
-async function runHfAvatar206(buf, mime) {
+async function runHfAvatar206(buf, mime, design218) {
   const base = String(process.env.HF_AVATAR_BASE_URL || "https://api.openai.com").replace(/\/+$/, "");
   const form = new FormData();
   form.append("model", HF_AVATAR_MODEL206);
-  form.append("prompt", HF_AVATAR_PROMPT206);
+  form.append("prompt", hfAvatarPrompt218(design218 || hfAvatarDesign218(null)));
   form.append("size", "auto");
   form.append("image", new Blob([buf], { type: mime }), mime === "image/png" ? "frame.png" : "frame.jpg");
   const ctl = new AbortController();
@@ -937,6 +974,16 @@ try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN image_style TEXT DEFAULT
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text TEXT DEFAULT 'name'"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_custom TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN back_text_reviewed INTEGER DEFAULT 0"); } catch {}
+// Design name mode + label (Round 218, 2026-11-26): the R197
+// back-text choice became the print design's "Name on design"
+// choice — the name now lives IN the artwork (the format's top
+// line), not in an embroidered band. name_mode mirrors the
+// order's back_text choice under its design name; design_label
+// is the format's short label line (the play's moment label,
+// parent-editable in the studio, sanitized to <=24 chars).
+// Added additively, same pattern; older rows read ''.
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN name_mode TEXT DEFAULT ''"); } catch {}
+try { db.exec("ALTER TABLE hype_frame_orders ADD COLUMN design_label TEXT DEFAULT ''"); } catch {}
 // Payment handoff (Round 200, 2026-11-26): the studio stays the
 // order book; Shopify is the register. payment_status is '' for
 // every pre-R200 row (the legacy request flow — the owner email
@@ -1623,7 +1670,7 @@ function notifyHypeFrameRequest(order, play, opts = {}) {
   const paid200 = !!opts.paid;
   smtpSend({ host: process.env.SMTP_HOST || "mail.privateemail.com", port: Number(process.env.SMTP_PORT || 465), user, pass, from: user, to,
     subject: paid200 ? `HighlightHype: Hype Frame order PAID — ${play.title}` : `HighlightHype: new Hype Frame request — ${play.title}`,
-    body: `${paid200 ? `PAYMENT CONFIRMED on Shopify — this Hype Frame order is PAID and cleared for production.\nShopify order: ${order.shopify_order_id || "—"} · Site order #${order.id}` : "A family just submitted a Hype Frame order request on highlighthype.com."}\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "front" ? "Front" : "Back"} · Image: ${order.image_style === "avatar" ? (order.avatar_generated ? "AI avatar — generated in the studio (OpenAI); the print image on file IS the finished avatar, no illustration step needed" : "Avatar — illustrate the frame before printing") : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: ${paid200 ? "PAID — payment confirmed via Shopify; cleared for production." : "pending-guardian — nothing is printed until you confirm with the parent/guardian."}\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
+    body: `${paid200 ? `PAYMENT CONFIRMED on Shopify — this Hype Frame order is PAID and cleared for production.\nShopify order: ${order.shopify_order_id || "—"} · Site order #${order.id}` : "A family just submitted a Hype Frame order request on highlighthype.com."}\n\nPlay: ${play.title} (Play ID: ${play.id})\nPrint name: ${order.custom_name || "—"}${order.jersey ? ` · #${order.jersey}` : ""}\nBack text: ${hfBackTextToEmbroider197(order) || "NO BACK TEXT"}${order.back_text === "custom" ? " (custom words — review before production)" : ""}\nDesign (Round 218 format): name mode ${order.name_mode || order.back_text || "name"} · label "${order.design_label || ""}" — the name rides IN the print artwork now, not as separate embroidery\nHYPE FRAME branding: ${order.branding ? "yes" : "no"}\nApparel: ${order.apparel} · ${order.colorway} · Size: ${order.size || "YM"} · Print side: ${order.side === "front" ? "Front" : "Back"} · Image: ${order.image_style === "avatar" ? (order.avatar_generated ? "AI avatar — generated in the studio (OpenAI); the print image on file IS the finished avatar, no illustration step needed. The design sits on a black background — production knocks the black out for the DTF print (transparent), the same as the shop's transparent test files" : "Avatar — illustrate the frame before printing") : "Real photo"}\n${(() => { try { const p = JSON.parse(order.placement || ""); return p ? `Placement: ${p.cx}% / ${p.cy}% · ${p.size}% size\n` : ""; } catch { return ""; } })()}Parent/guardian: ${order.guardian_name ? order.guardian_name + " — " : ""}${order.guardian_email}\nStatus: ${paid200 ? "PAID — payment confirmed via Shopify; cleared for production." : "pending-guardian — nothing is printed until you confirm with the parent/guardian."}\n${order.print_image ? "Print image: on file — use Download print image on the request in Owner view." : "Print image: NOT on file for this request — the order was saved without one."}\n\nSee the request in Owner view: https://highlighthype.com/#owner\n` })
     .catch((e) => console.error("notifyHypeFrameRequest failed:", e.message));
 }
 // ---- Round 200: Shopify payment handoff helpers ----
@@ -5764,10 +5811,13 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/hype-frame/avatar-status" && req.method === "GET") {
       return sendJson(res, 200, { ok: true, configured: hfAvatarConfigured206() });
     }
-    // Generation: the browser posts ONLY the frozen frame (a data
-    // URL it captured itself). The frame is validated, forwarded
-    // to OpenAI with the locked server-side style prompt, and
-    // dropped — never logged, never stored. The generated PNG
+    // Generation: the browser posts the frozen frame (a data URL
+    // it captured itself) plus, since Round 218, the design
+    // fields for the format's slots (name mode / name / number /
+    // custom words / label / tone). The frame is validated, the
+    // fields are sanitized into fixed prompt slots server-side,
+    // and the request is forwarded to OpenAI — the frame is
+    // dropped, never logged, never stored. The generated PNG
     // returns as a data URL; the studio decides whether it
     // becomes the order's print art.
     if (p === "/api/hype-frame/avatar" && req.method === "POST") {
@@ -5784,9 +5834,10 @@ const server = http.createServer(async (req, res) => {
       if (!m) return sendJson(res, 400, { ok: false, configured: true, message: "Send the frozen frame as a jpeg/png data URL." });
       const buf = Buffer.from(m[2], "base64");
       if (!buf.length || buf.length > HF_AVATAR_MAX206) return sendJson(res, 400, { ok: false, configured: true, message: "That frame is too large to send to the avatar maker." });
+      const design218 = hfAvatarDesign218(body);
       try {
-        const image = await runHfAvatar206(buf, "image/" + m[1]);
-        console.log("hype-frame avatar: generated (" + HF_AVATAR_MODEL206 + ")");
+        const image = await runHfAvatar206(buf, "image/" + m[1], design218);
+        console.log("hype-frame avatar: generated (" + HF_AVATAR_MODEL206 + ", mode " + design218.nameMode + ")");
         return sendJson(res, 200, { ok: true, configured: true, image });
       } catch (e) {
         console.error("hype-frame avatar failed:", e.message);
@@ -6066,6 +6117,15 @@ const server = http.createServer(async (req, res) => {
         if (!digits197) return sendJson(res, 400, { ok: false, message: "Add the jersey number — you picked name + number for the back." });
         jersey197 = digits197;
       }
+      // Design name mode + label (Round 218): the client sends
+      // nameMode alongside backText (the same four choices under
+      // their design name — an absent or unknown value falls back
+      // to the back-text choice) and the design's label line,
+      // sanitized with the avatar slot rules (printable chars
+      // only, <=24) and stored uppercased as the format prints it.
+      const nameMode218 = ["name", "name_number", "none", "custom"].includes(String(body.nameMode || "").trim().toLowerCase())
+        ? String(body.nameMode).trim().toLowerCase() : backTextChoice;
+      const designLabel218 = hfAvatarSlot218(body.designLabel, 24).toUpperCase();
       // Garment color (Round 199, 2026-11-26 — Emil): the studio
       // sells exactly two colorways now, Black and Heather Gray,
       // and an order must name one of them. Unlike the enum fields
@@ -6120,6 +6180,8 @@ const server = http.createServer(async (req, res) => {
         jersey: jersey197,
         back_text: backTextChoice,
         back_text_custom: backTextCustom,
+        name_mode: nameMode218,
+        design_label: designLabel218,
         branding: body.branding === false ? 0 : 1,
         apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
         // Round 208 (2026-11-26, Emil): the print-side default
@@ -6144,8 +6206,8 @@ const server = http.createServer(async (req, res) => {
         guardian_email: guardianEmail,
         placement,
       };
-      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,avatar_generated,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.avatar_generated, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom);
+      const info = db.prepare(`INSERT INTO hype_frame_orders(highlight_id,athlete_id,print_image,custom_name,jersey,branding,apparel,side,image_style,avatar_generated,colorway,size,guardian_name,guardian_email,placement,back_text,back_text_custom,name_mode,design_label)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(order.highlight_id, order.athlete_id, order.print_image, order.custom_name, order.jersey, order.branding, order.apparel, order.side, order.image_style, order.avatar_generated, order.colorway, order.size, order.guardian_name, order.guardian_email, order.placement, order.back_text, order.back_text_custom, order.name_mode, order.design_label);
       if (imgProblem) console.error(`hype-frame order ${Number(info.lastInsertRowid)} saved WITHOUT its print image: ${imgProblem}`);
       // Round 200: with the Shopify handoff ON, the order starts
       // as awaiting_payment and the owner email is DEFERRED to the
