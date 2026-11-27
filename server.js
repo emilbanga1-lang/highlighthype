@@ -1773,8 +1773,12 @@ function notifyHypeFrameRequest(order, play, opts = {}) {
 // 15536451584213, every variant $110 — the price lives ONLY in
 // Shopify; the site never passes one). Keys are the studio's ten
 // sizes (Round 199), 1:1 with the product's variants.
+// Round 226 (2026-11-27, Emil): YXXS is cut catalog-wide — its
+// entry leaves this map, so a YXXS order can never resolve a
+// checkout variant. The Shopify-side variant itself is Emil's
+// separate admin step; historical orders are untouched.
 const HF_VARIANTS_200 = {
-  YXXS: "68266140827861", YXS: "68266140860629", YS: "68266140893397",
+  YXS: "68266140860629", YS: "68266140893397",
   YM: "68266140926165", YL: "68266140958933", YXL: "68266140991701",
   S: "68717544734933", M: "68717544767701", L: "68717544800469", XL: "68717544833237",
 };
@@ -6600,7 +6604,10 @@ const server = http.createServer(async (req, res) => {
         colorway: colorway199,
         // Round 199: adult sizes S–XL join the youth run in the
         // whitelist; the sanitize-to-YM fallback is unchanged.
-        size: ["YXXS", "YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"].includes(String(body.size || "").trim().toUpperCase()) ? String(body.size).trim().toUpperCase() : "YM",
+        // Round 226: YXXS leaves the whitelist (cut catalog-wide)
+        // — a payload naming it now gets the same treatment as
+        // any other invalid size (the sanitize-to-YM fallback).
+        size: ["YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"].includes(String(body.size || "").trim().toUpperCase()) ? String(body.size).trim().toUpperCase() : "YM",
         guardian_name: String(body.guardianName || "").trim().slice(0, 80),
         guardian_email: guardianEmail,
         placement,
@@ -7642,4 +7649,20 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });
+/* Round 226 (2026-11-27, Emil-approved): one-time correction of
+   play 78's public Team field. The Nov 26 site audit found it
+   reading "Kameron Angelin" — a child's full surname, where the
+   site standard is first name + last initial. No owner-side edit
+   path for the team field exists (owner actions change status /
+   athlete links only), so the correction is a guarded UPDATE:
+   the WHERE clause is the whole guard — it fires ONLY when the
+   row is id 78 AND the current value is exactly the surname
+   form, and no-ops on every later boot and for any other value.
+   No other play's data is touched. */
+function r226TeamFix78() {
+  try {
+    const r = db.prepare("UPDATE highlights SET team='Kameron A' WHERE id=78 AND team='Kameron Angelin'").run();
+    if (r.changes) console.log("[r226] play 78 team corrected: 'Kameron Angelin' -> 'Kameron A' (Emil-approved surname removal)");
+  } catch (e) { console.error("[r226] play 78 team correction failed:", e && e.message); }
+}
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); r226TeamFix78(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });
