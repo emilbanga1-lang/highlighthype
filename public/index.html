@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=211" />
+<link rel="stylesheet" href="styles.css?v=213" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1529,6 +1529,19 @@
             <p class="small"><b>Photo</b> — your frozen frame, printed as the photo it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
             <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
                       <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
+                      <!-- Round 221: the avatar's view of the frame — a
+                           zoomed crop (65% wide, 4:5) the parent centers
+                           on the athlete with a tap. Only the crop is
+                           sent; the photo print still uses the full
+                           frame. -->
+                      <div class="hf-avatar-crop221" id="hfAvatarCrop221" hidden>
+                        <div class="hf-avatar-crop-stage221" id="hfAvatarCropStage221">
+                          <img id="hfAvatarCropImg221" alt="Your frozen frame — the outlined area is what the avatar artist works from">
+                          <div class="hf-avatar-crop-box221" id="hfAvatarCropBox221" aria-hidden="true"></div>
+                          <span class="hf-avatar-crop-dot221" id="hfAvatarCropDot221" aria-hidden="true"></span>
+                        </div>
+                        <p class="small hf-avatar-crop-cap221">This is what the artist sees — tap the photo to center on your athlete.</p>
+                      </div>
                       <button type="button" class="btn btn-lime hf-avatar-make206" id="hfAvatarMake206" disabled>✨ Make my avatar</button>
                       <p class="hf-avatar-status206" id="hfAvatarStatus206" aria-live="polite" hidden></p>
                       <div class="hf-avatar-result206" id="hfAvatarResult206" hidden>
@@ -2442,6 +2455,6 @@
   </div>
 </div>
 
-<script src="app.js?v=217"></script>
+<script src="app.js?v=219"></script>
 </body>
 </html>

@@ -1343,7 +1343,27 @@ function posterUrlFor134(h) {
    word Vote — "Vote · N votes" — because a bare "N votes"
    read as a stat, not as the way to vote. Text only: the
    pill's class, its place in .fame-info and the row's tap
-   behavior are exactly as built. */
+   behavior are exactly as built.
+   Round 220 (2026-11-26, Emil — "I want people to be able
+   to vote"): the pill becomes a REAL vote control — the
+   board tile chip's button form (Rounds 108/153): a
+   <button> wired to the same toggleVote, its click AND
+   keydown stopped so the row's own tap / Enter / Space
+   handlers never also fire. The voted state mirrors the
+   tile chip: "Voted" wording, the .voted class,
+   aria-pressed, the remove-vote aria-label; after a toggle
+   toggleVote's loadData refresh re-renders the row with
+   the fresh count and state, like every vote surface.
+   BOTH boards get the button: Hall of Fame plays accept
+   votes exactly like Month plays — the vote endpoint
+   takes any approved play, and a Fame row's destination
+   (the play card via goToPlayCard) has always carried a
+   live Vote button; Round 182's retirement bars a winner
+   from re-ENTERING the contest, never from being voted
+   on. Samples keep the display-only span — they never
+   reach this renderer (the contest query excludes them,
+   renderFame filters them), and the standing rule is
+   samples get no vote affordance (Round 108). */
 function fameRowHtml134(h, i, opts = {}) {
   const name = firstNameOf(h);
   const poster = posterUrlFor134(h);
@@ -1354,10 +1374,16 @@ function fameRowHtml134(h, i, opts = {}) {
      opts.feed189) open the watch feed at the row's play; Hall
      of Fame rows keep the classic goToPlayCard tap. */
   const tap134 = opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
+  /* Round 220: the votes pill — a real toggleVote button for
+     real plays (see the block above), the R219 display span
+     for samples. */
+  const pill220 = h.isSample
+    ? `<span class="fame-votes-pill134">Vote · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span>`
+    : `<button type="button" class="fame-votes-pill134 fame-vote-btn220${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)" onkeydown="event.stopPropagation()">${h.hasVoted ? "Voted" : "Vote"} · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</button>`;
   return `<div class="fame-row${i === 0 ? " top" : ""}" data-tile-id="${h.id}" role="button" tabindex="0" title="See this play's card" onclick="${tap134}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();${tap134}}">
       <span class="fame-rank">${i + 1}</span>
       <span class="fame-thumb fame-thumb134">${thumb}</span>
-      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p><span class="fame-votes-pill134">Vote · ${h.voteCount} vote${h.voteCount === 1 ? "" : "s"}</span></div>
+      <div class="fame-info"><h4>${esc(name ? `${name} · ` : "")}${esc(shortTitle(h.title))}</h4><p>${esc(cap(h.sport))}${Number(h.viewCount) >= 1 ? ` · ▶ ${fmtCount151(h.viewCount)}` : ""}${typeof momentChipInline162 === "function" && momentChipInline162(h) ? ` · ${momentChipInline162(h)}` : ""}</p>${pill220}</div>
     </div>`;
 }
 function renderFame() {
@@ -3337,7 +3363,7 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0 };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0, avatarFocus221: null };
 // Round 215 state: screen215 (the one-page studio's two
 // screens — "product" / "review" — presentation only, never
 // read by the order path; the Round 211 step211 / stepMax211
@@ -3434,6 +3460,7 @@ function initHfStudio(play) {
   hfState.avatarBusy206 = false;
   hfState.frameCanvas206 = null;
   hfState.designAspect218 = 0;
+  hfState.avatarFocus221 = null;
   const fineRow206 = $("#hfFineRow206");
   if (fineRow206) fineRow206.hidden = hfState.mediaType !== "video";
   const fineTime206 = $("#hfFineTime206");
@@ -3793,6 +3820,7 @@ function hfCapturePrint() {
   hfState.avatarApplied206 = false;
   hfState.avatarPreview206 = false;
   hfState.designAspect218 = 0;
+  hfState.avatarFocus221 = null; // Round 221: a new frame re-centers the avatar crop
   if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
   composeHfPrint();
   return true;
@@ -4592,6 +4620,7 @@ function hfSeedPoster215(play) {
       hfState.avatarApplied206 = false;
       hfState.avatarPreview206 = false;
       hfState.designAspect218 = 0;
+      hfState.avatarFocus221 = null; // Round 221: a seeded frame starts with a centered avatar crop
       if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
       composeHfPrint();
       if (!hfState.printDataUrl) throw new Error("empty print");
@@ -4601,6 +4630,7 @@ function hfSeedPoster215(play) {
       hfState.printDataUrl = "";
       hfState.printAspect = 0;
       hfState.frameCanvas206 = null;
+      hfState.avatarFocus221 = null;
       hfSyncFrozenThumb();
       hfGarmentSync206();
     }
@@ -4946,6 +4976,76 @@ function hfSyncAvatar206() {
   const useBtn = $("#hfAvatarUse206"), photoBtn = $("#hfAvatarPhoto206");
   if (useBtn) useBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 === true));
   if (photoBtn) photoBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 !== true));
+  hfSyncAvatarCrop221();
+}
+/* Round 221 (Emil, from the first live R218 test): the maker
+   was fed the WHOLE frame and invented a generic scene around
+   the small athlete in it. The panel now shows a zoomed crop of
+   the frame — exactly what the model will see — and the parent
+   taps the photo to center the crop on their athlete. The crop
+   is a send-time choice only: the photo path still composes the
+   full frame, no order field changes, and the generated design
+   keeps the R218 flow (its own aspect is recorded at approval,
+   designAspect218 — the crop never reaches it). Focus is stored
+   as fractions of the frame (avatarFocus221, null = center) and
+   resets whenever a new frame is frozen or seeded. */
+function hfAvatarCrop221(srcW, srcH, focus) {
+  const fx = focus && isFinite(focus.x) ? Math.min(1, Math.max(0, focus.x)) : 0.5;
+  const fy = focus && isFinite(focus.y) ? Math.min(1, Math.max(0, focus.y)) : 0.5;
+  let cw = Math.max(1, Math.round(srcW * 0.65));
+  let ch = Math.round(cw * 1.25);
+  if (ch > srcH) { ch = srcH; cw = Math.max(1, Math.round(ch / 1.25)); }
+  if (cw > srcW) { cw = srcW; ch = Math.round(cw * 1.25); }
+  const x = Math.round(Math.min(Math.max(fx * srcW - cw / 2, 0), Math.max(0, srcW - cw)));
+  const y = Math.round(Math.min(Math.max(fy * srcH - ch / 2, 0), Math.max(0, srcH - ch)));
+  return { x, y, w: cw, h: ch };
+}
+function hfAvatarCropSrc221() {
+  const src = hfState.frameCanvas206;
+  if (!src || !src.width || !src.height) return "";
+  const scale = Math.min(1, 512 / Math.max(src.width, src.height));
+  const tc = document.createElement("canvas");
+  tc.width = Math.max(1, Math.round(src.width * scale));
+  tc.height = Math.max(1, Math.round(src.height * scale));
+  tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
+  return tc.toDataURL("image/jpeg", 0.85);
+}
+function hfSyncAvatarCrop221() {
+  const wrap = $("#hfAvatarCrop221"); if (!wrap) return;
+  const src = hfState.frameCanvas206;
+  if (!src || !src.width || !src.height) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  const img = $("#hfAvatarCropImg221");
+  if (img) { const u = hfAvatarCropSrc221(); if (u && img.getAttribute("src") !== u) img.src = u; }
+  const crop = hfAvatarCrop221(src.width, src.height, hfState.avatarFocus221);
+  const box = $("#hfAvatarCropBox221");
+  if (box) {
+    box.style.left = (crop.x / src.width * 100) + "%";
+    box.style.top = (crop.y / src.height * 100) + "%";
+    box.style.width = (crop.w / src.width * 100) + "%";
+    box.style.height = (crop.h / src.height * 100) + "%";
+  }
+  const dot = $("#hfAvatarCropDot221");
+  if (dot) {
+    const f = hfState.avatarFocus221;
+    const fx = f && isFinite(f.x) ? Math.min(1, Math.max(0, f.x)) : 0.5;
+    const fy = f && isFinite(f.y) ? Math.min(1, Math.max(0, f.y)) : 0.5;
+    dot.style.left = (fx * 100) + "%";
+    dot.style.top = (fy * 100) + "%";
+  }
+}
+function hfAvatarCropTap221(ev) {
+  const stage = $("#hfAvatarCropStage221");
+  if (!stage || !hfState.frameCanvas206) return;
+  const r = stage.getBoundingClientRect();
+  if (!r || !r.width || !r.height) return;
+  const cx = ev && isFinite(ev.clientX) ? ev.clientX : r.left + r.width / 2;
+  const cy = ev && isFinite(ev.clientY) ? ev.clientY : r.top + r.height / 2;
+  hfState.avatarFocus221 = {
+    x: Math.min(1, Math.max(0, (cx - r.left) / r.width)),
+    y: Math.min(1, Math.max(0, (cy - r.top) / r.height)),
+  };
+  hfSyncAvatarCrop221();
 }
 async function hfMakeAvatar206() {
   if (hfState.avatarBusy206) return;
@@ -4965,17 +5065,21 @@ async function hfMakeAvatar206() {
   hfSyncAvatar206();
   hfAvatarNote206("Creating your avatar… this can take up to a minute. Your photo stays put until it's ready.");
   try {
-    // The frame the maker sees: the frozen still itself, capped
-    // at 1024px on its long edge as a JPEG — plenty for the
-    // model, kind to the connection. The frame plus the design
+    // Round 221: the frame the maker sees is the panel's zoomed
+    // CROP of the frozen still (hfAvatarCrop221 — 65% of the
+    // frame's width at 4:5, centered on the parent's tap),
+    // capped at 1024px on its long edge as a JPEG. A tight crop
+    // hands the model the actual athlete to illustrate instead
+    // of a wide scene to invent around. The crop plus the design
     // slots above are posted; the recipe that assembles them
     // lives server-side and can't be reached from here.
     const src = hfState.frameCanvas206;
-    const scale = Math.min(1, 1024 / Math.max(src.width, src.height));
+    const crop221 = hfAvatarCrop221(src.width, src.height, hfState.avatarFocus221);
+    const scale = Math.min(1, 1024 / Math.max(crop221.w, crop221.h));
     const tc = document.createElement("canvas");
-    tc.width = Math.max(1, Math.round(src.width * scale));
-    tc.height = Math.max(1, Math.round(src.height * scale));
-    tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
+    tc.width = Math.max(1, Math.round(crop221.w * scale));
+    tc.height = Math.max(1, Math.round(crop221.h * scale));
+    tc.getContext("2d").drawImage(src, crop221.x, crop221.y, crop221.w, crop221.h, 0, 0, tc.width, tc.height);
     const image = tc.toDataURL("image/jpeg", 0.87);
     const design218 = { nameMode: mode218, name: first218, number: jersey218, customText: custom218, label: hfDesignLabel218(), tone: hfTone218() };
     const ctl = new AbortController();
@@ -5162,6 +5266,10 @@ async function hfSubmitOrder206() {
   if (fineFwd206) fineFwd206.addEventListener("click", () => hfFineStep206(0.1));
   const make206 = $("#hfAvatarMake206");
   if (make206) make206.addEventListener("click", () => { hfMakeAvatar206(); });
+  // Round 221: tapping the crop preview re-centers the avatar's
+  // crop on the athlete.
+  const cropStage221 = $("#hfAvatarCropStage221");
+  if (cropStage221) cropStage221.addEventListener("click", (ev) => hfAvatarCropTap221(ev));
   const use206 = $("#hfAvatarUse206"), photo206 = $("#hfAvatarPhoto206");
   if (use206) use206.addEventListener("click", () => hfApplyAvatar206());
   if (photo206) photo206.addEventListener("click", () => hfUsePhoto206());

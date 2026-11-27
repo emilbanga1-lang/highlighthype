@@ -3260,6 +3260,13 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-avatar-consent206{margin:0 0 10px;font-size:13.5px;font-weight:700;color:#fff;line-height:1.45}
 .hf-avatar-make206{width:100%}
 .hf-avatar-make206[disabled]{opacity:.55;cursor:default}
+.hf-avatar-crop221{margin:0 0 12px}
+.hf-avatar-crop221[hidden]{display:none}
+.hf-avatar-crop-stage221{position:relative;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#000;cursor:pointer;line-height:0}
+.hf-avatar-crop-stage221 img{display:block;width:100%;height:auto}
+.hf-avatar-crop-box221{position:absolute;border:2px solid var(--volt);border-radius:6px;box-shadow:0 0 0 999px rgba(0,0,0,.45);pointer-events:none;box-sizing:border-box}
+.hf-avatar-crop-dot221{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--volt);border:2px solid #000;pointer-events:none;box-sizing:border-box}
+.hf-avatar-crop-cap221{margin:8px 0 0}
 .hf-avatar-status206{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
 .hf-avatar-status206[hidden]{display:none}
 .hf-avatar-result206{margin-top:12px}
@@ -3492,6 +3499,15 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .fame-play134 svg{margin-left:1px}
 .fame-info .fame-votes-pill134{display:inline-block;margin-top:7px}
 @media (max-width:640px){ .fame-thumb134{height:96px} }
+
+/* ---- Round 220 (2026-11-26): the fame pill as a real vote
+   button — the pill class above carries the look; a <button>
+   still needs its font/cursor reset, the tile chip's voted
+   treatment (filled gold, dark ink) and the shared
+   vote-failure treatment. ---- */
+.fame-vote-btn220{font-family:inherit;cursor:pointer}
+.fame-vote-btn220.voted{background:#f0b93e;border-color:#f0b93e;color:#171200}
+.fame-vote-btn220.vote-failed{background:#3a1114;color:#ffb9be;border-color:#ff5d68}
 
 /* ---- Round 140 (2026-11-13, Emil): the board tabs centered
    as a group. Watch / Battles / Hype of the Month keep their
