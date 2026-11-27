@@ -78,7 +78,7 @@ const home = fs.readFileSync(path.join(ROOT, "public/index.html"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. statics ----
-assert(home.includes('src="app.js?v=212"') && home.includes('href="styles.css?v=208"'), "A: client pins unchanged — app.js v212 / styles v208 (Round 213 is server-only)");
+assert(home.includes('src="app.js?v=213"') && home.includes('href="styles.css?v=209"'), "A: client pins unchanged — app.js v212 / styles v208 (Round 213 is server-only) — →214: pins now v213/v209 (Round 214)");
 assert(serverJs.includes("ADD COLUMN r213_checked_at"), "A: the r213_checked_at stamp column exists");
 assert(serverJs.includes("function r213Window") && serverJs.includes("R213_TRANS_SHARE") && serverJs.includes("R213_BLOCK_FRAC"), "A: the interior-window + concentration machinery is present");
 assert(serverJs.includes("r209_checked_at=?, r213_checked_at=?"), "A: an evaluation stamps r209_checked_at and r213_checked_at in the same write");

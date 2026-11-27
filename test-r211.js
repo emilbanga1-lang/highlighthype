@@ -69,7 +69,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed)");
+assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214)");
 
 // ---- B. Step structure statics ----
 for (const [n, label] of [[1, "Moment"], [2, "Design"], [3, "Review"]])
@@ -266,7 +266,7 @@ assert(appJs.includes("function hfGoStep211") && appJs.includes("function hfGarm
   const s = await boot(41211);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "I: the served homepage carries the Round 211 pins");
+    assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "I: the served homepage carries the Round 211 pins");
     assert(served.includes('id="hfStepMoment211"') && served.includes('id="hfStepDesign211"') && served.includes('id="hfStepReview211"') && served.includes('data-hf-step-pill="3"'), "I: the served studio carries the three steps + stepper");
     for (const f of ["hf-blank-front-black211.jpg", "hf-blank-back-black211.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
       const r = await fetch(s.base + "/swag/" + f);

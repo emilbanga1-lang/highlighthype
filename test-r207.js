@@ -75,7 +75,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
+assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v208 / styles v205 (Round 207; both files changed) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
 
 // ---- the section ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -205,7 +205,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vFilm > vBtn, "G: the served section reads hero -> headline -> CTA -> film link -> film");
   assert(vSec.includes('src="/swag/hf-hoodie-softball.jpg"') && vSec.includes("Build your hoodie") && vSec.includes("Pick a play. Make it yours.") && !vSec.includes("Create yours"), "G: the served section carries the product hero, the renamed CTA and the sub-line — and no 'Create yours'");
   assert(!served.includes("$110"), "G: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
+  assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "G: the served homepage carries the Round 207 pins — →209: app.js now v209 (Round 208); styles keeps v205 — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R207 CHECKS PASSED");

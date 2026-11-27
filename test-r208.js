@@ -57,7 +57,7 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=212"') && home.includes('href="styles.css?v=208"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211)");
+assert(home.includes('src="app.js?v=213"') && home.includes('href="styles.css?v=209"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214)");
 
 // ---- B. statics: the default's every home now says Back ----
 assert(appJs.includes('apparel: "hoodie", side: "back", imageStyle: "photo"'), "B: the hfState literal opens on side 'back'");

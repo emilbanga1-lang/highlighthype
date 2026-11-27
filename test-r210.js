@@ -69,7 +69,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=208"') && home.includes('src="app.js?v=212"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211)");
+assert(home.includes('href="styles.css?v=209"') && home.includes('src="app.js?v=213"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214)");
 
 // ---- the section + the overlay after it ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -197,7 +197,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vOv > vBtn && vFilm > vOv, "G: the served section reads hero -> headline -> CTA -> film link -> overlay -> film");
   assert(!served.includes('id="hfHomeFilmBox207"'), "G: the served homepage carries no trace of the retired in-place film box");
   assert(!served.includes("$110"), "G: the served homepage carries no $110 anywhere");
-  assert(served.includes('src="app.js?v=212"') && served.includes('href="styles.css?v=208"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211)");
+  assert(served.includes('src="app.js?v=213"') && served.includes('href="styles.css?v=209"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R210 CHECKS PASSED");
