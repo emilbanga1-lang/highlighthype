@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="theme-color" content="#0a0a0a" />
+<!-- PROTOTYPE (2026-11-17): GameChanger parent guide — built in the
+     /about standalone-page pattern (no app stylesheet/script, no
+     tracking) for Emil's review. NOT routed in server.js and NOT
+     deployed yet; ships only on his approval, like /about did. -->
+<meta name="robots" content="noindex" />
+<title>Get Your GameChanger Clip Into the Hype — HighlightHype</title>
+<!-- Round 226 (2026-11-27): link previews — site-level meta
+     description + Open Graph + Twitter card, so a shared link
+     renders a card. Static site-level tags only; per-play
+     previews are out of scope. -->
+<meta name="description" content="How to get a GameChanger clip into HighlightHype — a short guide for parents and coaches." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="HighlightHype" />
+<meta property="og:title" content="Get Your GameChanger Clip Into the Hype — HighlightHype" />
+<meta property="og:description" content="How to get a GameChanger clip into HighlightHype — a short guide for parents and coaches." />
+<meta property="og:url" content="https://highlighthype.com/gamechanger.html" />
+<meta property="og:image" content="https://highlighthype.com/swag/hf-hoodie-nicholas218.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Get Your GameChanger Clip Into the Hype — HighlightHype" />
+<meta name="twitter:description" content="How to get a GameChanger clip into HighlightHype — a short guide for parents and coaches." />
+<meta name="twitter:image" content="https://highlighthype.com/swag/hf-hoodie-nicholas218.jpg" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0a0a0a; --card:#141414; --card2:#1a1a1a;
+  --white:#ffffff; --muted:#a8a8a0; --muted2:#7c7c74;
+  --volt:#c8ff00; --volt-ink:#131a00;
+  --gold:#D4AF37;
+  --line:#262622; --line2:#33332c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--white);font-family:"Archivo",system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+.gc-wrap{max-width:640px;margin:0 auto;padding:0 16px 40px}
+::selection{background:var(--volt);color:var(--volt-ink)}
+
+.gc-topbar{display:flex;align-items:center;gap:9px;padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.gc-brand{display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
+.gc-brand img{height:30px;width:auto}
+.gc-home{margin-left:auto;color:var(--muted);text-decoration:none;font-weight:700;font-size:14px}
+.gc-home:hover{color:#fff}
+
+.gc-hero{padding:26px 0 4px}
+.gc-eyebrow{display:block;font-size:12px;font-weight:800;font-style:italic;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.gc-hero h1{font-family:"Anton",sans-serif;font-style:italic;font-size:40px;line-height:1.02;margin:0;text-transform:uppercase}
+.gc-hero h1 .volt{color:var(--volt)}
+.gc-lede{margin:14px 0 0;color:var(--muted);font-size:16.5px;font-weight:600}
+.gc-lede strong{color:#fff}
+
+.gc-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 18px;margin-top:22px}
+.gc-card h2{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:23px;line-height:1.05;margin:0 0 4px}
+.gc-card h2 .step-no{color:var(--gold)}
+.gc-card .sub{color:var(--muted);font-size:14.5px;font-weight:600;margin:0 0 14px}
+.gc-steps{list-style:none;margin:0;padding:0;counter-reset:step}
+.gc-steps li{position:relative;padding:0 0 14px 44px;font-size:15.5px;font-weight:600;color:#e9e9e2}
+.gc-steps li:last-child{padding-bottom:2px}
+.gc-steps li::before{counter-increment:step;content:counter(step);position:absolute;left:0;top:-1px;width:30px;height:30px;border-radius:50%;background:var(--card2);border:1px solid var(--line2);color:var(--volt);font-weight:800;font-size:15px;display:grid;place-items:center}
+.gc-steps li b{color:#fff}
+.gc-steps .tap{display:inline-block;background:#23231d;border:1px solid var(--line2);border-radius:7px;padding:0 7px;font-size:13.5px;font-weight:800;color:#fff;white-space:nowrap}
+
+.gc-note{margin-top:14px;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--muted);font-weight:600}
+.gc-note b{color:#fff}
+
+.gc-cta{display:block;margin-top:18px;background:var(--volt);color:var(--volt-ink);text-align:center;text-decoration:none;font-weight:800;font-size:17px;padding:15px 18px;border-radius:13px;text-transform:uppercase;letter-spacing:.02em}
+.gc-cta:hover{background:#d9ff4d}
+
+.gc-faq{margin-top:22px}
+.gc-faq h3{font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);margin:0 0 8px}
+.gc-faq p{margin:0 0 12px;color:var(--muted);font-size:14.5px;font-weight:600}
+.gc-faq p b{color:#fff}
+
+.gc-foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted2);font-size:12.5px;font-weight:600;text-align:center}
+</style>
+</head>
+<body>
+<div class="gc-wrap">
+
+  <div class="gc-topbar">
+    <a class="gc-brand" href="/"><img src="/logo-header-gold.png?v=119" alt="HighlightHype" /></a>
+    <a class="gc-home" href="/">← Back to the board</a>
+  </div>
+
+  <div class="gc-hero">
+    <span class="gc-eyebrow">For Parents</span>
+    <h1>Your clip is already filmed.<br /><span class="volt">Get it into the Hype.</span></h1>
+    <p class="gc-lede">If your team streams on <strong>GameChanger</strong>, your athlete's best plays are already clipped and waiting in the app. Moving one to HighlightHype takes about a minute — here's exactly how.</p>
+  </div>
+
+  <div class="gc-card">
+    <h2><span class="step-no">Step 1 —</span> Save the clip from GameChanger</h2>
+    <p class="sub">GameChanger automatically clips plays from every game that was streamed and scored.</p>
+    <ol class="gc-steps">
+      <li>Open your team in GameChanger and go to <b>your player's page</b>.</li>
+      <li>Tap the <span class="tap">Video Clips</span> tab. You can filter by batting, fielding, or pitching to find the play faster.</li>
+      <li>On the clip, tap the <span class="tap">⋯ More</span> icon, then <span class="tap">Share Clip</span>.</li>
+      <li>Give it about <b>45 seconds</b> — GameChanger prepares the clip (one at a time), then a share sheet pops up.</li>
+      <li>Tap <span class="tap">Save Video</span>. The clip is now in your camera roll.</li>
+    </ol>
+    <div class="gc-note"><b>Another way in:</b> open the game from the Schedule tab, find the play in the Play-by-Play, tap the clip, then tap the white share button in the corner of the player — same share sheet, same Save Video.</div>
+    <div class="gc-note"><b>On Android?</b> GameChanger saves to Google Photos or Google Drive instead of your gallery. Save it there — you'll pick it from there in Step 2.</div>
+  </div>
+
+  <div class="gc-card">
+    <h2><span class="step-no">Step 2 —</span> Post it on HighlightHype</h2>
+    <p class="sub">Straight from your camera roll — no editing, no trimming.</p>
+    <ol class="gc-steps">
+      <li>Tap the button below, then tap <span class="tap">Upload a Hype</span>.</li>
+      <li>Choose the clip you just saved.</li>
+      <li>Pick your athlete, name the play, and confirm you're the parent or guardian.</li>
+      <li>Hit submit. Every play is reviewed by a real person — then it's live on the board and in the running for <b>Hype of the Month</b>.</li>
+    </ol>
+    <a class="gc-cta" href="/">Upload a Hype</a>
+  </div>
+
+  <div class="gc-faq">
+    <h3>No clips on your player's page?</h3>
+    <p>Clips are only created when the game was <b>both streamed and scored</b> in GameChanger — if nobody streamed it, there are no clips to grab. Highlight clips are free for team staff; <b>parents may need a GameChanger subscription</b> to download them. Your coach or scorekeeper can tell you which games were streamed.</p>
+    <h3>Filmed it yourself instead?</h3>
+    <p>Even easier — skip Step 1. Any clip in your camera roll can go straight in through Upload a Hype.</p>
+  </div>
+
+  <div class="gc-foot">HighlightHype is not affiliated with GameChanger or Dick's Sporting Goods. GameChanger is a trademark of GameChanger Media, Inc.</div>
+
+</div>
+</body>
+</html>

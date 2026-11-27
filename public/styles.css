@@ -4158,3 +4158,22 @@ body.feed-open189{overflow:hidden}
 .card-scrub223::after{content:"";position:absolute;left:0;right:0;top:-9px;bottom:-9px}
 .card-scrub223 span{position:absolute;left:0;top:0;bottom:0;width:0;background:#e8cf8f;border-radius:3px}
 .card-time223{flex:none;font-size:12.5px;font-weight:700;color:#cfc9ba;font-variant-numeric:tabular-nums}
+
+/* ================================================================
+   Round 226 (2026-11-27): the Daily Battle's large format
+   (reviewer feedback, Emil-approved). The Daily card widens
+   (560 → 720) and its matchup + player fill the width, so the
+   A/B previews read as large side-by-side cards; titles step
+   up with them. Each preview carries its own vote button
+   directly beneath it — the vote row mirrors the matchup's
+   geometry (card / 38px VS badge / card, same 10px gaps), so
+   Vote A sits exactly under preview A and Vote B under B.
+   The Quick stage and Battle Run keep the compact format.
+   ================================================================ */
+#dailyCard{max-width:720px}
+#dailyCard .btl-matchup{max-width:none}
+#dailyCard .btl-player{max-width:none}
+#dailyCard .btl-mtitle{font-size:16.5px}
+#dailyCard .btl-mbody{padding:10px 12px 12px}
+.daily-voterow226{display:flex;gap:10px;margin:10px auto 0;align-items:stretch}
+.daily-vote-vs226{flex:0 0 38px}

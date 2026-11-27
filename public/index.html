@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="color-scheme" content="dark" />
 <title>HighlightHype — Every Athlete Deserves The Hype</title>
+<!-- Round 226 (2026-11-27): link previews — site-level meta
+     description + Open Graph + Twitter card, so a shared link
+     renders a card. Static site-level tags only; per-play
+     previews are out of scope. -->
+<meta name="description" content="HighlightHype — every athlete deserves the hype. Post a play, vote for Hype of the Month, battle plays head to head, and turn a favorite moment into a Hype Frame hoodie." />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="HighlightHype" />
+<meta property="og:title" content="HighlightHype — Every Athlete Deserves The Hype" />
+<meta property="og:description" content="HighlightHype — every athlete deserves the hype. Post a play, vote for Hype of the Month, battle plays head to head, and turn a favorite moment into a Hype Frame hoodie." />
+<meta property="og:url" content="https://highlighthype.com/" />
+<meta property="og:image" content="https://highlighthype.com/swag/hf-hoodie-nicholas218.jpg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="HighlightHype — Every Athlete Deserves The Hype" />
+<meta name="twitter:description" content="HighlightHype — every athlete deserves the hype. Post a play, vote for Hype of the Month, battle plays head to head, and turn a favorite moment into a Hype Frame hoodie." />
+<meta name="twitter:image" content="https://highlighthype.com/swag/hf-hoodie-nicholas218.jpg" />
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="/favicon.png">
 <!-- Round 161 (2026-11-14): installable web app (PWA). The
@@ -32,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=215" />
+<link rel="stylesheet" href="styles.css?v=216" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -871,13 +886,22 @@
         <p class="daily-streak105" id="dailyStreak105" hidden></p>
         <div id="dailyMain" hidden>
           <div class="btl-matchup" id="dailyMatchup"></div>
+          <!-- Round 226 (2026-11-27): the Daily previews are
+               LARGE cards now, and each carries its own vote
+               button directly beneath it (Vote A under A, Vote B
+               under B — the spacer mirrors the matchup's VS
+               badge so the buttons align with the cards). The
+               buttons keep their ids and the dailyPick100 wiring;
+               only their place and labels changed. The old
+               pick row below the player is retired. -->
+          <div class="daily-voterow226">
+            <button type="button" class="btl-pick" id="dailyPickA">Vote A</button>
+            <span class="daily-vote-vs226" aria-hidden="true"></span>
+            <button type="button" class="btl-pick" id="dailyPickB">Vote B</button>
+          </div>
           <div class="btl-player">
             <video id="dailyPlayer" playsinline loop preload="metadata" controls></video>
             <span class="btl-now" id="dailyNowLabel"></span>
-          </div>
-          <div class="btl-pickrow">
-            <button type="button" class="btl-pick" id="dailyPickA">Pick A</button>
-            <button type="button" class="btl-pick" id="dailyPickB">Pick B</button>
           </div>
           <div class="daily-split" id="dailySplit" hidden></div>
           <p class="daily-share-row"><button type="button" class="mini-btn" id="dailyShare">🔗 Share this matchup</button></p>
@@ -1397,7 +1421,9 @@
            design) → Color & size. The price line sits
            under the product name; NO size is preselected (the
            Review gate requires an explicit pick); YXXS is not
-           offered in the studio (it stays in the store). The
+           offered in the studio (→226: cut catalog-wide — the
+           store, the guides, the server whitelist and the
+           Shopify variant map dropped it too). The
            Round 215 collapsible option rows are retired: the
            sections stand open, the row/panel ids survive as the
            section heads/bodies, and every control keeps its id,
@@ -1634,7 +1660,6 @@
           <div class="hf-sizeguide205" id="hfSizeGuide205" hidden>
                     <table>
                       <tr><th>Youth</th><th>Chest</th><th>Length</th></tr>
-                      <tr><td>YXXS</td><td>26″</td><td>17″</td></tr>
                       <tr><td>YXS</td><td>28″</td><td>19″</td></tr>
                       <tr><td>YS</td><td>30″</td><td>21″</td></tr>
                       <tr><td>YM</td><td>32″</td><td>23″</td></tr>
@@ -2197,7 +2222,6 @@
         <p class="qv-price" id="qvPrice">$69.99</p>
         <p class="qv-colors-label">Youth sizes</p>
         <div class="qv-sizes" id="qvSizes" role="group" aria-label="Youth sizes">
-          <button type="button" class="qv-size" data-qv-size="YXXS" aria-pressed="false">YXXS</button>
           <button type="button" class="qv-size" data-qv-size="YXS" aria-pressed="false">YXS</button>
           <button type="button" class="qv-size" data-qv-size="YS" aria-pressed="false">YS</button>
           <button type="button" class="qv-size" data-qv-size="YM" aria-pressed="false">YM</button>
@@ -2235,7 +2259,6 @@
       <p class="hsv-status">Sample phase — sales open soon</p>
       <p class="qv-colors-label">Youth size</p>
       <div class="hsv-sizes" id="hsSizes" role="group" aria-label="Youth sizes">
-        <button type="button" class="hsv-size" data-hs-size="YXXS" aria-pressed="false">YXXS</button>
         <button type="button" class="hsv-size" data-hs-size="YXS" aria-pressed="false">YXS</button>
         <button type="button" class="hsv-size" data-hs-size="YS" aria-pressed="false">YS</button>
         <button type="button" class="hsv-size" data-hs-size="YM" aria-pressed="false">YM</button>
@@ -2268,7 +2291,7 @@
           <p>Care: Wash inside-out, cold. Hang dry to protect the print.</p>
         </div>
         <div class="hsv-tab-panel" data-hs-panel="sizeguide" hidden>
-          <p>Youth sizes YXXS–YXL. Ages are general youth sizing guidance — when between sizes, size up for the relaxed athletic fit.</p>
+          <p>Youth sizes YXS–YXL. Sizes are garment measurements in inches — chest across, shoulder to hem (the same guide as the Hype Frame studio). When between sizes, size up for the relaxed athletic fit.</p>
           <button type="button" class="hsv-guide-link hsv-guide-link-inline" data-size-guide-open>📏 Open the full size guide</button>
         </div>
         <div class="hsv-tab-panel" data-hs-panel="shipping" hidden>
@@ -2318,20 +2341,29 @@
   <div class="sg-backdrop" data-sg-close></div>
   <div class="sg-panel">
     <button type="button" class="sg-close" data-sg-close aria-label="Close size guide">✕</button>
-    <h4 id="sgTitle">Youth Size Guide</h4>
-    <p class="sg-note">Youth sizes: YXXS · YXS · YS · YM · YL · YXL</p>
+    <h4 id="sgTitle">Size Guide</h4>
+    <!-- Round 226 (2026-11-27): ONE guide everywhere — this
+         overlay now carries the Hype Frame studio's inches
+         table (the operative guide for the product on sale),
+         replacing the old ages table; YXXS is cut with the
+         rest of the catalog. -->
+    <p class="sg-note">Youth sizes: YXS · YS · YM · YL · YXL · Adult sizes: S · M · L · XL</p>
     <table class="sg-table">
-      <thead><tr><th scope="col">Size</th><th scope="col">Age — general youth sizing guidance</th></tr></thead>
+      <thead><tr><th scope="col">Youth</th><th scope="col">Chest</th><th scope="col">Length</th></tr></thead>
       <tbody>
-        <tr><td>YXXS</td><td>4–5</td></tr>
-        <tr><td>YXS</td><td>6–7</td></tr>
-        <tr><td>YS</td><td>8</td></tr>
-        <tr><td>YM</td><td>10–12</td></tr>
-        <tr><td>YL</td><td>14–16</td></tr>
-        <tr><td>YXL</td><td>18–20</td></tr>
+        <tr><td>YXS</td><td>28″</td><td>19″</td></tr>
+        <tr><td>YS</td><td>30″</td><td>21″</td></tr>
+        <tr><td>YM</td><td>32″</td><td>23″</td></tr>
+        <tr><td>YL</td><td>34″</td><td>25″</td></tr>
+        <tr><td>YXL</td><td>36″</td><td>26″</td></tr>
+        <tr><th scope="col">Adult</th><th scope="col">Chest</th><th scope="col">Length</th></tr>
+        <tr><td>S</td><td>40″</td><td>27″</td></tr>
+        <tr><td>M</td><td>42″</td><td>28″</td></tr>
+        <tr><td>L</td><td>44″</td><td>29″</td></tr>
+        <tr><td>XL</td><td>46″</td><td>30″</td></tr>
       </tbody>
     </table>
-    <p class="sg-note">Ages are general youth sizing guidance, not exact measurements — when between sizes, size up for the relaxed athletic fit.</p>
+    <p class="sg-note">Chest is the garment's width across the chest; length is shoulder to hem. A general guide — between sizes, size up for a growing athlete.</p>
   </div>
 </div>
 
@@ -2510,6 +2542,6 @@
   </div>
 </div>
 
-<script src="app.js?v=222"></script>
+<script src="app.js?v=223"></script>
 </body>
 </html>

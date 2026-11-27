@@ -1653,7 +1653,7 @@ function updateContestStrip107() {
    the stacked layout lives in the Round 129 styles.css block
    (the 126 classes stay). */
 function hypeFrameStrip126() {
-  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXXS–YXL · Adult sizes S–XL</span></p></div></div>`;
+  return `<div class="hf-strip126"><div class="hf-strip-film126"><div class="hf-film-box"><div class="hf-film-cover" id="hfFilmCoverFeed126"><img src="/swag/hf-hoodie-softball.jpg" alt="Example finish: a softball player's frozen contact moment printed on the back of a black hoodie, with the Hype Frame frame and script" loading="lazy" decoding="async"><button type="button" class="hf-film-btn hf-film-btn-sm126" onclick="playHfFeedFilm126()">▶ See how it works</button></div><video id="hfFeedFilm126" data-click-play src="/hype-frame-film.mp4?v=7" controls playsinline preload="none" hidden></video></div></div><div class="hf-strip-copy126"><p class="hf-strip-lockup126"><span class="hf-strip-tag126">📸 Hype Frame</span><b>Your moment on a hoodie</b></p><p class="hf-strip-stepsline126">Your video <span>→</span> pick a frame <span>→</span> photo or avatar <span>→</span> we take care of the rest</p><p class="hf-strip-cta126"><button type="button" class="hf-strip-btn126" onclick="openHfChoice()">Create a Hype Frame →</button> <span class="hf-strip-note126">Front or back print · Youth sizes YXS–YXL · Adult sizes S–XL</span></p></div></div>`;
 }
 function renderAll2() { /* All Hypes view */
   // Round 10 (2026-11-05): the "All teams" filter is GONE at the
@@ -4373,13 +4373,19 @@ function hfSetPreset(p) {
 // same ten the Shopify product carries, so the payment handoff
 // maps 1:1. One list: hfPickSize validates against it and the
 // server mirrors it.
-const HF_SIZES = ["YXXS", "YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"];
+// Round 226 (2026-11-27, Emil): YXXS is cut CATALOG-WIDE — the
+// list below is the nine surviving sizes, and the studio list
+// is the same nine (Round 222's studio-only cut is superseded).
+const HF_SIZES = ["YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"];
 /* Round 222 (2026-11-26, Emil): the STUDIO offers nine of the
    ten — YXXS is not offered here ("get rid of XXS — they
    tighten up onto one line"), while it stays in the store, in
    HF_SIZES above, in the server's whitelist and in the Shopify
    variant map. hfPickSize validates against THIS list, so a
-   studio pick can never be YXXS. */
+   studio pick can never be YXXS.
+   →226: the cut went catalog-wide — this list and HF_SIZES are
+   now the same nine; the server whitelist and the Shopify
+   variant map dropped YXXS too. */
 const HF_STUDIO_SIZES222 = ["YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"];
 function hfPickColor(name) {
   const list = HF_COLORWAYS[hfState.apparel] || [];
@@ -4394,7 +4400,7 @@ function hfPickColor(name) {
   if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
 }
 function hfPickSize(size) {
-  if (!HF_STUDIO_SIZES222.includes(size)) return; // Round 222: the studio's nine — YXXS is not offered here
+  if (!HF_STUDIO_SIZES222.includes(size)) return; // Round 222: the studio's nine — YXXS is not offered here (→226: cut catalog-wide)
   hfState.size = size;
   $$("#hfSizes [data-hf-size]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfSize === size)));
   hfSyncSummary205();
@@ -7819,8 +7825,13 @@ function d100MiniHTML(prefix, slot, p, opts) {
      passes false (its matchup is a guess until picked, and a
      crown would leak the historical winner). */
   const crowns179 = opts && opts.crowns && typeof crownsHtml105 === "function" ? crownsHtml105(p) : "";
+  /* Round 226: the Daily card's previews are large — their
+     still is the play's own poster image. The slot carries it
+     (poster226) and the media install applies it to the pooled
+     video, ahead of any banked-frame upgrade. */
+  const poster226 = opts && opts.poster226 ? ` data-poster226="${esc(p.poster_url || "")}"` : "";
   return `<article class="btl-mini" id="${prefix}Mini${slot}" data-slot="${slot}">
-    <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}" role="img" aria-label="${esc(p.title)} — clip loading"></span>
+    <span class="btl-video-slot111" data-btl-media111 data-url="${esc(p.media_url)}" data-sport="${esc(cap(p.sport))}" data-title="${esc(p.title)}"${poster226} role="img" aria-label="${esc(p.title)} — clip loading"></span>
     <span class="btl-letter" aria-hidden="true">${slot}</span>
     <span class="btl-stamp">👑 WINNER</span>
     <span class="btl-yourpick">👑 Your pick</span>
@@ -7862,7 +7873,7 @@ function d100WireMatchup(prefix, plays, onWatch, opts) {
      top card or a run the visitor just started). */
   if (typeof btlRetireMatchup111 === "function") btlRetireMatchup111(matchup);
   matchup.innerHTML = d100MiniHTML(prefix, "A", plays.A, opts) + '<div class="btl-vs">VS</div>' + d100MiniHTML(prefix, "B", plays.B, opts);
-  if (typeof btlInstallMedia111 === "function") btlInstallMedia111(matchup, { eager: true });
+  if (typeof btlInstallMedia111 === "function") btlInstallMedia111(matchup, { eager: true, poster226: !!(opts && opts.poster226) });
   matchup.querySelectorAll(".btl-mini").forEach((el) => {
     el.addEventListener("click", () => onWatch(el.dataset.slot));
   });
@@ -7924,13 +7935,13 @@ async function loadDaily100() {
   if (dateEl) dateEl.textContent = r.date;
   /* Round 179: crowns ride the minis only once the visitor has
      picked (the result state) — never on the unpicked matchup. */
-  d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); }, { crowns: !!r.yourPick });
+  d100WireMatchup("daily", { A: r.a, B: r.b }, (slot) => { d100.dailyWatch = slot; d100Watch("daily", slot, slot === "A" ? r.a : r.b); }, { crowns: !!r.yourPick, poster226: true });
   const pickA = document.getElementById("dailyPickA"), pickB = document.getElementById("dailyPickB");
   const split = document.getElementById("dailySplit");
   const anotherRow = document.getElementById("dailyAnotherRow");
   if (r.yourPick) {
-    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Pick A"; }
-    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Pick B"; }
+    if (pickA) { pickA.disabled = true; pickA.textContent = r.yourPick === r.a.id ? "👑 Your pick" : "Vote A"; }
+    if (pickB) { pickB.disabled = true; pickB.textContent = r.yourPick === r.b.id ? "👑 Your pick" : "Vote B"; }
     const pickedMini = document.getElementById("dailyMini" + (r.yourPick === r.a.id ? "A" : "B"));
     if (pickedMini) pickedMini.classList.add("picked");
     if (split && r.split) { split.innerHTML = splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice); split.hidden = false; }
@@ -7942,8 +7953,8 @@ async function loadDaily100() {
   } else {
     d100.dailyCollapsed = false;
     if (card) card.classList.remove("daily-slim112");
-    if (pickA) { pickA.disabled = false; pickA.textContent = "Pick A"; }
-    if (pickB) { pickB.disabled = false; pickB.textContent = "Pick B"; }
+    if (pickA) { pickA.disabled = false; pickA.textContent = "Vote A"; }
+    if (pickB) { pickB.disabled = false; pickB.textContent = "Vote B"; }
     if (anotherRow) anotherRow.hidden = true;
     if (split) { split.hidden = true; split.innerHTML = ""; }
     if (stripPick) stripPick.textContent = "";
@@ -8933,6 +8944,12 @@ function btlInstallMedia111(matchup, opts = {}) {
       const v = btlObtainMedia111({ url: slot.dataset.url || "", sport: slot.dataset.sport || "", title: slot.dataset.title || "" });
       slot.replaceWith(v);
       btlWireMedia111(v);
+      /* Round 226: a poster226 slot (the Daily's large cards)
+         pins the play's own poster image as the video's still,
+         applied after the wiring so the banked-frame poster
+         never covers it at install time. Playback itself is
+         the pooled master, unchanged (Round 192). */
+      if (opts.poster226) { const sp226 = slot.dataset.poster226 || ""; if (sp226) { try { v.poster = sp226; } catch { /* the poster is a bonus */ } } }
       if (typeof btlMarkVertical113 === "function") btlMarkVertical113(v);
     };
     slot._btlInstall111 = install;
