@@ -4219,3 +4219,90 @@ body.feed-open189{overflow:hidden}
 .crown-ic227{width:1em;height:1em;object-fit:contain;vertical-align:-0.12em}
 .notify227{margin-top:14px;text-align:left}
 .notify227 label{font-weight:700;font-size:14.5px}
+
+/* ================================================================
+   Round 230 (2026-11-27): the B2 homepage — Today's Battle
+   directly under the hero, the Featured Play + monthly standing
+   as ONE combined card, and More Highlights carrying the full
+   leaderboard. Emil approved the B2 mock with his own
+   revisions; the styles below are that mock's, on the site's
+   own palette/type, with 230-suffixed classes so no board
+   surface moves. The hero gains only the secondary battle
+   anchor + the explainer line; its film and layout are
+   untouched. The three sections are .view-home elements, so
+   the store / page-sub / studio home-stack rules treat them
+   exactly like the hero and the merch card.
+   ================================================================ */
+.home-battle230[hidden],.home-feat230[hidden],.home-more230[hidden]{display:none}
+#homeBattle230{scroll-margin-top:76px}
+/* hero additions (Round 230) */
+.hero-battle-link230{color:var(--white);font-weight:800;font-size:15.5px;text-decoration:none;border-bottom:2px solid var(--gold);padding-bottom:2px}
+.hero-battle-link230:hover{color:var(--gold)}
+.hero-explainer230{margin:14px 0 0;font-size:14.5px;color:rgba(255,255,255,.82);font-weight:600}
+/* Today's Battle (Round 230) */
+.home-battle230{padding:30px 0 4px}
+.hb230-eyebrow{display:flex;align-items:center;gap:14px;color:var(--gold)}
+.hb230-rule{flex:1;height:1px;background:var(--gold);opacity:.55}
+.hb230-eyebrow span{font-size:13px;font-weight:800;font-style:italic;letter-spacing:.16em;text-transform:uppercase}
+.hb230-q{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:clamp(34px,6vw,54px);text-align:center;margin:8px 0 0;line-height:1.05}
+.hb230-practice{text-align:center;color:var(--muted);font-weight:700;font-size:13.5px;margin:10px 0 0}
+.hb230-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+@media(max-width:560px){ .hb230-grid{gap:9px} }
+.hb230-card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.hb230-card.picked{border-color:var(--gold)}
+.hb230-media{position:relative;aspect-ratio:4/3.4;background:#000;display:block;cursor:pointer}
+.hb230-media img,.hb230-media video{width:100%;height:100%;object-fit:cover;display:block}
+.hb230-play{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.hb230-play svg{width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.5);border:1.5px solid rgba(255,255,255,.8);padding:15px 14px 15px 17px;box-sizing:border-box}
+.hb230-side{position:absolute;top:8px;left:8px;background:var(--gold);color:#0a0a0a;font-family:"Anton",sans-serif;font-size:14px;border-radius:8px;padding:2px 9px;letter-spacing:.04em}
+.hb230-info{padding:11px 12px 10px}
+.hb230-info h4{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:clamp(15.5px,2.6vw,20px);line-height:1.12;margin:0}
+.hb230-info p{margin:2px 0 0;color:var(--muted);font-size:12.5px;font-weight:700}
+.hb230-vote{margin:12px;padding:13px 10px;background:none;border:1.5px solid var(--gold);color:var(--gold);font-size:15.5px;width:calc(100% - 24px);margin-top:auto}
+.hb230-vote:disabled{opacity:.85;cursor:default}
+.hb230-split{margin-top:14px}
+.hb230-skip{display:block;margin:14px auto 0;background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;font-family:"Archivo",sans-serif}
+/* Featured Play + standing (Round 230) */
+.home-feat230{padding:34px 0 4px}
+.feat230{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+@media(min-width:860px){ .feat230{display:grid;grid-template-columns:1.25fr 1fr} }
+.feat230-media{position:relative;aspect-ratio:16/9;background:#000;cursor:pointer}
+.feat230-media img,.feat230-media video{width:100%;height:100%;object-fit:cover;display:block}
+@media(min-width:860px){ .feat230-media{aspect-ratio:auto;min-height:300px} .feat230-media img,.feat230-media video{position:absolute;inset:0} }
+.feat230-disc{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}
+.feat230-disc svg{width:64px;height:64px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.85);padding:17px 16px 17px 20px;box-sizing:border-box}
+.feat230-side{display:flex;flex-direction:column}
+.feat230-meta{display:flex;align-items:center;gap:10px;padding:14px 16px 0;flex-wrap:wrap}
+.feat230-meta .feat-views151{margin:0}
+.feat230-body{padding:8px 16px 16px;display:flex;flex-direction:column;flex:1}
+.feat230-eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);font-style:italic}
+.feat230-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:23px;line-height:1.15;margin:3px 0 0}
+.feat230-title .who{color:var(--gold)}
+.feat230-sub{color:var(--muted);font-size:13.5px;font-weight:600;margin:2px 0 0}
+.feat230-standing{margin-top:14px;border:1px solid var(--gold);border-radius:12px;padding:10px 12px;background:linear-gradient(180deg,#171307,var(--card2));font-size:13.5px;font-weight:600;color:var(--muted)}
+.feat230-standing b{color:var(--white)}
+.feat230-standing .race{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;color:var(--gold);font-size:14.5px;letter-spacing:.03em}
+.feat230-vote{margin-top:auto;padding-top:14px}
+.feat230-vote .feat-vote134{margin-top:0}
+/* More Highlights + leaderboard (Round 230) */
+.home-more230{padding:36px 0 6px}
+.hm230-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:clamp(30px,5vw,44px);margin:0;line-height:1.05}
+.hm230-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.hm230-grid[hidden]{display:none}
+@media(min-width:860px){ .hm230-grid{grid-template-columns:repeat(4,1fr)} }
+.hm230-tile{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.hm230-media{position:relative;aspect-ratio:16/10;background:#000;cursor:pointer}
+.hm230-media img,.hm230-media video{width:100%;height:100%;object-fit:cover;display:block}
+.hm230-watches{position:absolute;left:8px;bottom:8px;background:rgba(0,0,0,.7);border-radius:6px;font-size:11.5px;font-weight:700;padding:2px 7px;color:var(--white)}
+.hm230-body{padding:10px 12px 12px}
+.hm230-body h4{font-family:"Anton",sans-serif;font-style:italic;font-size:15.5px;text-transform:uppercase;margin:0;line-height:1.12}
+.hm230-body p{margin:2px 0 0;color:var(--muted);font-size:12.5px;font-weight:600}
+.hm230-votebtn{margin-top:9px;background:var(--gold);color:#0a0a0a;border:0;border-radius:999px;font-weight:800;font-size:13.5px;padding:8px 14px;cursor:pointer;font-family:"Archivo",sans-serif;display:inline-block}
+.hm230-votebtn.voted{background:#d9a92f;box-shadow:inset 0 0 0 2px rgba(23,18,0,.35)}
+.hm230-votebtn.is-static{cursor:default;opacity:.85}
+.hlb230-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:28px 0 6px;flex-wrap:wrap}
+.hlb230-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:26px;margin:0}
+.hlb230-tabs{display:flex;align-items:baseline;gap:8px;font-size:14px;font-weight:800;color:var(--muted)}
+.hlb230-tabs button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;padding:0 0 2px}
+.hlb230-tabs button[aria-pressed="true"]{color:var(--white);border-bottom:2px solid var(--gold)}
+.hlb230-empty{color:var(--muted);font-weight:600;margin:10px 0 0}

@@ -1573,7 +1573,7 @@ $("#mineFind").addEventListener("submit", async (e) => {
    plays' renditions warm at metadata level (tapWarmBoard217 in
    the Round 217 block — capped, detached elements, typeof-
    guarded like every cross-block call). */
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); if (typeof tapWarmBoard217 === "function") tapWarmBoard217(); }
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); if (typeof tapWarmBoard217 === "function") tapWarmBoard217(); if (typeof renderHome230 === "function") renderHome230(); }
 /* Round 107 (2026-11-12): the hybrid contest strip + the Month
    panel's sub line — both filled from the live contest payload on
    every render, with honest states only: no entries says so, no
@@ -8135,7 +8135,7 @@ async function loadDaily100() {
   const main = document.getElementById("dailyMain"), empty = document.getElementById("dailyEmpty");
   const practice = document.getElementById("dailyPractice"), dateEl = document.getElementById("dailyDate");
   const strip = document.getElementById("dailyStrip"), stripPick = document.getElementById("dailyStripPick"), stripSplit = document.getElementById("dailyStripSplit");
-  if (!r || !r.available) { d100.dailyCollapsed = false; if (card) card.classList.remove("daily-slim112"); if (main) main.hidden = true; if (strip) strip.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; return; }
+  if (!r || !r.available) { d100.dailyCollapsed = false; if (card) card.classList.remove("daily-slim112"); if (main) main.hidden = true; if (strip) strip.hidden = true; if (empty) empty.hidden = false; if (practice) practice.hidden = true; if (typeof renderHome230 === "function") renderHome230(); return; }
   if (empty) empty.hidden = true;
   if (main) main.hidden = false;
   if (strip) strip.hidden = true;
@@ -8189,6 +8189,11 @@ async function loadDaily100() {
     card.classList.add("daily-flash");
     setTimeout(() => card.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
   }
+  /* Round 230: the homepage battle card renders from this same
+     state — every loadDaily100 completion re-renders the home
+     sections (the battle card, and More Highlights' exclusion
+     set, which depends on the pair). */
+  if (typeof renderHome230 === "function") renderHome230();
 }
 async function dailyPick100(slot) {
   const r = d100.daily;
@@ -11560,4 +11565,246 @@ window.openHeroFeed223 = () => {
       } catch (err) { /* an unclaimed hero tap is the pre-223 tap */ }
     }, { capture: true });
   } catch (e) { /* no hero interception — the deck scroll stands */ }
+})();
+
+/* ---------------- Round 230 (2026-11-27): the B2 homepage —
+   Battle under the hero, Featured + standing in one card, More
+   Highlights with the leaderboard inside. Emil approved the B2
+   mock with his own revisions (2026-11-27): the hero keeps its
+   film at full presence and gains two things only — a secondary
+   "Vote in Today's Battle" anchor beside Watch Highlights
+   (present only when a battle exists) and his explainer line
+   under the CTAs; Today's Battle sits DIRECTLY under the hero;
+   the Featured Play and its Hype of the Month standing are ONE
+   combined card; More Highlights shows different athletes only
+   and carries the full leaderboard; Hype Frame keeps its
+   existing section below; Hype Stories stays menu-only (the
+   Round 108 ruling — no homepage section, menu link untouched).
+   Every surface here reads the SAME state the board reads —
+   no parallel data, no new endpoints:
+   - the battle card renders d100.daily (the /api/daily-battle
+     payload loadDaily100 already fetches) and its Vote buttons
+     call the same dailyPick100 the Battles view's buttons
+     call, so a pick on either surface is the same locked pick;
+     loadDaily100 re-renders the home sections at both of its
+     exits, and renderAll carries the orchestrator behind the
+     house typeof guard;
+   - the featured card reads CONTEST.entries[0] — the same #1
+     renderMonth features — with the standing computed from the
+     same payload (period + the leader's month vote count);
+   - the leaderboard rows are fameRowHtml134 over the same
+     CONTEST.entries (This Month) and the same all-time ranking
+     renderFame computes (Hall of Fame tab) — complete, the
+     leader's #1 row included (Emil: standings stay complete);
+   - More Highlights reads ALL_PLAYS in payload order and
+     excludes the battle pair's and the featured play's
+     ATHLETES — identity, not play id: the featured athlete's
+     other plays are excluded too, so the featured athlete
+     appears exactly once in the upper half.
+   Picks stay just-for-fun (Round 179): a battle pick casts no
+   contest vote; the featured/leaderboard/tile Vote buttons are
+   the contest's own toggleVote, exactly as on the board.
+   The sections are decoration-grade: the orchestrator swallows
+   its own errors, so a hiccup here never breaks the board. */
+let homeLbTab230 = "month";
+let homeDailyKicked230 = false;
+
+function homeAthleteKeys230(h) {
+  const keys = new Set();
+  if (!h) return keys;
+  if (h.athlete_id) keys.add("id:" + h.athlete_id);
+  const norm = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  const label = norm(h.athlete_label), name = norm(h.player_name);
+  if (label) keys.add("nm:" + label);
+  if (name) keys.add("nm:" + name);
+  return keys;
+}
+function homeSameAthlete230(a, b) {
+  if (!a || !b) return false;
+  const ka = homeAthleteKeys230(a);
+  for (const k of homeAthleteKeys230(b)) if (ka.has(k)) return true;
+  return false;
+}
+function homeAthleteLabel230(h) {
+  return (h && (h.athlete_label || h.player_name)) || "";
+}
+function homePosterMedia230(h, imgAttrs) {
+  const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
+  if (poster) return `<img src="${esc(poster)}" alt=""${imgAttrs || ""}>`;
+  return typeof fameThumbHtml === "function" ? fameThumbHtml(h, { rest133: true }) : "";
+}
+
+/* The hero's battle anchor exists only while a battle does —
+   created on the first available day, removed when none is. */
+function homeSyncHeroAnchor230(avail) {
+  let link = document.getElementById("heroBattleLink230");
+  if (avail) {
+    if (link) return;
+    const ctas = document.querySelector(".hero-ctas");
+    if (!ctas || typeof document.createElement !== "function") return;
+    link = document.createElement("a");
+    link.id = "heroBattleLink230";
+    link.className = "hero-battle-link230";
+    link.href = "#homeBattle230";
+    link.textContent = "Vote in Today's Battle ↓";
+    ctas.appendChild(link);
+  } else if (link && typeof link.remove === "function") link.remove();
+}
+
+function homeBattleCard230(slot, p, r) {
+  const picked = !!r.yourPick;
+  const mine = picked && r.yourPick === p.id;
+  const btn = picked
+    ? `<button type="button" class="btn hb230-vote" disabled>${mine ? `${CROWN227} Your pick` : `Vote ${slot}`}</button>`
+    : `<button type="button" class="btn hb230-vote" id="homePick${slot}230" onclick="homeBattlePick230('${slot}')">Vote ${slot}</button>`;
+  return `<article class="hb230-card${mine ? " picked" : ""}">
+    <div class="hb230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(p))} — ${esc(p.title)}" onclick="openPlayDetail(${p.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${p.id})}">${homePosterMedia230(p)}<span class="hb230-side">${slot}</span><span class="hb230-play"><svg width="20" height="22" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="hb230-info"><h4>${esc(p.title)}</h4><p>${esc(homeAthleteLabel230(p))} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}</p></div>
+    ${btn}
+  </article>`;
+}
+function renderHomeBattle230() {
+  const sec = document.getElementById("homeBattle230");
+  const body = document.getElementById("homeBattleBody230");
+  let r = null;
+  try { r = (typeof d100 !== "undefined" && d100) ? d100.daily : null; } catch (e) { /* battles block not initialized in this slice */ }
+  const avail = !!(r && r.available && r.a && r.b);
+  homeSyncHeroAnchor230(avail);
+  if (!sec || !body) return;
+  if (!avail) { sec.hidden = true; body.innerHTML = ""; return; }
+  const split = r.yourPick && r.split && typeof splitHtml100 === "function"
+    ? `<div class="hb230-split">${splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice)}</div>` : "";
+  body.innerHTML = `${r.practice ? `<p class="hb230-practice">Practice matchup · Picks are just for fun</p>` : ""}
+    <div class="hb230-grid">${homeBattleCard230("A", r.a, r)}${homeBattleCard230("B", r.b, r)}</div>
+    ${split}
+    <button type="button" class="hb230-skip" onclick="homeBattleSkip230()">Skip matchup →</button>`;
+  sec.hidden = false;
+}
+/* The home Vote buttons call the Battles view's own pick —
+   one state (d100.daily), one locked pick, both surfaces
+   re-render from loadDaily100 when it lands. */
+async function homeBattlePick230(slot) {
+  const a = document.getElementById("homePickA230"), b = document.getElementById("homePickB230");
+  if (a) a.disabled = true;
+  if (b) b.disabled = true;
+  try { if (typeof dailyPick100 === "function") await dailyPick100(slot); } catch (e) { /* the re-render below restores the buttons */ }
+  renderHomeBattle230();
+}
+/* Skip = the Daily card's own "Play another battle" path: open
+   the Battles view on a fresh Quick matchup. */
+function homeBattleSkip230() {
+  if (typeof switchView === "function") switchView("battles");
+  if (typeof playAnotherBattle102 === "function") playAnotherBattle102();
+  else if (typeof scrollBoardIntoView122 === "function") scrollBoardIntoView122();
+}
+
+function renderHomeFeatured230() {
+  const sec = document.getElementById("homeFeat230");
+  const body = document.getElementById("homeFeatBody230");
+  if (!sec || !body) return;
+  const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
+  const h = entries.length ? entries[0] : null;
+  if (!h) { sec.hidden = true; body.innerHTML = ""; return; }
+  const label = homeAthleteLabel230(h);
+  const votes = h.voteCount;
+  const [y, m] = String(CONTEST.period || "").split("-").map(Number);
+  const monthName = y && m && typeof MONTHS !== "undefined" ? `${MONTHS[m - 1]} ${y}` : "";
+  const chip = typeof momentChipInline162 === "function" ? momentChipInline162(h) : "";
+  const views = Number(h.viewCount) >= 1 ? `<span class="feat-views151">▶ ${watchesText151(h.viewCount)}</span>` : "";
+  const meta = chip || views ? `<div class="feat230-meta">${chip}${views}</div>` : "";
+  const voteBtn = h.isSample
+    ? `<span class="feat-vote134 is-static">${CROWN227} <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>`
+    : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`;
+  body.innerHTML = `<article class="feat230">
+    <div class="feat230-media" role="button" tabindex="0" aria-label="Watch ${esc(label)} — ${esc(shortTitle(h.title))}" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">${homePosterMedia230(h)}<span class="feat230-disc"><svg width="24" height="27" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="feat230-side">
+      ${meta}
+      <div class="feat230-body">
+        <span class="feat230-eyebrow">Featured Play · ${CROWN227} Currently #1</span>
+        <h3 class="feat230-title"><span class="who">${esc(label)}</span> · ${esc(shortTitle(h.title))}</h3>
+        <p class="feat230-sub">${esc(cap(h.sport))}</p>
+        <div class="feat230-standing"><span class="race">🏆 Hype of the Month${monthName ? ` · ${monthName}` : ""}</span><br><b>${esc(label)} leads with ${votes} vote${votes === 1 ? "" : "s"}</b> · Win a homepage feature and a social shoutout.</div>
+        <div class="feat230-vote">${voteBtn}</div>
+      </div>
+    </div>
+  </article>`;
+  sec.hidden = false;
+}
+
+function homeMoreTile230(h) {
+  const votes = h.voteCount;
+  const pill = h.isSample
+    ? `<span class="hm230-votebtn is-static">Vote</span>`
+    : `<button type="button" class="hm230-votebtn${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "✓ Voted" : "Vote"}</button>`;
+  return `<article class="hm230-tile">
+    <div class="hm230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(h))} — ${esc(shortTitle(h.title))}" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">${homePosterMedia230(h, ' loading="lazy"')}${Number(h.viewCount) >= 1 ? `<span class="hm230-watches">▶ ${fmtCount151(h.viewCount)}</span>` : ""}</div>
+    <div class="hm230-body"><h4>${esc(shortTitle(h.title))}</h4><p>${esc(homeAthleteLabel230(h))} · ${esc(cap(h.sport))}</p>${pill}</div>
+  </article>`;
+}
+function renderHomeLb230() {
+  const rows = document.getElementById("homeLbRows230");
+  if (!rows) return false;
+  const mBtn = document.getElementById("homeLbTabMonth230"), fBtn = document.getElementById("homeLbTabFame230");
+  if (mBtn) mBtn.setAttribute("aria-pressed", String(homeLbTab230 !== "fame"));
+  if (fBtn) fBtn.setAttribute("aria-pressed", String(homeLbTab230 === "fame"));
+  if (homeLbTab230 === "fame") {
+    /* The Hall of Fame ranking, computed exactly as renderFame
+       computes it (samples never take a Fame slot) — rendered
+       here, into the home section's own rows. */
+    const ranked = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
+      .filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
+    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
+    return ranked.length > 0;
+  }
+  const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
+  rows.innerHTML = entries.length ? entries.map((h, i) => fameRowHtml134(h, i, { feed189: true })).join("") : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
+  if (typeof hydrateDurPills === "function") hydrateDurPills();
+  return entries.length > 0;
+}
+function renderHomeMore230() {
+  const sec = document.getElementById("homeMore230");
+  const grid = document.getElementById("homeMoreGrid230");
+  if (!sec || !grid) return;
+  const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
+  const feat = entries.length ? entries[0] : null;
+  let daily = null;
+  try { daily = (typeof d100 !== "undefined" && d100) ? d100.daily : null; } catch (e) { /* battles block not initialized in this slice */ }
+  const excluded = [];
+  if (feat) excluded.push(feat);
+  if (daily && daily.available) { if (daily.a) excluded.push(daily.a); if (daily.b) excluded.push(daily.b); }
+  const plays = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS)) ? ALL_PLAYS : [];
+  const tiles = plays.filter((h) => !excluded.some((x) => homeSameAthlete230(x, h))).slice(0, 4);
+  grid.innerHTML = tiles.map(homeMoreTile230).join("");
+  grid.hidden = tiles.length === 0;
+  const lbHas = renderHomeLb230();
+  sec.hidden = !(tiles.length || lbHas || plays.some((h) => !h.isSample));
+}
+/* The orchestrator — renderAll and loadDaily100 both land here.
+   The first pass usually beats the Daily fetch, so it kicks the
+   one shared loader once; loadDaily100's completion hook calls
+   back in and the battle card (plus the hero anchor and More
+   Highlights' exclusion set) settles from the real state. */
+function renderHome230() {
+  try {
+    renderHomeFeatured230();
+    renderHomeMore230();
+    let daily = null;
+    try { daily = (typeof d100 !== "undefined" && d100) ? d100.daily : null; } catch (e) { /* battles block not initialized in this slice */ }
+    if (daily) renderHomeBattle230();
+    else {
+      homeSyncHeroAnchor230(false);
+      const sec = document.getElementById("homeBattle230"); if (sec) sec.hidden = true;
+      if (!homeDailyKicked230 && typeof loadDaily100 === "function") { homeDailyKicked230 = true; loadDaily100(); }
+    }
+  } catch (e) { /* the B2 sections are decoration — a hiccup here never breaks the board load */ }
+}
+(function homeLbWire230() {
+  /* Guarded like initHeroFeed223: VM slices that evaluate this
+     block without a DOM (the test suites') must not throw. */
+  try {
+    if (typeof document === "undefined" || !document || typeof document.getElementById !== "function") return;
+    const bind = (id, tab) => { const el = document.getElementById(id); if (el) el.addEventListener("click", () => { homeLbTab230 = tab; renderHomeLb230(); }); };
+    bind("homeLbTabMonth230", "month");
+    bind("homeLbTabFame230", "fame");
+  } catch (e) { /* no DOM in this context — the tabs simply stay unwired */ }
 })();

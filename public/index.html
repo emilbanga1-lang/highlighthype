@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=218" />
+<link rel="stylesheet" href="styles.css?v=219" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -630,9 +630,80 @@
     <div class="hero-ctas">
       <a class="btn btn-lime btn-hero" href="#deck" data-tablink="plays"><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch Highlights</a>
     </div>
+    <!-- Round 230 (2026-11-27, Emil's B2 homepage): his explainer
+         line rides under the hero CTAs, replacing the old
+         "Opens the full-screen feed" caption idea. The second
+         hero path — the "Vote in Today's Battle" anchor — is
+         inserted into .hero-ctas by renderHomeBattle230 (app.js)
+         ONLY when a Daily Battle is available, so a no-battle
+         day renders no anchor at all. -->
+    <p class="hero-explainer230">Watch youth sports highlights. Vote for your favorite plays.</p>
   </div>
   <button type="button" class="hero-mute is-muted" id="heroMute" aria-label="Unmute the film"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path class="hm-waves" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="hm-waves" d="M18.4 5.8a9.2 9.2 0 0 1 0 12.4"/><line class="hm-slash" x1="3" y1="3" x2="21" y2="21"/></svg><span>Sound</span></button>
 </div>
+
+<!-- Round 230 (2026-11-27): the B2 homepage sections — Emil
+     approved the B2 mock with his own revisions. The order on
+     the home flow is now: Hero → Today's Battle → Featured Play
+     + monthly standing (one card) → More Highlights (with the
+     leaderboard inside) → the board → the Hype Frame card →
+     final CTA → trust → footer. All three sections are rendered
+     by the Round 230 block in app.js from the SAME state the
+     board renders (d100.daily / CONTEST / ALL_PLAYS) — no new
+     endpoints, no parallel data. Each starts hidden and is
+     unhidden by its renderer only when it has something to
+     show. Hype Stories is NOT here: it stays a menu page
+     (Round 108), unchanged. -->
+<!-- Round 230: Today's Battle — DIRECTLY under the hero,
+     nothing between. Rendered by renderHomeBattle230 from
+     d100.daily; its Vote buttons call the same dailyPick100
+     as the Battles view's, so the pick is one pick on both
+     surfaces. Hidden on a no-battle day. -->
+<section class="home-battle230 view-home" id="homeBattle230" hidden>
+  <div class="wrap">
+    <div class="hb230-eyebrow"><span class="hb230-rule"></span><span>Today's Battle</span><span class="hb230-rule"></span></div>
+    <h2 class="hb230-q">Which play wins?</h2>
+    <div id="homeBattleBody230"></div>
+  </div>
+</section>
+
+<!-- Round 230: Featured Play + monthly standing — ONE combined
+     card, rendered by renderHomeFeatured230 from
+     CONTEST.entries[0] (the same #1 renderMonth features) with
+     the standing folded into the card. Hidden when the month
+     has no entries. -->
+<section class="home-feat230 view-home" id="homeFeat230" hidden>
+  <div class="wrap">
+    <div id="homeFeatBody230"></div>
+  </div>
+</section>
+
+<!-- Round 230: More Highlights — different athletes ONLY: the
+     battle pair and the featured athlete are excluded by
+     athlete identity (renderHomeMore230), so the featured
+     athlete appears exactly once in the upper half — in the
+     combined card above. The FULL leaderboard renders inside
+     this section (renderHomeLb230): every This Month entry,
+     the leader's #1 row included (Emil: standings stay
+     complete), with the Hall of Fame on its text tab. -->
+<section class="home-more230 view-home" id="homeMore230" hidden>
+  <div class="wrap">
+    <div class="hm230-head">
+      <span class="sec-tag">Keep watching</span>
+      <h2 class="hm230-title">More Highlights</h2>
+    </div>
+    <div class="hm230-grid" id="homeMoreGrid230"></div>
+    <div class="hlb230-head">
+      <h3 class="hlb230-title">Leaderboard</h3>
+      <div class="hlb230-tabs" role="group" aria-label="Leaderboard — this month or the Hall of Fame">
+        <button type="button" id="homeLbTabMonth230" aria-pressed="true">This Month</button>
+        <span aria-hidden="true">·</span>
+        <button type="button" id="homeLbTabFame230" aria-pressed="false">Hall of Fame</button>
+      </div>
+    </div>
+    <div id="homeLbRows230"></div>
+  </div>
+</section>
 
 <!-- ============ DECK ============ -->
 <div class="deck view-home" id="deck">
@@ -2578,6 +2649,6 @@
   </div>
 </div>
 
-<script src="app.js?v=225"></script>
+<script src="app.js?v=226"></script>
 </body>
 </html>
