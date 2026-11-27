@@ -3192,7 +3192,7 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-instant205[hidden]{display:none}
 .hf-selected205{margin:8px 0 0;font-size:13.5px;font-weight:800;color:var(--volt)}
 .hf-selected205[hidden]{display:none}
-.hf-thumb .hf-rec-badge205{top:5px;right:5px;left:auto;bottom:auto;background:var(--volt);color:#131a00;font-size:9.5px;font-weight:900;letter-spacing:.02em}
+.hf-thumb .hf-rec-badge205{top:4px;right:4px;left:auto;bottom:auto;background:var(--volt);color:#131a00;font-size:7.5px;font-weight:900;letter-spacing:0;padding:1px 4px;white-space:nowrap;max-width:calc(100% - 8px)} /* →235: at 9.5px + the base span's 6px padding the badge ran ~100px wide in an 86px thumb and its left end clipped ("★ Recommended" read "ecommended" in Emil's shot); at 7.5px + 4px padding the whole word fits (~74px in Archivo, ~80px in the widest fallback) */
 #hfJerseyRow205[hidden]{display:none}
 .hf-studio .seg.hf-backtext197{display:grid;grid-template-columns:1fr 1fr;gap:4px;width:100%;border-radius:16px}
 .hf-studio .seg.hf-backtext197 button{white-space:normal;padding:10px 8px;line-height:1.25}
@@ -3319,8 +3319,21 @@ body.hf-studio-open205 #deck.view-home{display:block}
    the product page (Review screen, panel switch, home) and
    never becomes page chrome; the product page carries
    bottom padding so the bar never covers content. [hidden]
-   guards explicit, per the standing CSS trap. */
-#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:96px} /* →229: was 118px — the reserved void Emil flagged; now the compact bar's real height + margin */
+   guards explicit, per the standing CSS trap.
+   →235 (2026-11-27, Emil: "There is still too much space —
+   the button should be moved up"): the fixed bar + reserve
+   still read as a dead band. Measured on his 15:06 shot
+   (428×926 CSS): the bar's real height is ~81px (compact
+   padding 8+8, a ~46px button, the ~19px note line), yet the
+   in-flow void stacked after the buy card was 118px — the
+   96px reserve here + the section's 22px bottom padding —
+   and a viewport-fixed bar floats over that whole column.
+   The bar is now STICKY-IN-FLOW (see .hf-stickybar215): it
+   rests directly below the buy card on a 12px margin, pins
+   to the viewport bottom while the studio scrolls exactly
+   as before, and can never cover content at rest — so the
+   reserve is deleted outright, not re-measured. */
+#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:12px} /* →229: was 118px; →235: was 96px of reserve for the fixed bar — gone with the sticky-in-flow bar */
 #hfProduct215[hidden]{display:none}
 #hfReview215{max-width:560px;margin:0 auto}
 #hfReview215[hidden]{display:none}
@@ -3349,7 +3362,7 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-optpanel215 .hf-cliprow211{margin-top:10px}
 .hf-photo-msg215{margin:12px 0 0;font-size:13.5px;font-weight:700;color:var(--volt);text-align:center}
 .hf-photo-msg215[hidden]{display:none}
-.hf-stickybar215{position:fixed;left:0;right:0;bottom:0;z-index:54;width:calc(100% - 24px);max-width:584px;margin:0 auto;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(14,14,16,.97);border:1px solid var(--line2);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45)}
+.hf-stickybar215{position:sticky;bottom:0;z-index:54;width:calc(100% - 24px);max-width:584px;margin:12px auto 0;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(14,14,16,.97);border:1px solid var(--line2);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45)} /* →235: was position:fixed (+ a 96px reserve on #hfProduct215) — sticky-in-flow now: same pinned-to-viewport-bottom behavior while the studio scrolls, but it rests in flow directly below the buy card, so no reserve and no dead band */
 .hf-review-btn215{width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-size:16px;font-weight:800;color:#191204;background:linear-gradient(180deg,#f9e58c,#e6c95c 38%,#d4af37 62%,#9c7c1e);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);cursor:pointer;touch-action:manipulation}
 .hf-stickybar-note215{margin:8px 0 0;text-align:center;font-size:11px;color:var(--muted)}
 .hf-review-backrow215{margin:0 0 8px}

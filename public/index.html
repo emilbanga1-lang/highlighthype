@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=221" />
+<link rel="stylesheet" href="styles.css?v=222" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1471,9 +1471,10 @@
            R222 mock. The garment preview is STICKY at the top and
            never scrolls away; beneath it the controls flow in
            working order: Your moment (the filmstrip — a few
-           DISTINCT shots first, ★ first — plus Upload a photo,
-           the fence-removal step, and Pick from video as a
-           compact same-page expander) → Artwork (Photo/Avatar,
+           DISTINCT shots first, ★ first — plus Pick from video
+           as a compact same-page expander, Upload a photo, and
+           the fence-removal step — →235: Emil moved Pick from
+           video ABOVE Upload a photo) → Artwork (Frame/Avatar,
            the design label, print style, placement, name on
            design) → Color & size. The price line sits
            under the product name; NO size is preselected (the
@@ -1518,12 +1519,16 @@
                     <!-- Round 229 (2026-11-27, Emil): auto fence-clean —
                          entering the studio checks the frame and cleans
                          a fence automatically (detection first). The
-                         disclosure lives HERE, under the preview, so it
-                         is on screen before any frame is sent; the note
-                         + revert ride the same block. Hidden unless the
-                         server says auto-clean is on. -->
+                         live note + revert ride this block, under the
+                         preview. Hidden unless the server says
+                         auto-clean is on.
+                         →235 (2026-11-27, Emil: "Let's remove this —
+                         it takes too much room"): the standing
+                         disclosure paragraph that opened this block is
+                         gone; only the dynamic parts stay — the
+                         status line and the Use original / Use cleaned
+                         revert. -->
                     <div class="hf-fence-auto229" id="hfFenceAuto229" hidden>
-                      <p class="hf-fence-auto-disclosure229" id="hfFenceAutoDisclosure229">If your frame was shot through a fence, we check it and remove the fence automatically: the frame is checked by a vision AI, and when a fence is found it is sent to OpenAI's image AI to clean it. Your original photo is always one tap away below.</p>
                       <p class="hf-fence-auto-note229" id="hfFenceAutoNote229" aria-live="polite" hidden></p>
                       <div class="seg hf-fence-auto-actions229" id="hfFenceAutoActions229" role="group" aria-label="Cleaned photo or original photo" hidden>
                         <button type="button" id="hfFenceAutoOriginal229">Use original</button>
@@ -1544,26 +1549,6 @@
                            the still recommendation's pre-select. -->
                       <p class="hf-selected205" id="hfSelected205" hidden></p>
                     </div>
-          <div class="hf-upload-row222">
-            <button type="button" class="btn btn-ghost" id="hfUploadBtn222">📷 Upload a photo</button>
-            <input type="file" id="hfUploadInput222" accept="image/*" hidden>
-            <span class="small">No strong frame in the clip? Upload a photo instead — it becomes the print.</span>
-          </div>
-          <div class="hf-fence222" id="hfFence222" hidden>
-            <p class="hf-fence-title222">Shot through a fence?</p>
-            <p class="small">If the backstop fence is in your frame, we can clean it out of the photo — the play stays exactly as it was, minus the fence.</p>
-            <p class="hf-fence-consent222" id="hfFenceConsent222">Fence removal is done by OpenAI's image AI — your photo is sent to OpenAI to clean it. Nothing is sent until you tap the button below. The AI rebuilds what the fence hid, so look the cleaned photo over before you approve it.</p>
-            <button type="button" class="btn btn-ghost" id="hfFenceBtn222">Remove the fence</button>
-            <p class="hf-fence-status222" id="hfFenceStatus222" aria-live="polite" hidden></p>
-            <div class="hf-fence-result222" id="hfFenceResult222" hidden>
-              <img id="hfFenceImg222" alt="Your photo with the fence removed — check it over before you approve it">
-              <div class="seg hf-fence-use222" role="group" aria-label="Use the cleaned photo or keep the original">
-                <button type="button" id="hfFenceUse222">Use the cleaned photo</button>
-                <button type="button" id="hfFenceKeep222">Keep the original</button>
-              </div>
-              <p class="small">The cleaned photo becomes your print only when you pick it — your original is always here to go back to.</p>
-            </div>
-          </div>
           <button type="button" class="hf-cliprow211" id="hfClipRow211" aria-expanded="false" aria-controls="hfClipArea211">
                       <img id="hfClipRowThumb211" alt="" hidden>
                       <span class="hf-cliprow-label211" id="hfClipRowLabel211">Open the clip</span>
@@ -1628,6 +1613,26 @@
                         <p class="small" style="color:#fff;font-size:14px">This play was posted as a link, so we can't freeze a frame from it here — Hype Frame works from an uploaded video file. Post the clip as a file upload and it can be framed.</p>
                       </div>
                     </div>
+          <div class="hf-upload-row222">
+            <button type="button" class="btn btn-ghost" id="hfUploadBtn222">📷 Upload a photo</button>
+            <input type="file" id="hfUploadInput222" accept="image/*" hidden>
+            <span class="small">No strong frame in the clip? Upload a photo instead — it becomes the print.</span>
+          </div>
+          <div class="hf-fence222" id="hfFence222" hidden>
+            <p class="hf-fence-title222">Shot through a fence?</p>
+            <p class="small">If the backstop fence is in your frame, we can clean it out of the photo — the play stays exactly as it was, minus the fence.</p>
+            <p class="hf-fence-consent222" id="hfFenceConsent222">Fence removal is done by OpenAI's image AI — your photo is sent to OpenAI to clean it. Nothing is sent until you tap the button below. The AI rebuilds what the fence hid, so look the cleaned photo over before you approve it.</p>
+            <button type="button" class="btn btn-ghost" id="hfFenceBtn222">Remove the fence</button>
+            <p class="hf-fence-status222" id="hfFenceStatus222" aria-live="polite" hidden></p>
+            <div class="hf-fence-result222" id="hfFenceResult222" hidden>
+              <img id="hfFenceImg222" alt="Your photo with the fence removed — check it over before you approve it">
+              <div class="seg hf-fence-use222" role="group" aria-label="Use the cleaned photo or keep the original">
+                <button type="button" id="hfFenceUse222">Use the cleaned photo</button>
+                <button type="button" id="hfFenceKeep222">Keep the original</button>
+              </div>
+              <p class="small">The cleaned photo becomes your print only when you pick it — your original is always here to go back to.</p>
+            </div>
+          </div>
           <p class="hf-photo-msg215" id="hfPhotoMsg215" aria-live="polite" hidden></p>
         </div>
         <div class="hf-sec-head222" id="hfRowArtwork215">
@@ -1636,10 +1641,10 @@
         </div>
         <div class="hf-optpanel215 hf-sec-body222" id="hfArtworkPanel215">
           <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
-                      <button type="button" data-hf-image-style="photo" aria-pressed="true">Photo</button>
+                      <button type="button" data-hf-image-style="photo" aria-pressed="true">Frame</button>
                       <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
                     </div>
-            <p class="small"><b>Photo</b> — your frozen frame, printed as the photo it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
+            <p class="small"><b>Frame</b> — your frozen frame, printed just as it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
             <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
                       <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
                       <!-- Round 221: the avatar's view of the frame — a
@@ -2631,6 +2636,6 @@
   </div>
 </div>
 
-<script src="app.js?v=230"></script>
+<script src="app.js?v=231"></script>
 </body>
 </html>

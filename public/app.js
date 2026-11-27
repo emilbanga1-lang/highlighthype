@@ -3757,6 +3757,29 @@ function hfBuildStrip() {
       cvs.width = 128;
       cvs.height = Math.max(1, Math.round(128 * cap.videoHeight / cap.videoWidth));
       x.drawImage(cap, 0, 0, cvs.width, cvs.height);
+      // Round 235: a thumb is minted only from pixels that
+      // actually painted — the same unpainted-draw family that
+      // emptied the print window blackened thumbs (Emil's strip
+      // showed a solid-black frame). One redraw, one re-seek,
+      // then the moment is skipped: a frame that can't be
+      // produced never renders as a black selectable tile (it
+      // stays reachable by scrub + Freeze, which validates too).
+      if (hfPixelsBlank235(cvs)) {
+        await new Promise((r) => setTimeout(r, 220));
+        if (token !== hfStripToken) return;
+        x.drawImage(cap, 0, 0, cvs.width, cvs.height);
+      }
+      if (hfPixelsBlank235(cvs)) {
+        await new Promise((res) => {
+          const done = () => { cap.removeEventListener("seeked", done); res(); };
+          cap.addEventListener("seeked", done);
+          setTimeout(res, 1500); // never hang the strip on a stuck seek
+          try { cap.currentTime = Math.min(t, Math.max(0, dur - 0.05)); } catch { res(); }
+        });
+        if (token !== hfStripToken || !cap.videoWidth) continue;
+        x.drawImage(cap, 0, 0, cvs.width, cvs.height);
+      }
+      if (hfPixelsBlank235(cvs)) continue;
       const b = document.createElement("button");
       b.type = "button"; b.className = "hf-thumb";
       b.dataset.hfT = String(t); // Round 205: the still recommendation reads each thumb's moment back
@@ -3854,7 +3877,7 @@ function hfJumpToFrame(t, btn) {
   // is a no-op — the moment section stands open and the pinned
   // hoodie has already updated in view. The fine steppers pass
   // no button and never call it.
-  const select = () => { if (token === hfTapToken127) { hfCapturePrint(); hfHideInstant205(); if (btn) hfPhotoPicked215(); } };
+  const select = () => { if (token === hfTapToken127) { /* Round 235: the instant preview stands down only once the capture COMMITS — a draw that painted nothing keeps the previous print (and this preview) while the capture retry chases the real frame. */ if (hfCapturePrint()) { hfHideInstant205(); if (btn) hfPhotoPicked215(); } } };
   if (v.readyState >= 2 && v.videoWidth && Math.abs((v.currentTime || 0) - target) < 0.05) { select(); return; }
   const onSeeked = () => { v.removeEventListener("seeked", onSeeked); select(); };
   v.addEventListener("seeked", onSeeked);
@@ -4054,22 +4077,110 @@ function hfUpdateTime() {
 /* The capture half of a freeze, shared by the Freeze button and
    the Round 127 one-tap filmstrip pick: draw the CURRENT frame
    (video or photo) into the print canvas and compose it. Returns
-   false when there is nothing capturable yet. */
+   false when there is nothing capturable yet.
+   Round 235 (2026-11-27, Emil: "Even though it shows recommended
+   it doesn't load onto the shirt"): a capture is only believed
+   once its PIXELS are. drawImage(video) at the 'seeked' instant
+   can paint nothing at all on a cold or cellular-starved player
+   (WebKit presents the frame a beat after 'seeked'), and the old
+   code reset #hfCanvas BEFORE drawing — one unpainted draw wiped
+   the good seed frame and composed an EMPTY window into the
+   print (Emil's 14:53 shot: the full design, a blank frame; his
+   14:54 shot caught the same pick painting fine once the player
+   was warm). The same unvalidated draw blackened filmstrip
+   thumbs. Now the draw lands in a scratch canvas and is
+   pixel-probed first; only a frame that actually painted is
+   committed, a blank draw keeps the previous print untouched
+   and retries, and if the frame never paints the parent is told
+   so — never a silent empty window. */
 function hfCapturePrint() {
-  const c = $("#hfCanvas"), x = c.getContext("2d");
+  const token = ++hfCaptureToken235;
   if (hfState.mediaType === "video") {
     const v = $("#hfVideo");
     if (!v.videoWidth || v.readyState < 2) return false;
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    x.drawImage(v, 0, 0, c.width, c.height);
-  } else if (hfState.mediaType === "image") {
+    const scratch = document.createElement("canvas");
+    scratch.width = v.videoWidth; scratch.height = v.videoHeight;
+    scratch.getContext("2d").drawImage(v, 0, 0, scratch.width, scratch.height);
+    if (hfPixelsBlank235(scratch)) { hfCaptureRetry235(token); return false; }
+    return hfCommitCapture235(scratch);
+  }
+  if (hfState.mediaType === "image") {
     const im = $("#hfPhoto");
     if (!im.naturalWidth) return false;
-    c.width = im.naturalWidth; c.height = im.naturalHeight;
-    x.drawImage(im, 0, 0, c.width, c.height);
-  } else {
-    return false;
+    const scratch = document.createElement("canvas");
+    scratch.width = im.naturalWidth; scratch.height = im.naturalHeight;
+    scratch.getContext("2d").drawImage(im, 0, 0, scratch.width, scratch.height);
+    return hfCommitCapture235(scratch);
   }
+  return false;
+}
+let hfCaptureToken235 = 0;
+let hfCapturePending235 = false;
+const HF_CAPTURE_NOTE235 = "That frame didn't come through — it may still be loading on this connection. Tap the frame again, or pick a different one.";
+function hfPixelsBlank235(src) {
+  try {
+    const sw = (src && (src.width || src.videoWidth)) || 0, sh = (src && (src.height || src.videoHeight)) || 0;
+    if (!sw || !sh) return true;
+    const W = 48, H = Math.max(1, Math.round(W * sh / sw));
+    const probe = document.createElement("canvas");
+    probe.width = W; probe.height = H;
+    const px = probe.getContext("2d", { willReadFrequently: true });
+    px.drawImage(src, 0, 0, W, H);
+    const d = px.getImageData(0, 0, W, H).data;
+    let aSum = 0, lSum = 0, lMax = 0;
+    for (let i = 0, p = 0; i < W * H; i++, p += 4) {
+      aSum += d[p + 3];
+      const l = 0.2126 * d[p] + 0.7152 * d[p + 1] + 0.0722 * d[p + 2];
+      lSum += l; if (l > lMax) lMax = l;
+    }
+    if (aSum / (W * H) < 8) return true;     // nothing painted at all
+    return lSum / (W * H) < 6 && lMax < 24; // painted flat black — a fade artifact, not a frame
+  } catch { return false; } // a probe that can't run never blocks a capture
+}
+/* Round 235: re-draw a frame whose first draw painted nothing —
+   the player usually presents it a beat later. Bounded (three
+   tries over ~2.7s), token-guarded (a newer capture or a new
+   play stands it down), and honest at the end: the previous
+   print stays on the shirt and the note says what happened. */
+function hfCaptureRetry235(token) {
+  hfCapturePending235 = true;
+  const play = hfState.play;
+  const delays = [350, 800, 1500];
+  let step = 0;
+  const attempt = () => {
+    if (token !== hfCaptureToken235 || hfState.play !== play || hfState.mediaType !== "video") { hfCapturePending235 = false; return; }
+    const v = $("#hfVideo");
+    if (v && v.videoWidth && v.readyState >= 2) {
+      const scratch = document.createElement("canvas");
+      scratch.width = v.videoWidth; scratch.height = v.videoHeight;
+      scratch.getContext("2d").drawImage(v, 0, 0, scratch.width, scratch.height);
+      if (!hfPixelsBlank235(scratch)) {
+        hfCommitCapture235(scratch);
+        hfHideInstant205(); // the real frame landed — the tap's instant preview stands down, as on a clean capture
+        if (typeof hfPhotoPicked215 === "function") hfPhotoPicked215();
+        return;
+      }
+    }
+    step++;
+    if (step < delays.length) { setTimeout(attempt, delays[step]); return; }
+    hfCapturePending235 = false;
+    hfHideInstant205();
+    const msg = $("#hfPhotoMsg215");
+    if (msg) { msg.textContent = HF_CAPTURE_NOTE235; msg.hidden = false; }
+  };
+  setTimeout(attempt, delays[0]);
+}
+/* Round 235: the commit half of a capture — the old hfCapturePrint
+   body, unchanged, but it now runs only on pixels that painted:
+   copy the validated scratch into the print canvas, snapshot the
+   frame, stand the avatar down, and compose. */
+function hfCommitCapture235(scratch) {
+  const c = $("#hfCanvas"), x = c.getContext("2d");
+  c.width = scratch.width; c.height = scratch.height;
+  x.drawImage(scratch, 0, 0, c.width, c.height);
+  hfCapturePending235 = false;
+  const msg235 = $("#hfPhotoMsg215"); // a landed capture clears its own failure note
+  if (msg235 && msg235.textContent === HF_CAPTURE_NOTE235) { msg235.textContent = ""; msg235.hidden = true; }
   hfState.frozen = true;
   hfState.seedFrame215 = false; // Round 222: a real capture — the ★ pre-select never overrides the parent's own frame
   // Round 206: snapshot the raw frame (the avatar maker sends
@@ -4105,6 +4216,7 @@ function freezeHfFrame() {
     if (hfState.mediaType === "video") hfSetSelected205($("#hfVideo").currentTime || 0);
     return;
   }
+  if (hfCapturePending235) return; // Round 235: a re-draw is already chasing this frame — it lands, or the note under the frames says so (no premature "give it a moment" alert)
   if (hfState.mediaType === "video") alert("Give the video a moment to load, then freeze again.");
   else if (hfState.mediaType === "image") alert("Give the photo a moment to load, then freeze again.");
   else alert("This play was posted as a link, so a frame can't be frozen from it here.");
@@ -5160,7 +5272,7 @@ function hfSyncRowStates215() {
   const photo = $("#hfRowPhotoState215");
   if (photo) photo.textContent = hfState.frameTime205 != null ? `Frame ${hfFmtTime(hfState.frameTime205)}` : (hfState.frozen ? "Frame picked" : "");
   const art = $("#hfRowArtworkState215");
-  if (art) art.textContent = `${hfState.imageStyle === "avatar" ? "Avatar" : "Photo"} · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"}`;
+  if (art) art.textContent = `${hfState.imageStyle === "avatar" ? "Avatar" : "Frame"} · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"}`; // →235: the state line names a video frame a Frame, not a Photo (Emil: "It's weird to say photo here") — the imageStyle state value stays "photo"
   const place = $("#hfRowPlacementState215");
   if (place) place.textContent = hfState.side === "front" ? "Front" : "Back";
   const bt = $("#hfRowBackTextState215");
@@ -5845,7 +5957,7 @@ function hfReviewSync206() {
   const artEl = $("#hfReviewArt206");
   if (artEl) artEl.textContent = hfState.imageStyle === "avatar"
     ? (hfState.avatarApplied206 ? "Illustrated avatar — the AI avatar you approved in the studio" : "Illustrated avatar — illustrated from your frame before printing")
-    : "Real photo — your frozen frame";
+    : "Frame — your frozen frame"; // →235: was "Real photo — …" — the artwork is a frozen video frame, not a photo (the imageStyle state value stays "photo")
   const backEl = $("#hfReviewBack206");
   if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `In the design: “${words}”` : "No name in the design"; }
 }
