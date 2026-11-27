@@ -2189,6 +2189,40 @@ function getSpotlight162() {
   try { const j = JSON.parse(getSetting(SPOTLIGHT_KEY162) || "null"); return j && Number(j.play_id) ? { play_id: Number(j.play_id), set_at: j.set_at || "", set_by: j.set_by || "" } : null; } catch { return null; }
 }
 
+/* Round 232 (2026-11-27, Emil — "I still see the fence on the
+   still images"): poster-<id>.jpg is REGENERATED IN PLACE — the
+   Round 227 fence clean rewrites the same filename, and a smart
+   re-pick does too — but /uploads serves images with
+   Cache-Control: public, max-age=86400, so a phone that loaded
+   the fenced poster keeps showing its cached copy for up to a
+   day without revalidating. (Verified 2026-11-27: all 14 live
+   posters re-downloaded — the 7 cleaned ones ARE clean on the
+   server and the 7 unchanged ones never had a fence; the stale
+   bytes live only in device caches.) The payload therefore
+   carries a version token derived from the poster file itself —
+   its "size:mtimeMs" sig, the same sig the r227 record keeps —
+   so the moment the file changes, the URL changes on every
+   surface at once and the new poster paints immediately; an
+   unchanged poster keeps a stable URL and its warm cache.
+   Applied HERE, at the single payload choke point, so board
+   tiles, battle cards, the featured card, leaderboard rows,
+   the feed and the studio seed all carry the same URL. The
+   STORED row value is untouched — server internals keep
+   resolving the bare filename — and every known consumer
+   treats poster_url as an opaque URL (img src, video poster
+   attribute, the Daily cards' data-poster226 → v.poster), so
+   the query suffix breaks nothing. A poster whose file cannot
+   be stat'ed (missing file, non-uploads URL) keeps its bare
+   URL — the pre-232 behavior is the floor. */
+function posterUrl232(rawUrl) {
+  const u = String(rawUrl || "");
+  if (!u || !u.startsWith("/uploads/")) return u;
+  try {
+    const sig = r227PosterSig227(path.join(UPLOAD_DIR, path.basename(u.split("?")[0])));
+    if (!sig) return u;
+    return u + (u.includes("?") ? "&" : "?") + "v=" + sig.replace(":", "-");
+  } catch { return u; }
+}
 function publicHighlight(row, voterToken = "", viewsMap151 = null) {
   // Public shape is an explicit ALLOWLIST (hardening, 2026-11-04): only
   // the fields the client renders are returned. The old spread-minus-
@@ -2260,7 +2294,10 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     // Round 124: server-generated poster (see the media pipeline
     // below). "" when the play has none — the client then falls
     // back to its Round 118/123 banking + placeholder behavior.
-    poster_url: row.poster_url || "",
+    // Round 232: cache-busted via posterUrl232 (see above) — a
+    // cleaned or re-picked poster replaces itself everywhere
+    // immediately instead of after the 24h image cache expires.
+    poster_url: posterUrl232(row.poster_url),
     mime: row.mime,
     embed_url: row.embed_url,
     host_label: row.host_label,
