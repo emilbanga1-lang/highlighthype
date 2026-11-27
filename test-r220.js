@@ -48,7 +48,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js v218 / styles v212 (Round 220; both files changed) — →221: app.js now v219, styles now v213 (Round 221; both files changed)");
+assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v218 / styles v212 (Round 220; both files changed) — →221: app.js now v219, styles now v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed)");
 
 // ---- B. statics ----
 const fameSlice = appJs.slice(appJs.indexOf("function fameRowHtml134"), appJs.indexOf("function renderFame"));
@@ -186,7 +186,7 @@ async function boot(port, extraEnv = {}) {
     assert(fameBackRow.includes('aria-pressed="false"') && fameBackRow.includes(">Vote · 0 votes</button>") && !fameBackRow.includes("btn220 voted"), "D: after toggling off, the pill renders the un-voted state again");
 
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "D: the served homepage carries the Round 220 pins — →221: now the Round 221 pins (app.js v219 / styles v213)");
+    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "D: the served homepage carries the Round 220 pins — →221: now the Round 221 pins (app.js v219 / styles v213) — →222: now the Round 222 pins (app.js v220 / styles v214)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("fame-vote-btn220") && servedApp.includes('onclick="event.stopPropagation();toggleVote(${h.id}, this)"'), "D: the served app.js carries the pill's vote wiring");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();

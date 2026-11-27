@@ -15,6 +15,11 @@
 //      on the main page; the dashed print guide is gone from
 //      markup, JS and CSS; personalization exists exactly
 //      once, on the product page, and Review only summarizes.
+//      — →222: the four option rows became always-open
+//      SECTIONS (moment → artwork → color & size), the buy
+//      card moved last, and Review's submit is "Send order
+//      request" with the new no-payment line; test-r222.js
+//      pins the rebuild itself.
 //   C. The poster seed (VM): hfSeedUrl215 picks the right
 //      still per media kind (never the branded placeholder);
 //      hfSeedPoster215 freezes + composes from the poster with
@@ -25,7 +30,8 @@
 //      fall back to the pre-seed behavior.
 //   D. init wiring: opening the studio seeds the play, starts
 //      on the product screen with every row closed, and names
-//      the page for the athlete.
+//      the page for the athlete. — →222: no rows to close (the
+//      sections stand open) and NO size is preselected.
 //   E. The avatar gate still holds on the one-page studio:
 //      the panel lives in the Artwork panel with its consent
 //      line, and a finished generation previews on the
@@ -63,17 +69,18 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=213"') && home.includes('src="app.js?v=219"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed) — →217: app.js now v215 (Round 217) — →218: app.js now v216 (Round 218); styles keeps v210 — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
+assert(home.includes('href="styles.css?v=214"') && home.includes('src="app.js?v=220"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed) — →217: app.js now v215 (Round 217) — →218: app.js now v216 (Round 218); styles keeps v210 — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222)");
 
 // ---- B. statics ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back") && !appJs.includes("function hfGoStep211(") && !css.includes(".hf-step-pill211"), "B: no stepper — no pills or step backs in the markup, no step flow in app.js, no pill CSS");
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 assert(prod.includes('id="hfProductTitle215"') && prod.includes('id="hfGarment206"'), "B: the product page opens with its title + the garment hero");
-const buy = studio.slice(studio.indexOf('id="hfBuyCard215"'), studio.indexOf('id="hfRowPhoto215"'));
-assert(buy.includes('id="hfColors"') && buy.includes('id="hfSizes"') && buy.includes("$110") && buy.includes("Made to order"), "B: ONE buy card carries color + size + the $110 price");
+const buy = studio.slice(studio.indexOf('id="hfBuyCard215"'), studio.indexOf('id="hfStickyBar215"'));
+assert(buy.includes('id="hfColors"') && buy.includes('id="hfSizes"'), "B: ONE buy card carries color + size — →222: the buy card is the Color & size section (last, before the sticky bar; the slice end moved from hfRowPhoto215, which now precedes it)");
+assert(prod.includes('id="hfPriceTop222"') && prod.includes("$110 · Made to order") && prod.indexOf('id="hfPriceTop222"') < prod.indexOf('id="hfGarment206"'), "B: the $110 price rides under the product name — →222: '$110 · Made to order' moved out of the buy card to #hfPriceTop222, above the garment (R215 kept it inside the card)");
 for (const id of ["hfRowPhoto215", "hfRowArtwork215", "hfRowPlacement215", "hfRowBackText215"])
-  assert(prod.includes(`id="${id}"`), "B: the quiet option row #" + id + " ships");
-assert((prod.match(/class="hf-optpanel215" id="hf\w+Panel215" hidden>/g) || []).length === 4, "B: all four option panels start collapsed (minimize scrolling)");
+  assert(prod.includes(`id="${id}"`), "B: the section head #" + id + " ships (the R215 option-row id, kept) — →222: rows became always-open section heads");
+assert((prod.match(/class="hf-optpanel215 hf-sec-body222" id="hf\w+Panel215">/g) || []).length === 4 && !prod.includes('Panel215" hidden'), "B: all four section panels stand OPEN — →222: R215 started them collapsed (hidden); the rebuild keeps every control on the page");
 assert(prod.includes('id="hfStickyBar215"') && prod.includes('id="hfReviewBtn215"') && prod.includes(">Review hoodie →</button>"), "B: the sticky bar + gold Review button live INSIDE the product page (they vanish with it — never page chrome)");
 assert(css.includes(".hf-stickybar215{") && css.includes("position:fixed") && css.includes("z-index:54"), "B: the bar is fixed to the viewport bottom while the studio is open");
 assert(/#hfProduct215\{[^}]*padding-bottom/.test(css), "B: the product page carries bottom padding so the bar never covers content");
@@ -90,7 +97,7 @@ assert(!studio.includes("hfGarmentWide206") && !appJs.includes("hf-garment-area-
 assert((home.match(/id="hfBackText197"/g) || []).length === 1 && prod.includes('id="hfBackText197"') && prod.includes('id="hfJerseyRow205"'), "B: the personalization control + jersey field exist exactly once, on the product page");
 const review = studio.slice(studio.indexOf('id="hfReview215"'));
 assert(!review.includes('id="hfBackText197"') && !review.includes('id="hfSizes"') && review.includes('id="hfReviewBack206"') && review.includes('id="hfReviewSize206"'), "B: Review hosts no personalization/size control — its summary rows name the choices");
-assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie request</button>") && review.includes("No payment is collected today. We'll email your parent or guardian to confirm the design before we print."), "B: Review keeps its back affordance, the 'Send hoodie request' submit and the verbatim no-payment copy");
+assert(review.includes('id="hfReviewBack215"') && review.includes(">Send order request</button>") && review.includes("No payment today. A parent or guardian confirms first."), "B: Review keeps its back affordance and the submit — →222: renamed 'Send order request' with the verbatim line 'No payment today. A parent or guardian confirms first.' (R215: 'Send hoodie request' + the longer email copy)");
 
 // ---- C. The poster seed (VM) ----
 {
@@ -185,10 +192,10 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
   const init = appJs.slice(appJs.indexOf("function initHfStudio"), appJs.indexOf("function hfBuildStrip"));
   assert(init.includes("hfSeedPoster215(play)"), "D: opening the studio seeds the play's poster");
   assert(init.includes('hfShowScreen215("product", true)'), "D: a new play restarts on the product screen");
-  assert(init.includes('hfSetRow215("photo", false)') && init.includes('hfSetRow215("backtext", false)'), "D: every option row starts closed for a new play");
+  assert(!init.includes("hfSetRow215(") && init.includes("hfClearSize222()"), "D: init touches no option rows (retired in →222 — the sections stand open) and CLEARS the size for a new play");
   assert(init.includes("hfProductTitle215") && init.includes("Hype Frame Hoodie"), "D: the page title names the athlete ('<Name>'s Hype Frame Hoodie')");
   assert(init.includes('hfPickSide("back")'), "D: the print-side default is still Back (Round 208)");
-  assert(appJs.includes('backText: "name"') && appJs.includes('size: "YM"'), "D: the standing defaults ride — back text Name, size YM");
+  assert(appJs.includes('backText: "name"') && appJs.includes('size: ""'), "D: the standing defaults ride — back text Name; size EMPTY — →222: no size is preselected (R215 defaulted YM); the Review gate prompts until one is tapped");
 }
 
 // ---- E. Avatar gate on the one-page studio ----
@@ -233,7 +240,7 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
   const s = await boot(41215);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "F: the served homepage carries the Round 215 pins — →219: app.js now v217 / styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
+    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "F: the served homepage carries the Round 215 pins — →219: app.js now v217 / styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfStickyBar215"') && served.includes('id="hfReview215"') && !served.includes("data-hf-step-pill"), "F: the served studio is the one-page studio");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfSeedPoster215") && servedApp.includes("function hfShowScreen215") && !servedApp.includes("function hfGoStep211("), "F: the served app.js carries the seed + screens, and no step flow");

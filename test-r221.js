@@ -15,14 +15,18 @@
 //      height = width × 1.25 (height-clamped for wide frames),
 //      centered on the focus (default center), clamped fully
 //      inside the frame at all four corners and for out-of-range
-//      focus values.
+//      focus values. — →222: the default crop tightens to 55%
+//      of frame width (athlete-dominant: the athlete fills the
+//      crop instead of sitting small inside the whole scene).
 //   D. The panel + Make flow (VM, real hfMakeAvatar206): the
 //      crop preview shows the frame with the crop box at the
 //      focus; a tap re-centers it; the posted {image} is the
 //      CROP rendered from the crop rect (dims + the 9-arg
 //      drawImage source rect), capped at 1024 long side; the
 //      R218 design slots ride unchanged and the approval gate
-//      still only previews.
+//      still only previews. — →222: the crop is sent UPSCALED
+//      2× (cap 2048 long side) so the tighter crop still feeds
+//      the model a full-size image.
 //   E. The photo path is untouched: hfDrawFormat218 /
 //      composeHfPrint never reference the crop, and the order
 //      payload gains no crop fields.
@@ -67,7 +71,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "A: asset pins — app.js v219 / styles v213 (Round 221; both files changed)");
+assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v219 / styles v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed)");
 
 // ---- B. Server prompt: composition lock added, R218 slots verbatim ----
 const stubCalls = [];
@@ -149,13 +153,13 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
   const crop = (w, h, f) => sb.hfAvatarCrop221(w, h, f);
   const eq = (a, b) => a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 
-  // C. Crop math.
-  assert(eq(crop(720, 1280, null), { x: 126, y: 348, w: 468, h: 585 }), "C: portrait frame, default focus — 65% width (468) × 1.25 (585), centered (126, 348)");
-  assert(eq(crop(1920, 1080, null), { x: 528, y: 0, w: 864, h: 1080 }), "C: wide frame — the 1.25 height clamps to the frame height and the width follows (864 × 1080)");
-  assert(eq(crop(720, 1280, { x: 0, y: 0 }), { x: 0, y: 0, w: 468, h: 585 }), "C: focus top-left — the crop clamps to the corner");
-  assert(eq(crop(720, 1280, { x: 1, y: 1 }), { x: 252, y: 695, w: 468, h: 585 }), "C: focus bottom-right — the crop clamps inside (252, 695)");
-  assert(eq(crop(720, 1280, { x: 0, y: 1 }), { x: 0, y: 695, w: 468, h: 585 }) && eq(crop(720, 1280, { x: 1, y: 0 }), { x: 252, y: 0, w: 468, h: 585 }), "C: the other two corners clamp the same way");
-  assert(eq(crop(720, 1280, { x: 2, y: -1 }), { x: 252, y: 0, w: 468, h: 585 }), "C: an out-of-range focus is clamped to the frame before the math");
+  // C. Crop math. — →222: 55% width (athlete-dominant).
+  assert(eq(crop(720, 1280, null), { x: 162, y: 393, w: 396, h: 495 }), "C: portrait frame, default focus — 55% width (396) × 1.25 (495), centered (162, 393) — →222: tightened from the R221 65% crop (468×585 at 126, 348)");
+  assert(eq(crop(1920, 1080, null), { x: 528, y: 0, w: 864, h: 1080 }), "C: wide frame — the 1.25 height clamps to the frame height and the width follows (864 × 1080; unchanged by →222: the height clamp governs wide frames)");
+  assert(eq(crop(720, 1280, { x: 0, y: 0 }), { x: 0, y: 0, w: 396, h: 495 }), "C: focus top-left — the crop clamps to the corner");
+  assert(eq(crop(720, 1280, { x: 1, y: 1 }), { x: 324, y: 785, w: 396, h: 495 }), "C: focus bottom-right — the crop clamps inside (324, 785)");
+  assert(eq(crop(720, 1280, { x: 0, y: 1 }), { x: 0, y: 785, w: 396, h: 495 }) && eq(crop(720, 1280, { x: 1, y: 0 }), { x: 324, y: 0, w: 396, h: 495 }), "C: the other two corners clamp the same way");
+  assert(eq(crop(720, 1280, { x: 2, y: -1 }), { x: 324, y: 0, w: 396, h: 495 }), "C: an out-of-range focus is clamped to the frame before the math");
   for (const [w, h] of [[720, 1280], [1920, 1080], [1280, 720], [100, 80], [4000, 3000], [300, 300]]) {
     for (const f of [null, { x: 0, y: 0 }, { x: 1, y: 1 }, { x: 0.3, y: 0.8 }]) {
       const c = crop(w, h, f);
@@ -170,14 +174,14 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
   const near = (a, b) => Math.abs(a - b) < 1e-6;
   assert(wrap.hidden === false, "D: with a frozen frame the crop preview shows");
   assert(String(pimg.src).includes("FAKE_288x512"), "D: the preview renders the frame itself (512-capped: 288×512 for a 720×1280 frame)");
-  assert(near(pct(box.style.left), 17.5) && near(pct(box.style.top), 27.1875) && near(pct(box.style.width), 65) && near(pct(box.style.height), 45.703125), "D: the crop box marks exactly the default crop (left 17.5%, top 27.1875%, 65% × 45.703125%)");
+  assert(near(pct(box.style.left), 22.5) && near(pct(box.style.top), 30.703125) && near(pct(box.style.width), 55) && near(pct(box.style.height), 38.671875), "D: the crop box marks exactly the default crop (left 22.5%, top 30.703125%, 55% × 38.671875%) — →222: the athlete-dominant 55% box (was 17.5% / 27.1875% / 65% × 45.703125% in R221)");
   assert(dot.style.left === "50%" && dot.style.top === "50%", "D: the focus marker starts at the frame's center");
 
   // D2. Taps re-center.
   sb.hfAvatarCropTap221({ clientX: 0, clientY: 0 });
   assert(S.avatarFocus221.x === 0 && S.avatarFocus221.y === 0 && box.style.left === "0%" && box.style.top === "0%", "D: a tap at the corner moves the focus there and the crop follows (clamped)");
   sb.hfAvatarCropTap221({ clientX: 200, clientY: 355 });
-  assert(S.avatarFocus221.x === 1 && S.avatarFocus221.y === 1 && near(pct(box.style.left), 35) && near(pct(box.style.top), 54.296875), "D: a tap at the far corner re-centers the crop on it (box at 35% / 54.296875%)");
+  assert(S.avatarFocus221.x === 1 && S.avatarFocus221.y === 1 && near(pct(box.style.left), 45) && near(pct(box.style.top), 61.328125), "D: a tap at the far corner re-centers the crop on it (box at 45% / 61.328125%) — →222: follows the 55% crop (was 35% / 54.296875%)");
 
   // D3. Make posts the CROP.
   S.avatarFocus221 = { x: 0, y: 0.5 };
@@ -185,19 +189,19 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
   await sb.hfMakeAvatar206();
   assert(posts.length === 1 && posts[0].url === "/api/hype-frame/avatar", "D: Make posts once to the avatar endpoint");
   const sent = JSON.parse(posts[0].opts.body);
-  assert(sent.image === "data:image/jpeg;base64,FAKE_468x585", "D: the posted image is the CROP's canvas (468×585), not the full 720×1280 frame");
+  assert(sent.image === "data:image/jpeg;base64,FAKE_792x990", "D: the posted image is the CROP's canvas upscaled 2× (792×990 from the 396×495 crop), not the full 720×1280 frame — →222: R221 posted the crop at native size (468×585)");
   const nine = drawLog.filter((d) => d.a.length === 9 && d.a[0] === framePortrait);
-  assert(nine.length === 1 && nine[0].a[1] === 0 && nine[0].a[2] === 348 && nine[0].a[3] === 468 && nine[0].a[4] === 585, "D: the crop is drawn from the crop rect (source 0, 348, 468×585 — focus {0, 0.5} clamped)");
+  assert(nine.length === 1 && nine[0].a[1] === 0 && nine[0].a[2] === 393 && nine[0].a[3] === 396 && nine[0].a[4] === 495, "D: the crop is drawn from the crop rect (source 0, 393, 396×495 — focus {0, 0.5} clamped)");
   assert(sent.nameMode === "name" && sent.name === "Nicholas" && sent.label === "DOUBLE" && sent.tone === "blue", "D: the R218 design slots ride unchanged (name mode, first name, label, tone)");
   assert(S.avatarDataUrl206 === "data:gen221" && S.avatarPreview206 === true && S.avatarApplied206 === false, "D: the approval gate is intact — a finished generation only PREVIEWS");
 
-  // D4. A big frame: the crop renders capped at 1024 on its long side.
+  // D4. A big frame: the crop renders capped at 2048 on its long side.
   S.frameCanvas206 = { width: 2400, height: 1600 };
   S.avatarFocus221 = null;
   drawLog.length = 0; posts.length = 0;
   await sb.hfMakeAvatar206();
   const sent2 = JSON.parse(posts[0].opts.body);
-  assert(sent2.image === "data:image/jpeg;base64,FAKE_819x1024", "D: a 2400×1600 frame's crop (1280×1600) posts at the 1024 cap (819×1024)");
+  assert(sent2.image === "data:image/jpeg;base64,FAKE_1638x2048", "D: a 2400×1600 frame's crop (1280×1600) posts at the 2048 cap (1638×2048) — →222: R221 capped the send at 1024 (819×1024)");
   S.frameCanvas206 = framePortrait;
 }
 
@@ -227,7 +231,7 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
   const s = await boot(45222);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "G: the served homepage carries the Round 221 pins");
+    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "G: the served homepage carries the Round 221 pins — →222: now the Round 222 pins (app.js v220 / styles v214)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfAvatarCrop221") && servedApp.includes("hfAvatarCrop221(src.width, src.height, hfState.avatarFocus221)"), "G: the served app.js carries the crop math + the Make-flow crop");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();

@@ -109,6 +109,7 @@ try {
     line("const HF_PLACEMENT_DEFAULT"),
     line("const hfState = {"),
     line("const HF_SIZES"),
+    line("const HF_STUDIO_SIZES222"), // →222: hfPickSize validates against the studio list (9 sizes, no YXXS)
     fn("function hfPrintTone()"),
     // →205: hfPickColor / hfPickSize now also re-sync the order
     // summary — the real summary block rides into the slice so
@@ -143,16 +144,19 @@ try {
   assert(run("hfState.size") === "L", "B: a bogus size (XXL) is a no-op in the picker");
   run('hfPickSize("YXL")');
   assert(run("hfState.size") === "YXL", "B: a youth size still picks");
+  run('hfPickSize("YXXS")');
+  assert(run("hfState.size") === "YXL", "B: →222: YXXS is a no-op in the STUDIO picker (removed from the studio list; the server's HF_SIZES map keeps it for the Shopify variant)");
 
   // ---------- C. Server: colorway rejects, sizes extend ----------
   const s = await boot(3531);
   try {
     const home = await s.text("/");
-    assert(home.includes('src="app.js?v=219"') && home.includes('href="styles.css?v=213"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
-    for (const sz of SIZES10)
+    assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=214"'), "C: asset pins — app.js now v200 (Round 199); styles keeps v199 (unchanged this round) — →201: app.js now v201 (Round 200); styles keeps v199 (unchanged this round) — →202: app.js now v202 (Round 201); styles now v200 (Round 201) — →203: app.js now v203 (Round 202); styles now v201 (Round 202) — →204: app.js now v204 (Round 203); styles keeps v201 (unchanged this round) — →205: app.js now v205 (Round 204); styles now v202 (Round 204) — →206: app.js now v206 (Round 205); styles now v203 (Round 205) — →207: app.js now v207 (Round 206); styles now v204 (Round 206) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222)");
+    for (const sz of SIZES10.filter((s) => s !== "YXXS"))
       assert(home.includes(`data-hf-size="${sz}"`), `C: studio size picker offers ${sz}`);
+    assert(!home.includes('data-hf-size="YXXS"'), "C: →222: the studio picker no longer offers YXXS (the server's 10-size map + Shopify variant keep it; the size GUIDE table still documents it)");
     assert(home.includes('id="hfSizes"') && home.includes('aria-label="Size"') && home.includes(">Youth</span>") && home.includes(">Adult</span>"), "C: the size picker is one group with Youth / Adult labels");
-    assert(home.includes('data-hf-size="YM" aria-pressed="true"'), "C: YM is still the pressed default size");
+    assert(!home.includes('data-hf-size="YM" aria-pressed="true"') && (home.match(/data-hf-size="\w+" aria-pressed="false"/g) || []).length === 9, "C: →222: NO size is the pressed default — all nine buttons ship unpressed (R199–R221 pressed YM by default)");
 
     const claim = await s.j("/api/owner/claim", { method: "POST" });
     const tok = claim.body.token; assert(tok, "C: owner claim returns a token");

@@ -76,7 +76,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=213"') && home.includes('src="app.js?v=219"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221)");
+assert(home.includes('href="styles.css?v=214"') && home.includes('src="app.js?v=220"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222)");
 
 // ---- B. Structure statics (→215: the stepper is retired) ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back"), "B: →215: no stepper pills and no step back buttons anywhere in the studio");
@@ -89,7 +89,7 @@ assert(studio.includes('id="hfProductTitle215"') && studio.includes('id="hfProdu
 assert(studio.includes('id="hfBuyCard215"') && studio.includes("$110"), "B: →215: the buy card ships with the $110 price on the page");
 for (const id of ["hfRowPhoto215", "hfPhotoPanel215", "hfRowArtwork215", "hfArtworkPanel215", "hfRowPlacement215", "hfPlacementPanel215", "hfRowBackText215", "hfBackTextPanel215"])
   assert(studio.includes(`id="${id}"`), "B: →215: the option row + panel #" + id + " ships");
-assert((studio.match(/class="hf-optpanel215" id="hf\w+Panel215" hidden>/g) || []).length === 4, "B: →215: all four option panels start collapsed");
+assert((studio.match(/class="hf-optpanel215 hf-sec-body222" id="hf\w+Panel215">/g) || []).length === 4 && !studio.includes('Panel215" hidden'), "B: →215: all four option panels start collapsed — →222: the panels stand OPEN as section bodies (no hidden attribute; the R215 collapse is retired)");
 assert(studio.includes('id="hfStickyBar215"') && studio.includes('id="hfReviewBtn215"') && studio.includes(">Review hoodie →</button>"), "B: →215: the sticky bar carries the gold 'Review hoodie →' button");
 assert(studio.includes('id="hfReviewBack215"') && studio.includes(">← Back</button>"), "B: →215: Review carries a plain back affordance");
 assert(studio.indexOf('id="hfClipRow211"') > studio.indexOf('id="hfPhotoPanel215"') && studio.indexOf('id="hfClipArea211"') > studio.indexOf('id="hfPhotoPanel215"') && studio.indexOf('id="hfClipArea211"') < studio.indexOf('id="hfReview215"'), "B: →215: the Pick from video row + player area live INSIDE the Change photo panel");
@@ -105,7 +105,7 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
 {
   const garmentBlock = appJs.slice(appJs.indexOf("const HF_GARMENT_ART206"), appJs.indexOf("function hfFineStep206"));
   const reviewSlice = appJs.slice(appJs.indexOf("function hfReviewSync206"), appJs.indexOf("async function hfSubmitOrder206"));
-  const wire215 = appJs.slice(appJs.indexOf("(function wireHf215()"), appJs.indexOf("/* Round 200"));
+  const wire215 = appJs.slice(appJs.indexOf("(function wireHf222()"), appJs.indexOf("/* Round 200")); // →222: the wiring IIFE is wireHf222 now (was wireHf215)
   const mkEl = (name) => ({
     name, hidden: false, textContent: "", value: "", style: {}, attrs: {}, listeners: {}, disabled: false, parentElement: null,
     classList: { set: new Set(), toggle(c, on) { if (on) this.set.add(c); else this.set.delete(c); } },
@@ -201,22 +201,23 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   assert(S.screen215 === "product" && prod215.hidden === false && rev215.hidden === true, "C: Review's back affordance returns to the product page");
   els["#hfReviewBtn215"].listeners.click();
   assert(JSON.stringify({ bt: S.backText, custom: els["#hfBackCustom197"].value, av: S.avatarDataUrl206, avp: S.avatarPreview206, ava: S.avatarApplied206, pd: S.printDataUrl, side: S.side, size: S.size, pl: S.placement }) === snapshot, "C+G: product → Review → product → Review loses nothing — frame, custom words, avatar preview + approval all persist");
-  // Option rows toggle their panels.
+  // Option rows toggle their panels. — →222: RETIRED — the
+  // rows became always-open section heads (plain divs); the
+  // wiring attaches no toggle to them at all.
   els["#hfReviewBack215"].listeners.click();
-  els["#hfRowArtwork215"].listeners.click();
-  assert(rowPanels215.artwork.hidden === false && els["#hfRowArtwork215"].attrs["aria-expanded"] === "true", "C: the Artwork row opens its panel");
-  els["#hfRowArtwork215"].listeners.click();
-  assert(rowPanels215.artwork.hidden === true, "C: tapping the row again closes it");
+  assert(els["#hfRowArtwork215"].listeners.click === undefined && els["#hfRowPhoto215"].listeners.click === undefined, "C: →222: the section heads carry no toggle listener — every section stands open (R215's collapsible rows are retired)");
   // The Pick from video expander toggles inside Change photo.
   els["#hfClipRow211"].listeners.click();
   assert(clipArea215.hidden === false && S.clipOpen211 === true, "C: the Pick from video row expands the player area");
   els["#hfClipRow211"].listeners.click();
   assert(clipArea215.hidden === true && S.clipOpen211 === false, "C: ...and collapses it again");
   // The gate: without a frozen frame, the sticky button holds
-  // the parent on the product page, opens Change photo, says why.
+  // the parent on the product page and says why. — →222: the
+  // Change photo section stands open (nothing to expand), so
+  // the gate just shows the message and scrolls to it.
   S.frozen = false; S.printDataUrl = "";
   els["#hfReviewBtn215"].listeners.click();
-  assert(S.screen215 === "product" && rev215.hidden === true && rowPanels215.photo.hidden === false && photoMsg215.hidden === false && photoMsg215.textContent.includes("Pick the frame"), "C: without a frame, 'Review hoodie →' holds the parent, opens Change photo and says what to do");
+  assert(S.screen215 === "product" && rev215.hidden === true && photoMsg215.hidden === false && photoMsg215.textContent.includes("Pick the frame"), "C: without a frame, 'Review hoodie →' holds the parent and says what to do");
   S.frozen = true; S.printDataUrl = "data:print";
 
   // ---- E. Payload byte-identity across screens + view flips ----
@@ -263,8 +264,8 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   const btSeg = studio.slice(studio.indexOf('id="hfBackText197"'), studio.indexOf('id="hfBackCustomRow197"'));
   assert(btSeg.includes('data-hf-back-text="name" aria-pressed="true"'), "F: the back-text default is 'Name' — Emil kept the R197 default (the mockup's None-by-default was NOT adopted)");
   assert(appJs.includes('backText: "name"'), "F: hfState opens with backText 'name'");
-  assert(studio.includes(">Send hoodie request</button>"), "F: the submit label is 'Send hoodie request' (R205 — the mockup's 'Send for approval' was NOT adopted)");
-  assert(studio.includes("No payment is collected today. We'll email your parent or guardian to confirm the design before we print."), "F: the R205 no-payment copy is verbatim on the Review screen");
+  assert(studio.includes(">Send order request</button>"), "F: the submit label is 'Send order request' — →222: renamed from the R205 'Send hoodie request' (the mockup's 'Send for approval' was NOT adopted)");
+  assert(studio.includes("No payment today. A parent or guardian confirms first."), "F: the no-payment line is verbatim on the Review screen — →222: 'No payment today. A parent or guardian confirms first.' (supersedes the R205 email copy)");
   assert(studio.includes("Private — never shown on the site."), "F: the privacy line rides with the email field");
   const formListener = appJs.slice(appJs.indexOf('"#hfOrderForm").addEventListener("submit"'), appJs.indexOf('"#hfOrderForm").addEventListener("submit"') + 900);
   assert(formListener.includes("hfSubmitOrder206()") && !formListener.includes("hfOpenReview206"), "F: the form submit IS the send (hfSubmitOrder206 — the exact pre-existing order path)");
@@ -283,7 +284,7 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   const s = await boot(41211);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=219"') && served.includes('href="styles.css?v=213"'), "I: the served homepage carries the current pins — →221: now app.js v219 / styles v213 (Round 221)");
+    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "I: the served homepage carries the current pins — →221: now app.js v219 / styles v213 (Round 221)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfReview215"') && served.includes('id="hfStickyBar215"') && !served.includes("data-hf-step-pill"), "I: →215: the served studio is the one-page studio — product page + Review + sticky bar, no stepper");
     for (const f of ["hf-blank-front-black218.jpg", "hf-blank-back-black218.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
       const r = await fetch(s.base + "/swag/" + f);
