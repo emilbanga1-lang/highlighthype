@@ -1750,8 +1750,21 @@ function watchHtml107(h, entry) {
   const athleteBit = label
     ? (h.athlete_id ? `<button type="button" class="athlete-link watch-athlete" onclick="openAthlete('${esc(h.athlete_id)}')">${esc(label)}</button>` : esc(label))
     : "";
+  /* Round 223 (2026-11-27): the watch view gains an ALWAYS-
+     visible control row under the player — play/pause, a
+     scrub bar and the time. The native chrome fades out
+     while a clip plays (Rounds 140/143), which left Emil
+     with "no way to pause it or rewind" mid-clip; this row
+     never fades and is wired per render by
+     wireCardControls223. Video plays only: embeds carry
+     their own player and photo plays have nothing to scrub.
+     The native controls stay exactly as they were. */
+  const cardControls223 = (typeof playHasVideo === "function" ? playHasVideo(h) : false) && h.media_kind !== "link_embed"
+    ? `<div class="card-controls223" data-card-controls="${h.id}"><button type="button" class="card-playbtn223" data-card-playbtn="${h.id}" aria-label="Pause the play">❚❚</button><div class="card-scrub223" data-card-scrub="${h.id}"><span data-card-progress="${h.id}"></span></div><span class="card-time223" data-card-time="${h.id}">0:00 / 0:00</span></div>`
+    : "";
   return `<article class="card watch-card" data-play-id="${h.id}">
     <div class="watch-player">${mediaHtml(h)}</div>
+    ${cardControls223}
     <div class="watch-meta">
       <h2 class="watch-title">${esc(h.title)}</h2>
       <p class="watch-line"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}${athleteBit ? ` · ${athleteBit}` : ""}</p>
@@ -1795,6 +1808,11 @@ function renderPlayDetail() {
      in Watch too. Guarded like the wiring above it. */
   if (typeof wireWatch123 === "function") wireWatch123(body, play);
   if (typeof wireWatchChrome140 === "function") wireWatchChrome140(body);
+  /* Round 223: the always-visible control row (play/pause +
+     scrub + time) wires to the fresh player — every detail
+     render rebuilds the card's DOM, so the wiring re-attaches
+     here alongside the chrome fade. */
+  if (typeof wireCardControls223 === "function") wireCardControls223(body);
   wireDetailAutoplay(play);
 }
 /* Round 14 (2026-11-06): "Up next" in the play detail — the third
@@ -10397,8 +10415,16 @@ function feedHypeRail189(h) {
      "Vote" — this button IS the vote (it runs through the real
      toggleVote), and the action is labeled Vote everywhere it
      appears. The voted state stays style-only (.voted +
-     aria-pressed), exactly as the mock drew it. */
-  return `<div class="feed189-railitem"><button type="button" class="feed189-hype${h.hasVoted ? " voted" : ""}" data-feed-hype="${h.id}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="Vote for this play" onclick="feedHype189(${h.id}, this)">${crown}</button>${count}<span class="feed189-raillabel">Vote</span></div>`;
+     aria-pressed), exactly as the mock drew it.
+     Round 223 (2026-11-27, outside review): the label moves
+     INSIDE the button and reads "Vote for this play" in full —
+     the crown disc + a small "Vote" caption under it read as
+     decoration, not as the way to vote. The label is part of
+     the tappable control now; the voted state shortens it to
+     "Voted", mirroring the board tile chip (Rounds 108/153).
+     feedSyncCounts189 keeps the label in step after a vote
+     (feedSyncHypeLabel223). The count keeps its own span. */
+  return `<div class="feed189-railitem"><button type="button" class="feed189-hype${h.hasVoted ? " voted" : ""}" data-feed-hype="${h.id}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="Vote for this play" onclick="feedHype189(${h.id}, this)">${crown}<span class="feed223-hypelabel">${h.hasVoted ? "Voted" : "Vote for this play"}</span></button>${count}</div>`;
 }
 function feedVsHtml189(current) {
   const b = feed189.battle;
@@ -10427,7 +10453,15 @@ function feedSlideHtml189(h, i, showHint) {
   const title = String(h.title || "").trim();
   const line1 = title || name;
   const line2 = title ? [name, h.sport ? cap(h.sport) : ""].filter(Boolean).join(" · ") : (h.sport ? cap(h.sport) : "");
-  return `<section class="feed189-slide" data-feed-slide="${h.id}" data-feed-kind="${kind}"${feed189.battle ? ` data-feed-battle="1"` : ""}>
+  /* Round 223: a board video slide carries the play's smart-
+     poster moment (h.poster_time, the Round 209/213 chosen
+     time the server now exposes) so the clip can START there
+     instead of at 0:00 (feedWirePosterStart223). Battle
+     slides are excluded — their pooled playback stays as
+     Round 192 scoped it — and a play with no picked poster
+     carries no attribute and starts at the head as before. */
+  const posterTime223 = kind === "video" && !feed189.battle && Number(h.poster_time) > 0 ? Number(h.poster_time) : 0;
+  return `<section class="feed189-slide" data-feed-slide="${h.id}" data-feed-kind="${kind}"${feed189.battle ? ` data-feed-battle="1"` : ""}${posterTime223 ? ` data-feed-poster-time="${posterTime223}"` : ""}>
     ${poster ? `<div class="feed189-bg" style="background-image:url(&quot;${esc(poster)}&quot;)"></div>` : `<div class="feed189-bg feed189-bg-plain"></div>`}
     <div class="feed189-media">${feedMediaHtml189(h, kind)}</div>
     ${feed189.battle ? `<div class="feed189-ribbon">⚔️ Battle</div>` : ""}
@@ -10442,7 +10476,7 @@ function feedSlideHtml189(h, i, showHint) {
       ${feedHypeRail189(h)}
       <div class="feed189-railitem"><button type="button" class="feed189-share" aria-label="Share this play" onclick="feedShare189(${h.id}, this)">🔗</button><span class="feed189-raillabel">Share</span></div>
     </div>
-    ${kind === "video" ? `<div class="feed189-progress"><span data-feed-progress="${h.id}"></span></div>` : ""}
+    ${kind === "video" ? `<div class="feed223-flash" data-feed-flash="${h.id}" aria-hidden="true"></div><div class="feed223-scrub" data-feed-scrub="${h.id}"><div class="feed189-progress"><span data-feed-progress="${h.id}"></span></div><span class="feed223-time" data-feed-time="${h.id}">0:00 / 0:00</span></div>` : ""}
     ${showHint ? `<p class="feed189-hint" data-feed-hint189>↑ Swipe up for the next play</p>` : ""}
   </section>`;
 }
@@ -10479,7 +10513,7 @@ function feedRender189(seq, battle) {
   /* Round 191: classify each slide by its media's real shape
      (portrait fills, wide runs edge-to-edge — see
      feedWireShape191). */
-  if (typeof track.querySelectorAll === "function") track.querySelectorAll("[data-feed-slide]").forEach((s) => { feedWireShape191(s); feedWireFill196(s); });
+  if (typeof track.querySelectorAll === "function") track.querySelectorAll("[data-feed-slide]").forEach((s) => { feedWireShape191(s); feedWireFill196(s); /* Round 223: tap-to-pause + the scrub bar, and the start-at-the-poster-moment seek — cross-block, so typeof-guarded like every call out of this block. */ if (typeof feedWireControls223 === "function") feedWireControls223(s); if (typeof feedWirePosterStart223 === "function") feedWirePosterStart223(s); });
   if (typeof track.querySelectorAll === "function") track.querySelectorAll("video").forEach((v) => {
     if (typeof v.addEventListener !== "function") return;
     v.addEventListener("timeupdate", () => {
@@ -10704,6 +10738,12 @@ function feedSyncCounts189() {
   track.querySelectorAll("[data-feed-hype]").forEach((el) => {
     const h = findPlay(Number(typeof el.getAttribute === "function" ? el.getAttribute("data-feed-hype") : 0));
     if (h && el.classList && typeof el.classList.toggle === "function") { el.classList.toggle("voted", !!h.hasVoted); if (typeof el.setAttribute === "function") el.setAttribute("aria-pressed", h.hasVoted ? "true" : "false"); }
+    /* Round 223: the button's visible label tracks the voted
+       state too ("Vote for this play" / "Voted") — and the
+       sync restores the crown + label if toggleVote's
+       textContent swap (its "Voting…" pending state) took
+       them off the button while the vote was in flight. */
+    if (h && typeof feedSyncHypeLabel223 === "function") feedSyncHypeLabel223(el, !!h.hasVoted);
   });
   if (feed189.battle) {
     const bar = typeof track.querySelector === "function" ? track.querySelector("[data-feed-split189]") : null;
@@ -10916,4 +10956,357 @@ function tapWarmBoard217() {
       } catch (err) { /* a press that warms nothing is just a press */ }
     }, { capture: true, passive: true });
   } catch (e) { /* no Pointer Events, no warm — taps behave exactly as before */ }
+})();
+
+/* ---------------- Round 223 (2026-11-27): the video experience ----------------
+   Emil, watching the feed: "there is no way now to pause it
+   or rewind." He was right on every surface: the feed had no
+   pause and no scrub at all (autoplay + swipe only); the
+   watch view's native chrome fades out ~2s into playback
+   (Rounds 140/143) and takes the scrubber with it; and the
+   board tiles never carried controls (see the tile note in
+   this block). The same evening's outside review added three
+   more: the hero's Watch Highlights should open a PLAYING
+   clip in the feed in one tap (it scrolled to the board and
+   kept whatever tab was selected — even Battles); a feed
+   clip opened on its 0:00 frame ("mostly sky") instead of
+   the moment its poster shows; and the feed's vote — a crown
+   disc with a small caption — didn't read as an action.
+   Six pieces, all in this block except the markup hooks:
+   (1) Feed tap-to-pause/play with a brief center icon flash,
+       plus a draggable scrub bar with the time, riding the
+       bottom of every video slide (the Round 189 progress
+       hairline lives inside it and keeps painting as before).
+   (2) The watch view's always-visible control row (markup
+       in watchHtml107): play/pause + scrub + time, wired per
+       render by wireCardControls223. It sits OUTSIDE the
+       player, so the chrome fade can never take it.
+   (3) Board tiles — the finding: tile videos render through
+       fameThumbHtml with NO controls attribute (muted loop
+       previews by design, Rounds 8/133), and the .tile-tap
+       overlay covers .tile-media so the media surface itself
+       never takes a tap (Round 9: the playing video swallowed
+       taps in in-app browsers; the overlay is what makes a
+       tile open its play). There are no suppressed controls
+       to un-suppress — a tile is a tap-to-open poster, and
+       the controls live one tap in, in the feed (piece 1) and
+       the watch view (piece 2 + its native chrome). The
+       controls-carrying card surface (cardHtml → mediaHtml
+       with rest192, athlete pages) has NO overlay over its
+       .thumb — badge/rank chips sit in the corners only — so
+       its native controls were already reachable. Pinned in
+       test-r223; tiles are NOT redesigned.
+   (4) The hero's Watch Highlights enters the feed at the
+       first play of the board the visitor is on (the Month
+       board on the Month view, the All Hypes board otherwise
+       — never the Battles pair), playing, under the standing
+       feed sound default (Round 194: a fresh session starts
+       muted). A capture-phase document listener intercepts
+       the hero anchor ONLY when the feed actually opens;
+       otherwise the tap falls through to the standing
+       data-tablink behavior (scroll to the deck) untouched.
+   (5) A board feed slide STARTS at its play's smart-poster
+       moment: publicHighlight now exposes poster_time (the
+       Round 209/213 chosenTime), feedSlideHtml189 stamps it
+       on the slide, and feedWirePosterStart223 seeks the
+       main video there once its metadata lands (fastSeek
+       where available). Battle slides are excluded (Round
+       192's pooled-player scope), as are plays with no
+       picked poster. Round 217's warming is untouched — the
+       seek rides the metadata event the warm already pulls.
+   (6) The feed rail's vote button carries its label INSIDE
+       the control: "Vote for this play" (markup in
+       feedHypeRail189), shortening to "Voted" in the voted
+       state like the tile chip. toggleVote is untouched;
+       feedSyncCounts189's repaint keeps the label in step
+       (feedSyncHypeLabel223) — and restores the crown +
+       label when toggleVote's textContent pending swap
+       ("Voting…") took them off the button mid-flight.
+   Invariants: the feed's order is still the board's own
+   order, read off the board DOM, never sorted; the Round
+   194 sound state and the Round 196 fill behave exactly as
+   before (a user pause pauses the fill with its main video;
+   an early-started or settled slide is unaffected — a tap
+   is the only new way to pause, and feedActivate189 remains
+   the settle authority). Appended at the end of app.js per
+   the sandbox-slice rule; every lookup is guarded and every
+   call into older blocks is typeof-guarded. */
+/* "0:00" formatting for the time readouts. PURE on purpose
+   (the suites drive it in a vm): non-finite or negative
+   input reads as 0:00, an hour-plus clip reads h:mm:ss. */
+function vidTimeFmt223(t) {
+  const s = Math.max(0, Math.floor(Number(t) || 0));
+  const m = Math.floor(s / 60), r = s % 60;
+  if (m >= 60) { const hh = Math.floor(m / 60), mm = m % 60; return hh + ":" + String(mm).padStart(2, "0") + ":" + String(r).padStart(2, "0"); }
+  return m + ":" + String(r).padStart(2, "0");
+}
+/* The shared scrub wiring: pointer drags on the hit element
+   seek the video. The element captures its own pointer, so
+   a horizontal drag can never become the feed track's
+   vertical swipe (the element's CSS touch-action:none keeps
+   the browser from claiming the gesture either), and the
+   drag's own click is stopped so it can never read as a tap
+   on something beneath. Fraction math is clientX against
+   the element's own rect — the visible bar IS the hit
+   element on both surfaces that use this. */
+function vidScrubWire223(hitEl, v) {
+  try {
+    if (!hitEl || !v || typeof hitEl.addEventListener !== "function") return;
+    let down223 = false;
+    const seekTo223 = (e) => {
+      try {
+        if (!e || typeof e.clientX !== "number" || typeof hitEl.getBoundingClientRect !== "function") return;
+        const r = hitEl.getBoundingClientRect();
+        if (!r || !(r.width > 0)) return;
+        const f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+        const d = Number(v.duration) || 0;
+        if (d > 0) v.currentTime = f * d;
+      } catch (err) { /* a refused seek never breaks the surface */ }
+    };
+    hitEl.addEventListener("pointerdown", (e) => {
+      down223 = true;
+      try { if (e && typeof e.stopPropagation === "function") e.stopPropagation(); } catch (err) {}
+      try { if (typeof hitEl.setPointerCapture === "function" && e && e.pointerId != null) hitEl.setPointerCapture(e.pointerId); } catch (err) { /* capture is an enhancement — the move/up handlers still land on the element in most engines */ }
+      seekTo223(e);
+    });
+    hitEl.addEventListener("pointermove", (e) => { if (down223) seekTo223(e); });
+    const end223 = () => { down223 = false; };
+    hitEl.addEventListener("pointerup", end223);
+    hitEl.addEventListener("pointercancel", end223);
+    hitEl.addEventListener("click", (e) => { try { if (e && typeof e.stopPropagation === "function") e.stopPropagation(); } catch (err) {} });
+  } catch (e) { /* a surface without a working scrub keeps its player */ }
+}
+/* The tap-toggle's icon flash: the glyph of the state the
+   tap just produced (▶ now playing / ❚❚ now paused),
+   centered on the slide, fading on its CSS animation; the
+   class is re-armed per tap so rapid toggles re-flash. */
+function feedFlash223(flash, glyph) {
+  try {
+    if (!flash) return;
+    flash.textContent = glyph;
+    if (flash.classList && typeof flash.classList.remove === "function") flash.classList.remove("show");
+    void (typeof flash.offsetWidth === "number" ? flash.offsetWidth : 0);
+    if (flash.classList && typeof flash.classList.add === "function") flash.classList.add("show");
+  } catch (e) { /* the flash is feedback only — playback already changed */ }
+}
+/* Tap a feed video: pause it (its blur fill pauses with it)
+   or play it (the sound state is restated first, the fill
+   rejoins through the Round 196 sync, exactly as the settle
+   path drives them). feedActivate189 is untouched — swipe
+   away and back and the settled slide plays as always; the
+   pause a tap made is a viewing state, not a preference. */
+function feedTogglePlay223(slide, v) {
+  try {
+    if (!v) return;
+    const flash = slide && typeof slide.querySelector === "function" ? slide.querySelector("[data-feed-flash]") : null;
+    const fill = slide && typeof feedFillVideo196 === "function" ? feedFillVideo196(slide) : null;
+    if (v.paused || v.ended) {
+      if (typeof feedApplySound194 === "function") feedApplySound194(v);
+      try { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); } catch (e) { /* a refused play leaves the poster resting, as everywhere in the feed */ }
+      if (fill && typeof feedFillPlay196 === "function") feedFillPlay196(fill, v);
+      feedFlash223(flash, "▶");
+    } else {
+      try { v.pause(); } catch (e) {}
+      if (fill) { try { fill.pause(); } catch (e) {} }
+      feedFlash223(flash, "❚❚");
+    }
+  } catch (e) { /* a tap that toggles nothing is just a tap */ }
+}
+function feedPaintTime223(v, timeEl) {
+  try { if (timeEl) timeEl.textContent = vidTimeFmt223(v ? v.currentTime : 0) + " / " + vidTimeFmt223(v ? v.duration : 0); } catch (e) {}
+}
+/* Wire one rendered feed slide's Round 223 controls: the
+   tap toggle on the MAIN video (a wide slide's fill is
+   scenery and never takes the tap — it is pointer-events:
+   none in CSS besides), the scrub drag, and the time
+   readout's painters. Called from feedRender189 alongside
+   the shape/fill wiring. Photo/embed/link slides and the
+   end card carry no [data-feed-scrub] and wire nothing. */
+function feedWireControls223(slide) {
+  try {
+    if (!slide || typeof slide.querySelector !== "function") return;
+    if (typeof slide.getAttribute === "function" && slide.getAttribute("data-feed-kind") !== "video") return;
+    const v = typeof feedMainVideo196 === "function" ? feedMainVideo196(slide) : slide.querySelector("video");
+    if (!v) return;
+    const scrub = slide.querySelector("[data-feed-scrub]");
+    const timeEl = slide.querySelector("[data-feed-time]");
+    if (typeof v.addEventListener === "function") {
+      v.addEventListener("click", () => feedTogglePlay223(slide, v));
+      v.addEventListener("timeupdate", () => feedPaintTime223(v, timeEl));
+      v.addEventListener("loadedmetadata", () => feedPaintTime223(v, timeEl));
+    }
+    if (scrub) vidScrubWire223(scrub, v);
+    feedPaintTime223(v, timeEl);
+  } catch (e) { /* an unwired slide keeps the Round 189 feed */ }
+}
+/* The poster-moment seek: applied ONCE, when the video's
+   metadata lands (or immediately, if it already has), and
+   only while the clip is still at its head — a video the
+   early-start observer already got playing past the moment
+   is never yanked back. Clamped a hair inside the end so a
+   poster at the final frame can't seek past the media.
+   fastSeek where the engine offers it (its whole purpose is
+   this jump), plain currentTime elsewhere — the same
+   discipline as btlSeekOffset119. PURE-ish on purpose: the
+   suites drive it against stub videos. */
+function feedSeekPoster223(v, t) {
+  try {
+    const target = Number(t);
+    if (!v || !Number.isFinite(target) || target <= 0) return;
+    const apply223 = () => {
+      try {
+        if (typeof v.currentTime === "number" && v.currentTime > 0.25) return;
+        const d = Number(v.duration) || 0;
+        const tt = d > 0 ? Math.min(target, Math.max(0, d - 0.15)) : target;
+        if (!(tt > 0)) return;
+        if (typeof v.fastSeek === "function") v.fastSeek(tt);
+        else v.currentTime = tt;
+      } catch (e) { /* a refused seek leaves the head start — the pre-223 behavior */ }
+    };
+    if (typeof v.readyState === "number" && v.readyState >= 1) apply223();
+    else if (typeof v.addEventListener === "function") v.addEventListener("loadedmetadata", apply223, { once: true });
+  } catch (e) { /* the seek is an enhancement, never a gate */ }
+}
+/* Wire one slide's poster-moment start (feedRender189 calls
+   this next to the controls wiring). Battle slides are
+   excluded by their attribute — the slide renderer only
+   stamps the moment on board slides to begin with, and this
+   is the second lock. */
+function feedWirePosterStart223(slide) {
+  try {
+    if (!slide || typeof slide.getAttribute !== "function") return;
+    if (slide.getAttribute("data-feed-battle")) return;
+    const t = Number(slide.getAttribute("data-feed-poster-time"));
+    if (!Number.isFinite(t) || t <= 0) return;
+    const v = typeof feedMainVideo196 === "function" ? feedMainVideo196(slide) : (typeof slide.querySelector === "function" ? slide.querySelector("video") : null);
+    if (v) feedSeekPoster223(v, t);
+  } catch (e) { /* an unseeked slide starts at 0:00, as before */ }
+}
+/* The feed vote button's label keeper (called from
+   feedSyncCounts189 after every feed vote settles): the
+   label reads "Voted" in the voted state and "Vote for this
+   play" otherwise, mirroring the tile chip. It also rebuilds
+   the crown + label when they are missing — toggleVote's
+   pending state swaps the button's textContent ("Voting…"),
+   which takes the crown image and the label span with it,
+   and its restore puts back text only. The vote itself is
+   never touched here: classes, aria and the count are the
+   sync's own work, exactly as before. */
+function feedSyncHypeLabel223(btn, voted) {
+  try {
+    if (!btn || typeof btn.querySelector !== "function") return;
+    const label = btn.querySelector(".feed223-hypelabel");
+    const crown = btn.querySelector(".feed191-crown");
+    if (!label || !crown) {
+      btn.innerHTML = `<img class="feed191-crown" src="crown.png" alt="" aria-hidden="true"><span class="feed223-hypelabel">${voted ? "Voted" : "Vote for this play"}</span>`;
+      return;
+    }
+    label.textContent = voted ? "Voted" : "Vote for this play";
+  } catch (e) { /* a label that won't sync never breaks the vote */ }
+}
+/* The watch view's control row (markup in watchHtml107),
+   wired per detail render: the play/pause button mirrors
+   the player's own state through its play/pause/ended
+   events (autoplay refusals included — the icon follows the
+   video, never the hope), the scrub drags through the
+   shared wiring, and the progress + time paint on
+   timeupdate. The row lives outside .watch-player, so the
+   Round 140 chrome fade — which drops the video's controls
+   attribute while it plays — can never hide it; Round 217's
+   warming is untouched (the row wires the same element the
+   detail already loaded). */
+function wireCardControls223(body) {
+  try {
+    if (!body || typeof body.querySelector !== "function") return;
+    const row = body.querySelector("[data-card-controls]");
+    if (!row) return;
+    const box = body.querySelector(".watch-player");
+    const v = box && typeof box.querySelector === "function" ? box.querySelector("video:not(.vfill)") : null;
+    if (!v) return;
+    const btn = typeof row.querySelector === "function" ? row.querySelector("[data-card-playbtn]") : null;
+    const scrub = typeof row.querySelector === "function" ? row.querySelector("[data-card-scrub]") : null;
+    const fill = typeof row.querySelector === "function" ? row.querySelector("[data-card-progress]") : null;
+    const timeEl = typeof row.querySelector === "function" ? row.querySelector("[data-card-time]") : null;
+    const paint223 = () => {
+      try {
+        if (fill && fill.style) fill.style.width = (Number(v.duration) > 0 ? Math.round((Number(v.currentTime) || 0) / Number(v.duration) * 100) : 0) + "%";
+        if (timeEl) timeEl.textContent = vidTimeFmt223(v.currentTime) + " / " + vidTimeFmt223(v.duration);
+        if (btn) {
+          const playing = !v.paused && !v.ended;
+          btn.textContent = playing ? "❚❚" : "▶";
+          if (typeof btn.setAttribute === "function") btn.setAttribute("aria-label", playing ? "Pause the play" : "Play the play");
+        }
+      } catch (e) { /* a paint hiccup never breaks the player */ }
+    };
+    if (btn && typeof btn.addEventListener === "function") btn.addEventListener("click", () => {
+      try {
+        if (v.paused || v.ended) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
+        else v.pause();
+      } catch (e) { /* the events below repaint the true state either way */ }
+      paint223();
+    });
+    if (typeof v.addEventListener === "function") {
+      v.addEventListener("timeupdate", paint223);
+      v.addEventListener("loadedmetadata", paint223);
+      v.addEventListener("play", paint223);
+      v.addEventListener("pause", paint223);
+      v.addEventListener("ended", paint223);
+    }
+    if (scrub) vidScrubWire223(scrub, v);
+    paint223();
+  } catch (e) { /* a row that won't wire leaves the native player exactly as before */ }
+}
+/* The hero's Watch Highlights, one tap into the feed: the
+   board the visitor is on supplies the order (the Month
+   board's rows on the Month view; the All Hypes board's
+   tiles otherwise — the Battles pair is never read, so the
+   tap can never land on a battle), read off the rendered
+   DOM in document order exactly like feedBoardIds189 reads
+   a tapped tile's board. The feed opens at the FIRST play
+   and feedActivate189 starts it playing; the sound state is
+   the feed's own (Round 194 — a fresh session starts
+   muted). Returns false when the feed can't open (kill
+   switch, no board rendered yet, no plays), and the caller
+   then lets the tap fall through to the standing behavior. */
+function feedHeroIds223() {
+  try {
+    if (typeof document === "undefined" || !document || typeof document.querySelector !== "function") return null;
+    const onMonth = typeof currentView !== "undefined" && currentView === "month" && typeof monthSub !== "undefined" && monthSub !== "fame";
+    const host = document.querySelector(onMonth ? "#monthRows" : "#allBoard") || document.querySelector("#allBoard") || document.querySelector("#monthRows");
+    if (!host || typeof host.querySelectorAll !== "function") return null;
+    const ids = [...host.querySelectorAll("[data-tile-id]")].map((n) => Number(typeof n.getAttribute === "function" ? n.getAttribute("data-tile-id") : 0)).filter((n) => n > 0);
+    return ids.length ? ids : null;
+  } catch (e) { return null; }
+}
+window.openHeroFeed223 = () => {
+  try {
+    if (typeof feedEnabled189 === "function" && !feedEnabled189()) return false;
+    const ids = feedHeroIds223();
+    if (!ids) return false;
+    if (typeof window.openFeed189 !== "function") return false;
+    return !!window.openFeed189(ids, ids[0], null);
+  } catch (e) { return false; }
+};
+(function initHeroFeed223() {
+  try {
+    if (typeof document === "undefined" || !document || typeof document.addEventListener !== "function") return;
+    /* Capture phase, on the document: the hero anchor's own
+       data-tablink handler (registered on the anchor) runs
+       at the target — this listener runs first, and only a
+       feed that actually opened claims the tap (preventDefault
+       + stopPropagation keep the deck scroll from also
+       firing). Any other outcome leaves the tap exactly as
+       it behaved before this round. */
+    document.addEventListener("click", (e) => {
+      try {
+        const t = e && e.target;
+        if (!t || typeof t.closest !== "function") return;
+        if (!t.closest('a.btn-hero[data-tablink="plays"]')) return;
+        if (window.openHeroFeed223()) {
+          if (typeof e.preventDefault === "function") e.preventDefault();
+          if (typeof e.stopPropagation === "function") e.stopPropagation();
+        }
+      } catch (err) { /* an unclaimed hero tap is the pre-223 tap */ }
+    }, { capture: true });
+  } catch (e) { /* no hero interception — the deck scroll stands */ }
 })();
