@@ -4216,7 +4216,19 @@ body.feed-open189{overflow:hidden}
    the bottles' .btlv-* classes verbatim; the only addition is
    breathing room inside the two store panels.
    ================================================================ */
-.crown-ic227{width:1em;height:1em;object-fit:contain;vertical-align:-0.12em}
+/* →232 (2026-11-27): HARDENED after Emil's screenshot showed
+   the crown rendered GIANT across the board featured card's
+   media. Cause: the global `img{max-width:100%;display:block}`
+   (line 12) plus layout rules like `.tile-media img{width:100%;
+   height:100%;object-fit:cover}` (specificity 0-1-1) outranked
+   this class rule (0-1-0) wherever a crown sat inside a media
+   box, and display:block broke inline text lines (the R230
+   featured eyebrow stacked across three lines). The crown is
+   a TEXT-SIZED inline asset by definition — its size is now
+   !important-capped at 1em in both dimensions with
+   inline-block display, so no host layout rule in any current
+   or future context can blow it up or break a line with it. */
+.crown-ic227{display:inline-block;width:1em!important;height:1em!important;max-width:1em!important;max-height:1em!important;object-fit:contain;vertical-align:-0.12em;flex:none}
 .notify227{margin-top:14px;text-align:left}
 .notify227 label{font-weight:700;font-size:14.5px}
 
@@ -4275,7 +4287,11 @@ body.feed-open189{overflow:hidden}
 .feat230-meta{display:flex;align-items:center;gap:10px;padding:14px 16px 0;flex-wrap:wrap}
 .feat230-meta .feat-views151{margin:0}
 .feat230-body{padding:8px 16px 16px;display:flex;flex-direction:column;flex:1}
-.feat230-eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);font-style:italic}
+/* →232: one line — "FEATURED PLAY · [crown] CURRENTLY #1".
+   inline-flex keeps the crown img on the text line (with the
+   hardened .crown-ic227 above it can no longer break out),
+   nowrap forbids the wrap that stacked it across three lines. */
+.feat230-eyebrow{display:inline-flex;align-items:center;gap:.45em;white-space:nowrap;font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);font-style:italic}
 .feat230-title{font-family:"Anton",sans-serif;font-style:italic;text-transform:uppercase;font-size:23px;line-height:1.15;margin:3px 0 0}
 .feat230-title .who{color:var(--gold)}
 .feat230-sub{color:var(--muted);font-size:13.5px;font-weight:600;margin:2px 0 0}
@@ -4306,3 +4322,18 @@ body.feed-open189{overflow:hidden}
 .hlb230-tabs button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;padding:0 0 2px}
 .hlb230-tabs button[aria-pressed="true"]{color:var(--white);border-bottom:2px solid var(--gold)}
 .hlb230-empty{color:var(--muted);font-weight:600;margin:10px 0 0}
+
+/* ================================================================
+   Round 232 (2026-11-27): Emil's phone-review fixes.
+   - .crown-ic227 is hardened in place in the Round 227 block
+     above (the giant-crown cause + fix are documented there).
+   - .feat230-eyebrow is a one-line inline-flex in the Round 230
+     block above.
+   - Below: the static stand-in homePosterMedia230 renders when
+     a play has no poster image at all — the helper's old
+     fallback was a real <video>; the homepage sections must
+     never emit one (zero video bytes before a tap). The chip
+     fills the media box like the branded placeholder does.
+   ================================================================ */
+.home-poster-fallback232{display:grid;place-items:center;width:100%;height:100%;background:#131315;color:#e8e2d2;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
+@media(min-width:860px){ .feat230-media .home-poster-fallback232{position:absolute;inset:0} }

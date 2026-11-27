@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=219" />
+<link rel="stylesheet" href="styles.css?v=220" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -854,39 +854,25 @@
         </div>
         <div class="banner-prize134">Win a homepage feature and a social shoutout.</div>
       </div>
-      <!-- Round 134: the featured clip — the current #1 entry,
-           rendered by renderMonth (featCardHtml134) as one card:
-           poster-rest 16:9 preview, "👑 Currently #1" badge,
-           Name · Short Title, Sport · Division, gold vote
-           button. Empty when the month has no entries. -->
-      <div id="monthFeat"></div>
-      <!-- Round 134: the Leaderboard heading row — the sport
-           dropdown lives HERE now (the shared header dropdown
-           hides while the Month view is active; filtering is
-           the same monthSport machinery as ever), and the
-           This Month / Hall of Fame switch rides under it as
-           text tabs. -->
-      <div class="lb-head134">
-        <h3 class="lb-title134">Leaderboard</h3>
-        <div class="lb-filter134" id="boardFilters">
-          <select class="sport-select lb-select134" id="monthSportSelect" aria-label="Sport — this month's board"></select>
-        </div>
-      </div>
-      <div class="seg month-subseg mtabs134" role="group" aria-label="Hype of the Month — this month or the Hall of Fame">
-        <button type="button" data-msub="month" aria-pressed="true">This Month</button>
-        <button type="button" data-msub="fame" aria-pressed="false">Hall of Fame</button>
-      </div>
+      <!-- Round 232 (2026-11-27, Emil): the featured card and
+           the leaderboard LEAVE the board's Month view — the
+           R230 homepage sections (Featured Play + standing,
+           More Highlights with the full leaderboard inside)
+           are now the one copy, and scrolling the board no
+           longer repeats them. Retired here: #monthFeat (the
+           R134 featured card), the Leaderboard heading row
+           with #monthSportSelect, the This Month / Hall of
+           Fame text tabs, and #monthRows. renderMonth's
+           writes to them are guarded no-ops now (the R134
+           banner precedent); the contest data flow is
+           untouched. What stays in this view: the banner
+           card above, the last-winner strip, the empty
+           state and the never-disappear line below. -->
       <!-- Round 9 (2026-11-05): last month's winner strip — filled by
            renderMonth from the previous period's contest ONLY when a
            winner was actually crowned; stays hidden (empty) until
            then. No placeholder, no fake winner. -->
       <div class="last-winner" id="lastWinner" hidden></div>
-      <!-- Round 134: the compact leaderboard — one row per
-           entry, rendered by renderMonth (lbRowHtml134). The
-           podium and the Month tile deck retire here.
-           →147: the rows are fameRowHtml134 now — the Hall of
-           Fame row design, shared by both lists. -->
-      <div class="month-rows134" id="monthRows"></div>
       <div class="empty" id="emptyState">No plays here yet — be the first to post one.</div>
       <!-- Round 9 (2026-11-05): Nicholas worried a play "deletes"
            when the month ends — it never does. This line shows
@@ -894,29 +880,15 @@
       <p class="board-note never-disappear" id="neverDisappear" hidden>Plays never disappear — when a month ends, its plays stay in All Hypes.</p>
     </div>
 
-    <div id="viewFame" hidden>
-      <!-- Round 134 (2026-11-13): the Hall of Fame keeps its
-           name and gains the Month leaderboard's heading block:
-           the heading, its own All Sports dropdown (the SAME
-           shared contest sport state — monthSport — filtering
-           the all-time list by sport, ranking preserved), and
-           the explainer line directly beneath. The old
-           bottom-of-list note that explained the Fame retires;
-           the line lives here now. The sub-view switch rides
-           as the same text tabs as the Month panel. -->
-      <div class="lb-head134">
-        <h3 class="lb-title134">Hall of Fame</h3>
-        <div class="lb-filter134">
-          <select class="sport-select lb-select134" id="fameSportSelect" aria-label="Sport — Hall of Fame"></select>
-        </div>
-      </div>
-      <p class="fame-explainer134">Top 10 plays ranked by all-time votes.</p>
-      <div class="seg month-subseg mtabs134" role="group" aria-label="Hype of the Month — this month or the Hall of Fame">
-        <button type="button" data-msub="month" aria-pressed="true">This Month</button>
-        <button type="button" data-msub="fame" aria-pressed="false">Hall of Fame</button>
-      </div>
-      <div class="fame-list" id="fameList" aria-label="Hall of Fame — Top 10, ranked by all-time votes"></div>
-    </div>
+    <!-- Round 232 (2026-11-27): the board's Hall of Fame panel
+         (#viewFame, its heading block, #fameSportSelect, its
+         text tabs and #fameList) is retired with the Month
+         view's leaderboard above — the Hall of Fame is the
+         second tab of the homepage leaderboard now (R230),
+         and ?view=fame lands there (fameLink94 →232).
+         switchView's #viewFame write is guarded; a fame
+         sub-state with no Fame panel falls back to the Month
+         (banner) view instead of a blank board. -->
 
     <div id="viewAll" hidden>
       <div class="all-bg" aria-hidden="true"></div>
@@ -2649,6 +2621,6 @@
   </div>
 </div>
 
-<script src="app.js?v=227"></script>
+<script src="app.js?v=228"></script>
 </body>
 </html>

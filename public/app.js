@@ -1156,7 +1156,15 @@ function renderMonth() {
      (a refresh may crown a new #1) — pause it explicitly before
      its markup leaves, so no stale clip keeps playing. */
   if (typeof featPause163 === "function") featPause163();
-  $("#monthFeat").innerHTML = feat134 ? featCardHtml134(feat134) : "";
+  /* Round 232 (2026-11-27, Emil): #monthFeat and #monthRows are
+     retired from the board markup — the R230 homepage sections
+     carry the featured card and the leaderboard now, and the
+     board's Month view keeps only the banner, the last-winner
+     strip, the empty state and the never-disappear line. Both
+     writes below are guarded no-ops when their host is absent
+     (the same pattern as the banner's retired leader line);
+     the contest data flow above and below is untouched. */
+  const mfEl232 = $("#monthFeat"); if (mfEl232) mfEl232.innerHTML = feat134 ? featCardHtml134(feat134) : "";
   /* Round 132 (2026-11-13): the contest is ONE combined board —
      the entry list ignores the Boys/Girls division entirely
      (the seg is hidden on this tab, and whatever division state
@@ -1164,7 +1172,7 @@ function renderMonth() {
      filter keeps its current behavior. Watch keeps its own
      division filtering in renderAll2, untouched. */
   const filtered = entries.filter((h) => monthSport === "all" || h.sport === monthSport);
-  $("#monthRows").innerHTML = filtered.map((h, i) => fameRowHtml134(h, i, { feed189: true })).join("");
+  const mrEl232 = $("#monthRows"); if (mrEl232) mrEl232.innerHTML = filtered.map((h, i) => fameRowHtml134(h, i, { feed189: true })).join("");
   hydrateDurPills();
   /* Round 163: after every rebuild, if the Month view is the
      one on screen, the (possibly new) #1's showcase starts —
@@ -1382,7 +1390,11 @@ function fameRowHtml134(h, i, opts = {}) {
   /* Round 189: Month-board rows (renderMonth passes
      opts.feed189) open the watch feed at the row's play; Hall
      of Fame rows keep the classic goToPlayCard tap. */
-  const tap134 = opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
+  /* Round 232: opts.home232 — the HOMEPAGE leaderboard's rows
+     open the swipe feed at the tapped play (Emil: "We lost
+     the swipe concept"), via homeOpenPlay232 in the Round 232
+     block. The board's own rows keep feed189 / goToPlayCard. */
+  const tap134 = opts && opts.home232 ? `homeOpenPlay232(${h.id})` : opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
   /* Round 220: the votes pill — a real toggleVote button for
      real plays (see the block above), the R219 display span
      for samples. */
@@ -1407,7 +1419,12 @@ function renderFame() {
      ranking preserved, up to 10 shown. */
   const rankedAll = [...ALL_PLAYS].filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id);
   const ranked = rankedAll.filter((h) => monthSport === "all" || h.sport === monthSport).slice(0, 10);
-  $("#fameList").innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p style="color:var(--muted)">${rankedAll.length ? "No plays in this sport yet — try All Sports." : "No plays yet — the Hall of Fame fills in as plays are posted and voted on."}</p>`;
+  /* Round 232 (2026-11-27): #fameList is retired from the board
+     markup — the Hall of Fame lives in the homepage leaderboard
+     (renderHomeLb230 computes the same ranking). Guarded write:
+     a no-op in the shipped page; the computation above stays
+     for its other readers. */
+  const flEl232 = $("#fameList"); if (flEl232) flEl232.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p style="color:var(--muted)">${rankedAll.length ? "No plays in this sport yet — try All Sports." : "No plays yet — the Hall of Fame fills in as plays are posted and voted on."}</p>`;
 }
 /* Round 167 (2026-11-14): renderMine is GONE. It populated
    the "Athletes on the board" directory (#mineAthletes) that
@@ -2265,8 +2282,16 @@ function switchView(v) {
   currentView = v;
   $$(".viewseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
   const fame = v === "month" && monthSub === "fame";
-  $("#viewMonth").hidden = v !== "month" || fame;
-  $("#viewFame").hidden = !fame;
+  /* Round 232 (2026-11-27): #viewFame is retired from the markup
+     (the Hall of Fame is the homepage leaderboard's second tab
+     now). Guarded writes; and when a fame sub-state is asked
+     for but no Fame panel exists, the Month (banner) view
+     shows instead of a blank board — a stale saved place or
+     the feed's old Leaderboard landing can never strand the
+     visitor on an empty panel. */
+  const vfEl232 = $("#viewFame");
+  const vmEl232 = $("#viewMonth"); if (vmEl232) vmEl232.hidden = v !== "month" || (fame && !!vfEl232);
+  if (vfEl232) vfEl232.hidden = !fame;
   $("#viewAll").hidden = v !== "all";
   $$(".month-subseg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.msub === monthSub)));
   /* Round 132: the Boys/Girls seg no longer shows on the Month
@@ -2793,12 +2818,16 @@ function syncFilterUI() {
      plays left ANYWHERE (its option is truly gone). */
   const allSports = sportsInData(ALL_PLAYS);
   if (allSport !== "all" && !allSports.includes(allSport)) allSport = "all";
-  renderSportSelect($("#monthSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
+  /* Round 232 (2026-11-27): #monthSportSelect and #fameSportSelect
+     are retired with the board's leaderboard — both contest
+     selects are guarded renders now (no-ops in the shipped
+     page; the shared monthSport state itself is unchanged). */
+  const msEl232 = $("#monthSportSelect"); if (msEl232) renderSportSelect(msEl232, monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderMonth(); });
   /* Round 134: the Hall of Fame's dropdown is the SAME shared
      contest sport state (monthSport, the same contest-derived
      option list) — picking a sport in either contest surface
      filters both, and the Fame list re-renders on the change. */
-  renderSportSelect($("#fameSportSelect"), monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderFame(); });
+  const fsEl232 = $("#fameSportSelect"); if (fsEl232) renderSportSelect(fsEl232, monthSport, monthSports, (s) => { monthSport = s; syncFilterUI(); renderFame(); });
   renderSportSelect($("#allSportSelect"), allSport, allSports, (s) => { allSport = s; syncFilterUI(); renderAll2(); });
   $$("#monthDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === monthDiv)); b.onclick = () => { monthDiv = b.dataset.div; syncFilterUI(); renderMonth(); }; });
   $$("#allDivSeg button").forEach((b) => { b.setAttribute("aria-pressed", String(b.dataset.div === allDiv)); b.onclick = () => { allDiv = b.dataset.div; syncFilterUI(); renderAll2(); }; });
@@ -7846,7 +7875,12 @@ function initBattles() {
   if (new URLSearchParams(location.search).get("view") !== "fame") return;
   if (typeof applyDefaultView !== "function") return;
   const prevAD = applyDefaultView;
-  applyDefaultView = function () { prevAD(); monthSub = "fame"; switchView("month"); };
+  /* Round 232 (2026-11-27): the board's Fame panel is retired —
+     ?view=fame lands on the HOMEPAGE leaderboard's Hall of Fame
+     tab instead (homeLbLanding232 in the Round 232 block paints
+     the tab and scrolls the section into view). The default
+     view still runs first, exactly as before. */
+  applyDefaultView = function () { prevAD(); if (typeof homeLbLanding232 === "function") homeLbLanding232("fame"); };
 })();
 
 
@@ -10990,10 +11024,15 @@ window.closeFeed189 = () => {
 /* The feed's top tabs and the end card's Leaderboard button:
    leave the feed, land on the named board. The Leaderboard
    lives on the Month tab (setMonthSub pins the This Month
-   sub-view, exactly like the tab itself). */
+   sub-view, exactly like the tab itself).
+   Round 232 (2026-11-27): the board's leaderboard is retired —
+   the Leaderboard now lives in the homepage's More Highlights
+   section, so the 'month' landing goes there (This Month tab,
+   section scrolled into view) via homeLbLanding232. */
 window.feedGo189 = (view) => {
   window.closeFeed189();
-  if (view === "month" && typeof setMonthSub === "function") setMonthSub("month");
+  if (view === "month" && typeof homeLbLanding232 === "function") homeLbLanding232("month");
+  else if (view === "month" && typeof setMonthSub === "function") setMonthSub("month");
   else if (typeof switchView === "function") switchView(view);
 };
 /* A hype from the feed IS a hype: the same toggleVote (the real
@@ -11653,7 +11692,18 @@ function homeAthleteLabel230(h) {
 function homePosterMedia230(h, imgAttrs) {
   const poster = typeof posterUrlFor134 === "function" ? posterUrlFor134(h) : "";
   if (poster) return `<img src="${esc(poster)}" alt=""${imgAttrs || ""}>`;
-  return typeof fameThumbHtml === "function" ? fameThumbHtml(h, { rest133: true }) : "";
+  /* Round 232 (2026-11-27, Emil — the battle card sat black):
+     this helper must NEVER emit a <video>. The old fallback
+     (fameThumbHtml) renders a real <video preload="metadata">
+     for any play whose poster resolves empty — a video element
+     in a card that is supposed to be a still, pulling stream
+     bytes before any tap. posterUrlFor134 already resolves a
+     branded placeholder image for poster-less file plays, so
+     the only plays reaching here are ones with no image at
+     all; they get a static sport chip instead. Homepage
+     sections now load ZERO video bytes until a tap, by
+     construction. */
+  return `<span class="home-poster-fallback232">${esc(cap(h && h.sport ? h.sport : "Hype"))}</span>`;
 }
 
 /* The hero's battle anchor exists only while a battle does —
@@ -11679,9 +11729,21 @@ function homeBattleCard230(slot, p, r) {
   const btn = picked
     ? `<button type="button" class="btn hb230-vote" disabled>${mine ? `${CROWN227} Your pick` : `Vote ${slot}`}</button>`
     : `<button type="button" class="btn hb230-vote" id="homePick${slot}230" onclick="homeBattlePick230('${slot}')">Vote ${slot}</button>`;
+  /* Round 232: (1) the media tap opens the swipe FEED at this
+     play (homeOpenPlay232), not the static detail — Emil: "We
+     lost the swipe concept." The Vote button below keeps its
+     own pick behavior. (2) The poster img rides
+     fetchpriority="high" — the battle stills are the first
+     content under the hero and must not queue behind the
+     board's video traffic. (3) The meta omits the team segment
+     when it merely repeats the athlete label (play 78's team
+     field IS "Kameron A" — a deliberate privacy record, left
+     stored as-is): "Kameron A. · Football · Kameron A" wrapped
+     to two lines and opened a gap above Vote B; deduped, both
+     cards' meta stays one line and the Vote buttons align. */
   return `<article class="hb230-card${mine ? " picked" : ""}">
-    <div class="hb230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(p))} — ${esc(p.title)}" onclick="openPlayDetail(${p.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${p.id})}">${homePosterMedia230(p)}<span class="hb230-side">${slot}</span><span class="hb230-play"><svg width="20" height="22" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
-    <div class="hb230-info"><h4>${esc(p.title)}</h4><p>${esc(homeAthleteLabel230(p))} · ${esc(cap(p.sport))}${p.team ? ` · ${esc(p.team)}` : ""}</p></div>
+    <div class="hb230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(p))} — ${esc(p.title)}" onclick="homeOpenPlay232(${p.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();homeOpenPlay232(${p.id})}">${homePosterMedia230(p, ' fetchpriority="high" decoding="async"')}<span class="hb230-side">${slot}</span><span class="hb230-play"><svg width="20" height="22" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="hb230-info"><h4>${esc(p.title)}</h4><p>${esc(homeAthleteLabel230(p))} · ${esc(cap(p.sport))}${p.team && !homeTeamDupAthlete232(p) ? ` · ${esc(p.team)}` : ""}</p></div>
     ${btn}
   </article>`;
 }
@@ -11738,7 +11800,7 @@ function renderHomeFeatured230() {
     ? `<span class="feat-vote134 is-static">${CROWN227} <b>${votes}</b> this month vote${votes === 1 ? "" : "s"}</span>`
     : `<button type="button" class="feat-vote134${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)"><span class="feat-vote-label134">${h.hasVoted ? "✓ Voted for this play" : "Vote for this play"}</span><span class="feat-vote-count134">${votes} vote${votes === 1 ? "" : "s"}</span></button>`;
   body.innerHTML = `<article class="feat230">
-    <div class="feat230-media" role="button" tabindex="0" aria-label="Watch ${esc(label)} — ${esc(shortTitle(h.title))}" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">${homePosterMedia230(h)}<span class="feat230-disc"><svg width="24" height="27" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
+    <div class="feat230-media" role="button" tabindex="0" aria-label="Watch ${esc(label)} — ${esc(shortTitle(h.title))}" onclick="homeOpenPlay232(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();homeOpenPlay232(${h.id})}">${homePosterMedia230(h, ' fetchpriority="high" decoding="async"')}<span class="feat230-disc"><svg width="24" height="27" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span></div>
     <div class="feat230-side">
       ${meta}
       <div class="feat230-body">
@@ -11759,7 +11821,7 @@ function homeMoreTile230(h) {
     ? `<span class="hm230-votebtn is-static">Vote</span>`
     : `<button type="button" class="hm230-votebtn${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "✓ Voted" : "Vote"}</button>`;
   return `<article class="hm230-tile">
-    <div class="hm230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(h))} — ${esc(shortTitle(h.title))}" onclick="openPlayDetail(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlayDetail(${h.id})}">${homePosterMedia230(h, ' loading="lazy"')}${Number(h.viewCount) >= 1 ? `<span class="hm230-watches">▶ ${fmtCount151(h.viewCount)}</span>` : ""}</div>
+    <div class="hm230-media" role="button" tabindex="0" aria-label="Watch ${esc(homeAthleteLabel230(h))} — ${esc(shortTitle(h.title))}" onclick="homeOpenPlay232(${h.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();homeOpenPlay232(${h.id})}">${homePosterMedia230(h, ' loading="lazy"')}${Number(h.viewCount) >= 1 ? `<span class="hm230-watches">▶ ${fmtCount151(h.viewCount)}</span>` : ""}</div>
     <div class="hm230-body"><h4>${esc(shortTitle(h.title))}</h4><p>${esc(homeAthleteLabel230(h))} · ${esc(cap(h.sport))}</p>${pill}</div>
   </article>`;
 }
@@ -11775,11 +11837,16 @@ function renderHomeLb230() {
        here, into the home section's own rows. */
     const ranked = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
       .filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
-    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i)).join("") : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
+    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
     return ranked.length > 0;
   }
   const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
-  rows.innerHTML = entries.length ? entries.map((h, i) => fameRowHtml134(h, i, { feed189: true })).join("") : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
+  /* Round 232: homepage rows route their media tap to the
+     swipe feed (opts.home232), on BOTH tabs — the R230 month
+     rows rode feed189, whose host check only recognizes the
+     board's own lists, so homepage taps fell back to the
+     static detail; the fame rows rode goToPlayCard outright. */
+  rows.innerHTML = entries.length ? entries.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
   if (typeof hydrateDurPills === "function") hydrateDurPills();
   return entries.length > 0;
 }
@@ -11830,3 +11897,95 @@ function renderHome230() {
     bind("homeLbTabFame230", "fame");
   } catch (e) { /* no DOM in this context — the tabs simply stay unwired */ }
 })();
+
+/* ================================================================
+   Round 232 (2026-11-27): Emil's phone review of the R230
+   homepage — five fixes.
+   (1) Battle stills: homePosterMedia230 can no longer emit a
+       <video> (see its note) and the battle/featured posters
+       ride fetchpriority="high" — both cards paint their poster
+       still immediately and the homepage sections load ZERO
+       video bytes until a tap. (Measured cause in the round's
+       test file: both sides already resolved to poster <img>s
+       with the live payload — A /uploads/poster-77.jpg at
+       257,834 B, B /uploads/poster-78.jpg at 200,805 B, each
+       served in ~0.5 s — but the stills are full-size
+       baseline JPEGs requested only after the daily-battle
+       fetch returns, queued behind the 6,964,246 B hero film
+       and the board's autoplaying tile videos (stream
+       renditions of 931,335–3,665,557 B apiece); B's baseline
+       JPEG painted top-down — sky first over the black card —
+       exactly Emil's screenshot.)
+   (2) Battle meta dedupe: homeTeamDupAthlete232 below.
+   (3) The featured eyebrow is one line (styles.css →232: the
+       CROWN227 img was display:block under the global img
+       rule, breaking the span across three lines; the eyebrow
+       is inline-flex now and the crown class itself is
+       hardened — see the styles note).
+   (4) Homepage taps open the swipe feed: homeOpenPlay232
+       below routes battle/featured/More media taps and both
+       homepage leaderboard tabs' rows into openFeed189, the
+       R223 feed Watch Highlights opens, starting at the
+       tapped play and swiping onward in the feed's normal
+       board order (feedHeroIds223). The board panel's own
+       tiles are NOT touched.
+   (5) The board panel's Month view sheds its featured card
+       and leaderboard (markup removed in index.html;
+       renderMonth/renderFame/syncFilterUI/switchView writes
+       guarded in place), and everything that used to land on
+       the board's leaderboard — ?view=fame, the feed's "See
+       the Leaderboard" — lands on the homepage section via
+       homeLbLanding232 below.
+   (6) Posters carry a server-side cache-bust token
+       (server.js posterUrl232) so a cleaned poster replaces
+       its 24h-cached copy immediately — no client change
+       needed; poster_url stays an opaque URL here.
+   ================================================================ */
+
+/* (2) Normalized name comparison for the battle meta: trim,
+   collapse whitespace, lowercase, and drop a trailing period
+   or trailing spaces — the athlete label renders as
+   "Kameron A." while play 78's team field stores "Kameron A",
+   and the two must compare equal. */
+function homeNormName232(s) {
+  return String(s || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[.\s]+$/, "");
+}
+function homeTeamDupAthlete232(p) {
+  const t = homeNormName232(p && p.team);
+  if (!t) return false;
+  return t === homeNormName232(homeAthleteLabel230(p)) || t === homeNormName232(p && p.player_name);
+}
+
+/* (4) The homepage's play opener: feed-first, exactly
+   openPlay189's contract (feed when it can, the static detail
+   as the fallback) — but ordered by the FEED's board order
+   (feedHeroIds223, the same list Watch Highlights opens)
+   instead of the tapped element's host list: homepage sections
+   live outside #allBoard/#monthRows, so openPlay189's host
+   lookup could never see them. battle = null — a homepage tap
+   is a board play, never the Battles pair. */
+window.homeOpenPlay232 = (id) => {
+  const nid = Number(id);
+  try {
+    if (typeof feedEnabled189 === "function" && feedEnabled189() && typeof window.openFeed189 === "function") {
+      const ids = typeof feedHeroIds223 === "function" ? feedHeroIds223() : null;
+      if (ids && ids.indexOf(nid) > -1 && window.openFeed189(ids, nid, null)) return;
+    }
+  } catch (e) { /* the detail below is the fallback, exactly as in openPlay189 */ }
+  if (typeof window.openPlayDetail === "function") window.openPlayDetail(id);
+};
+
+/* (5) Land on the homepage leaderboard: paint the named tab
+   and scroll the More Highlights section into view. Readers:
+   fameLink94 (?view=fame → "fame") and the feed's end-card /
+   Leaderboard landing (feedGo189('month') → "month"). Fully
+   guarded — a landing hiccup must never break the boot or the
+   feed close that precedes it. */
+function homeLbLanding232(tab) {
+  try { homeLbTab230 = tab === "fame" ? "fame" : "month"; } catch (e) { /* the R230 tab state is not initialized in this context — the default tab stands */ }
+  try { if (typeof renderHomeLb230 === "function") renderHomeLb230(); } catch (e) { /* rows repaint on the next renderAll */ }
+  try {
+    const go = () => { const s = document.getElementById("homeMore230"); if (s && !s.hidden && typeof s.scrollIntoView === "function") s.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if (typeof setTimeout === "function") setTimeout(go, 60); else go();
+  } catch (e) { /* scrolling is a courtesy — the tab is already painted */ }
+}
