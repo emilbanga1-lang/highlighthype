@@ -33,6 +33,11 @@
 //    Safari) — viewport ≤820px → lite, larger → full. All three
 //    hero start paths (controller, showHome, studio-exit
 //    resume) route through the pick and respect the hold.
+//    — →239: 3g and the no-API phone fallback now start on
+//    the new "mobile" mid tier (hero-film-mobile.mp4, ~1.17
+//    Mbps) instead of lite, and a fallback start self-
+//    upgrades to the full film once playback runs smoothly
+//    (Round 239; test-r239.js). The tap class is unchanged.
 //
 // Pins: app.js v229 / styles v221. — →234: app.js now v230
 // (Round 234); styles keeps v221 (unchanged this round).
@@ -49,7 +54,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + the lite asset ----
-assert(home.includes('href="styles.css?v=225"') && home.includes('src="app.js?v=234"'), "A: asset pins — app.js v229 / styles v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238)");
+assert(home.includes('href="styles.css?v=225"') && home.includes('src="app.js?v=235"'), "A: asset pins — app.js v229 / styles v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round)");
 const fullSize = fs.statSync(path.join(ROOT, "public/hero-film.mp4")).size;
 const liteSize = fs.statSync(path.join(ROOT, "public/hero-film-lite.mp4")).size;
 assert(fullSize === 6964246, "A: the full hero film is untouched (6,964,246 B)");
@@ -73,7 +78,7 @@ assert(appJs.includes('rootMargin: "400px 0px 400px 0px"') && appJs.includes('qu
 assert(appJs.includes("tileGateObs233.disconnect()"), "B2: re-binding disconnects the previous observer (no stacking, no stranded players)");
 // B3: the hero pick.
 const heroTag = home.slice(home.indexOf('<video id="heroVideo"'), home.indexOf(">", home.indexOf('<video id="heroVideo"')) + 1);
-assert(heroTag.includes('data-src="/hero-film.mp4"') && heroTag.includes('data-src-lite="/hero-film-lite.mp4"') && !heroTag.includes(" src="), "B3: the hero carries both film URLs in data attributes and NO src — nothing is fetched before the pick");
+assert(heroTag.includes('data-src="/hero-film.mp4"') && heroTag.includes('data-src-lite="/hero-film-lite.mp4"') && heroTag.includes('data-src-mobile="/hero-film-mobile.mp4"') && !heroTag.includes(" src="), "B3: the hero carries both film URLs in data attributes and NO src — nothing is fetched before the pick — →239: a third URL rides along (data-src-mobile, the mid tier)");
 assert(home.includes('id="heroPlay233"') && home.includes('class="hero-play233" id="heroPlay233" hidden'), "B3: the tap-to-play button ships hidden in the hero");
 assert(appJs.includes("function heroConnClass233(") && appJs.includes("function heroFilmUrl233(") && appJs.includes("function heroHeld233("), "B3: the pick functions exist (class / url / held)");
 assert(appJs.includes('const held233 = (typeof heroHeld233 === "function") && heroHeld233(v);') && appJs.includes('$("#heroPlay233")'), "B3: the hero controller computes the hold and wires #heroPlay233");
@@ -186,7 +191,7 @@ const heroEl = () => ({ dataset: { src: "/hero-film.mp4", srcLite: "/hero-film-l
   let sb = heroWorld({ effectiveType: "4g" }, 1440); let el = heroEl(); sb.__el = el;
   assert(vm.runInContext("heroConnClass233()", sb) === "full" && vm.runInContext("heroFilmUrl233(__el)", sb) === "/hero-film.mp4" && vm.runInContext("heroHeld233(__el)", sb) === false, "E: 4g → the full film, autoplay (no hold)");
   sb = heroWorld({ effectiveType: "3g" }, 390); el = heroEl(); sb.__el = el;
-  assert(vm.runInContext("heroConnClass233()", sb) === "lite" && vm.runInContext("heroFilmUrl233(__el)", sb) === "/hero-film-lite.mp4" && vm.runInContext("heroHeld233(__el)", sb) === false, "E: 3g → the lite film, autoplay (no hold)");
+  assert(vm.runInContext("heroConnClass233()", sb) === "mobile" && vm.runInContext("heroFilmUrl233(__el)", sb) === "/hero-film-mobile.mp4" && vm.runInContext("heroHeld233(__el)", sb) === false, "E: 3g → the lite film, autoplay (no hold) — →239: 3g → the MOBILE mid tier, autoplay (no hold), no self-upgrade (reported connection)");
   sb = heroWorld({ effectiveType: "2g" }, 390); el = heroEl(); sb.__el = el;
   assert(vm.runInContext("heroConnClass233()", sb) === "tap" && vm.runInContext("heroFilmUrl233(__el)", sb) === "/hero-film-lite.mp4" && vm.runInContext("heroHeld233(__el)", sb) === true, "E: 2g → held on the poster; the tap would load the LITE film");
   el.dataset.hh233started = "1";
@@ -196,7 +201,7 @@ const heroEl = () => ({ dataset: { src: "/hero-film.mp4", srcLite: "/hero-film-l
   sb = heroWorld({ effectiveType: "4g", saveData: true }, 390);
   assert(vm.runInContext("heroConnClass233()", sb) === "tap", "E: saveData beats 4g → tap");
   sb = heroWorld(undefined, 390);
-  assert(vm.runInContext("heroConnClass233()", sb) === "lite", "E: no connection API (iOS Safari), phone viewport → lite");
+  assert(vm.runInContext("heroConnClass233()", sb) === "mobile", "E: no connection API (iOS Safari), phone viewport → lite — →239: → the MOBILE mid tier (the lite pick was the blur), with the self-upgrade armed");
   sb = heroWorld(undefined, 1440);
   assert(vm.runInContext("heroConnClass233()", sb) === "full", "E: no connection API, desktop viewport → full");
   sb = heroWorld({ effectiveType: "4g" }, 1440); el = heroEl(); sb.__el = el;

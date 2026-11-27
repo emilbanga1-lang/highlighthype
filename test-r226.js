@@ -43,7 +43,7 @@ const css = read("public/styles.css");
 const home = read("public/index.html");
 
 // ---------- statics: pins ----------
-assert(home.includes('src="app.js?v=234"') && home.includes('href="styles.css?v=225"'), "pins: app.js v223 / styles v216 — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238)");
+assert(home.includes('src="app.js?v=235"') && home.includes('href="styles.css?v=225"'), "pins: app.js v223 / styles v216 — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round)");
 
 // ---------- A. Battles statics ----------
 {

@@ -58,7 +58,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=225"') && home.includes('src="app.js?v=234"'), "A: asset pins — app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238)");
+assert(home.includes('href="styles.css?v=225"') && home.includes('src="app.js?v=235"'), "A: asset pins — app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round)");
 
 // ---- B. layout statics: the wide window replaced contain-fit ----
 const laySrc = appJs.slice(appJs.indexOf("function hfFormatLayout218"), appJs.indexOf("function hfDrawFormat218"));
@@ -206,7 +206,7 @@ const L = sb.hfFormatLayout218;
       await new Promise((r) => setTimeout(r, 400));
     }
     assert(served.length > 0, "G: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=234"') && served.includes('href="styles.css?v=225"'), "G: the served homepage carries the v233/v224 pins");
+    assert(served.includes('src="app.js?v=235"') && served.includes('href="styles.css?v=225"'), "G: the served homepage carries the v233/v224 pins");
     servedApp = await (await fetch(`http://127.0.0.1:${port}/app.js`)).text();
     assert(servedApp.includes("Math.round(W * 31 / 36)") && servedApp.includes("0.60 * aH - sh / 2"), "G: the served app.js carries the wide layout + 60% band crop");
     servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
