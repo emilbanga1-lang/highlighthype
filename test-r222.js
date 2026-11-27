@@ -92,7 +92,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=222"') && home.includes('href="styles.css?v=215"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed) — →223: app.js now v222 (Round 223); styles now v215 (Round 223)");
+assert(home.includes('src="app.js?v=223"') && home.includes('href="styles.css?v=216"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226)");
 
 // ---- B. Layout statics ----
 {
@@ -132,8 +132,8 @@ assert(home.includes('src="app.js?v=222"') && home.includes('href="styles.css?v=
   assert(buttons.length === 9, "C: the studio picker renders exactly 9 size buttons");
   assert(!prod.includes('data-hf-size="YXXS"'), "C: YXXS is NOT a studio size button");
   assert(!/data-hf-size="\w+" aria-pressed="true"/.test(prod), "C: no size button ships pressed — nothing is preselected");
-  assert(serverJs.includes('["YXXS", "YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"].includes(String(body.size || "")') && serverJs.includes('YXXS: "68266140827861"'), "C: the server's 10-size order validation + the Shopify variant map are untouched (both keep YXXS)");
-  assert(studio.slice(studio.indexOf('id="hfSizeGuide205"'), studio.indexOf('id="hfSizeGuide205"') + 3000).includes("YXXS"), "C: the size GUIDE still documents YXXS (it describes the store's full range)");
+  assert(serverJs.includes('["YXS", "YS", "YM", "YL", "YXL", "S", "M", "L", "XL"].includes(String(body.size || "")') && !serverJs.includes('YXXS: "68266140827861"'), "C: the server's 10-size order validation + the Shopify variant map are untouched (both keep YXXS) — →226: SUPERSEDED — YXXS is cut catalog-wide: the order validation is the nine-size list and the variant map dropped the YXXS entry");
+  assert(!studio.slice(studio.indexOf('id="hfSizeGuide205"'), studio.indexOf('id="hfSizeGuide205"') + 3000).includes("YXXS"), "C: the size GUIDE still documents YXXS (it describes the store's full range) — →226: SUPERSEDED — the guide no longer documents YXXS (catalog-wide cut)");
 }
 
 // ---- D. The size gate (VM) ----
@@ -372,7 +372,7 @@ assert(home.includes('src="app.js?v=222"') && home.includes('href="styles.css?v=
   const s = await boot(45236);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=222"') && served.includes('href="styles.css?v=215"'), "H: the served homepage carries the Round 222 pins — →223: app.js now v222 (Round 223); styles now v215 (Round 223)");
+    assert(served.includes('src="app.js?v=223"') && served.includes('href="styles.css?v=216"'), "H: the served homepage carries the Round 222 pins — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfPriceTop222"') && served.includes('id="hfFence222"') && served.includes('id="menuPost222"') && served.includes("Send order request"), "H: the served studio is the rebuilt studio (price line, fence step, menu entry, renamed submit)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function wireHf222") && servedApp.includes("function hfDistinctPick222") && servedApp.includes("HF_STUDIO_SIZES222") && servedApp.includes("function hfMakeFence222"), "H: the served app.js carries the rebuild (wiring, distinct picker, studio sizes, fence flow)");
