@@ -3315,11 +3315,13 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, step211: 1, stepMax211: 1, clipOpen211: false };
-// Round 211 state: step211 / stepMax211 (the three-step
-// customizer's current + furthest-reached step — presentation
-// only, never read by the order path) and clipOpen211 (the
-// Moment step's player area, collapsed by default).
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "YM", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product" };
+// Round 215 state: screen215 (the one-page studio's two
+// screens — "product" / "review" — presentation only, never
+// read by the order path; the Round 211 step211 / stepMax211
+// retired with the stepper) and clipOpen211 (the Pick from
+// video player area inside the Change photo panel, collapsed
+// by default for video plays).
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3412,16 +3414,27 @@ function initHfStudio(play) {
   hfSyncAvatar206();
   hfAvatarStatus206();
   hfRenderPresetMinis206();
-  // Round 211: a new play restarts the customizer at Moment —
-  // the step state resets, the hero is back in the Moment slot,
-  // the clip row is labeled for this play, and the player area
-  // starts collapsed (photo and link plays open it instead:
-  // their content IS the moment picker).
-  hfGoStep211(1, true);
+  // Round 215: a new play restarts the one-page studio on the
+  // product page — the title names the athlete, every option
+  // row starts closed, the clip area is labeled for this play
+  // and starts collapsed (photo and link plays open it instead:
+  // their content IS the moment picker), and the poster seed
+  // puts the play's frame on the hoodie (hfSeedPoster215 — the
+  // garment already wears the poster provisionally from the
+  // hfGarmentSync206 above, so the seed swaps it for the
+  // composed print behind the same geometry when it lands).
+  const title215 = $("#hfProductTitle215");
+  if (title215) { const who215 = (play.athlete_label || play.player_name || "").trim(); title215.textContent = who215 ? `${who215}'s Hype Frame Hoodie` : "Your Hype Frame Hoodie"; }
+  const sub215 = $("#hfProductSub215");
+  if (sub215) sub215.textContent = hfState.mediaType === "link" ? `From the play “${play.title}”.` : `From the play “${play.title}” — the frame is already on the hoodie.`;
+  hfShowScreen215("product", true);
   hfSyncClipRow211();
   hfSetClipOpen211(hfState.mediaType !== "video");
-  const step1Msg211 = $("#hfStep1Msg211");
-  if (step1Msg211) { step1Msg211.hidden = true; step1Msg211.textContent = ""; }
+  hfSetRow215("photo", false); hfSetRow215("artwork", false); hfSetRow215("placement", false); hfSetRow215("backtext", false);
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
+  const photoMsg215 = $("#hfPhotoMsg215");
+  if (photoMsg215) { photoMsg215.hidden = true; photoMsg215.textContent = ""; }
+  hfSeedPoster215(play);
 }
 /* Frame filmstrip (2026-11-05): thumbnails captured client-side from
    the play's own video at ~1s intervals (coarser for long clips, max
@@ -3526,6 +3539,8 @@ let hfTapToken127 = 0;
 function hfSetSelected205(t) {
   const el = $("#hfSelected205");
   hfState.frameTime205 = (typeof t === "number" && isFinite(t)) ? t : null;
+  // Round 215: the Change photo row's state names the picked frame.
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
   if (!el) return;
   if (hfState.frameTime205 == null) { el.hidden = true; el.textContent = ""; return; }
   el.textContent = `Frame selected · ${hfFmtTime(hfState.frameTime205)}`;
@@ -3565,11 +3580,30 @@ function hfJumpToFrame(t, btn) {
   $$("#hfStrip .hf-thumb").forEach((el) => el.classList.toggle("active", el === btn));
   if (hfState.mediaType !== "video") return;
   const token = ++hfTapToken127;
-  const select = () => { if (token === hfTapToken127) { hfCapturePrint(); hfHideInstant205(); } };
+  // Round 215: a thumbnail tap (btn set) inside the OPEN Change
+  // photo panel is the pick — once the capture lands, close the
+  // panel and put the parent back in front of the hoodie, which
+  // has just updated behind it (hfPhotoPicked215). The
+  // recommendation's pre-select also passes its button, but the
+  // panel is closed then and the helper no-ops; the fine
+  // steppers pass no button and never close the panel.
+  const select = () => { if (token === hfTapToken127) { hfCapturePrint(); hfHideInstant205(); if (btn) hfPhotoPicked215(); } };
   if (v.readyState >= 2 && v.videoWidth && Math.abs((v.currentTime || 0) - target) < 0.05) { select(); return; }
   const onSeeked = () => { v.removeEventListener("seeked", onSeeked); select(); };
   v.addEventListener("seeked", onSeeked);
   if (v.duration) { try { v.currentTime = target; } catch { onSeeked(); } }
+}
+/* Round 215: after a filmstrip pick inside the Change photo
+   panel, close the panel and scroll the garment back into
+   view — the hoodie already shows the new frame. No-op when
+   the panel is closed (the recommendation pre-select path) or
+   the row machinery is absent (partial test slices). */
+function hfPhotoPicked215() {
+  const panel = $("#hfPhotoPanel215");
+  if (!panel || panel.hidden) return;
+  if (typeof hfSetRow215 === "function") hfSetRow215("photo", false);
+  const garment = $("#hfGarment206");
+  if (garment && garment.scrollIntoView) garment.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 /* Round 205 still recommendation (Emil: "Can an agent recommend
    which still to use?"): the strip's OWN thumbnails are scored
@@ -4002,6 +4036,7 @@ function hfSetPreset(p) {
   $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
   hfSyncSummary205();
   if (hfState.frozen) composeHfPrint();
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
 }
 // Hoodie color + youth size (Round 3, 2026-11-05): Emil reversed the
 // Round 2 simplification for these two fields. The color drives the
@@ -4053,6 +4088,7 @@ function hfPickSide(side) {
   // it stays truthful about which view carries the print);
   // the preview's own view is NOT changed by this picker.
   if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
 }
 /* Photo or Avatar (Round 38, 2026-11-08 — Twinkie's idea, approved by
    Twinkie + Nicholas): 'photo' prints the frozen frame as-is; 'avatar'
@@ -4065,6 +4101,7 @@ function hfPickImageStyle(style) {
   // Round 206: the avatar maker panel follows the style pick
   // (it also kicks the one-time configured check).
   if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
 }
 /* Words on the back (Round 197, 2026-11-25 — parent feedback Emil
    received with the first delivered sweatshirt): the embroidered
@@ -4108,6 +4145,7 @@ function hfPickBackText197(choice) {
   // treatment — it follows the choice even when the composed
   // print itself doesn't change (the Classic style).
   if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
+  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
 }
 function hfBuildColorButtons() {
   const wrap = $("#hfColors");
@@ -4170,13 +4208,14 @@ function hfBuildColorButtons() {
   // side (picker restored Round 35), colorway and size.
   $("#hfOrderForm").addEventListener("submit", (e) => {
     e.preventDefault();
-    // Round 211: the form lives ON the Review step now, so its
-    // submit IS the send — hfSubmitOrder206 validates first
-    // (a failure keeps the parent on Step 3 with the error in
-    // #hfMsg) and posts the exact pre-R206 payload: same
-    // endpoint, same responses, same Round 200 checkout
-    // handoff. (Rounds 206–210 routed this through the review
-    // stage's separate "Send hoodie request" button.)
+    // Round 211 → 215: the form lives ON the Review screen
+    // now, so its submit IS the send — hfSubmitOrder206
+    // validates first (a failure keeps the parent on Review
+    // with the error in #hfMsg) and posts the exact pre-R206
+    // payload: same endpoint, same responses, same Round 200
+    // checkout handoff. (Rounds 206–210 routed this through
+    // the review stage's separate "Send hoodie request"
+    // button.)
     hfSubmitOrder206();
   });
 })();
@@ -4279,6 +4318,78 @@ function hfPosterUrl211(play) {
   } catch { return ""; }
 }
 
+/* Round 215: the poster SEED. The one-page studio opens on the
+   finished hoodie, so the play's poster becomes the frozen
+   frame at open — loaded at natural size into the capture
+   canvas and composed through the same composeHfPrint a
+   hand-frozen frame gets, which is what makes the avatar
+   maker, the order payload and Review work on it exactly as
+   on a manual freeze. The seed URL is deliberately narrower
+   than hfPosterUrl211: the play's own poster, or (video) the
+   banked board frame — NEVER the branded placeholder poster,
+   which is a graphic, not a moment, and must never become a
+   submittable print. Photo plays seed from the photo itself
+   (the same source hfCapturePrint's image path draws); link
+   plays have no still and never seed. Any failure — no URL,
+   a load error, an empty compose — leaves the studio exactly
+   as it behaved before: unfrozen, the filmstrip path. */
+function hfSeedUrl215(play) {
+  if (!play) return "";
+  if (play.media_type === "image") return play.media_url || "";
+  if (play.media_type === "video") {
+    if (play.poster_url) return play.poster_url;
+    try {
+      const banked = (typeof btlPosters104 !== "undefined" && play.media_url) ? btlPosters104[play.media_url] : "";
+      return banked || "";
+    } catch { return ""; }
+  }
+  return "";
+}
+let hfSeedToken215 = 0;
+function hfSeedPoster215(play) {
+  const url = hfSeedUrl215(play);
+  if (!url || hfState.frozen) return;
+  const token = ++hfSeedToken215;
+  const img = new Image();
+  img.onload = () => {
+    // A newer play (or a manual freeze) supersedes this seed.
+    if (token !== hfSeedToken215 || hfState.play !== play || hfState.frozen) return;
+    try {
+      const c = $("#hfCanvas"); if (!c) return;
+      const w = img.naturalWidth || 0, h = img.naturalHeight || 0;
+      if (!w || !h) return;
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      // The capture path's state, exactly as hfCapturePrint
+      // leaves it: frozen, the frame canvas snapshotted, the
+      // avatar stood down (it was made from whatever frame was
+      // frozen before, never from this one), the print composed.
+      hfState.frozen = true;
+      try {
+        if (!hfState.frameCanvas206) hfState.frameCanvas206 = document.createElement("canvas");
+        hfState.frameCanvas206.width = w; hfState.frameCanvas206.height = h;
+        hfState.frameCanvas206.getContext("2d").drawImage(c, 0, 0);
+      } catch { hfState.frameCanvas206 = null; }
+      hfState.avatarDataUrl206 = "";
+      hfState.avatarApplied206 = false;
+      hfState.avatarPreview206 = false;
+      if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
+      composeHfPrint();
+      if (!hfState.printDataUrl) throw new Error("empty print");
+    } catch {
+      // Fall back to the pre-seed behavior: no frozen frame.
+      hfState.frozen = false;
+      hfState.printDataUrl = "";
+      hfState.printAspect = 0;
+      hfState.frameCanvas206 = null;
+      hfSyncFrozenThumb();
+      hfGarmentSync206();
+    }
+  };
+  img.onerror = () => {};
+  img.src = url;
+}
+
 /* Round 211: one stage painter for every garment stage (the
    studio hero and the Review step's compact stage). refs =
    { img, area, print, shade, crest, backText } — any may be
@@ -4295,7 +4406,7 @@ function hfPosterUrl211(play) {
    print and it sits IN the cloth. Preview-only throughout:
    the order's placement values are never touched. */
 function hfGarmentPaint211(refs, opts) {
-  if (!refs || !refs.img) return { printHere: false, isWide: false };
+  if (!refs || !refs.img) return { printHere: false };
   const P = (n) => (Math.round(n * 1000) / 1000) + "%"; // percent strings, float dust rounded off
   const art = HF_GARMENT_ART206[hfState.colorway] || HF_GARMENT_ART206.Black;
   const areas = HF_GARMENT_AREA211[hfState.colorway] || HF_GARMENT_AREA211.Black;
@@ -4305,7 +4416,6 @@ function hfGarmentPaint211(refs, opts) {
   if (refs.shade && refs.shade.getAttribute("src") !== src) refs.shade.src = src;
   const area = view === "back" ? areas.back : areas.front;
   const printHere = !!opts.printSrc && ((view === "front") === (hfState.side !== "back"));
-  let isWide = false;
   if (refs.area && refs.print) {
     refs.area.hidden = !printHere;
     if (printHere) {
@@ -4334,15 +4444,12 @@ function hfGarmentPaint211(refs, opts) {
         refs.shade.hidden = false;
         refs.shade.style.clipPath = `inset(${P((cyStage - hFrac / 2) * 100)} ${P((1 - cxStage - wFrac / 2) * 100)} ${P((1 - cyStage - hFrac / 2) * 100)} ${P((cxStage - wFrac / 2) * 100)})`;
       }
-      // Part D (Round 206): a frame wider than the zone prints
-      // in a band across it — outline the zone. Compares the
-      // art's aspect to the zone's, in the photo's own terms.
-      const fc = $("#hfCanvas");
-      const artAspect = fc && fc.width ? fc.width / fc.height : 0;
-      isWide = !hfState.avatarPreview206 && artAspect > (area.width / (area.height / art.aspect)) + 0.05;
-      refs.area.classList.toggle("hf-garment-area-wide206", isWide);
+      // Round 215: the Round 206 Part D wide-frame dashed
+      // outline is RETIRED — the product-page garment preview
+      // never draws a print guide. A wide frame's band across
+      // the zone is visible in the preview itself (and in the
+      // frozen thumb inside Change photo); no dashed box.
     } else {
-      refs.area.classList.toggle("hf-garment-area-wide206", false);
       if (refs.shade) refs.shade.hidden = true;
     }
   } else if (refs.shade) {
@@ -4373,7 +4480,7 @@ function hfGarmentPaint211(refs, opts) {
       refs.backText.style.top = P((area.top + 0.008) * 100);
     }
   }
-  return { printHere, isWide };
+  return { printHere };
 }
 
 function hfGarmentBackText206() {
@@ -4405,50 +4512,77 @@ function hfGarmentSync206() {
   // composed print; before capture, the poster.
   const previewSrc206 = (hfState.avatarPreview206 && hfState.avatarDataUrl206 && !hfState.avatarApplied206) ? hfState.avatarDataUrl206 : hfState.printDataUrl;
   const printSrc = (hfState.frozen && previewSrc206) ? previewSrc206 : hfPosterUrl211(hfState.play);
-  const painted = hfGarmentPaint211({
+  hfGarmentPaint211({
     img: $("#hfGarmentImg206"), area: $("#hfGarmentPrintArea206"), print: $("#hfGarmentPrint206"),
     shade: $("#hfGarmentShade211"), crest: $("#hfGarmentCrest211"), backText: $("#hfGarmentBackText206"),
   }, { view, printSrc, words: hfGarmentBackText206() });
-  const wideNote206 = $("#hfGarmentWide206");
-  if (wideNote206) wideNote206.hidden = !(painted.printHere && painted.isWide);
+  // Round 215: the wide-frame note that used to follow the
+  // paint is gone with the dashed guide (see hfGarmentPaint211).
 }
 
-/* Round 211: the three-step flow. Step state is presentation
-   only — hfState.step211 / stepMax211 track where the parent
-   is; every value the order reads lives in the same hfState
-   fields as always, so stepping around can never change an
-   order (the payload invariant is pinned in test-r211). The
-   garment hero moves between the Moment and Design slots —
-   one preview, one sync. Entering Review re-syncs the
-   as-ordered render. */
-function hfGoStep211(n, instant) {
-  n = [1, 2, 3].includes(n) ? n : 1;
-  hfState.step211 = n;
-  if (n > (hfState.stepMax211 || 1)) hfState.stepMax211 = n;
-  const panels = { 1: $("#hfStepMoment211"), 2: $("#hfStepDesign211"), 3: $("#hfStepReview211") };
-  for (const k of [1, 2, 3]) { const p = panels[k]; if (p) p.hidden = k !== n; }
-  $$("#hfStudio [data-hf-step-pill]").forEach((b) => {
-    const s = Number(b.dataset.hfStepPill || 0);
-    b.classList.toggle("is-current211", s === n);
-    b.classList.toggle("is-done211", s < n);
-    if (s === n) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
-    b.disabled = s > (hfState.stepMax211 || 1);
-  });
-  const hero = $("#hfGarment206"), slot = n === 2 ? $("#hfHeroSlot2-211") : $("#hfHeroSlot1-211");
-  if (hero && slot && hero.parentElement !== slot) slot.appendChild(hero);
-  if (n === 3) hfReviewSync206();
+/* Round 215: the one-page studio's two screens. Screen state
+   is presentation only — hfState.screen215 tracks where the
+   parent is; every value the order reads lives in the same
+   hfState fields as always, so moving between the product
+   page and Review can never change an order (the payload
+   invariant is pinned in test-r215). Entering Review re-syncs
+   the as-ordered render; returning to the product page
+   re-syncs the garment. (Replaces the Round 211 three-step
+   hfGoStep211 — the stepper, its pills and the hero that
+   moved between step slots are retired; the garment hero
+   lives on the product page.) */
+function hfShowScreen215(name, instant) {
+  const review = name === "review";
+  hfState.screen215 = review ? "review" : "product";
+  const prod = $("#hfProduct215"), rev = $("#hfReview215");
+  if (prod) prod.hidden = review;
+  if (rev) rev.hidden = !review;
+  if (review) hfReviewSync206();
   else hfGarmentSync206();
   const studio = $("#hfStudio");
   if (studio && !instant) studio.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-/* Round 211: the Moment step's clip row — the play's poster
-   and name on a collapsed bar; the player area expands in
-   place under it (hfSetClipOpen211). */
+/* Round 215: the product page's four option rows — quiet and
+   collapsed by default (Emil: minimize scrolling). Each row's
+   button names the current choice (hfSyncRowStates215) and
+   toggles its panel (hfSetRow215); the panels host the same
+   controls the steps used to spread across two screens. */
+const HF_ROWS215 = {
+  photo: ["#hfRowPhoto215", "#hfPhotoPanel215"],
+  artwork: ["#hfRowArtwork215", "#hfArtworkPanel215"],
+  placement: ["#hfRowPlacement215", "#hfPlacementPanel215"],
+  backtext: ["#hfRowBackText215", "#hfBackTextPanel215"],
+};
+function hfSetRow215(row, open) {
+  const pair = HF_ROWS215[row]; if (!pair) return;
+  const btn = $(pair[0]), panel = $(pair[1]);
+  if (panel) panel.hidden = !open;
+  if (btn) btn.setAttribute("aria-expanded", String(!!open));
+}
+function hfRowOpen215(row) {
+  const pair = HF_ROWS215[row]; if (!pair) return false;
+  const panel = $(pair[1]);
+  return !!(panel && !panel.hidden);
+}
+function hfSyncRowStates215() {
+  const photo = $("#hfRowPhotoState215");
+  if (photo) photo.textContent = hfState.frameTime205 != null ? `Frame ${hfFmtTime(hfState.frameTime205)}` : (hfState.frozen ? "Frame picked" : "");
+  const art = $("#hfRowArtworkState215");
+  if (art) art.textContent = `${hfState.imageStyle === "avatar" ? "Avatar" : "Photo"} · ${HF_PRESET_LABELS205[hfState.preset] || "Hype Frame"}`;
+  const place = $("#hfRowPlacementState215");
+  if (place) place.textContent = hfState.side === "front" ? "Front" : "Back";
+  const bt = $("#hfRowBackTextState215");
+  if (bt) bt.textContent = { name: "Name", name_number: "Name + number", none: "No name", custom: "Your own words" }[hfState.backText] || "Name";
+}
+
+/* Round 211 → 215: the Pick from video row — the play's poster
+   thumb on a collapsed bar inside the Change photo panel; the
+   player area expands in place under it (hfSetClipOpen211). */
 function hfSyncClipRow211() {
   const label = $("#hfClipRowLabel211"), thumb = $("#hfClipRowThumb211");
   const play = hfState.play;
-  if (label) label.textContent = hfState.mediaType === "image" ? "Your photo — tap to view" : hfState.mediaType === "link" ? "Posted as a link" : (play && play.title ? `“${play.title}” — open the clip` : "Open the clip");
+  if (label) label.textContent = hfState.mediaType === "image" ? "Your photo" : hfState.mediaType === "link" ? "Posted as a link" : "Pick from video";
   if (thumb) {
     const url = hfState.mediaType === "image" && play ? (play.media_url || "") : hfPosterUrl211(play);
     thumb.hidden = !url;
@@ -4707,11 +4841,11 @@ function hfReviewSync206() {
   const backEl = $("#hfReviewBack206");
   if (backEl) { const words = hfGarmentBackText206(); backEl.textContent = words ? `“${words}” embroidered across the back` : "No back text"; }
 }
-/* Round 211: the Round 206 review stage became Step 3 of
-   the customizer — hfOpenReview206 / hfCloseReview206 are
-   gone with the stage's markup. Entering the step runs
-   hfReviewSync206 (hfGoStep211), and the form that lives on
-   the step submits the send directly. */
+/* Round 211 → 215: the Round 206 review stage became the
+   studio's Review screen — hfOpenReview206 / hfCloseReview206
+   are gone with the stage's markup. Entering the screen runs
+   hfReviewSync206 (hfShowScreen215), and the form that lives
+   on the screen submits the send directly. */
 async function hfSubmitOrder206() {
   const msg = $("#hfReviewMsg206") || $("#hfMsg");
   const formMsg = $("#hfMsg");
@@ -4772,36 +4906,42 @@ async function hfSubmitOrder206() {
   if (photo206) photo206.addEventListener("click", () => hfUsePhoto206());
   // "Your moment": the Change frame action returns the parent
   // to the picking surface (the strip / player) from the
-  // picked-frame thumbnail.
+  // picked-frame thumbnail. Round 215: the picking surface
+  // lives inside the Change photo panel — open it first.
   const change206 = $("#hfChangeFrame206");
   if (change206) change206.addEventListener("click", () => {
+    if (typeof hfSetRow215 === "function") hfSetRow215("photo", true);
     const target = ($("#hfStripWrap") && !$("#hfStripWrap").hidden) ? $("#hfStripWrap") : $("#hfVideoWrap127");
     if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 })();
 
-/* Round 211: the three-step wiring — stepper pills (a step is
-   reachable once it has been reached; going back never loses
-   state, everything lives in hfState), the per-step back
-   buttons, the Moment step's "Use this frame" gate (a frame
-   must exist before Design means anything), the Design step's
-   move to Review, and the clip row's expand/collapse. */
-(function wireHfSteps211() {
-  $$("#hfStudio [data-hf-step-pill]").forEach((b) => b.addEventListener("click", () => {
-    const s = Number(b.dataset.hfStepPill || 0);
-    if (s >= 1 && s <= (hfState.stepMax211 || 1)) hfGoStep211(s);
-  }));
-  $$("#hfStudio [data-hf-step-back]").forEach((b) => b.addEventListener("click", () => hfGoStep211(Number(b.dataset.hfStepBack || 1))));
-  const use211 = $("#hfUseFrame211");
-  if (use211) use211.addEventListener("click", () => {
-    if (hfState.frozen && hfState.printDataUrl) { const m = $("#hfStep1Msg211"); if (m) m.hidden = true; hfGoStep211(2); return; }
-    const m = $("#hfStep1Msg211");
-    if (m) { m.textContent = "Pick the frame for the hoodie first — tap a still below, or open the clip and freeze the moment."; m.hidden = false; }
-    const strip = $("#hfStripWrap");
-    if (strip && !strip.hidden) strip.scrollIntoView({ behavior: "smooth", block: "center" });
+/* Round 215: the one-page wiring — the four option rows
+   toggle their panels; the sticky bar's "Review hoodie →"
+   carries the old step gate (a frame must exist before Review
+   means anything: without one it opens Change photo and says
+   so, instead of navigating); Review's back affordance
+   returns to the product page with every choice intact
+   (everything lives in hfState); the Pick from video row
+   keeps its expand/collapse. (Replaces the Round 211
+   wireHfSteps211 — pills, step backs and the "Use this
+   frame" / "Choose size & review" CTAs are retired.) */
+(function wireHf215() {
+  for (const row of Object.keys(HF_ROWS215)) {
+    const btn = $(HF_ROWS215[row][0]);
+    if (btn) btn.addEventListener("click", () => hfSetRow215(row, !hfRowOpen215(row)));
+  }
+  const reviewBtn215 = $("#hfReviewBtn215");
+  if (reviewBtn215) reviewBtn215.addEventListener("click", () => {
+    if (hfState.frozen && hfState.printDataUrl) { hfShowScreen215("review"); return; }
+    hfSetRow215("photo", true);
+    const m = $("#hfPhotoMsg215");
+    if (m) { m.textContent = "Pick the frame for the hoodie first — tap a still, or pick from the video and freeze the moment."; m.hidden = false; }
+    const p = $("#hfPhotoPanel215");
+    if (p) p.scrollIntoView({ behavior: "smooth", block: "center" });
   });
-  const toReview211 = $("#hfToReview211");
-  if (toReview211) toReview211.addEventListener("click", () => hfGoStep211(3));
+  const back215 = $("#hfReviewBack215");
+  if (back215) back215.addEventListener("click", () => hfShowScreen215("product"));
   const clipRow211 = $("#hfClipRow211");
   if (clipRow211) clipRow211.addEventListener("click", () => hfSetClipOpen211(!hfState.clipOpen211));
 })();

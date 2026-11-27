@@ -3211,7 +3211,8 @@ body.hf-studio-open205 #deck.view-home{display:block}
      back-words treatment absolutely positioned over it; the
      print img is centered on its placement point by transform,
      exactly like the order's placement model (cx/cy/size);
-   - the wide-shot print-area outline (Part D);
+   - the wide-shot print-area outline (Part D — retired in
+     Round 215: the garment preview never draws a guide);
    - the fine-scrub row; the print-style minis inside the
      preset buttons; the avatar maker panel.
    Every [hidden] state carries an explicit guard — the
@@ -3226,8 +3227,10 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-garment-img206{display:block;width:100%;height:auto}
 .hf-garment-printarea206{position:absolute;z-index:1}
 .hf-garment-printarea206[hidden]{display:none}
-.hf-garment-printarea206.hf-garment-area-wide206{outline:2px dashed rgba(255,255,255,.55);outline-offset:3px;border-radius:4px}
 .hf-garment-printarea206 img{position:absolute;transform:translate(-50%,-50%);display:block;border-radius:2px;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+/* Round 215: the wide-frame dashed outline that used to sit
+   here (Round 206 Part D) is retired — the garment preview
+   never draws a print guide. */
 /* Round 211: the shade layer — the same garment photo stacked
    over the print, clipped to the print's rect (JS sets
    clip-path), blending soft-light so the fabric's folds and
@@ -3245,8 +3248,6 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-garment-bar206{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
 .hf-garment-flip206{flex:0 0 auto}
 .hf-garment-cap206{font-size:12.5px;font-weight:700;color:var(--muted)}
-.hf-garment-wide206{margin:8px 0 0;font-size:12.5px;font-weight:700;color:var(--volt);max-width:330px}
-.hf-garment-wide206[hidden]{display:none}
 .hf-finerow206{display:flex;align-items:center;gap:9px;margin-top:9px}
 .hf-finerow206[hidden]{display:none}
 .hf-fine-label206{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -3276,24 +3277,15 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-review-rows206 dd{margin:0;font-size:14px;font-weight:700;color:#fff}
 
 /* Round 211 (2026-11-26, Emil): the three-step customizer —
-   stepper pills (completed steps tappable, future steps
-   disabled), one panel at a time, the clip row that expands
-   the player in place, and the Review step's compact
-   garment + summary head. [hidden] guards explicit, per the
-   standing CSS trap. */
-.hf-steps211{display:flex;gap:8px;margin:0 auto 18px;max-width:560px}
-.hf-step-pill211{flex:1;padding:9px 6px;border-radius:999px;border:1px solid var(--line2);background:var(--card);color:var(--muted);font-family:Archivo,Arial,sans-serif;font-weight:800;font-size:13.5px;letter-spacing:.02em;cursor:pointer}
-.hf-step-pill211.is-current211{background:var(--volt);border-color:var(--volt);color:#141414}
-.hf-step-pill211.is-done211{color:#fff;border-color:var(--volt)}
-.hf-step-pill211[disabled]{opacity:.45;cursor:default}
-.hf-step-panel211{max-width:560px;margin:0 auto}
-.hf-step-panel211[hidden]{display:none}
+   the clip row that expands the player in place, and the
+   Review step's compact garment + summary head. [hidden]
+   guards explicit, per the standing CSS trap.
+   Round 215: the stepper pills, step panels, step CTAs and
+   step nav rules are retired with the stepper itself — what
+   remains of this block is the step title (now the Review
+   screen's title), the clip row and the review head; the
+   one-page rules follow below. */
 .hf-step-title211{font-family:Archivo,"Arial Black",Arial,sans-serif;font-weight:900;font-style:italic;font-size:clamp(22px,5.6vw,30px);color:#fff;margin:2px 0 14px;text-align:center}
-.hf-step-cta211{width:100%;margin-top:16px}
-.hf-step-nav211{display:flex;gap:10px;align-items:stretch;margin-top:16px}
-.hf-step-nav211 .hf-step-cta211{margin-top:0;flex:1}
-.hf-step-msg211{margin:12px 0 0;font-size:13.5px;font-weight:700;color:var(--volt);text-align:center}
-.hf-step-msg211[hidden]{display:none}
 .hf-cliprow211{display:flex;align-items:center;gap:12px;width:100%;margin-top:14px;padding:10px 14px 10px 10px;background:var(--card);border:1px solid var(--line2);border-radius:12px;color:#fff;cursor:pointer;text-align:left}
 .hf-cliprow211 img{width:64px;height:40px;object-fit:cover;border-radius:8px;background:#000;flex:0 0 auto}
 .hf-cliprow211 img[hidden]{display:none}
@@ -3307,6 +3299,52 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-review-side211{flex:1 1 220px;min-width:200px}
 .hf-review-title211{margin:2px 0 0;font-family:Archivo,"Arial Black",Arial,sans-serif;font-weight:900;font-size:22px;color:#fff}
 .hf-review-line211{margin:3px 0 0;font-size:14.5px;font-weight:700;color:var(--muted)}
+
+/* Round 215 (2026-11-26, Emil): the one-page studio — ONE
+   product page + Review, built to minimize scrolling. The
+   hero stage is compact (284px — the Black blank renders
+   ~379px tall, the Gray ~426px), the buy card is three tight
+   rows, the option rows are quiet hairline rows collapsed by
+   default, and the gold Review button rides a sticky bar
+   pinned to the viewport bottom WHILE THE STUDIO IS OPEN —
+   the bar lives inside #hfProduct215, so it vanishes with
+   the product page (Review screen, panel switch, home) and
+   never becomes page chrome; the product page carries
+   bottom padding so the bar never covers content. [hidden]
+   guards explicit, per the standing CSS trap. */
+#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:118px}
+#hfProduct215[hidden]{display:none}
+#hfReview215{max-width:560px;margin:0 auto}
+#hfReview215[hidden]{display:none}
+.hf-product-title215{font-family:Archivo,"Arial Black",Arial,sans-serif;font-weight:800;font-size:clamp(21px,5.4vw,27px);color:#fff;margin:2px 0 4px}
+.hf-product-sub215{margin:0 0 12px;font-size:13.5px;font-weight:600;color:var(--muted)}
+#hfProduct215 .hf-garment206{margin-bottom:12px}
+#hfProduct215 .hf-garment-stage206{max-width:284px}
+.hf-buycard215{background:var(--card);border:1px solid var(--line2);border-radius:16px;padding:4px 14px}
+.hf-buyrow215{display:flex;align-items:center;gap:12px;padding:10px 0}
+.hf-buyrow215 + .hf-buyrow215{border-top:1px solid var(--line2)}
+.hf-buyrow215 .hf-colors{margin-left:auto}
+.hf-buyrow-size215{align-items:flex-start;flex-wrap:wrap}
+.hf-buyrow-size215 .hf-sizes{flex:1 1 230px}
+.hf-buylab215{flex:0 0 auto;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.hf-price215{margin-left:auto;font-size:19px;font-weight:800;color:#e8d5a3;text-align:right}
+.hf-price215 small{display:block;font-size:10.5px;font-weight:600;color:var(--muted)}
+#hfBuyCard215 .hf-sizeguide205{margin:2px 0 10px}
+.hf-optrows215{margin-top:6px}
+.hf-optrow215{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:13px 2px;background:none;border:0;border-bottom:1px solid var(--line2);color:#fff;font:inherit;cursor:pointer;text-align:left;touch-action:manipulation}
+.hf-optrow-k215{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.hf-optrow-v215{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:#fff}
+.hf-optrow-chev215{font-size:18px;line-height:1;color:#c9a86a;transition:transform .18s ease}
+.hf-optrow215[aria-expanded="true"] .hf-optrow-chev215{transform:rotate(90deg)}
+.hf-optpanel215{padding:4px 0 14px;border-bottom:1px solid var(--line2)}
+.hf-optpanel215[hidden]{display:none}
+.hf-optpanel215 .hf-cliprow211{margin-top:10px}
+.hf-photo-msg215{margin:12px 0 0;font-size:13.5px;font-weight:700;color:var(--volt);text-align:center}
+.hf-photo-msg215[hidden]{display:none}
+.hf-stickybar215{position:fixed;left:0;right:0;bottom:0;z-index:54;width:calc(100% - 24px);max-width:584px;margin:0 auto;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(14,14,16,.97);border:1px solid var(--line2);border-bottom:0;border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.45)}
+.hf-review-btn215{width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-size:16px;font-weight:800;color:#191204;background:linear-gradient(180deg,#f9e58c,#e6c95c 38%,#d4af37 62%,#9c7c1e);box-shadow:inset 0 1px 0 rgba(255,255,255,.55);cursor:pointer;touch-action:manipulation}
+.hf-stickybar-note215{margin:8px 0 0;text-align:center;font-size:11px;color:var(--muted)}
+.hf-review-backrow215{margin:0 0 8px}
 
 /* Round 128 (2026-11-13): the studio's composed print opens BIG.
    The frozen confirmation (#hfFrozenWrap) is the tap target —
