@@ -77,7 +77,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const merch = home.slice(home.indexOf('id="merchTeaser125"'), home.indexOf("<!-- ============ THE STORE"));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=217"'), "A: asset pins — app.js v216 / styles v210 (Round 218; styles unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
+assert(home.includes('src="app.js?v=225"') && home.includes('href="styles.css?v=218"'), "A: asset pins — app.js v216 / styles v210 (Round 218; styles unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
 
 // ---- B. Homepage card ----
 {
@@ -202,7 +202,7 @@ stub.close();
     Image: FakeImage,
     hfState: { play: { id: 7, title: "Home Run", division: "boys" }, frozen: true, printDataUrl: "", printAspect: 0, colorway: "Black", side: "back", garmentView206: "back", preset: "hypeframe", backText: "name", imageStyle: "photo", placement: { cx: 50, cy: 42, size: 78 }, avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, designAspect218: 0, size: "YM", apparel: "hoodie", mediaType: "video" },
     HF_PLACEMENT_DEFAULT: { cx: 50, cy: 42, size: 78 },
-    HF_PRESET_LABELS205: { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" },
+    HF_PRESET_LABELS205: { hypeframe: "Hype Frame" }, // →229: the fixture mirrors the shipped map — only hypeframe survives
     hfPickImageStyle: (s) => { sb.hfState.imageStyle = s; },
     hfSyncAvatar206: () => {},
     esc: (t) => String(t),

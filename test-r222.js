@@ -92,7 +92,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=217"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
+assert(home.includes('src="app.js?v=225"') && home.includes('href="styles.css?v=218"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
 
 // ---- B. Layout statics ----
 {
@@ -162,7 +162,7 @@ assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=
     console,
     $: (s) => els[s] || (generic[s] ??= mkEl()),
     $$: () => [],
-    HF_PRESET_LABELS205: { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" },
+    HF_PRESET_LABELS205: { hypeframe: "Hype Frame" }, // →229: the fixture mirrors the shipped map — only hypeframe survives
     HF_PLACEMENT_DEFAULT: { cx: 50, cy: 42, size: 78 },
     hfState: { play: { id: 9, title: "Double" }, frozen: true, printDataUrl: "data:print", size: "", colorway: "Black", side: "back", preset: "hypeframe", apparel: "hoodie", imageStyle: "photo", backText: "name", placement: { cx: 50, cy: 42, size: 78 }, avatarApplied206: false, screen215: "product", clipOpen211: false },
     hfGarmentSync206: () => {},
@@ -217,8 +217,10 @@ assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=
   assert(fenceMarkup.includes("The AI rebuilds what the fence hid, so look the cleaned photo over before you approve it."), "E: ...plus the honest note — the model rebuilds what the fence hid, so check before approving");
   assert(fenceMarkup.includes(">Use the cleaned photo</button>") && fenceMarkup.includes(">Keep the original</button>"), "E: the cleaned photo needs an explicit approval — 'Use the cleaned photo' or 'Keep the original'");
   const useFn = appJs.slice(appJs.indexOf("function hfUseFence222"), appJs.indexOf("function hfKeepFence222"));
-  assert(useFn.includes("frameCanvas206") && useFn.includes("composeHfPrint()"), "E: approving swaps the cleaned photo into the print source (capture canvas + frame snapshot) and recomposes");
-  assert(appJs.includes('fetch("/api/hype-frame/remove-fence"') && appJs.includes("fenceConfigured222 === true"), "E: the client posts to the fence endpoint and shows the step only when the status says configured");
+  // →229: the swap itself moved into the shared hfApplyCleanedFrame229 (manual approval + auto-apply share it).
+  const applyFn = appJs.slice(appJs.indexOf("function hfApplyCleanedFrame229"), appJs.indexOf("function hfUseFence222"));
+  assert(useFn.includes("hfApplyCleanedFrame229") && applyFn.includes("frameCanvas206") && applyFn.includes("composeHfPrint()"), "E: approving swaps the cleaned photo into the print source (capture canvas + frame snapshot) and recomposes — →229: via the shared hfApplyCleanedFrame229");
+  assert(appJs.includes("hfFencePost229(\"/api/hype-frame/remove-fence\"") && appJs.includes("fenceConfigured222 === true"), "E: the client posts to the fence endpoint and shows the step only when the status says configured — →229: via the shared hfFencePost229 helper");
 
   const post = (s, body) => s.j("/api/hype-frame/remove-fence", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
 
@@ -372,7 +374,7 @@ assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=
   const s = await boot(45236);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=224"') && served.includes('href="styles.css?v=217"'), "H: the served homepage carries the Round 222 pins — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
+    assert(served.includes('src="app.js?v=225"') && served.includes('href="styles.css?v=218"'), "H: the served homepage carries the Round 222 pins — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfPriceTop222"') && served.includes('id="hfFence222"') && served.includes('id="menuPost222"') && served.includes("Send order request"), "H: the served studio is the rebuilt studio (price line, fence step, menu entry, renamed submit)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function wireHf222") && servedApp.includes("function hfDistinctPick222") && servedApp.includes("HF_STUDIO_SIZES222") && servedApp.includes("function hfMakeFence222"), "H: the served app.js carries the rebuild (wiring, distinct picker, studio sizes, fence flow)");

@@ -109,7 +109,7 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=217"') && home.includes('src="app.js?v=224"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
+assert(home.includes('href="styles.css?v=218"') && home.includes('src="app.js?v=225"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
 
 // ---- B. Part A statics ----
 for (const id of ["hfGarment206", "hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentBackText206"])
@@ -137,7 +137,7 @@ const prod215 = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf
 const buy215 = studio.slice(studio.indexOf('id="hfBuyCard215"'), studio.indexOf('id="hfStickyBar215"'));
 assert(buy215.indexOf('id="hfColors"') > -1 && buy215.indexOf('id="hfSizes"') > buy215.indexOf('id="hfColors"'), "B: →215: the buy card runs Color → Size → $110 — →222: the buy card is the Color & size section and runs Color → Size (the $110 moved under the product name, #hfPriceTop222; the slice end moved from hfRowPhoto215 to the sticky bar)");
 const art215 = studio.slice(studio.indexOf('id="hfArtworkPanel215"'), studio.indexOf('id="hfRowPlacement215"'));
-assert(art215.indexOf('id="hfImageStyles"') > -1 && art215.indexOf('data-hf-preset="classic"') > art215.indexOf('id="hfImageStyles"'), "B: →215: the Artwork panel runs Photo/Avatar → print style");
+assert(art215.indexOf('id="hfImageStyles"') > -1 && art215.indexOf('id="hfLabel218"') > art215.indexOf('id="hfImageStyles"') && !art215.includes('data-hf-preset'), "B: →215: the Artwork panel runs Photo/Avatar → print style — →229: the print style picker is REMOVED (Emil); the panel runs Photo/Avatar → design label, format fixed");
 assert(prod215.indexOf('id="hfSides"') > prod215.indexOf('id="hfPlacementPanel215"'), "B: →215: Print placement lives in its own collapsed panel");
 const review215 = studio.slice(studio.indexOf('id="hfReview215"'));
 assert(!review215.includes('id="hfSizes"') && !review215.includes('id="hfBackText197"'), "B: →215: Review hosts no Size or Personalization control — they live on the product page now");
@@ -229,7 +229,7 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
 // ---- D. Part C: fine scrubbing ----
 {
   assert(studio.includes('id="hfFineRow206"') && studio.includes('id="hfFineBack206"') && studio.includes('id="hfFineFwd206"') && studio.includes('id="hfFineTime206"'), "D: the fine-scrub row rides the studio (steppers + readout)");
-  const fineBlock = appJs.slice(appJs.indexOf("function hfFineStep206"), appJs.indexOf("/* Part E:"));
+  const fineBlock = appJs.slice(appJs.indexOf("function hfFineStep206"), appJs.indexOf("/* Round 229: Part E")); // →229: slice end was "/* Part E:" — the Part E comment retired with the minis; the R229 retirement note is the anchor now
   assert(fineBlock.includes("hfJumpToFrame(target, null)"), "D: fine steps ride the tap path — the print capture uses the nudged time");
   const jumps = [];
   const sb = {
@@ -262,13 +262,15 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
 }
 
 // ---- E. Part E: style minis ----
+// →229 (2026-11-27, Emil): the minis are RETIRED with the Print
+// style picker — no preset buttons, no mini canvases, no renderer.
 {
   for (const p of ["classic", "signature", "hypeframe"])
-    assert(studio.includes(`data-hf-preset-mini="${p}"`), "E: the " + p + " style button carries a live mini rendering");
-  assert(appJs.includes("function hfRenderPresetMinis206") && appJs.includes("hfDrawFormat218(cx2"), "E: minis mirror the real composition — →218: through the shared Round 218 format composer (the retired lockup band is gone from the minis too)");
+    assert(!studio.includes(`data-hf-preset-mini="${p}"`), "E: →229: the " + p + " style button + its mini are gone");
+  assert(!appJs.includes("function hfRenderPresetMinis206") && !appJs.includes("function hfMiniPoster206"), "E: →229: the mini renderer + its poster loader are removed from app.js");
   const syncBody = appJs.slice(appJs.indexOf("function hfSyncFrozenThumb"), appJs.indexOf("function hfOpenLightbox128"));
-  assert(syncBody.includes("hfGarmentSync206()") && syncBody.includes("hfRenderPresetMinis206()"), "E: the compose choke point re-syncs the garment preview + minis on every recompose");
-  assert(css.includes(".hf-preset-mini206{"), "E: mini styling rides the stylesheet");
+  assert(syncBody.includes("hfGarmentSync206()") && !syncBody.includes("hfRenderPresetMinis206"), "E: →229: the compose choke point re-syncs the garment preview only — no minis ride it");
+  assert(!css.includes(".hf-preset-mini206{"), "E: →229: mini styling is gone from the stylesheet");
 }
 
 // ---- F. Part B statics ----
@@ -401,7 +403,7 @@ stub.close();
   const s = await boot(4026);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=224"') && served.includes('href="styles.css?v=217"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
+    assert(served.includes('src="app.js?v=225"') && served.includes('href="styles.css?v=218"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
     assert(served.includes('id="hfGarment206"') && served.includes('id="hfAvatarPanel206"') && served.includes("Avatar previews are made by OpenAI's image AI"), "L: the served studio carries the garment preview + avatar panel + consent line");
     const jpgRes = await fetch(s.base + "/swag/hf-blank-front-black218.jpg");
     const jpgBuf = Buffer.from(await jpgRes.arrayBuffer());
@@ -442,7 +444,7 @@ stub.close();
     $$: (s) => (s.includes("data-hf-garment-view") ? flips : []),
     hfState: { play: { id: 0 }, frozen: true, printDataUrl: "data:print", colorway: "Black", size: "YM", side: "front", preset: "hypeframe", apparel: "hoodie", imageStyle: "photo", backText: "name", garmentView206: "back", placement: { cx: 50, cy: 42, size: 78 }, avatarApplied206: false, avatarPreview206: false, avatarDataUrl206: "" },
     HF_PLACEMENT_DEFAULT: { cx: 50, cy: 42, size: 78 },
-    HF_PRESET_LABELS205: { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" },
+    HF_PRESET_LABELS205: { hypeframe: "Hype Frame" }, // →229: the fixture mirrors the shipped map — only hypeframe survives
     hfPrintTone: () => "#f6f1e4",
     api: async () => { throw new Error("api must not be called by the flip"); },
     esc: (t) => String(t),
@@ -522,7 +524,7 @@ stub.close();
   assert(els["#hfReviewImg206"].src === "/swag/hf-blank-back-gray211.jpg", "N: the review shows the garment AS ORDERED (Heather Gray, back — the print's side, not the preview flip) — →211: the gray back photo blank");
   assert(els["#hfReviewPrint206"].src === S.printDataUrl, "N: the review garment carries the composed print");
   assert(els["#hfReviewSize206"].textContent === "Heather Gray hoodie · Youth L", "N: the review names the color + size");
-  assert(els["#hfReviewPlacement206"].textContent.startsWith("Back print") && els["#hfReviewPlacement206"].textContent.includes("Classic"), "N: the review names the placement + style");
+  assert(els["#hfReviewPlacement206"].textContent.startsWith("Back print") && els["#hfReviewPlacement206"].textContent.includes("Hype Frame"), "N: the review names the placement + style — →229: a legacy 'classic' preset value in state reads Hype Frame (labels map carries only hypeframe)");
   assert(els["#hfReviewArt206"].textContent.includes("AI avatar"), "N: the review names the approved AI avatar as the artwork");
   assert(els["#hfReviewBack206"].textContent.includes("Nick"), "N: the review names the back text — →218: as words IN the design ('In the design: …'), not an embroidered band");
   Object.assign(S, { side: "front", colorway: "Black", imageStyle: "photo", avatarApplied206: false });
