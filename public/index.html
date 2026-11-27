@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=222" />
+<link rel="stylesheet" href="styles.css?v=223" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -760,11 +760,19 @@
          sits between the hero and the board, above the pill bar. -->
     <div id="momentCard162" hidden></div>
 
-    <div class="viewseg" role="group" aria-label="Board views — Watch, Battles, Hype of the Month">
-      <button type="button" data-view="all" aria-pressed="false">Watch</button>
-      <button type="button" data-view="battles" aria-pressed="false">Battles</button>
-      <button type="button" data-view="month" aria-pressed="true">Hype of the Month</button>
-    </div>
+    <!-- Round 236 (2026-11-27, Emil): the board's view tabs
+         (Watch / Battles / Hype of the Month) are GONE from
+         the homepage — they sat directly under the homepage's
+         own leaderboard repeating what the page already shows
+         ("This section is confusing down here now"). The views
+         themselves all stay reachable: Watch via "See all
+         plays" below the board (and /?view=all), Battles via
+         the homepage Today's Battle card and /?view=battles,
+         and Hype of the Month IS the homepage leaderboard
+         (the ?view=fame and feed Leaderboard landings already
+         go there). switchView and its .viewseg wiring stay in
+         app.js as guarded no-ops — every other route into the
+         three views runs through them unchanged. -->
 
     <!-- Round 123 (2026-11-12): the gold contest strip moved INTO
          the Month panel (top of #viewMonth, below) at the outside
@@ -848,22 +856,20 @@
     </div><!-- /.filters-bar123 -->
 
     <div id="viewMonth">
-      <!-- Round 134 (2026-11-13): the banner is a CARD in
-           Emil's mockup — gold eyebrow (the contest period,
-           filled by updateContestStrip107 into #stripTitle),
-           the big white title, the ENDS pill, and the prize
-           line inside the card. The dynamic leader line no
-           longer paints here (its element retired; the
-           writer's guarded write no-ops, and the Watch slim
-           line still carries the live state). The strip's
-           click-to-board behavior is unchanged. -->
-      <div class="contest-strip banner134" id="contestStrip" role="button" tabindex="0" aria-label="Hype of the Month — open the contest board" hidden>
-        <div class="cs-row1 banner-top134">
-          <span class="banner-eyebrow134" id="stripTitle">Hype of the Month</span>
-          <span class="cs-ends" id="stripEnds"></span>
-        </div>
-        <div class="banner-prize134">Win a homepage feature and a social shoutout.</div>
-      </div>
+      <!-- Round 236 (2026-11-27, Emil): the Round 134 banner
+           card (#contestStrip — "HYPE OF THE MONTH · period /
+           ENDS pill / Win a homepage feature and a social
+           shoutout.") is GONE with the view tabs above: on
+           the homepage it repeated the contest the leaderboard
+           section already presents. updateContestStrip107's
+           writes to #stripTitle / #stripEnds and switchView's
+           strip write are guarded no-ops now (the Round 134
+           #stripState precedent); the Watch view's slim line
+           (#contestSlim123) still carries the live contest
+           state, and its tap lands on the homepage leaderboard
+           (app.js, Round 236). What stays in this view: the
+           last-winner strip, the empty state and the
+           never-disappear line below. -->
       <!-- Round 232 (2026-11-27, Emil): the featured card and
            the leaderboard LEAVE the board's Month view — the
            R230 homepage sections (Featured Play + standing,
@@ -2636,6 +2642,6 @@
   </div>
 </div>
 
-<script src="app.js?v=231"></script>
+<script src="app.js?v=232"></script>
 </body>
 </html>

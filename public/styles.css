@@ -4364,3 +4364,16 @@ body.feed-open189{overflow:hidden}
 .hero-play233{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;display:inline-flex;align-items:center;gap:9px;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:14px 24px;font:inherit;font-weight:800;font-size:15.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 12px 32px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4);touch-action:manipulation}
 .hero-play233[hidden]{display:none}
 .hero-play233:active{transform:translate(-50%,-50%) scale(.97)}
+
+/* ================================================================
+   Round 236 (2026-11-27, Emil): on the homepage view the
+   floating Post a Play pill stands down — the header carries
+   the same "+ Post a Play" button there, and the fixed pill
+   parked over the homepage's Hype Frame section photo. app.js
+   holds body.plays-view236 in sync with the plays panel
+   (showPanel toggles it; the boot seeds it from the markup's
+   active panel). Every other panel and page keeps the pill's
+   stock behavior, and the store / upload / studio / page-sub
+   gates above are untouched.
+   ================================================================ */
+body.plays-view236 .float-submit{display:none}

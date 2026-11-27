@@ -2323,6 +2323,15 @@ function showPanel(name) {
      body.hf-studio-open205, the body.store-open / body.upload-open
      pattern; the pill itself and its menu entry are untouched. */
   if (document.body && document.body.classList && typeof document.body.classList.toggle === "function") document.body.classList.toggle("hf-studio-open205", name === "hypeframe");
+  /* Round 236 (2026-11-27, Emil): the floating Post a Play pill
+     stands down while the homepage view (the plays panel) is
+     active — the header carries the same button there, and the
+     pill parked over the homepage's Hype Frame section photo.
+     styles.css hides it under body.plays-view236; every other
+     panel keeps the pill exactly as before, and the boot seeds
+     the class from the markup's active panel (the panel switch
+     itself is the sync from here on). */
+  if (document.body && document.body.classList && typeof document.body.classList.toggle === "function") document.body.classList.toggle("plays-view236", name === "plays");
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
   /* Round 158: a panel switch is a view change — the panels
@@ -7552,6 +7561,12 @@ const modLinkBtnEl = $("#modLinkBtn"); if (modLinkBtnEl) modLinkBtnEl.addEventLi
   trackReferrer();
   trackVisitSource159();
   if (!bootPathTarget && !["#shop", "#hype-girls", "#hype-boys", "#post", "#stories"].includes(location.hash)) trackEvent("view", "home");
+  /* Round 236: seed the homepage-view body class from the
+     panel this load booted with — the plays panel on a plain
+     home landing (no showPanel call runs for it), whatever the
+     page-sub / hash branches above settled on otherwise.
+     showPanel keeps it in sync from here. */
+  try { const ap236 = document.querySelector(".panel.active"); if (ap236 && document.body && document.body.classList && typeof document.body.classList.toggle === "function") document.body.classList.toggle("plays-view236", !!(ap236.dataset && ap236.dataset.panel === "plays")); } catch (e) { /* the class only gates the floating pill — its other gates stand */ }
   /* Round 139: arm in-app history — the boot entry gets its
      first snapshot now and settles when loadData lands (the
      hook above), with a plain timer as the fallback. */
@@ -10320,7 +10335,14 @@ function attachChromeFade143(video, hoverBox) {
 }
 /* The slim contest line on Watch: a tap opens the Month board,
    with the Round 122 scroll so the tap visibly lands somewhere. */
-$("#contestSlim123")?.addEventListener("click", () => { switchView("month"); scrollBoardIntoView122(); $("#contestSlim123")?.blur(); });
+/* Round 236 (2026-11-27): the slim line's tap lands on the
+   HOMEPAGE leaderboard — the board Month view it used to open
+   lost its banner card this round, and Hype of the Month lives
+   in the homepage's More Highlights section now (the same
+   landing feedGo189 and fameLink94 already use). The old
+   switchView landing stands as the fallback for any context
+   without the homepage section. */
+$("#contestSlim123")?.addEventListener("click", () => { if (typeof homeLbLanding232 === "function") homeLbLanding232("month"); else { switchView("month"); scrollBoardIntoView122(); } $("#contestSlim123")?.blur(); });
 
 /* Round 143 (2026-11-13): the Battles big players get the same
    chrome fade as the play detail (attachChromeFade143, above).
