@@ -1516,7 +1516,11 @@ $("#mineFind").addEventListener("submit", async (e) => {
       </div>`).join("");
   } catch (err) { box.innerHTML = `<p class="mine-find-msg">${esc(err.message)}</p>`; }
 });
-function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); }
+/* Round 217: after every board render, the first few board
+   plays' renditions warm at metadata level (tapWarmBoard217 in
+   the Round 217 block — capped, detached elements, typeof-
+   guarded like every cross-block call). */
+function renderAll() { syncFilterUI(); renderMonth(); renderFame(); renderAll2(); renderPlayDetail(); highlightSharedPlay(); if (typeof updateContestStrip107 === "function") updateContestStrip107(); if (typeof renderSpotlight162 === "function") renderSpotlight162(); if (typeof tapWarmBoard217 === "function") tapWarmBoard217(); }
 /* Round 107 (2026-11-12): the hybrid contest strip + the Month
    panel's sub line — both filled from the live contest payload on
    every render, with honest states only: no entries says so, no
@@ -1782,7 +1786,7 @@ function upNextHtml(play) {
   if (!next.length) return "";
   const rows = next.map((p) => {
     const first = firstNameOf(p);
-    return `<button type="button" class="upnext-row" onclick="openPlayDetail(${p.id})" aria-label="Up next: ${esc(p.title)}">
+    return `<button type="button" class="upnext-row" data-tile-id="${p.id}" onclick="openPlayDetail(${p.id})" aria-label="Up next: ${esc(p.title)}">
       <span class="upnext-thumb dur-host">${fameThumbHtml(p)}${durPillHtml(p)}</span>
       <span class="upnext-text"><span class="upnext-name">${esc(p.title)}</span><span class="upnext-meta">${first ? `${esc(first)} · ` : ""}${p.voteCount || 0} vote${p.voteCount === 1 ? "" : "s"}</span></span>
     </button>`;
@@ -9926,6 +9930,24 @@ window.openFeed189 = (ids, startId, battle) => {
      change — every panel falls silent behind it. */
   if (typeof pauseMediaIn158 === "function" && typeof $$ === "function") $$(".panel[data-panel]").forEach((p) => pauseMediaIn158(p, false));
   if (typeof featPause163 === "function") featPause163();
+  /* Round 217 (2026-11-26): the entry slide starts fetching in
+     the tap's own task. Until now the first frame waited on
+     the rAF below: every slide renders preload="metadata", so
+     feedActivate189's play() was the first thing to pull media
+     data — a cold open paid the board render + a frame + a
+     network fetch in series. Warm the neighborhood now (the
+     same feedWarm193 call the settle makes; it re-runs there,
+     idempotently) and put the entry slide's own video into
+     load() explicitly, so the activation's play() lands on an
+     element already fetching. */
+  try {
+    const entryV217 = feedMainVideo196(feedSlides193()[seq.start]);
+    if (entryV217) {
+      try { entryV217.preload = "auto"; } catch (e) {}
+      try { if (typeof entryV217.load === "function") entryV217.load(); } catch (e) {}
+    }
+    feedWarm193(seq.start);
+  } catch (e) { /* an unwarmed open is the pre-217 open — never a broken one */ }
   const jump = () => { try { track.scrollTop = seq.start * (track.clientHeight || 0); } catch (e) {} feedActivate189(seq.start); };
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(jump); else jump();
   return true;
@@ -10053,3 +10075,162 @@ function playSrc192(h) {
   if (h.media_kind === "file" && h.stream_url) return h.stream_url;
   return h.media_url || "";
 }
+
+/* ---------------- Round 217 (2026-11-26): tap-to-play latency ----------------
+   Emil, on his phone, on the This Month leaderboard: "When you
+   click a video there is a slight delay before it plays." The
+   trace of a leaderboard tap, before this round:
+   (1) The row's handler is onclick — on a phone, click lands
+       at finger-LIFT. Nothing at all loads during the press.
+   (2) openFeed189 then builds EVERY slide of the board in one
+       synchronous innerHTML write, and defers activation to
+       requestAnimationFrame.
+   (3) Only then does feedActivate189 call play() — on an
+       element rendered preload="metadata", so the media fetch
+       itself starts last: press time + full render + a frame
+       + a cold network fetch, all in series, before frame one.
+   The classic detail path had the same click-timing + cold
+   fetch (its markup was already right: preload="auto" +
+   autoplay + the rendition). And Round 193's warming never
+   runs while the feed is closed, so every first open was
+   cold. Three bounded changes, all aimed at starting the
+   RIGHT fetch earlier — the players, the feed's order and
+   behavior, and the R193/R198 swipe machinery are untouched:
+   (a) POINTERDOWN WARM. A capture-phase pointerdown listener
+       (below) resolves the tapped [data-tile-id] surface —
+       board tiles, Month/Fame rows, Up-next rows (which gain
+       the attribute this round) — to its play and starts
+       loading the play's R192 playback source (playSrc192:
+       the rendition when one exists, never a download/master
+       path beyond what the player itself would load) into a
+       detached pool <video> at preload="auto". /uploads media
+       is served immutable for a year (Round 192), so the
+       player element — feed slide or detail player — reuses
+       those bytes from cache when its own load starts a beat
+       later. The pool is keyed by src, capped at
+       TAP_WARM_MAX217 with oldest-first eviction, and a
+       re-press on a warm src is a no-op beyond load().
+   (b) ENTRY-SLIDE HEAD START. openFeed189 now warms the
+       entry slide's neighborhood and load()s the entry video
+       synchronously, in the tap's task, before the rAF
+       activation (see the Round 217 note there) — play()
+       lands on an element already fetching.
+   (c) BOARD WARM. After each board render (the renderAll
+       hook), the first TAP_WARM_BOARD_N217 video plays of
+       the Month board (else the Watch board) warm at
+       preload="metadata" through the same pool — metadata
+       only, so the board never pulls megabytes unprompted;
+       a press on one of them upgrades its warm to "auto".
+       This is a deliberate, narrow exception to Round 193's
+       "nothing is preloaded behind the boards": that rule
+       still holds for the feed's own slides (feedWarm193 is
+       untouched and still a no-op while the feed is closed)
+       — the board warm lives in detached elements, capped,
+       and fetches headers, not data.
+   Battles' pooled player keeps the master by design (Round
+   192) and carries no data-tile-id, so it never warms here.
+   Everything is guarded: a slice without the helpers, a
+   browser without Pointer Events, a play without a video —
+   each degrades to exactly the pre-217 tap. */
+const tapWarm217 = { pool: new Map() };
+const TAP_WARM_MAX217 = 6;
+const TAP_WARM_BOARD_N217 = 3;
+/* The playback source a tap should warm for a play — the
+   same source its player will load (playSrc192), or "" for
+   anything that is not an in-page video play (photo plays,
+   embeds, watch-links warm nothing). PURE on purpose. */
+function tapWarmSrc217(h) {
+  try {
+    if (!h) return "";
+    const hasVideo = typeof playHasVideo === "function" ? playHasVideo(h) : (h.media_kind === "file" || h.media_kind === "link_video");
+    if (!hasVideo) return "";
+    if (h.media_kind === "file" && (h.mime || "").startsWith("image/")) return "";
+    return (typeof playSrc192 === "function") ? playSrc192(h) : (h.media_url || "");
+  } catch (e) { return ""; }
+}
+/* Start (or upgrade) the fetch of one source in the pool.
+   level "metadata" fetches headers only; "auto" pulls data.
+   Returns the pool element, or null when warming is
+   impossible in this slice. */
+function tapWarmFetch217(src, level) {
+  if (!src || typeof document === "undefined" || typeof document.createElement !== "function") return null;
+  try {
+    let v = tapWarm217.pool.get(src);
+    if (!v) {
+      v = document.createElement("video");
+      try { v.muted = true; } catch (e) {}
+      try { v.playsInline = true; } catch (e) {}
+      v.preload = level;
+      v.src = src;
+      tapWarm217.pool.set(src, v);
+      while (tapWarm217.pool.size > TAP_WARM_MAX217) {
+        const oldest = tapWarm217.pool.keys().next().value;
+        if (oldest === src) break;
+        const ov = tapWarm217.pool.get(oldest);
+        tapWarm217.pool.delete(oldest);
+        try { ov.pause(); } catch (e) {}
+        try { ov.removeAttribute("src"); } catch (e) {}
+        try { if (typeof ov.load === "function") ov.load(); } catch (e) {}
+      }
+    } else if (level === "auto" && v.preload !== "auto") {
+      v.preload = "auto";
+    }
+    if (typeof v.load === "function") v.load();
+    return v;
+  } catch (e) { return null; }
+}
+/* Warm one play at a level; returns the warmed source (""
+   when the play has nothing warmable). */
+function tapWarmPlay217(h, level) {
+  const src = tapWarmSrc217(h);
+  if (src) tapWarmFetch217(src, level);
+  return src;
+}
+/* The board warm: the first few video plays of the rendered
+   Month board (its rows are the board's order by
+   construction), else the Watch board's tiles — metadata
+   level, capped, idempotent across re-renders (the pool is
+   keyed by src, so a refresh re-warms nothing). Called from
+   renderAll through a typeof guard. */
+function tapWarmBoard217() {
+  try {
+    if (typeof document === "undefined" || typeof document.querySelector !== "function") return;
+    let ids = [];
+    for (const sel of ["#monthRows", "#allBoard"]) {
+      const host = document.querySelector(sel);
+      if (!host || typeof host.querySelectorAll !== "function") continue;
+      ids = [...host.querySelectorAll("[data-tile-id]")].map((n) => Number(typeof n.getAttribute === "function" ? n.getAttribute("data-tile-id") : 0)).filter((n) => n > 0);
+      if (ids.length) break;
+    }
+    let warmed = 0;
+    const seen = new Set();
+    for (const id of ids) {
+      if (warmed >= TAP_WARM_BOARD_N217) break;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const h = typeof findPlay === "function" ? findPlay(id) : null;
+      if (h && tapWarmPlay217(h, "metadata")) warmed++;
+    }
+  } catch (e) { /* a cold board is the pre-217 board — warming never breaks a render */ }
+}
+(function initTapWarm217() {
+  try {
+    if (typeof document === "undefined" || !document || typeof document.addEventListener !== "function") return;
+    document.addEventListener("pointerdown", (e) => {
+      try {
+        const t = e && e.target;
+        if (!t || typeof t.closest !== "function") return;
+        const host = t.closest("[data-tile-id]");
+        if (!host || typeof host.getAttribute !== "function") return;
+        /* The feed and the studio never warm from a press —
+           their surfaces carry no board tile ids today; the
+           guard keeps that true by construction. */
+        if (typeof host.closest === "function" && host.closest("#feed189, #hypeframe")) return;
+        const id = Number(host.getAttribute("data-tile-id"));
+        if (!(id > 0)) return;
+        const h = typeof findPlay === "function" ? findPlay(id) : null;
+        if (h) tapWarmPlay217(h, "auto");
+      } catch (err) { /* a press that warms nothing is just a press */ }
+    }, { capture: true, passive: true });
+  } catch (e) { /* no Pointer Events, no warm — taps behave exactly as before */ }
+})();
