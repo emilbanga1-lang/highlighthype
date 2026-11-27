@@ -8100,4 +8100,142 @@ function r226TeamFix78() {
     if (r.changes) console.log("[r226] play 78 team corrected: 'Kameron Angelin' -> 'Kameron A' (Emil-approved surname removal)");
   } catch (e) { console.error("[r226] play 78 team correction failed:", e && e.message); }
 }
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); r226TeamFix78(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); /* Round 227: the poster auto-clean backfill starts last on purpose — the poster backfills above settle first (a re-pick it would otherwise race is exactly the poster this scan then detect+cleans), and its own smart re-pick gate covers the plays those scans leave unstamped. */ setTimeout(() => { r227Backfill(); }, 8000); });
+
+/* Round 241 (2026-11-27): one-time, self-retiring boot migration —
+   the Round 240 poster re-picks, applied by the server itself.
+   R240 hand-picked two new poster frames (Emil's homepage review:
+   thumbnails must show the moment) — play 75 (Kameron A.,
+   "Walk-off game winner") at 17.5s, replacing a whole-field frame,
+   and play 51 (Juliana, "Caught stealing home!") at 4.0s, the tag
+   itself, replacing a frame with the GameChanger player controls
+   baked in. But posters and their frame-time records live in the
+   production DATA_DIR, not the repo, and there is no write path
+   to production data from outside — so, like the R227 backfill
+   before it, the server applies the change itself at boot. The
+   full spec is the R240 deploy note (DEPLOY-NOTE.md in the r240
+   deploy snapshot).
+
+   ORDERING — DATABASE FIRST, FILE SECOND, RECORDS BEFORE ANY
+   BACKFILL: this function is invoked synchronously in the listen
+   callback, alongside the other boot migrations and BEFORE the
+   backfill timers are scheduled, and its record phase below
+   contains no await, so both frame-time records are durable
+   before any backfill can look at these plays. That matters most
+   for the Round 227 backfill (8s timer): it re-picks the poster
+   of any play whose poster has NO recorded frame time (no
+   r209.chosenTime and no r227time) — play 75 has neither today,
+   so an unrecorded file swap would be overwritten by a fresh
+   smart pick on the very next boot. With the times recorded
+   first, every order is safe. (The Round 209 scan at 5s is not a
+   hazard for these two plays: both carry settled r209/r213
+   stamps and stream renditions, so its selection never admits
+   them.) The expected follow-on is left alone on purpose: the
+   next R227 pass sees the new posters' size:mtime sigs match no
+   settled record and runs its one-time fence detect+clean on the
+   new frames, exactly as it treated the R227 library pass.
+
+   THE RECORDS (mirroring the deploy note's SQL):
+   - Play 75: enhance_json.r227time = {t:17.5,
+     origin:"repick-r240", at} — the R227 initial-grab slot is the
+     truthful one (publicHighlight falls back to it). Its r209
+     record is a deliberate kept-flat verdict (chosenTime null)
+     and is NOT touched.
+   - Play 51: enhance_json.r209.chosenTime = 4.0 — her poster IS
+     the r209 smart pick and chosenTime is the operative field
+     (it wins over r227time in publicHighlight); the re-pick
+     supersedes the R213 pick at 16.083. The rest of the r209
+     record stands. An r241 marker is written alongside as this
+     migration's idempotency record.
+
+   IDEMPOTENCY / SELF-RETIRING: a play is "applied" when its own
+   marker reads origin "repick-r240" (play 75: r227time.origin;
+   play 51: the r241 record). An applied play is never re-grabbed
+   or rewritten — later boots cost two SELECTs. If a grab fails
+   (or ffmpeg is unavailable), the record written in this boot is
+   reverted to its prior value and the migration retries on the
+   next boot: a frame time is never left claiming a frame the
+   poster file does not show. A missing play, a trashed or
+   non-file play, or an absent source video is logged and skipped
+   without failing boot. */
+const R241_REPICKS = [
+  { id: 75, t: 17.5 },
+  { id: 51, t: 4.0 },
+];
+function r241ReadRow241(id) {
+  const row = db.prepare("SELECT media_kind, media_url, poster_url, status, enhance_json FROM highlights WHERE id=?").get(id);
+  if (!row) return null;
+  let ej = {};
+  try { ej = JSON.parse(row.enhance_json || "{}") || {}; } catch { ej = {}; }
+  return { row, ej };
+}
+function r241WriteEj241(id, ej) {
+  db.prepare("UPDATE highlights SET enhance_json=? WHERE id=?").run(JSON.stringify(ej), id);
+}
+async function r241RepickPosters() {
+  const jobs = [];
+  // ---- Phase 1 (synchronous): the records. No await above the
+  // grabs, so this whole phase runs inside the listen callback,
+  // ahead of every backfill timer.
+  try {
+    for (const spec of R241_REPICKS) {
+      try {
+        const got = r241ReadRow241(spec.id);
+        if (!got) { console.log(`[r241] play ${spec.id}: not found — R240 re-pick skipped`); continue; }
+        const { row, ej } = got;
+        if (row.status === "trashed" || row.media_kind !== "file" || !row.media_url) { console.log(`[r241] play ${spec.id}: not a live file play — R240 re-pick skipped`); continue; }
+        const applied = spec.id === 75
+          ? !!(ej.r227time && ej.r227time.origin === "repick-r240")
+          : !!(ej.r241 && ej.r241.origin === "repick-r240");
+        if (applied) continue; // self-retired for this play
+        const videoAbs = path.join(UPLOAD_DIR, path.basename(row.media_url));
+        if (!fs.existsSync(videoAbs)) { console.log(`[r241] play ${spec.id}: source video absent (${path.basename(row.media_url)}) — R240 re-pick skipped, will retry next boot`); continue; }
+        const posterAbs = path.join(UPLOAD_DIR, path.basename(row.poster_url || `poster-${spec.id}.jpg`));
+        if (spec.id === 75) {
+          const prev = ej.r227time; // normally absent; restored verbatim on a failed grab
+          ej.r227time = { t: spec.t, origin: "repick-r240", at: new Date().toISOString() };
+          r241WriteEj241(spec.id, ej);
+          jobs.push({ ...spec, videoAbs, posterAbs, revert() {
+            const cur = r241ReadRow241(spec.id); if (!cur) return;
+            if (prev === undefined) delete cur.ej.r227time; else cur.ej.r227time = prev;
+            r241WriteEj241(spec.id, cur.ej);
+          } });
+        } else {
+          const prevChosen = ej.r209 ? ej.r209.chosenTime : undefined;
+          if (!ej.r209 || typeof ej.r209 !== "object") ej.r209 = {};
+          ej.r209.chosenTime = spec.t;
+          ej.r241 = { origin: "repick-r240", t: spec.t, field: "r209.chosenTime", at: new Date().toISOString() };
+          r241WriteEj241(spec.id, ej);
+          jobs.push({ ...spec, videoAbs, posterAbs, revert() {
+            const cur = r241ReadRow241(spec.id); if (!cur) return;
+            if (cur.ej.r209 && typeof cur.ej.r209 === "object") {
+              if (prevChosen === undefined) delete cur.ej.r209.chosenTime; else cur.ej.r209.chosenTime = prevChosen;
+            }
+            delete cur.ej.r241;
+            r241WriteEj241(spec.id, cur.ej);
+          } });
+        }
+        console.log(`[r241] play ${spec.id}: R240 re-pick recorded (frame time ${spec.t}s) — poster grab queued`);
+      } catch (e) { console.error(`[r241] play ${spec.id}: record phase failed (skipped):`, e && e.message); }
+    }
+  } catch (e) { console.error("[r241] record phase failed:", e && e.message); }
+  // ---- Phase 2: the grabs, through the pipeline's own poster
+  // maker (serialized ffmpeg, -ss before -i, -frames:v 1, -q:v 3 —
+  // the exact shape that produced the R240 reference posters).
+  if (!jobs.length) return;
+  try {
+    const bins = await r124ResolveBins();
+    if (!bins) {
+      console.log("[r241] ffmpeg unavailable — records reverted, R240 re-pick deferred to next boot");
+      for (const job of jobs) { try { job.revert(); } catch {} }
+      return;
+    }
+    for (const job of jobs) {
+      try {
+        const ok = await r124MakePoster(bins, job.videoAbs, job.posterAbs, job.t);
+        if (ok) console.log(`[r241] play ${job.id}: poster re-grabbed at ${job.t}s — R240 re-pick applied`);
+        else { console.error(`[r241] play ${job.id}: poster grab failed — record reverted, will retry next boot`); try { job.revert(); } catch {} }
+      } catch (e) { console.error(`[r241] play ${job.id}: poster grab error (record reverted):`, e && e.message); try { job.revert(); } catch {} }
+    }
+  } catch (e) { console.error("[r241] grab phase failed:", e && e.message); }
+}
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); r226TeamFix78(); /* Round 241: the poster re-pick migration starts here, with the other boot migrations — its record phase is synchronous (no await before the grabs), so both frame-time records are durable before the backfill timers below are even scheduled; the Round 227 re-pick gate (8s) therefore always sees the recorded times and never re-picks these two posters. */ r241RepickPosters(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); /* Round 227: the poster auto-clean backfill starts last on purpose — the poster backfills above settle first (a re-pick it would otherwise race is exactly the poster this scan then detect+cleans), and its own smart re-pick gate covers the plays those scans leave unstamped. */ setTimeout(() => { r227Backfill(); }, 8000); });
