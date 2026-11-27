@@ -2210,6 +2210,21 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
   // states in place of the Enter control.
   const retired182 = contestRetired182(row.id);
   const sitOut182 = contestSitOutFor182(row, currentPeriod());
+  // Round 223: the smart poster's chosen moment, in seconds
+  // into the clip — parsed from the Round 209/213 evaluation
+  // the server already stores in enhance_json. null when no
+  // poster was ever picked (photo plays, un-evaluated plays,
+  // flat clips whose poster stands at the head). The watch
+  // feed starts each clip at this moment instead of 0:00, so
+  // a clip whose action sits seconds in no longer opens on
+  // sky. Public and safe: a timestamp into the play's own
+  // clip, nothing about the family.
+  let posterTime223 = null;
+  try {
+    const ej223 = row.enhance_json ? JSON.parse(row.enhance_json) : null;
+    const ct223 = ej223 && ej223.r209 ? Number(ej223.r209.chosenTime) : NaN;
+    if (Number.isFinite(ct223) && ct223 > 0) posterTime223 = ct223;
+  } catch { posterTime223 = null; }
   return {
     id: row.id,
     title: row.title,
@@ -2285,6 +2300,9 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     // '' everywhere, which restores master-file playback
     // without touching a single row.
     stream_url: process.env.HH_NO_STREAM192 === "1" ? "" : (row.stream_url || ""),
+    // Round 223: see the computation above publicHighlight's
+    // return — the feed's start-at-the-poster-moment offset.
+    poster_time: posterTime223,
   };
 }
 function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
