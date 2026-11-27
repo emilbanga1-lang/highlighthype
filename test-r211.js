@@ -76,7 +76,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+assert(home.includes('href="styles.css?v=211"') && home.includes('src="app.js?v=217"'), "A: asset pins — app.js v212 / styles v208 (Round 211; both files changed) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 
 // ---- B. Structure statics (→215: the stepper is retired) ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back"), "B: →215: no stepper pills and no step back buttons anywhere in the studio");
@@ -171,7 +171,7 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   // ---- D. First paint: the poster is composited before any capture resolves ----
   sb.hfGarmentSync206();
   assert(hero.hidden === false, "D: the garment hero is visible at first paint — before any frame is captured");
-  assert(GI.src === "/swag/hf-blank-back-black211.jpg", "D: first paint wears the Black back photo blank (the R208 starting look)");
+  assert(GI.src === "/swag/hf-blank-back-black218.jpg", "D: first paint wears the Black back photo blank (the R208 starting look) — →218: the washed-black 218 blank");
   assert(GA.hidden === false && GP.src === "/uploads/poster-7.jpg", "D: the play's poster is ALREADY composited as the print — no video-first flash, no empty garment");
   // The capture lands (deferred stub resolves): the print swaps
   // behind the same geometry.
@@ -191,7 +191,7 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   // The sticky bar advances (a frame is frozen).
   els["#hfReviewBtn215"].listeners.click();
   assert(S.screen215 === "review" && rev215.hidden === false && prod215.hidden === true, "C: 'Review hoodie →' moves to the Review screen");
-  assert(els["#hfReviewImg206"].src === "/swag/hf-blank-back-black211.jpg" && els["#hfReviewPrint206"].src === "data:print", "C: entering Review syncs the as-ordered render (Black, back — the print's side)");
+  assert(els["#hfReviewImg206"].src === "/swag/hf-blank-back-black218.jpg" && els["#hfReviewPrint206"].src === "data:print", "C: entering Review syncs the as-ordered render (Black, back — the print's side) — →218: the washed-black 218 blank");
   assert(els["#hfReviewTitle211"].textContent === "Black hoodie" && els["#hfReviewLine211"].textContent === "Back print · Hype Frame", "C: the Review headline derives from live state ('Black hoodie' / 'Back print · Hype Frame')");
   // State survives a full round trip.
   S.backText = "custom"; els["#hfBackCustom197"].value = "GO HAWKS!";
@@ -246,7 +246,7 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   assert(S.side === "back" && S.garmentView206 === "back", "E: navigation never touched the order's print side");
 
   // ---- H. Photo wiring per colorway × view ----
-  const expect = { "Black|back": "/swag/hf-blank-back-black211.jpg", "Black|front": "/swag/hf-blank-front-black211.jpg", "Heather Gray|back": "/swag/hf-blank-back-gray211.jpg", "Heather Gray|front": "/swag/hf-blank-front-gray211.jpg" };
+  const expect = { "Black|back": "/swag/hf-blank-back-black218.jpg", "Black|front": "/swag/hf-blank-front-black218.jpg", "Heather Gray|back": "/swag/hf-blank-back-gray211.jpg", "Heather Gray|front": "/swag/hf-blank-front-gray211.jpg" };
   for (const cw of ["Black", "Heather Gray"]) for (const v of ["back", "front"]) {
     S.colorway = cw; S.garmentView206 = v;
     sb.hfGarmentSync206();
@@ -283,9 +283,9 @@ assert(appJs.includes("function hfShowScreen215") && appJs.includes("function hf
   const s = await boot(41211);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "I: the served homepage carries the current pins");
+    assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "I: the served homepage carries the current pins");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfReview215"') && served.includes('id="hfStickyBar215"') && !served.includes("data-hf-step-pill"), "I: →215: the served studio is the one-page studio — product page + Review + sticky bar, no stepper");
-    for (const f of ["hf-blank-front-black211.jpg", "hf-blank-back-black211.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
+    for (const f of ["hf-blank-front-black218.jpg", "hf-blank-back-black218.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
       const r = await fetch(s.base + "/swag/" + f);
       const buf = Buffer.from(await r.arrayBuffer());
       assert(r.status === 200 && buf[0] === 0xff && buf[1] === 0xd8, "I: " + f + " serves as a JPEG");

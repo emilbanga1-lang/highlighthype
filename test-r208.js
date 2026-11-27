@@ -57,7 +57,7 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=215"') && home.includes('href="styles.css?v=210"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+assert(home.includes('src="app.js?v=217"') && home.includes('href="styles.css?v=211"'), "A: asset pins — app.js v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 
 // ---- B. statics: the default's every home now says Back ----
 assert(appJs.includes('apparel: "hoodie", side: "back", imageStyle: "photo"'), "B: the hfState literal opens on side 'back'");
@@ -130,7 +130,7 @@ assert(appJs.includes('o.side === "front" ? "Front" : "Back"'), "B: the Owner vi
   vm.runInContext(block, ctx);
   sb.hfGarmentSync206();
   assert(els["#hfGarment206"].hidden === false && els["#hfGarmentPrintArea206"].hidden === false && els["#hfGarmentPrint206"].src === "data:print", "D: the opening back view shows the composed print (the Round 206 tension is resolved)");
-  assert(els["#hfGarmentBackText206"].textContent.includes("NICK"), "D: the embroidered back-name treatment still rides the back view alongside the print");
+  assert(els["#hfGarmentBackText206"].hidden === true && els["#hfGarmentBackText206"].textContent === "", "D: →218: the embroidered back-name treatment is RETIRED — the name rides INSIDE the print artwork, so the back view carries no separate words element");
   sb.hfState.garmentView206 = "front";
   sb.hfGarmentSync206();
   assert(els["#hfGarmentPrintArea206"].hidden === true, "D: the front view hides the print area (the print sits on the back)");

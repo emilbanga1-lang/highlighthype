@@ -63,7 +63,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed)");
+assert(home.includes('href="styles.css?v=211"') && home.includes('src="app.js?v=217"'), "A: asset pins — app.js v214 / styles v210 (Round 215; both files changed) — →217: app.js now v215 (Round 217) — →218: app.js now v216 (Round 218); styles keeps v210 — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 
 // ---- B. statics ----
 assert(!studio.includes("data-hf-step-pill") && !studio.includes("data-hf-step-back") && !appJs.includes("function hfGoStep211(") && !css.includes(".hf-step-pill211"), "B: no stepper — no pills or step backs in the markup, no step flow in app.js, no pill CSS");
@@ -194,7 +194,7 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
 // ---- E. Avatar gate on the one-page studio ----
 {
   const artPanel = studio.slice(studio.indexOf('id="hfArtworkPanel215"'), studio.indexOf('id="hfRowPlacement215"'));
-  assert(artPanel.includes('id="hfAvatarPanel206"') && artPanel.includes("Avatar previews are made by OpenAI's image AI — your chosen frame is sent to OpenAI to create it. Nothing is sent until you tap the button below."), "E: the avatar panel + verbatim consent line live in the Artwork panel");
+  assert(artPanel.includes('id="hfAvatarPanel206"') && artPanel.includes("Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below."), "E: the avatar panel + verbatim consent line live in the Artwork panel — →218: the consent line also names the design's text slots (first name + label)");
   const makeBlock = appJs.slice(appJs.indexOf("async function hfMakeAvatar206"), appJs.indexOf("function hfApplyAvatar206"));
   assert(!makeBlock.includes("hfApplyAvatar206(") && makeBlock.includes("avatarPreview206 = true"), "E: approval gate — a finished generation only PREVIEWS; 'Use this avatar' is still the only way it becomes the print");
   // VM: the garment wears the preview while the order's print stays the photo.
@@ -233,7 +233,7 @@ assert(review.includes('id="hfReviewBack215"') && review.includes(">Send hoodie 
   const s = await boot(41215);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "F: the served homepage carries the Round 215 pins");
+    assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "F: the served homepage carries the Round 215 pins — →219: app.js now v217 / styles now v211 (Round 219)");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfStickyBar215"') && served.includes('id="hfReview215"') && !served.includes("data-hf-step-pill"), "F: the served studio is the one-page studio");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfSeedPoster215") && servedApp.includes("function hfShowScreen215") && !servedApp.includes("function hfGoStep211("), "F: the served app.js carries the seed + screens, and no step flow");

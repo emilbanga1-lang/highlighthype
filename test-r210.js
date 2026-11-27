@@ -69,7 +69,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+assert(home.includes('href="styles.css?v=211"') && home.includes('src="app.js?v=217"'), "A: asset pins — app.js v211 / styles v207 (Round 210; both files changed) — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 
 // ---- the section + the overlay after it ----
 const secStart = home.indexOf('id="merchTeaser125"');
@@ -90,8 +90,8 @@ const heroRule = (css.match(/\.hft207-hero\{[^}]*\}/) || [""])[0];
 assert(heroRule.includes("position:relative") && heroRule.includes("overflow:hidden") && heroRule.includes("border-radius:14px") && !heroRule.includes("aspect-ratio"), "B: →212 SUPERSEDED — the fixed 4:5 hero frame is GONE (Emil rejected the crop on his phone); the hero is a rounded natural-aspect frame again");
 const imgRule = (css.match(/\.hft207-hero-img\{[^}]*\}/) || [""])[0];
 assert(imgRule.includes("width:100%") && imgRule.includes("height:auto") && !imgRule.includes("object-fit") && !imgRule.includes("143%"), "B: →212 SUPERSEDED — the 143% cover render is GONE; the photo renders whole at natural aspect (width 100%, height auto), the full print + graffiti crown/H visible");
-assert(sec.slice(iHero, sec.indexOf("hft201-body")).includes('src="/swag/hf-hoodie-softball.jpg"'), "B: the hero is still the real softball hoodie photo");
-assert((sec.match(/hf-hoodie-softball\.jpg/g) || []).length === 2, "B: the softball photo appears exactly twice in the section slice — the hero and the film's own cover instance");
+assert(sec.slice(iHero, sec.indexOf("hft201-body")).includes('src="/swag/hf-hoodie-nicholas218.jpg"'), "B: →218: the hero is Emil's Nicholas front+back shot now (the softball photo left the hero)");
+assert((sec.match(/hf-hoodie-softball\.jpg/g) || []).length === 1, "B: →218: the softball photo appears exactly ONCE in the section slice — only the film's own cover instance (it was twice while it was also the hero)");
 
 // ---- C. the pills — →212: REMOVED (the card header does their job) ----
 assert(!sec.includes("hft201-badges") && !sec.includes("hft201-badge") && !css.includes(".hft201-badges{") && !css.includes(".hft207-badges{"), "C: →212 — the pills are OFF the photo: markup and their CSS are gone; the crown + HYPE FRAME™ card header carries the branding instead");
@@ -197,7 +197,7 @@ try {
   assert(vHero > -1 && vTitle > vHero && vCta > vTitle && vBtn > vCta && vOv > vBtn && vFilm > vOv, "G: the served section reads hero -> headline -> CTA -> film link -> overlay -> film");
   assert(!served.includes('id="hfHomeFilmBox207"'), "G: the served homepage carries no trace of the retired in-place film box");
   assert(served.slice(served.indexOf('id="hfBuyCard215"'), served.indexOf('id="hfRowPhoto215"')).includes("$110"), "G: the served homepage carries the $110 in the studio's buy card — →215: the one-page studio shows its price (before R215 it appeared nowhere in the document)");
-  assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+  assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "G: the served homepage carries the Round 210 pins — →212: pins now v212/v208 (Round 211) — →213: pins now v213/v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 } finally { s.child.kill(); }
 
 console.log("\nALL R210 CHECKS PASSED");

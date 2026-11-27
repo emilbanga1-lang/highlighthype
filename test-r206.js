@@ -109,7 +109,7 @@ const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"'));
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=210"') && home.includes('src="app.js?v=215"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+assert(home.includes('href="styles.css?v=211"') && home.includes('src="app.js?v=217"'), "A: asset pins — app.js v207 / styles v204 (Round 206; both files changed) — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
 
 // ---- B. Part A statics ----
 for (const id of ["hfGarment206", "hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentBackText206"])
@@ -117,8 +117,8 @@ for (const id of ["hfGarment206", "hfGarmentStage206", "hfGarmentImg206", "hfGar
 assert(!studio.includes('id="hfGarmentWide206"'), "B: →215: the wide-frame note is retired with the dashed guide — the garment block carries no guide element");
 assert(studio.includes('data-hf-garment-view="front"') && studio.includes('data-hf-garment-view="back"'), "B: the preview flips front / back");
 assert(studio.includes("Preview — your design on the hoodie"), "B: the preview is labeled as a preview");
-for (const f of ["hf-blank-front-black211.jpg", "hf-blank-back-black211.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
-  assert(appJs.includes("/swag/" + f), "B: app.js points at " + f + " — →211: the garment art is the photoreal blank photo set (Round 211), not the Round 206 illustrations");
+for (const f of ["hf-blank-front-black218.jpg", "hf-blank-back-black218.jpg", "hf-blank-front-gray211.jpg", "hf-blank-back-gray211.jpg"]) {
+  assert(appJs.includes("/swag/" + f), "B: app.js points at " + f + " — →211: the garment art is the photoreal blank photo set (Round 211), not the Round 206 illustrations — →218: BLACK is Emil's washed-black hoodie (218 blanks, re-measured zones); gray keeps the 211 set");
   const jpg = fs.readFileSync(path.join(ROOT, "public/swag", f));
   assert(jpg[0] === 0xff && jpg[1] === 0xd8, "B: " + f + " is a real JPEG blank on disk");
 }
@@ -177,7 +177,7 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
 
   sb.hfGarmentSync206();
   assert(G.hidden === false, "C: a frozen frame shows the garment preview");
-  assert(GI.src === "/swag/hf-blank-front-black211.jpg", "C: front view wears the Black front photo blank — →211: photoreal blanks replace the illustrations");
+  assert(GI.src === "/swag/hf-blank-front-black218.jpg", "C: front view wears the Black front photo blank — →211: photoreal blanks replace the illustrations — →218: Black is Emil's washed-black hoodie (218 blank)");
   assert(GA.hidden === false && GP.src === "data:print", "C: the composed print rides the front (the side it sits on)");
   assert(GP.style.width === "78%" && GP.style.left === "50%" && GP.style.top === "42%", "C: the print sits at its true placement (size / cx / cy)");
   assert(!GA.classList.set.has("hf-garment-area-wide206"), "C: →215: a 16:9 frame draws NO dashed guide on the garment (the Part D outline + note are retired)");
@@ -185,20 +185,20 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
 
   S.garmentView206 = "back";
   sb.hfGarmentSync206();
-  assert(GI.src === "/swag/hf-blank-back-black211.jpg", "C: the flip shows the garment's back — →211: the photo blank");
-  assert(GB.hidden === false && GB.textContent === "NICK", "C: the back carries the embroidered name treatment");
+  assert(GI.src === "/swag/hf-blank-back-black218.jpg", "C: the flip shows the garment's back — →211: the photo blank — →218: the washed-black 218 blank");
+  assert(GB.hidden === true && GB.textContent === "", "C: →218: the embroidered name band is RETIRED — the name lives inside the artwork now, so the back carries no separate words element in any mode");
   assert(GA.hidden === true, "C: a front-side print stays off the back view");
 
   S.backText = "custom";
   sb.hfGarmentSync206();
-  assert(GB.textContent === "GO HAWKS!", "C: 'Your own words' ride the back verbatim");
+  assert(GB.hidden === true && GB.textContent === "", "C: →218: 'Your own words' are the design's top line (inside the artwork) — no garment words element");
   S.backText = "none";
   sb.hfGarmentSync206();
   assert(GB.hidden === true, "C: 'No name' leaves a clean back");
 
   S.backText = "name"; S.side = "back";
   sb.hfGarmentSync206();
-  assert(GA.hidden === false && GP.src === "data:print", "C: a back-side print joins the words on the back view");
+  assert(GA.hidden === false && GP.src === "data:print", "C: a back-side print rides the back view");
   S.garmentView206 = "front";
   sb.hfGarmentSync206();
   assert(GA.hidden === true, "C: ...and leaves the front clean");
@@ -265,7 +265,7 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
 {
   for (const p of ["classic", "signature", "hypeframe"])
     assert(studio.includes(`data-hf-preset-mini="${p}"`), "E: the " + p + " style button carries a live mini rendering");
-  assert(appJs.includes("function hfRenderPresetMinis206") && appJs.includes("hfGrungeFrame(cx2") && appJs.includes("hfDrawLockup(cx2"), "E: minis mirror the real composition (grunge frame + lockup reused)");
+  assert(appJs.includes("function hfRenderPresetMinis206") && appJs.includes("hfDrawFormat218(cx2"), "E: minis mirror the real composition — →218: through the shared Round 218 format composer (the retired lockup band is gone from the minis too)");
   const syncBody = appJs.slice(appJs.indexOf("function hfSyncFrozenThumb"), appJs.indexOf("function hfOpenLightbox128"));
   assert(syncBody.includes("hfGarmentSync206()") && syncBody.includes("hfRenderPresetMinis206()"), "E: the compose choke point re-syncs the garment preview + minis on every recompose");
   assert(css.includes(".hf-preset-mini206{"), "E: mini styling rides the stylesheet");
@@ -277,17 +277,17 @@ assert(studio.includes('id="hfReview215"') && studio.includes('id="hfReviewImg20
   // precedes the avatar panel on the one-page studio, so the
   // panel slice runs to the Print placement row instead.
   const panel = studio.slice(studio.indexOf('id="hfAvatarPanel206"'), studio.indexOf('id="hfRowPlacement215"'));
-  assert(panel.includes("Avatar previews are made by OpenAI's image AI — your chosen frame is sent to OpenAI to create it."), "F: the consent line sits in the avatar panel, verbatim");
+  assert(panel.includes("Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it."), "F: the consent line sits in the avatar panel, verbatim — →218: it now names the design's text slots too (first name + label ride along with the frame)");
   assert(panel.indexOf("hfAvatarConsent206") < panel.indexOf("hfAvatarMake206"), "F: the consent line reads BEFORE the Make button — nothing is sent before it's seen");
   for (const id of ["hfAvatarMake206", "hfAvatarStatus206", "hfAvatarResult206", "hfAvatarImg206", "hfAvatarUse206", "hfAvatarPhoto206"])
     assert(panel.includes(`id="${id}"`), "F: the avatar panel carries #" + id);
   const makeBlock = appJs.slice(appJs.indexOf("async function hfMakeAvatar206"), appJs.indexOf("function hfApplyAvatar206"));
-  assert(makeBlock.includes('fetch("/api/hype-frame/avatar"') && makeBlock.includes("JSON.stringify({ image })"), "F: the maker posts ONLY the frame image");
+  assert(makeBlock.includes('fetch("/api/hype-frame/avatar"') && makeBlock.includes("nameMode: design218.nameMode") && makeBlock.includes("label: design218.label") && makeBlock.includes("tone: design218.tone"), "F: →218: the maker posts the frame plus the design's data slots (nameMode / name / number / customText / label / tone) — the recipe that assembles them stays server-side");
   assert(!makeBlock.includes("prompt"), "F: no client field can reach the style prompt (the word never appears in the maker)");
   assert(makeBlock.includes("AbortController") && makeBlock.includes("120000"), "F: the generation carries a timeout — the UI never hangs forever");
   assert(!makeBlock.includes("hfApplyAvatar206(") && makeBlock.includes("avatarPreview206 = true"), "F: approval gate — a finished generation only PREVIEWS (avatarPreview206); it never auto-applies to the print");
   assert(appJs.includes("avatarGenerated: hfState.avatarApplied206 === true"), "F: the order payload marks a chosen studio avatar");
-  assert(serverJs.includes("const HF_AVATAR_PROMPT206 =") && serverJs.includes("stylized illustrated avatar"), "F: the locked style prompt is a server-side constant");
+  assert(serverJs.includes("function hfAvatarPrompt218") && serverJs.includes("stylized illustrated avatar"), "F: →218: the format prompt is built server-side from fixed slots (hfAvatarPrompt218) — client text is data in slots, never a raw prompt");
   assert(serverJs.includes('process.env.OPENAI_API_KEY') && serverJs.includes('process.env.HH_NO_AVATAR !== "1"'), "F: the server gates on OPENAI_API_KEY + the HH_NO_AVATAR kill switch");
   assert(serverJs.includes('"/api/hype-frame/avatar-status"') && serverJs.includes('"/api/hype-frame/avatar"'), "F: both avatar routes exist");
   assert(serverJs.includes("avatarRateLimited") && serverJs.includes("AVATAR_RATE_LIMIT = 6"), "F: the paid endpoint carries its per-IP rate limit");
@@ -401,11 +401,11 @@ stub.close();
   const s = await boot(4026);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=215"') && served.includes('href="styles.css?v=210"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215)");
+    assert(served.includes('src="app.js?v=217"') && served.includes('href="styles.css?v=211"'), "L: the served homepage carries the Round 206 pins — →208: app.js now v208 (Round 207); styles now v205 (Round 207) — →209: app.js now v209 (Round 208); styles keeps v205 (unchanged this round) — →210: app.js now v210 (Round 209); styles now v206 (Round 209) — →211: app.js now v211 (Round 210); styles now v207 (Round 210) — →212: app.js now v212 (Round 211); styles now v208 (Round 211) — →213: app.js now v213 (Round 214); styles now v209 (Round 214) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219)");
     assert(served.includes('id="hfGarment206"') && served.includes('id="hfAvatarPanel206"') && served.includes("Avatar previews are made by OpenAI's image AI"), "L: the served studio carries the garment preview + avatar panel + consent line");
-    const jpgRes = await fetch(s.base + "/swag/hf-blank-front-black211.jpg");
+    const jpgRes = await fetch(s.base + "/swag/hf-blank-front-black218.jpg");
     const jpgBuf = Buffer.from(await jpgRes.arrayBuffer());
-    assert(jpgRes.status === 200 && jpgBuf[0] === 0xff && jpgBuf[1] === 0xd8, "L: →211: the photoreal garment blank serves as a JPEG");
+    assert(jpgRes.status === 200 && jpgBuf[0] === 0xff && jpgBuf[1] === 0xd8, "L: →211: the photoreal garment blank serves as a JPEG — →218: the washed-black 218 blank");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("hfGarmentSync206") && servedApp.includes("hfMakeAvatar206"), "L: the served app.js carries the round");
   } finally { s.stop(); }
@@ -524,10 +524,10 @@ stub.close();
   assert(els["#hfReviewSize206"].textContent === "Heather Gray hoodie · Youth L", "N: the review names the color + size");
   assert(els["#hfReviewPlacement206"].textContent.startsWith("Back print") && els["#hfReviewPlacement206"].textContent.includes("Classic"), "N: the review names the placement + style");
   assert(els["#hfReviewArt206"].textContent.includes("AI avatar"), "N: the review names the approved AI avatar as the artwork");
-  assert(els["#hfReviewBack206"].textContent.includes("Nick"), "N: the review names the embroidered back text");
+  assert(els["#hfReviewBack206"].textContent.includes("Nick"), "N: the review names the back text — →218: as words IN the design ('In the design: …'), not an embroidered band");
   Object.assign(S, { side: "front", colorway: "Black", imageStyle: "photo", avatarApplied206: false });
   sb.hfReviewSync206();
-  assert(els["#hfReviewImg206"].src === "/swag/hf-blank-front-black211.jpg" && els["#hfReviewPlacement206"].textContent.startsWith("Front print") && els["#hfReviewArt206"].textContent.includes("Real photo"), "N: the review follows a change back to a front photo order — →211: the black front photo blank");
+  assert(els["#hfReviewImg206"].src === "/swag/hf-blank-front-black218.jpg" && els["#hfReviewPlacement206"].textContent.startsWith("Front print") && els["#hfReviewArt206"].textContent.includes("Real photo"), "N: the review follows a change back to a front photo order — →211: the black front photo blank — →218: the washed-black 218 blank");
 }
 
 console.log("\nALL R206 CHECKS PASSED");
