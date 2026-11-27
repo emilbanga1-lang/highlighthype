@@ -4337,3 +4337,17 @@ body.feed-open189{overflow:hidden}
    ================================================================ */
 .home-poster-fallback232{display:grid;place-items:center;width:100%;height:100%;background:#131315;color:#e8e2d2;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
 @media(min-width:860px){ .feat230-media .home-poster-fallback232{position:absolute;inset:0} }
+
+/* ================================================================
+   Round 233 (2026-11-27): the tap-to-play hero button for the
+   slowest connections (2g / save-data). The hero controller
+   unhides #heroPlay233 only when it holds the film back
+   (heroHeld233); every other connection never sees it. Centered
+   over the poster, above the scrim and content, in the site's
+   volt pill language (the .float-submit family). The [hidden]
+   rule is load-bearing: display:inline-flex would otherwise
+   defeat the hidden attribute.
+   ================================================================ */
+.hero-play233{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;display:inline-flex;align-items:center;gap:9px;background:var(--volt);color:var(--volt-ink);border:0;border-radius:999px;padding:14px 24px;font:inherit;font-weight:800;font-size:15.5px;letter-spacing:.01em;cursor:pointer;box-shadow:0 12px 32px rgba(0,0,0,.55),0 2px 8px rgba(0,0,0,.4);touch-action:manipulation}
+.hero-play233[hidden]{display:none}
+.hero-play233:active{transform:translate(-50%,-50%) scale(.97)}

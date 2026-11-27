@@ -687,7 +687,7 @@ function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="tile" data-tile-id="${h.id}" role="button" tabindex="0" aria-label="${esc(h.title)} — open the play" onclick="openPlay189(${h.id}, this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openPlay189(${h.id}, this)}">
-    <div class="tile-media dur-host">${fameThumbHtml(h, opts)}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlay189(${h.id}, this)"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
+    <div class="tile-media dur-host">${fameThumbHtml(h, Object.assign({}, opts, { gate233: true }))}<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlay189(${h.id}, this)"></span><span class="tile-disc" aria-hidden="true"><svg width="17" height="19" viewBox="0 0 12 14"><path d="M0 0 L12 7 L0 14 Z" fill="#fff"/></svg></span>${h.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}${durPillHtml(h)}${viewsChip151(h)}</div>
     <div class="tile-body">
       <div class="tile-head153">
         ${avatarDisc153(h)}
@@ -1317,6 +1317,21 @@ function fameThumbHtml(h, opts) {
      plays only in the detail view on tap. Every other caller
      (Watch tiles, Hall of Fame thumbs) renders exactly as
      before, autoplay included. */
+  /* Round 233 (2026-11-27, Emil — "when not on WiFi the site
+     takes a long time to load"): opts.gate233 (board tiles only,
+     threaded from tileHtml) renders the tile WITHOUT a src and
+     WITHOUT a poster — both URLs ride in data attributes and
+     bindTileGate233's IntersectionObserver assigns them only as
+     the tile approaches the viewport, plays it while it is on
+     screen, and unloads it when it leaves, so a board of tiles
+     fetches no video bytes (and no below-fold posters) before
+     anyone scrolls to them. The rest133 form and every other
+     caller render exactly as before. */
+  if ((h.media_kind === "file" || h.media_kind === "link_video") && opts && opts.gate233 && !opts.rest133) {
+    const src233 = esc((typeof playSrc192 === "function") ? playSrc192(h) : h.media_url);
+    const poster233 = (typeof posterUrlFor134 === "function") ? posterUrlFor134(h) : "";
+    return `<video data-src233="${src233}"${poster233 ? ` data-poster233="${esc(poster233)}"` : ""} muted loop playsinline preload="none" class="tile-vid233"></video>`;
+  }
   if (h.media_kind === "file" || h.media_kind === "link_video") return `<video src="${esc((typeof playSrc192 === "function") ? playSrc192(h) : h.media_url)}"${(typeof posterAttr123 === "function") ? posterAttr123(h) : ""} muted loop playsinline${opts && opts.rest133 ? "" : " autoplay"} preload="metadata"></video>`;
   return `<span style="display:grid;place-items:center;height:100%;color:#fff;font-weight:800">${esc(cap(h.sport))}</span>`;
 }
@@ -1333,6 +1348,66 @@ function posterUrlFor134(h) {
     if (typeof btlPosterFor118 === "function") return btlPosterFor118(h.media_url || "", h.sport || "", h.title || "") || "";
   } catch (e) { /* fall through to empty */ }
   return "";
+}
+/* Round 233 (2026-11-27): the board-tile gate. fameThumbHtml's
+   gate233 form renders a tile video with NO src and NO poster —
+   data-src233 / data-poster233 carry the URLs. One shared
+   IntersectionObserver (rootMargin 400px, so a tile is ready
+   just before it scrolls in) assigns poster + src and plays on
+   approach, and pauses + unloads (src removed, load()) when the
+   tile leaves, returning it to its poster and freeing the
+   connection. bindTileGate233 runs after every board render:
+   it disconnects the previous observer first, so re-renders
+   (tab switches, filters, sport selects) never stack observers
+   and never leave a detached tile playing. With no
+   IntersectionObserver the gate degrades to today: every tile
+   loads immediately. The .vfill blur clones markVertical107
+   inserts are never observed (the :not(.vfill) selector), and
+   an unload sweeps a same-host clone's src too, so a departed
+   tile holds no video bytes at all. var (not let) for the
+   observer handle: the declaration must be safe to read from
+   any render path, hoisted like the functions around it. */
+var tileGateObs233 = null;
+function tileGateLoad233(v) {
+  if (!v || typeof v.getAttribute !== "function") return;
+  if (v.getAttribute("src")) return;
+  const url = v.getAttribute("data-src233");
+  if (!url) return;
+  const poster = v.getAttribute("data-poster233");
+  if (poster && !v.getAttribute("poster")) v.setAttribute("poster", poster);
+  v.setAttribute("src", url);
+  try { v.preload = "auto"; } catch (e) { /* the src is what matters */ }
+  try { v.load(); } catch (e) { /* older engines start on play() */ }
+  try { const p = v.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* a refused autoplay leaves the poster — the tap still opens the play */ }
+}
+function tileGateUnload233(v) {
+  if (!v) return;
+  const sweep = (el) => {
+    if (!el || typeof el.getAttribute !== "function") return;
+    try { el.pause(); } catch (e) { /* fine */ }
+    if (el.getAttribute("src")) { el.removeAttribute("src"); try { el.load(); } catch (e) { /* fine */ } }
+  };
+  sweep(v);
+  try {
+    const host = v.parentElement;
+    if (host && typeof host.querySelectorAll === "function") host.querySelectorAll("video.vfill").forEach(sweep);
+  } catch (e) { /* the clone sweep is a bonus — the tile's own unload already landed */ }
+}
+function bindTileGate233(root) {
+  const scope = root || (typeof document !== "undefined" ? document : null);
+  if (!scope || typeof scope.querySelectorAll !== "function") return;
+  let vids = [];
+  try { vids = Array.prototype.slice.call(scope.querySelectorAll("video[data-src233]:not(.vfill)")); } catch (e) { return; }
+  if (!vids.length) { if (tileGateObs233) { try { tileGateObs233.disconnect(); } catch (e) { /* fine */ } tileGateObs233 = null; } return; }
+  if (typeof IntersectionObserver === "undefined") { vids.forEach(tileGateLoad233); return; }
+  if (tileGateObs233) { try { tileGateObs233.disconnect(); } catch (e) { /* fine */ } tileGateObs233 = null; }
+  tileGateObs233 = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (!en || !en.target || (en.target.classList && en.target.classList.contains("vfill"))) return;
+      if (en.isIntersecting) tileGateLoad233(en.target); else tileGateUnload233(en.target);
+    });
+  }, { rootMargin: "400px 0px 400px 0px", threshold: 0 });
+  vids.forEach((v) => tileGateObs233.observe(v));
 }
 /* Round 134: one Hall of Fame row — rank, a POSTER thumbnail
    with the play icon on it (no autoplaying video thumb: the
@@ -1723,6 +1798,10 @@ function renderAll2() { /* All Hypes view */
   if (allTiles.length >= 3) deckTiles125.splice(2, 0, hypeFrameStrip126());
   $("#allBoard").innerHTML = allTiles.length ? `<div class="tile-featured-slot">${allTiles[0]}</div>` + (allTiles.length > 1 ? `<div class="tile-deck">${deckTiles125.join("")}</div>` : "") : "";
   hydrateDurPills();
+  /* Round 233: bind the tile gate to the fresh grid — the
+     binder disconnects the previous observer, so a re-render
+     never stacks observers or strands a playing tile. */
+  if (typeof bindTileGate233 === "function") { const b233 = $("#allBoard"); if (b233) bindTileGate233(b233); }
   emptyEl.style.display = filtered.length ? "none" : "block";
   /* Round 86 (2026-11-09): while every play on the board is a sample,
      the strip above the grid says so plainly — demos vs the contest. */
@@ -2258,7 +2337,7 @@ function showPanel(name) {
   if (name === "hypeframe") { $$(".view-home video").forEach((v) => v.pause()); }
   else if (wasStudio214 && !(document.body && document.body.classList && document.body.classList.contains("store-open"))) {
     const hv214 = $("#heroVideo");
-    if (hv214) { if (hv214.dataset && hv214.dataset.src && !hv214.getAttribute("src")) hv214.src = hv214.dataset.src; hv214.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p214 = hv214.play(); if (p214 && p214.catch) p214.catch(() => {}); }
+    if (hv214) { /* Round 233: same connection pick + held gate as showHome. */ if (!((typeof heroHeld233 === "function") && heroHeld233(hv214))) { if (hv214.dataset && !hv214.getAttribute("src")) { const u214 = (typeof heroFilmUrl233 === "function") ? heroFilmUrl233(hv214) : hv214.dataset.src; if (u214) hv214.src = u214; } hv214.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p214 = hv214.play(); if (p214 && p214.catch) p214.catch(() => {}); } }
   }
   // Site stats: count the MAIN views only. Athlete pages and the
   // Hype Frame studio are steps inside a visit, not front doors, so
@@ -2611,7 +2690,7 @@ function showHome() {
      owns the hero's resume on studio exit. Every caller that
      pairs showHome with a panel switch is unaffected: showPanel
      runs immediately after and performs the resume. */
-  const hv = $("#heroVideo"); if (hv && !document.body.classList.contains("hf-studio-open205")) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  const hv = $("#heroVideo"); if (hv && !document.body.classList.contains("hf-studio-open205")) { /* Round 233: the resume routes through the connection pick and respects a held (tap-class, not yet tapped) hero. */ if (!((typeof heroHeld233 === "function") && heroHeld233(hv))) { if (hv.dataset && !hv.getAttribute("src")) { const u233 = (typeof heroFilmUrl233 === "function") ? heroFilmUrl233(hv) : hv.dataset.src; if (u233) hv.src = u233; } hv.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p = hv.play(); if (p && p.catch) p.catch(() => {}); } }
   /* Round 48 (2026-11-08): the old homepage-film resume is retired —
      the homepage Hype Frame film is click-to-play now (Emil: no
      autoplay competing with the hero), so returning home must NOT
@@ -5979,6 +6058,57 @@ $$("[data-hf-swipe]").forEach((root) => {
 // same pattern as hh_voter / hh_owner_token. This is the
 // film's master music bed only; per-moment sound effects stay
 // rejected, exactly as before.
+/* Round 233 (2026-11-27, Emil — "when not on WiFi the site
+   takes a long time to load"): the hero film is picked by
+   connection class BEFORE any hero byte is fetched — the
+   <video> carries data-src (full) and data-src-lite (the
+   1.76 MB rendition next to the 6.96 MB original) and no src,
+   and the pick below is the only assignment path (the hero
+   controller, showHome, and the studio-exit resume all route
+   through heroFilmUrl233 / heroHeld233).
+   Classes: "full" — the original film, autoplay as always;
+   "lite" — hero-film-lite.mp4, autoplay; "tap" — NOTHING is
+   fetched or started: the preloaded poster carries the hero
+   and #heroPlay233 offers the film; a tap loads the LITE film
+   and starts it under the standing Round 125 sound rules.
+   With a Network Information API: saveData or 2g/slow-2g →
+   tap; 3g → lite; 4g (and anything unrecognized) → full.
+   Without it (iOS Safari): a phone-class viewport (≤820px)
+   → lite; anything larger → full. The pick memoizes on the
+   element's dataset, so every restart path agrees. */
+function heroConnClass233() {
+  let conn = null;
+  try { conn = (typeof navigator !== "undefined" && navigator) ? navigator.connection : null; } catch (e) { conn = null; }
+  if (conn) {
+    if (conn.saveData) return "tap";
+    const et = String(conn.effectiveType || "");
+    if (et === "2g" || et === "slow-2g") return "tap";
+    if (et === "3g") return "lite";
+    return "full";
+  }
+  let w = 0;
+  try { w = ((typeof window !== "undefined" && window && window.innerWidth) || (typeof document !== "undefined" && document.documentElement && document.documentElement.clientWidth) || 0); } catch (e) { w = 0; }
+  return (w && w <= 820) ? "lite" : "full";
+}
+function heroFilmUrl233(v) {
+  if (!v) return "";
+  const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
+  if (d && d.hh233url) return d.hh233url;
+  const cls = heroConnClass233();
+  const url = cls === "full" ? ((d && d.src) || "/hero-film.mp4") : ((d && d.srcLite) || "/hero-film-lite.mp4");
+  if (d) { try { d.hh233url = url; d.hh233cls = cls; } catch (e) { /* a read-only dataset stub just recomputes next time */ } }
+  return url;
+}
+/* True while the hero must stay a poster: a tap-class
+   connection whose visitor has not tapped #heroPlay233 yet.
+   Every hero start path checks this first, so returning home
+   or leaving the studio can never smuggle the film in. */
+function heroHeld233(v) {
+  if (!v) return false;
+  heroFilmUrl233(v);
+  const d = (v.dataset && typeof v.dataset === "object") ? v.dataset : null;
+  return !!d && d.hh233cls === "tap" && d.hh233started !== "1";
+}
 function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
 (function () {
   const v = $("#heroVideo"), mute = $("#heroMute");
@@ -5993,7 +6123,13 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
   /* Round 97 (2026-11-10): the film's URL lives in data-src so a
      sub-page load never fetches the 6.9 MB hero; it is assigned
      only here, on the home route, right before playback. */
-  if (v.dataset && v.dataset.src && !v.getAttribute("src")) v.src = v.dataset.src;
+  /* Round 233: WHICH film is assigned is the connection pick
+     (heroFilmUrl233 — full or lite), and on a tap-class
+     connection nothing is assigned at all: heroHeld233 stays
+     true until the visitor taps #heroPlay233, and the start
+     below is replaced by that button's wiring. */
+  const held233 = (typeof heroHeld233 === "function") && heroHeld233(v);
+  if (!held233 && v.dataset && !v.getAttribute("src")) { const u233 = (typeof heroFilmUrl233 === "function") ? heroFilmUrl233(v) : v.dataset.src; if (u233) v.src = u233; }
   const setIcon = () => { if (!mute) return; mute.classList.toggle("is-muted", v.muted); mute.setAttribute("aria-label", v.muted ? "Unmute the film" : "Mute the film"); };
   /* Round 125: keep the icon synced with ANY later muted change
      (showHome's preference restart, the icon tap, the first-tap
@@ -6051,7 +6187,27 @@ function heroMusicWanted125() { return hhStorageGet("hh_music") !== "off"; }
      the standing preference (Round 98's blanket re-mute is
      retired with the always-muted rule). */
   window.addEventListener("pageshow", (e) => { if (e.persisted) startHero125(); });
-  startHero125();
+  /* Round 233: on a tap-class connection the hero opens on its
+     poster — the autoplay attribute comes off (so no later src
+     assignment can self-start the film) and #heroPlay233 is
+     shown; its tap marks the hero started, loads the LITE film
+     and runs the standing Round 125 start (sound preference
+     and all). Every other class starts exactly as before. */
+  if (held233) {
+    v.removeAttribute("autoplay");
+    const pb233 = $("#heroPlay233");
+    if (pb233) {
+      pb233.hidden = false;
+      pb233.addEventListener("click", () => {
+        try { v.dataset.hh233started = "1"; } catch (e) { /* a stub dataset cannot hold the flag — the src below still starts this once */ }
+        pb233.hidden = true;
+        if (!v.getAttribute("src")) { const u233b = (typeof heroFilmUrl233 === "function") ? heroFilmUrl233(v) : (v.dataset && v.dataset.srcLite); if (u233b) v.src = u233b; }
+        startHero125();
+      });
+    }
+  } else {
+    startHero125();
+  }
   mute?.addEventListener("click", () => {
     v.muted = !v.muted;
     hhStorageSet("hh_music", v.muted ? "off" : "on");

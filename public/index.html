@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=220" />
+<link rel="stylesheet" href="styles.css?v=221" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -621,7 +621,12 @@
 <!-- ============ HERO ============ -->
 <div class="hero view-home" id="top">
   <div class="hero-media">
-    <video id="heroVideo" data-src="/hero-film.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
+    <!-- Round 233 (2026-11-27): the hero carries BOTH film URLs
+         and no src — app.js's heroFilmUrl233 picks full vs lite
+         by connection class before anything is fetched, and on
+         the slowest class (2g / save-data) nothing is fetched
+         until #heroPlay233 is tapped. -->
+    <video id="heroVideo" data-src="/hero-film.mp4" data-src-lite="/hero-film-lite.mp4" poster="/hero-poster.jpg" autoplay loop playsinline preload="auto" aria-label="HighlightHype commercial — six sports, one movement"></video>
   </div>
   <div class="hero-scrim"></div>
   <div class="wrap hero-content">
@@ -640,6 +645,11 @@
     <p class="hero-explainer230">Watch youth sports highlights. Vote for your favorite plays.</p>
   </div>
   <button type="button" class="hero-mute is-muted" id="heroMute" aria-label="Unmute the film"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" stroke="none"/><path class="hm-waves" d="M15.5 8.5a5 5 0 0 1 0 7"/><path class="hm-waves" d="M18.4 5.8a9.2 9.2 0 0 1 0 12.4"/><line class="hm-slash" x1="3" y1="3" x2="21" y2="21"/></svg><span>Sound</span></button>
+  <!-- Round 233: the tap-to-play affordance for the slowest
+       connections — hidden unless the hero controller holds
+       the film back (heroHeld233); its tap loads the lite
+       film and starts it. -->
+  <button type="button" class="hero-play233" id="heroPlay233" hidden><svg width="13" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0 L12 7 L0 14 Z" fill="currentColor"/></svg> Watch the film</button>
 </div>
 
 <!-- Round 230 (2026-11-27): the B2 homepage sections — Emil
@@ -2621,6 +2631,6 @@
   </div>
 </div>
 
-<script src="app.js?v=228"></script>
+<script src="app.js?v=229"></script>
 </body>
 </html>
