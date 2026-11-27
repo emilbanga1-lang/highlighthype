@@ -897,14 +897,17 @@
   .hf-scrubrow span{font-weight:700;color:var(--muted);font-size:13.5px;white-space:nowrap}
   #hfFreeze{width:100%;padding:14px;font-size:15.5px}
   /* Purple accent — Hype Frame surfaces ONLY (Store v8, from Emil's
-     concept poster): the studio tag, the active print-style preset,
-     and nothing else on the page. Freeze stays volt; the rest of the
-     site keeps its volt/gold system. */
+     concept poster): the studio tag and nothing else on the page.
+     Freeze stays volt; the rest of the site keeps its volt/gold
+     system. (→229: the preset pressed-state that shared this note
+     retired with the Print style picker.) */
   #hypeframe .sec-tag{color:var(--hf-purple-soft)}
-  #hypeframe .hf-presets button[aria-pressed="true"]{background:var(--hf-purple);color:#fff}
+  /* →229: the print-style preset group is gone (every design is
+     the Hype Frame format), so its pressed-state rule is gone too. */
   /* Tonight batch (2026-11-04): placement is fixed at the default —
      no drag, no size controls. The freeze row pairs the Freeze button
-     with ±1s step buttons; print styles are a 3-option preset group. */
+     with ±1s step buttons. (→229: the 3-option print-style preset
+     group this note mentioned is removed — format is fixed.) */
   .hf-freezerow{display:flex;gap:10px;align-items:stretch}
   .hf-freezerow #hfFreeze{flex:1;width:auto}
   /* Fixes batch (2026-11-05): freeze confirmation — the composed
@@ -972,8 +975,6 @@
     .hf-studio .seg{display:flex;width:100%}
     .hf-studio .seg button{flex:1;padding:10px 6px;white-space:nowrap}
   }
-  .hf-presets{margin:4px 0 10px}
-  .hf-presets button{padding:8px 16px;font-size:14px}
   .hf-studio #hfMsg{margin:12px 0 0;font-weight:700}
   .hf-req{display:flex;gap:16px;align-items:flex-start}
   .hf-req-img{width:150px;max-width:40%;border-radius:10px;border:1px solid var(--line2)}
@@ -3253,8 +3254,8 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-fine-label206{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .hf-fine-btn206{padding:7px 12px;font-size:13px}
 .hf-fine-time206{font-size:13.5px;font-weight:800;color:var(--volt);min-width:44px;text-align:center}
-.hf-studio .seg.hf-presets button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 6px}
-.hf-preset-mini206{display:block;width:84px;height:63px;border-radius:8px;background:#141414;border:1px solid var(--line2)}
+/* →229: the preset buttons' column layout + the preset-mini canvas
+   styling retired with the Print style picker (Round 229). */
 .hf-avatar206{margin-top:14px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px 14px}
 .hf-avatar206[hidden]{display:none}
 .hf-avatar-consent206{margin:0 0 10px;font-size:13.5px;font-weight:700;color:#fff;line-height:1.45}
@@ -3319,7 +3320,7 @@ body.hf-studio-open205 #deck.view-home{display:block}
    never becomes page chrome; the product page carries
    bottom padding so the bar never covers content. [hidden]
    guards explicit, per the standing CSS trap. */
-#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:118px}
+#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:96px} /* →229: was 118px — the reserved void Emil flagged; now the compact bar's real height + margin */
 #hfProduct215[hidden]{display:none}
 #hfReview215{max-width:560px;margin:0 auto}
 #hfReview215[hidden]{display:none}
@@ -3398,6 +3399,33 @@ body.hf-studio-open205 #postPlayBtn{display:none}
 .hf-stickybar215{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
 .hf-review-btn215{padding:12px}
 .hf-stickybar-note215{margin-top:5px}
+
+/* Round 229 (2026-11-27, Emil): the studio round.
+   (a) STICKY FIX. Root cause: the garment's sticky containing
+   block was #hfProduct215 — the WHOLE product page — so its
+   sticky range ran through Color & size; the size rows scrolled
+   UNDER the pinned card (z-index 40) and the YOUTH row sat
+   half-covered, while the fixed Review bar's reserved
+   padding-bottom (118px) read as a dead black void once the
+   buy card ended. The fix is structural, not a spacer: the
+   garment + Your moment + Artwork now live in #hfPinZone229
+   (index.html), and a sticky element can never leave its
+   parent — the pin releases as the zone's end passes, the
+   garment scrolls away with it, and the buy card (outside the
+   zone) is never underneath it. The sticky rule itself is
+   unchanged (the R222 block above). The reserved bottom
+   padding drops to the compact bar's real height (~86px incl.
+   safe-area) + a small breathing margin — no void.
+   (b) The auto fence-clean note/actions under the garment
+   preview. [hidden] guards explicit, per the standing trap. */
+.hf-fence-auto229{margin-top:10px;border-top:1px solid var(--line2);padding-top:9px}
+.hf-fence-auto229[hidden]{display:none}
+.hf-fence-auto-disclosure229{margin:0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.45}
+.hf-fence-auto-note229{margin:7px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
+.hf-fence-auto-note229[hidden]{display:none}
+.hf-fence-auto-actions229{margin-top:8px;width:100%}
+.hf-fence-auto-actions229[hidden]{display:none}
+.hf-fence-auto-actions229 button{flex:1}
 
 /* Round 128 (2026-11-13): the studio's composed print opens BIG.
    The frozen confirmation (#hfFrozenWrap) is the tap target —

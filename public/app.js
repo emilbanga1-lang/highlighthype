@@ -3398,7 +3398,7 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0, avatarFocus221: null, seedFrame215: false, fenceConfigured222: null, fenceBusy222: false, fenceClean222: "" };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0, avatarFocus221: null, seedFrame215: false, fenceConfigured222: null, fenceBusy222: false, fenceClean222: "", fenceDetect229: null, fenceAuto229: null, fenceAutoCache229: {}, fenceAutoKey229: "", fenceAutoClean229: "", fenceAutoOriginal229: null, fenceAutoBusy229: false, fenceAutoFailed229: false, fenceAutoToken229: 0 };
 // Round 215 state: screen215 (the one-page studio's two
 // screens — "product" / "review" — presentation only, never
 // read by the order path; the Round 211 step211 / stepMax211
@@ -3415,6 +3415,18 @@ const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", im
 // fenceConfigured222 / fenceBusy222 / fenceClean222 run the
 // fence-removal step (null = not asked yet; fenceClean222 is
 // the cleaned photo awaiting the parent's approval).
+// Round 229 state: preset is FIXED to "hypeframe" (the Print
+// style picker is removed — every design is the format);
+// fenceDetect229 / fenceAuto229 carry the fence-status word on
+// detection + auto-clean (null = not asked yet);
+// fenceAutoCache229 maps a frame's content key to its verdict
+// ({status:"none"|"cleaned"|"failed", clean, choice}) so the
+// same frame never triggers a second detect/edit call in the
+// session; fenceAutoKey229 / fenceAutoClean229 /
+// fenceAutoOriginal229 track the currently applied auto-clean
+// (the cleaned data URL + the as-shot canvas it replaced, for
+// the one-tap revert); fenceAutoFailed229 surfaces the manual
+// step as the fallback when an auto attempt fails.
 // (Store v8: the Hype Frame lockup — purple crown, script, underline —
 // is drawn as canvas vector work in hfDrawLockup, so the old crown.png
 // image loader is gone.)
@@ -3443,7 +3455,7 @@ function initHfStudio(play) {
   $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, and send the request. A parent or guardian confirms before anything is printed.`;
   $("#hfName").value = play.athlete_label || play.player_name || "";
   $("#hfJersey").value = play.jersey || "";
-  hfSetPreset("hypeframe");
+  hfState.preset = "hypeframe"; // Round 229: fixed — the Print style picker is gone
   $("#hfMsg").textContent = "";
   // The garment stays fixed (hoodie); color, size AND print side are
   // the family's choice — the side picker returned in Round 35
@@ -3511,6 +3523,16 @@ function initHfStudio(play) {
   // marker (this play has not seeded yet).
   hfState.fenceClean222 = "";
   hfState.fenceBusy222 = false;
+  // Round 229: a new play resets the auto-clean too — verdict
+  // cache, applied tracking, the session fallback, and any
+  // in-flight run (token bump) all belong to the previous play.
+  hfState.fenceAutoCache229 = {};
+  hfState.fenceAutoKey229 = "";
+  hfState.fenceAutoClean229 = "";
+  hfState.fenceAutoOriginal229 = null;
+  hfState.fenceAutoBusy229 = false;
+  hfState.fenceAutoFailed229 = false;
+  hfState.fenceAutoToken229 = (hfState.fenceAutoToken229 || 0) + 1;
   hfState.seedFrame215 = false;
   const fineRow206 = $("#hfFineRow206");
   if (fineRow206) fineRow206.hidden = hfState.mediaType !== "video";
@@ -3519,7 +3541,6 @@ function initHfStudio(play) {
   hfGarmentSync206();
   hfSyncAvatar206();
   hfAvatarStatus206();
-  hfRenderPresetMinis206();
   // Round 215: a new play restarts the one-page studio on the
   // product page — the title names the athlete, the clip area
   // is labeled for this play and starts collapsed (photo and
@@ -3935,9 +3956,11 @@ function hfCapturePrint() {
   hfState.designAspect218 = 0;
   hfState.avatarFocus221 = null; // Round 221: a new frame re-centers the avatar crop
   hfState.fenceClean222 = ""; // Round 222: a cleaned photo belongs to the frame it cleaned
+  if (typeof hfFenceAutoReset229 === "function") hfFenceAutoReset229(); // Round 229: …and so does an auto-clean
   if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
   if (typeof hfSyncFence222 === "function") hfSyncFence222();
   composeHfPrint();
+  if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: a picked/frozen frame is auto-checked + cleaned
   return true;
 }
 function freezeHfFrame() {
@@ -4247,11 +4270,11 @@ function hfSyncFrozenThumb() {
     img.removeAttribute("src");
     if (btn) btn.textContent = HF_FREEZE_LABEL;
   }
-  // Round 206: the on-garment preview and the print-style minis
-  // ride the same choke point, so they track every recompose
-  // (freeze, preset, colorway, name edit, avatar apply/revert).
+  // Round 206: the on-garment preview rides the same choke
+  // point, so it tracks every recompose (freeze, colorway, name
+  // edit, avatar apply/revert). (→229: the print-style minis
+  // rode here too — retired with the Print style picker.)
   if (typeof hfGarmentSync206 === "function") hfGarmentSync206();
-  if (typeof hfRenderPresetMinis206 === "function") hfRenderPresetMinis206();
   // Round 206 scope update: the "Change frame" action under the
   // picked-frame thumbnail shows exactly when a frame is picked.
   const changeFrame206 = $("#hfChangeFrame206");
@@ -4307,43 +4330,19 @@ function composeHfPrint() {
   }
   const fc = $("#hfCanvas");
   const W = fc.width, H = fc.height;
-  const name = $("#hfName").value.trim(), jersey = $("#hfJersey").value.trim();
-  // Look presets (2026-11-04): Classic = photo only, Signature = photo
-  // + name/number caption band, Hype Frame = the full format design.
-  const branding = hfState.preset === "hypeframe";
-  const caption = hfState.preset === "signature"
-    ? [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ")
-    : "";
-  if (branding) {
-    // Round 218: the photo path composes the FORMAT around the
-    // real photo on a transparent canvas (hfDrawFormat218) —
-    // the photo itself stays a photo, untouched inside the
-    // distressed frame; only the elements are drawn around it.
-    const lay = hfFormatLayout218(W, W, H, !!hfDesignTopLine218());
-    const c = document.createElement("canvas");
-    c.width = W; c.height = lay.totalH;
-    const x = c.getContext("2d");
-    hfDrawFormat218(x, W, fc, lay);
-    hfState.printDataUrl = c.toDataURL("image/png");
-    hfState.printAspect = c.height / c.width;
-    hfSyncFrozenThumb();
-    return;
-  }
-  const bandH = caption ? Math.round(W * 0.17) : 0;
+  // Round 229 (2026-11-27, Emil): the Print style presets are
+  // GONE — every design is the Hype Frame format, so the photo
+  // path always composes the format (the Classic photo-only and
+  // Signature caption-band branches are retired with the picker).
+  // Round 218: the photo path composes the FORMAT around the
+  // real photo on a transparent canvas (hfDrawFormat218) —
+  // the photo itself stays a photo, untouched inside the
+  // distressed frame; only the elements are drawn around it.
+  const lay = hfFormatLayout218(W, W, H, !!hfDesignTopLine218());
   const c = document.createElement("canvas");
-  c.width = W; c.height = H + bandH;
+  c.width = W; c.height = lay.totalH;
   const x = c.getContext("2d");
-  x.drawImage(fc, 0, 0);
-  if (caption) {
-    const fs = Math.round(W * 0.072);
-    x.font = `800 ${fs}px Archivo, Arial, sans-serif`;
-    x.textAlign = "center"; x.textBaseline = "middle";
-    try { x.letterSpacing = "3px"; } catch {}
-    x.lineWidth = Math.max(3, fs / 7); x.strokeStyle = "rgba(0,0,0,.65)";
-    const cy = H + bandH / 2;
-    x.strokeText(caption, W / 2, cy);
-    x.fillStyle = "#ffffff"; x.fillText(caption, W / 2, cy);
-  }
+  hfDrawFormat218(x, W, fc, lay);
   hfState.printDataUrl = c.toDataURL("image/png");
   hfState.printAspect = c.height / c.width;
   hfSyncFrozenThumb();
@@ -4354,7 +4353,10 @@ function composeHfPrint() {
    own vocabulary: "Black hoodie · Youth M · Front print · Hype
    Frame". Youth sizes carry their Y in the picker (YM) and read
    as "Youth M" here. */
-const HF_PRESET_LABELS205 = { classic: "Classic", signature: "Signature", hypeframe: "Hype Frame" };
+/* Round 229: only the Hype Frame label survives — the preset
+   state is fixed to "hypeframe" and any legacy value falls back
+   to this label through the || at each lookup. */
+const HF_PRESET_LABELS205 = { hypeframe: "Hype Frame" };
 function hfSummary205() {
   // Round 222: an unpicked size reads as itself — never as a
   // silent YM (there is no default size any more).
@@ -4367,15 +4369,9 @@ function hfSyncSummary205() {
   const el = $("#hfSummary205");
   if (el) el.textContent = hfSummary205();
 }
-// Print style presets: radio behavior over the three options; the
-// choice re-composes the print live, exactly like the old checkbox did.
-function hfSetPreset(p) {
-  hfState.preset = p;
-  $$("[data-hf-preset]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfPreset === p)));
-  hfSyncSummary205();
-  if (hfState.frozen) composeHfPrint();
-  if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
-}
+/* Round 229: hfSetPreset is RETIRED with the Print style
+   picker — hfState.preset is fixed to "hypeframe" at state
+   creation and at every studio open; nothing can change it. */
 // Hoodie color + youth size (Round 3, 2026-11-05): Emil reversed the
 // Round 2 simplification for these two fields. The color drives the
 // composed print's frame tone (hfPrintTone reads hfState.colorway), so
@@ -4558,7 +4554,6 @@ function hfBuildColorButtons() {
   // print recomposes on the edit too.
   const hfBackCustomInput206 = $("#hfBackCustom197");
   if (hfBackCustomInput206) hfBackCustomInput206.addEventListener("input", () => { if (hfState.frozen) composeHfPrint(); if (typeof hfGarmentSync206 === "function") hfGarmentSync206(); });
-  $$("[data-hf-preset]").forEach((b) => b.addEventListener("click", () => hfSetPreset(b.dataset.hfPreset)));
   // Color + size pickers (Round 3): color buttons are built from
   // HF_COLORWAYS so the list lives in exactly one place; size buttons
   // are static markup wired here.
@@ -4771,10 +4766,12 @@ function hfSeedPoster215(play) {
       hfState.designAspect218 = 0;
       hfState.avatarFocus221 = null; // Round 221: a seeded frame starts with a centered avatar crop
       hfState.fenceClean222 = ""; // Round 222: a cleaned photo belongs to the frame it cleaned
+      if (typeof hfFenceAutoReset229 === "function") hfFenceAutoReset229(); // Round 229: …and so does an auto-clean
       if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
       if (typeof hfSyncFence222 === "function") hfSyncFence222();
       composeHfPrint();
       if (!hfState.printDataUrl) throw new Error("empty print");
+      if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: the seeded frame is auto-checked + cleaned on entry
     } catch {
       // Fall back to the pre-seed behavior: no frozen frame.
       hfState.frozen = false;
@@ -4825,10 +4822,12 @@ function hfUploadPhoto222(file) {
       hfState.designAspect218 = 0;
       hfState.avatarFocus221 = null;
       hfState.fenceClean222 = "";
+      if (typeof hfFenceAutoReset229 === "function") hfFenceAutoReset229(); // Round 229: an auto-clean belongs to the frame it cleaned
       hfSetSelected205(null); // the pick is a photo, not a video frame — the "Frame selected" label stands down
       if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
       if (typeof hfSyncFence222 === "function") hfSyncFence222();
       composeHfPrint();
+      if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: an uploaded photo is auto-checked + cleaned too
       note222("Your photo is on the hoodie — it's the print now. Pick a frame instead any time.");
     } catch {
       note222("That photo couldn't be read — try another one.");
@@ -5069,70 +5068,10 @@ function hfFineStep206(d) {
   target = Math.round(target * 10) / 10;
   hfJumpToFrame(target, null);
 }
-/* Part E: the style minis' art source before a freeze — the
-   play's poster, loaded lazily; the minis re-render when it
-   lands (and the frozen frame takes over once one exists). */
-let hfPosterImg206 = null, hfPosterUrl206 = "";
-function hfMiniPoster206() {
-  const play = hfState.play; if (!play) return;
-  let url = "";
-  try { url = play.poster_url || (typeof btlPosterFor118 === "function" ? btlPosterFor118(play.media_url || "", play.sport || "", play.title || "") : ""); } catch { url = ""; }
-  if (!url || url === hfPosterUrl206) return;
-  hfPosterUrl206 = url;
-  const im = new Image();
-  im.onload = () => { if (hfState.play === play) hfRenderPresetMinis206(); };
-  im.src = url;
-  hfPosterImg206 = im;
-}
-function hfRenderPresetMinis206() {
-  const minis = $$("[data-hf-preset-mini]");
-  if (!minis.length) return;
-  let art = null;
-  const fc = $("#hfCanvas");
-  if (hfState.frozen && fc && fc.width) art = fc;
-  else { hfMiniPoster206(); if (hfPosterImg206 && hfPosterImg206.naturalWidth) art = hfPosterImg206; }
-  const name = ($("#hfName") ? $("#hfName").value.trim() : ""), jersey = ($("#hfJersey") ? $("#hfJersey").value.trim() : "");
-  for (const cv of minis) {
-    const preset = cv.dataset.hfPresetMini;
-    const x = cv.getContext("2d");
-    const W = cv.width, H = cv.height;
-    x.clearRect(0, 0, W, H);
-    x.fillStyle = "#141414"; x.fillRect(0, 0, W, H);
-    if (!art) continue;
-    // Mirror composeHfPrint at miniature scale: the art, then
-    // the preset's band (caption or lockup) under it, the whole
-    // composition contain-fit into the button's mini canvas.
-    const artW = art.width || art.naturalWidth, artH = art.height || art.naturalHeight;
-    if (!artW || !artH) continue;
-    const bandH = preset === "signature" ? Math.round(W * 0.17) : 0;
-    const comp = document.createElement("canvas");
-    comp.width = W;
-    comp.height = preset === "hypeframe" ? hfFormatLayout218(W, artW, artH, !!hfDesignTopLine218()).totalH : Math.round(W * artH / artW) + bandH;
-    const cx2 = comp.getContext("2d");
-    if (preset === "hypeframe") {
-      // Round 218: the mini mirrors the real format composition
-      // (the shared hfDrawFormat218), not the retired lockup band.
-      hfDrawFormat218(cx2, W, art, hfFormatLayout218(W, artW, artH, !!hfDesignTopLine218()));
-    } else {
-      cx2.drawImage(art, 0, 0, W, comp.height - bandH);
-      if (preset === "signature") {
-      const caption = [name ? name.toUpperCase() : "", jersey ? "#" + jersey.replace(/^#/, "") : ""].filter(Boolean).join(" · ");
-      if (caption) {
-        const fs = Math.round(W * 0.072);
-        cx2.font = `800 ${fs}px Archivo, Arial, sans-serif`;
-        cx2.textAlign = "center"; cx2.textBaseline = "middle";
-        cx2.lineWidth = Math.max(2, fs / 7); cx2.strokeStyle = "rgba(0,0,0,.65)";
-        const cy = (comp.height - bandH) + bandH / 2;
-        cx2.strokeText(caption, W / 2, cy);
-        cx2.fillStyle = "#ffffff"; cx2.fillText(caption, W / 2, cy);
-      }
-      }
-    }
-    const scale = Math.min(W / comp.width, H / comp.height);
-    const dw = Math.round(comp.width * scale), dh = Math.round(comp.height * scale);
-    x.drawImage(comp, Math.round((W - dw) / 2), Math.round((H - dh) / 2), dw, dh);
-  }
-}
+/* Round 229: Part E (the print-style minis — hfMiniPoster206 /
+   hfRenderPresetMinis206 and their poster loader) is RETIRED
+   with the Print style picker: no preset buttons, no minis. */
+
 /* Part B: the avatar maker. The configured check runs once per
    page (the status endpoint is the server's word on
    OPENAI_API_KEY + the HH_NO_AVATAR kill switch); until it
@@ -5367,7 +5306,10 @@ function hfUsePhoto206() {
    print-source photo, downscaled to <=1024px JPEG), then a
    result the parent APPROVES ("Use the cleaned photo") or
    declines ("Keep the original") — never automatic, never
-   silent. Approval swaps the cleaned photo into the capture
+   silent. (→229: Emil reversed the never-automatic rule — the
+   studio now auto-cleans on entry/pick with a revert, below;
+   this manual flow remains as the fallback and for sessions
+   where detection/auto is off.) Approval swaps the cleaned photo into the capture
    canvas + the frame snapshot, so it becomes the print source
    and the avatar maker's starting frame in one move. */
 let hfFenceStatusPromise222 = null;
@@ -5376,8 +5318,18 @@ function hfFenceStatus222() {
   if (!hfFenceStatusPromise222) {
     hfFenceStatusPromise222 = fetch("/api/hype-frame/fence-status")
       .then((r) => r.json())
-      .then((j) => { hfState.fenceConfigured222 = !!(j && j.configured); hfSyncFence222(); return hfState.fenceConfigured222; })
-      .catch(() => { hfState.fenceConfigured222 = false; hfSyncFence222(); return false; });
+      .then((j) => {
+        hfState.fenceConfigured222 = !!(j && j.configured);
+        // Round 229: the same status carries detection + auto.
+        hfState.fenceDetect229 = !!(j && j.detect);
+        hfState.fenceAuto229 = !!(j && j.auto);
+        hfSyncFence222();
+        // A frame frozen before the status landed gets its
+        // auto check now (the common seed path races the fetch).
+        if (typeof hfAutoFence229 === "function") hfAutoFence229();
+        return hfState.fenceConfigured222;
+      })
+      .catch(() => { hfState.fenceConfigured222 = false; hfState.fenceDetect229 = false; hfState.fenceAuto229 = false; hfSyncFence222(); return false; });
   }
   return hfFenceStatusPromise222;
 }
@@ -5386,11 +5338,23 @@ function hfFenceNote222(text) {
   el.textContent = text || "";
   el.hidden = !text;
 }
+/* Round 229: is the studio in AUTO mode for this session? Auto
+   needs the server's word on both detection and auto (fence-
+   status), and stands down the moment an auto attempt fails
+   (the manual step takes over as the fallback). */
+function hfFenceAutoMode229() {
+  return hfState.fenceAuto229 === true && !hfState.fenceAutoFailed229;
+}
 function hfSyncFence222() {
   const block = $("#hfFence222"); if (!block) return;
   if (hfState.fenceConfigured222 === null && hfState.frozen) hfFenceStatus222();
-  const show = hfState.fenceConfigured222 === true && hfState.frozen && !!hfState.frameCanvas206;
+  // Round 229: in auto mode the manual panel stands down (the
+  // auto note under the garment carries the state + revert);
+  // it returns only as the fallback when an auto attempt failed.
+  const auto229 = hfState.fenceAuto229 === true;
+  const show = hfState.fenceConfigured222 === true && hfState.frozen && !!hfState.frameCanvas206 && (!auto229 || hfState.fenceAutoFailed229);
   block.hidden = !show;
+  if (typeof hfSyncFenceAuto229 === "function") hfSyncFenceAuto229();
   if (!show) return;
   const btn = $("#hfFenceBtn222");
   if (btn) { btn.disabled = !!hfState.fenceBusy222; btn.textContent = hfState.fenceBusy222 ? "Removing the fence…" : "Remove the fence"; }
@@ -5401,6 +5365,26 @@ function hfSyncFence222() {
     if (has) { const im = $("#hfFenceImg222"); if (im && im.getAttribute("src") !== hfState.fenceClean222) im.src = hfState.fenceClean222; }
   }
 }
+/* The downscale both fence sends share (manual Round 222 +
+   auto Round 229): the print-source snapshot at <=1024px JPEG. */
+function hfFenceSendImage229(src) {
+  const scale = Math.min(1, 1024 / Math.max(src.width, src.height));
+  const tc = document.createElement("canvas");
+  tc.width = Math.max(1, Math.round(src.width * scale));
+  tc.height = Math.max(1, Math.round(src.height * scale));
+  tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
+  return tc.toDataURL("image/jpeg", 0.87);
+}
+async function hfFencePost229(path, image, timeoutMs) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs || 120000);
+  try {
+    const r = await fetch(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image }), signal: ctl.signal });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j || !j.ok) throw new Error((j && j.message) || "That step couldn't finish.");
+    return j;
+  } finally { clearTimeout(timer); }
+}
 async function hfMakeFence222() {
   if (hfState.fenceBusy222) return;
   const src = hfState.frameCanvas206;
@@ -5409,20 +5393,7 @@ async function hfMakeFence222() {
   hfSyncFence222();
   hfFenceNote222("Removing the fence… this can take up to a minute. Your original photo stays put until you approve the cleaned one.");
   try {
-    const scale = Math.min(1, 1024 / Math.max(src.width, src.height));
-    const tc = document.createElement("canvas");
-    tc.width = Math.max(1, Math.round(src.width * scale));
-    tc.height = Math.max(1, Math.round(src.height * scale));
-    tc.getContext("2d").drawImage(src, 0, 0, tc.width, tc.height);
-    const image = tc.toDataURL("image/jpeg", 0.87);
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 120000);
-    let j = null;
-    try {
-      const r = await fetch("/api/hype-frame/remove-fence", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ image }), signal: ctl.signal });
-      j = await r.json().catch(() => null);
-      if (!r.ok || !j || !j.ok || !j.image) throw new Error((j && j.message) || "Fence removal couldn't finish that one.");
-    } finally { clearTimeout(timer); }
+    const j = await hfFencePost229("/api/hype-frame/remove-fence", hfFenceSendImage229(src));
     hfState.fenceClean222 = j.image;
     hfFenceNote222("Here's your photo with the fence removed — check it over. It becomes your print only if you tap “Use the cleaned photo”.");
   } catch (e) {
@@ -5432,19 +5403,19 @@ async function hfMakeFence222() {
     hfSyncFence222();
   }
 }
-/* Approval: the cleaned photo takes the print source's seat —
-   the capture canvas + the frame snapshot are swapped, the
-   avatar stands down (it was made from the fenced photo), and
-   the print recomposes from the cleaned photo. Declining just
-   drops the cleaned copy; the original never moved. */
-function hfUseFence222() {
-  const url = hfState.fenceClean222;
-  if (!url) return;
+/* The swap both approvals share (manual Round 222 "Use the
+   cleaned photo" + the Round 229 auto-apply): the cleaned photo
+   takes the print source's seat — the capture canvas + the
+   frame snapshot are swapped, the avatar stands down (it was
+   made from the fenced photo), and the print recomposes from
+   the cleaned photo. Returns via the Image onload, like the
+   Round 222 flow always did. */
+function hfApplyCleanedFrame229(url, onDone) {
   const im = new Image();
   im.onload = () => {
-    const c = $("#hfCanvas"); if (!c) return;
+    const c = $("#hfCanvas"); if (!c) { if (onDone) onDone(false); return; }
     const w = im.naturalWidth || 0, h = im.naturalHeight || 0;
-    if (!w || !h) { hfFenceNote222("That cleaned photo didn't load — your original is still your print."); return; }
+    if (!w || !h) { if (onDone) onDone(false); return; }
     c.width = w; c.height = h;
     c.getContext("2d").drawImage(im, 0, 0, w, h);
     try {
@@ -5463,17 +5434,230 @@ function hfUseFence222() {
     if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
     composeHfPrint();
     hfSyncFence222();
+    if (onDone) onDone(true);
+  };
+  im.onerror = () => { if (onDone) onDone(false); };
+  im.src = url;
+}
+/* Approval: the cleaned photo takes the print source's seat —
+   the capture canvas + the frame snapshot are swapped, the
+   avatar stands down (it was made from the fenced photo), and
+   the print recomposes from the cleaned photo. Declining just
+   drops the cleaned copy; the original never moved. */
+function hfUseFence222() {
+  const url = hfState.fenceClean222;
+  if (!url) return;
+  hfApplyCleanedFrame229(url, (ok) => {
+    if (!ok) { hfFenceNote222("That cleaned photo didn't load — your original is still your print."); return; }
     hfFenceNote222("The cleaned photo is your print now — and the avatar maker starts from it too.");
     const m = $("#hfPhotoMsg215");
     if (m) { m.textContent = "Cleaned photo on the hoodie — fence removed."; m.hidden = false; }
-  };
-  im.onerror = () => hfFenceNote222("That cleaned photo didn't load — your original is still your print.");
-  im.src = url;
+  });
 }
 function hfKeepFence222() {
   hfState.fenceClean222 = "";
   hfSyncFence222();
   hfFenceNote222("Kept your original photo — it's still your print.");
+}
+
+/* ================= Round 229 (2026-11-27, Emil): studio auto
+   fence-clean =================
+   "As soon as someone goes into a hype frame studio, we should
+   automatically remove the fence." Entering the studio — and
+   every frame pick / freeze / photo upload after it — checks
+   the print-source frame and cleans it automatically:
+   DETECTION FIRST (POST /api/hype-frame/fence-detect, the
+   Round 227 vision question), and only on a fence does the
+   ordinary Round 222 edit run; the CLEANED frame then becomes
+   the print source by default, with an inline note + a one-tap
+   "Use original" revert riding under the garment preview (the
+   OpenAI disclosure lives in the same block, on screen before
+   any frame is sent). The avatar maker starts from the print
+   source, so it inherits the cleaned frame.
+   CACHE: a frame's verdict is keyed by a content hash of a
+   small thumbnail of the frame snapshot — the same frame never
+   triggers a second detect/edit call in the session, and a
+   frame the parent reverted stays reverted (choice:"original")
+   until they tap "Use cleaned photo".
+   DEGRADE (mirrors the server's fence-status word):
+   - detection not configured (no vision key) → fenceAuto229
+     false → today's behavior exactly: the manual step shows
+     when the edit is configured, no auto UI at all;
+   - HH_NO_FENCE_AUTO=1 → auto false, detect true → same
+     manual behavior (the server's detect endpoint also stands
+     down, answering fence:false without an upstream call);
+   - edit unconfigured (no OpenAI key) → configured false →
+     manual step hidden as today, no auto-clean;
+   - an auto attempt FAILS → fenceAutoFailed229 surfaces the
+     manual step as the fallback for the rest of the session. */
+/* A NEW frame (capture / seed / upload) retires the previous
+   frame's auto-clean tracking — the applied key, the cleaned
+   URL and the revert snapshot all belong to the frame they
+   cleaned. The verdict CACHE survives (it is keyed by frame
+   content), and any in-flight auto run is invalidated. Called
+   at the same points the Round 222 flow clears fenceClean222. */
+function hfFenceAutoReset229() {
+  hfState.fenceAutoKey229 = "";
+  hfState.fenceAutoClean229 = "";
+  hfState.fenceAutoOriginal229 = null;
+  hfState.fenceAutoToken229 = (hfState.fenceAutoToken229 || 0) + 1;
+  if (typeof hfSyncFenceAuto229 === "function") hfSyncFenceAuto229();
+}
+function hfFenceFrameKey229(src) {
+  try {
+    const tw = 96, th = Math.max(1, Math.round(tw * src.height / Math.max(1, src.width)));
+    const tc = document.createElement("canvas");
+    tc.width = tw; tc.height = th;
+    tc.getContext("2d").drawImage(src, 0, 0, tw, th);
+    const d = tc.toDataURL("image/jpeg", 0.6);
+    let h1 = 5381, h2 = 52711;
+    for (let i = 0; i < d.length; i++) { const ch = d.charCodeAt(i); h1 = ((h1 * 33) ^ ch) >>> 0; h2 = ((h2 * 31) + ch) >>> 0; }
+    return src.width + "x" + src.height + ":" + h1.toString(36) + "." + h2.toString(36) + "." + d.length;
+  } catch { return ""; }
+}
+function hfFenceAutoNote229(text) {
+  const el = $("#hfFenceAutoNote229"); if (!el) return;
+  el.textContent = text || "";
+  el.hidden = !text;
+}
+function hfSyncFenceAuto229() {
+  const box = $("#hfFenceAuto229"); if (!box) return;
+  const auto = hfState.fenceAuto229 === true;
+  box.hidden = !auto;
+  if (!auto) return;
+  const actions = $("#hfFenceAutoActions229");
+  const origBtn = $("#hfFenceAutoOriginal229"), cleanBtn = $("#hfFenceAutoCleaned229");
+  const key = hfState.fenceAutoKey229;
+  const entry = key ? hfState.fenceAutoCache229[key] : null;
+  const applied = !!(entry && entry.status === "cleaned" && entry.choice !== "original" && hfState.fenceAutoClean229);
+  const reverted = !!(entry && entry.status === "cleaned" && entry.choice === "original");
+  if (actions) actions.hidden = !(applied || reverted);
+  if (origBtn) origBtn.hidden = !applied;
+  if (cleanBtn) cleanBtn.hidden = !reverted;
+  if (!hfState.fenceAutoBusy229) {
+    if (applied) hfFenceAutoNote229("Fence removed from your photo automatically — the cleaned photo is your print. Not happy with it? Use your original instead.");
+    else if (reverted) hfFenceAutoNote229("Using your original photo, fence and all. The cleaned version is still here if you want it.");
+    else hfFenceAutoNote229("");
+  }
+}
+function hfAutoFence229() {
+  if (hfState.fenceAuto229 === null) { hfFenceStatus222(); return; } // the status landing re-enters via hfFenceStatus222
+  if (!hfFenceAutoMode229()) { hfSyncFence222(); return; }
+  const src = hfState.frameCanvas206;
+  if (!hfState.frozen || !src || !src.width || hfState.avatarApplied206) return;
+  if (hfState.fenceAutoBusy229) return;
+  const key = hfFenceFrameKey229(src);
+  if (!key) return;
+  const entry = hfState.fenceAutoCache229[key];
+  if (entry) {
+    // Cached verdict: never a second call. A cleaned frame the
+    // parent hasn't decided on (e.g. re-frozen after browsing
+    // away) re-applies for free; a reverted one stays reverted.
+    if (entry.status === "cleaned" && entry.choice !== "original" && hfState.fenceAutoKey229 !== key) {
+      hfState.fenceAutoKey229 = key;
+      hfState.fenceAutoClean229 = entry.clean;
+      hfState.fenceAutoOriginal229 = document.createElement("canvas");
+      hfState.fenceAutoOriginal229.width = src.width; hfState.fenceAutoOriginal229.height = src.height;
+      hfState.fenceAutoOriginal229.getContext("2d").drawImage(src, 0, 0);
+      hfApplyCleanedFrame229(entry.clean, () => hfSyncFenceAuto229());
+    } else if (entry.status === "cleaned") {
+      hfState.fenceAutoKey229 = key;
+      hfSyncFenceAuto229();
+    }
+    return;
+  }
+  hfState.fenceAutoBusy229 = true;
+  hfState.fenceAutoKey229 = key;
+  const token229 = (hfState.fenceAutoToken229 = (hfState.fenceAutoToken229 || 0) + 1);
+  hfSyncFenceAuto229();
+  hfFenceAutoNote229("Checking your frame for a fence…");
+  (async () => {
+    try {
+      const image = hfFenceSendImage229(src);
+      const det = await hfFencePost229("/api/hype-frame/fence-detect", image, 60000);
+      if (token229 !== hfState.fenceAutoToken229) return; // a newer frame (or play) superseded this check
+      if (det.auto === false) { // the server stood auto down mid-session (kill switch) — manual behavior returns
+        hfState.fenceAuto229 = false;
+        hfState.fenceAutoCache229[key] = { status: "none" };
+        hfFenceAutoNote229("");
+        return;
+      }
+      if (!det.fence) {
+        hfState.fenceAutoCache229[key] = { status: "none" };
+        hfFenceAutoNote229(""); // no fence → no UI noise
+        return;
+      }
+      const cleaned = await hfFencePost229("/api/hype-frame/remove-fence", image);
+      if (token229 !== hfState.fenceAutoToken229) return; // superseded while the edit ran — never apply a stale frame
+      hfState.fenceAutoCache229[key] = { status: "cleaned", clean: cleaned.image, choice: "auto" };
+      hfState.fenceAutoClean229 = cleaned.image;
+      // The as-shot frame, kept for the one-tap revert.
+      hfState.fenceAutoOriginal229 = document.createElement("canvas");
+      hfState.fenceAutoOriginal229.width = src.width; hfState.fenceAutoOriginal229.height = src.height;
+      hfState.fenceAutoOriginal229.getContext("2d").drawImage(src, 0, 0);
+      hfApplyCleanedFrame229(cleaned.image, (ok) => {
+        if (!ok) { hfState.fenceAutoFailed229 = true; hfFenceAutoNote229("The cleaned photo didn't load — your original is still your print, and the manual fence step is below if you want it."); }
+        hfSyncFenceAuto229();
+      });
+    } catch (e) {
+      // A failed auto attempt never blocks the parent: the
+      // original stands, the verdict is cached (no retry loop
+      // on this frame), and the manual step surfaces.
+      hfState.fenceAutoCache229[key] = { status: "failed" };
+      hfState.fenceAutoFailed229 = true;
+      hfFenceAutoNote229("The automatic fence check didn't finish — your photo works as it is, and the manual fence step is below if you want it.");
+    } finally {
+      if (token229 === hfState.fenceAutoToken229) { hfState.fenceAutoBusy229 = false; hfSyncFence222(); }
+    }
+  })();
+}
+/* "Use original": the as-shot frame retakes the print source's
+   seat (the exact inverse of hfApplyCleanedFrame229), and the
+   frame's cache entry remembers the choice — re-picking the
+   same frame never re-cleans it against the parent's call. */
+function hfFenceAutoRevert229() {
+  const orig = hfState.fenceAutoOriginal229;
+  const key = hfState.fenceAutoKey229;
+  if (!orig || !orig.width) return;
+  const c = $("#hfCanvas"); if (!c) return;
+  c.width = orig.width; c.height = orig.height;
+  c.getContext("2d").drawImage(orig, 0, 0);
+  try {
+    if (!hfState.frameCanvas206) hfState.frameCanvas206 = document.createElement("canvas");
+    hfState.frameCanvas206.width = orig.width; hfState.frameCanvas206.height = orig.height;
+    hfState.frameCanvas206.getContext("2d").drawImage(orig, 0, 0);
+  } catch { hfState.frameCanvas206 = null; }
+  hfState.frozen = true;
+  hfState.seedFrame215 = false;
+  hfState.avatarDataUrl206 = "";
+  hfState.avatarApplied206 = false;
+  hfState.avatarPreview206 = false;
+  hfState.designAspect218 = 0;
+  hfState.avatarFocus221 = null;
+  hfState.fenceClean222 = "";
+  if (key && hfState.fenceAutoCache229[key]) hfState.fenceAutoCache229[key].choice = "original";
+  hfState.fenceAutoClean229 = "";
+  if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
+  composeHfPrint();
+  hfSyncFence222();
+  const m = $("#hfPhotoMsg215");
+  if (m) { m.textContent = "Original photo on the hoodie — fence and all."; m.hidden = false; }
+}
+/* "Use cleaned photo" (after a revert): the cached cleaned
+   frame retakes the seat — no new detect/edit call. */
+function hfFenceAutoUseCleaned229() {
+  const key = hfState.fenceAutoKey229;
+  const entry = key ? hfState.fenceAutoCache229[key] : null;
+  if (!entry || entry.status !== "cleaned" || !entry.clean) return;
+  entry.choice = "auto";
+  hfState.fenceAutoClean229 = entry.clean;
+  hfApplyCleanedFrame229(entry.clean, (ok) => {
+    if (ok) {
+      const m = $("#hfPhotoMsg215");
+      if (m) { m.textContent = "Cleaned photo on the hoodie — fence removed."; m.hidden = false; }
+    }
+    hfSyncFenceAuto229();
+  });
 }
 
 /* Part F (Round 206 scope update, Emil): the review stage.
@@ -5554,7 +5738,8 @@ async function hfSubmitOrder206() {
       jersey: $("#hfJersey").value.trim(),
       backText: hfState.backText,
       backTextCustom: $("#hfBackCustom197").value.trim(),
-      branding: hfState.preset === "hypeframe",
+      branding: true, // Round 229: every design is the Hype Frame format — branding is always on
+      preset: "hypeframe", // Round 229: the fixed format, named for the server (which treats any legacy value as hypeframe too)
       apparel: hfState.apparel,
       side: hfState.side,
       imageStyle: hfState.imageStyle,
@@ -5668,6 +5853,11 @@ async function hfSubmitOrder206() {
   if (fenceUse222) fenceUse222.addEventListener("click", () => { hfUseFence222(); });
   const fenceKeep222 = $("#hfFenceKeep222");
   if (fenceKeep222) fenceKeep222.addEventListener("click", () => { hfKeepFence222(); });
+  // Round 229: the auto-clean revert / re-apply.
+  const fenceAutoOrig229 = $("#hfFenceAutoOriginal229");
+  if (fenceAutoOrig229) fenceAutoOrig229.addEventListener("click", () => { hfFenceAutoRevert229(); });
+  const fenceAutoCleanBtn229 = $("#hfFenceAutoCleaned229");
+  if (fenceAutoCleanBtn229) fenceAutoCleanBtn229.addEventListener("click", () => { hfFenceAutoUseCleaned229(); });
 })();
 
 /* Round 200 (2026-11-26): the payment return landing + owner

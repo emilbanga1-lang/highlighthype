@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=217" />
+<link rel="stylesheet" href="styles.css?v=218" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1436,6 +1436,15 @@
         <h3 class="hf-product-title215" id="hfProductTitle215">Your Hype Frame Hoodie</h3>
         <p class="hf-product-sub215" id="hfProductSub215"></p>
         <p class="hf-price-top222" id="hfPriceTop222">$110 · Made to order</p>
+<!-- Round 229 (2026-11-27): the pin zone — the sticky
+           garment's containing block. The garment + Your moment
+           + Artwork live inside it; Color & size and everything
+           below live OUTSIDE it, so the pinned preview's sticky
+           range ends with the Artwork section and it can never
+           ride over the size rows (Emil's phone screenshot: the
+           pinned card half-covered the YOUTH row because its
+           parent used to be the whole product page). -->
+      <div class="hf-pinzone229" id="hfPinZone229">
 <div class="hf-garment206" id="hfGarment206" hidden>
                     <div class="hf-garment-stage206" id="hfGarmentStage206">
                       <img class="hf-garment-img206" id="hfGarmentImg206" alt="Hoodie preview">
@@ -1452,6 +1461,21 @@
                         <button type="button" data-hf-garment-view="back" aria-pressed="true">Back</button>
                       </div>
                       <span class="hf-garment-cap206">Preview — your design on the hoodie</span>
+                    </div>
+                    <!-- Round 229 (2026-11-27, Emil): auto fence-clean —
+                         entering the studio checks the frame and cleans
+                         a fence automatically (detection first). The
+                         disclosure lives HERE, under the preview, so it
+                         is on screen before any frame is sent; the note
+                         + revert ride the same block. Hidden unless the
+                         server says auto-clean is on. -->
+                    <div class="hf-fence-auto229" id="hfFenceAuto229" hidden>
+                      <p class="hf-fence-auto-disclosure229" id="hfFenceAutoDisclosure229">If your frame was shot through a fence, we check it and remove the fence automatically: the frame is checked by a vision AI, and when a fence is found it is sent to OpenAI's image AI to clean it. Your original photo is always one tap away below.</p>
+                      <p class="hf-fence-auto-note229" id="hfFenceAutoNote229" aria-live="polite" hidden></p>
+                      <div class="seg hf-fence-auto-actions229" id="hfFenceAutoActions229" role="group" aria-label="Cleaned photo or original photo" hidden>
+                        <button type="button" id="hfFenceAutoOriginal229">Use original</button>
+                        <button type="button" id="hfFenceAutoCleaned229">Use cleaned photo</button>
+                      </div>
                     </div>
                   </div>
         <div class="hf-sec-head222" id="hfRowPhoto215">
@@ -1597,13 +1621,12 @@
                  shorten it. Sanitized again at compose/send. -->
             <label style="display:block;margin-top:18px">Design label — the moment in a few words <input type="text" id="hfLabel218" maxlength="24" placeholder="e.g. HOME RUN"></label>
             <p class="small">Printed in small capitals under the name on the design. Up to 24 characters — letters, numbers and spaces.</p>
-            <h4 class="form-sec-title" style="margin-top:22px">Print style</h4>
-            <div class="seg hf-presets" role="group" aria-label="Print style">
-                      <button type="button" data-hf-preset="classic" aria-pressed="false"><canvas class="hf-preset-mini206" data-hf-preset-mini="classic" width="168" height="126" aria-hidden="true"></canvas><span>Classic</span></button>
-                      <button type="button" data-hf-preset="signature" aria-pressed="false"><canvas class="hf-preset-mini206" data-hf-preset-mini="signature" width="168" height="126" aria-hidden="true"></canvas><span>Signature</span></button>
-                      <button type="button" data-hf-preset="hypeframe" aria-pressed="true"><canvas class="hf-preset-mini206" data-hf-preset-mini="hypeframe" width="168" height="126" aria-hidden="true"></canvas><span>Hype Frame</span></button>
-                    </div>
-            <p class="small"><b>Classic</b> — just the photo. <b>Signature</b> — your name and number in a band under the photo. <b>Hype Frame</b> — a grunge frame around the photo with the HYPE FRAME script under it. The print sits centered on whichever side you pick below.</p>
+            <!-- Round 229 (2026-11-27, Emil): the Print style picker
+                 (Classic / Signature / Hype Frame) is OUT — every
+                 design is the Hype Frame format now, so there is
+                 nothing to pick. The composition, the payload and
+                 the server all treat the format as fixed. -->
+
           <div class="hf-sec-head222 hf-sec-sub222" id="hfRowPlacement215">
             <span class="hf-sec-k222">Print placement</span>
             <span class="hf-sec-v222" id="hfRowPlacementState215"></span>
@@ -1637,6 +1660,7 @@
                     </div>
           </div>
         </div>
+              </div><!-- /hfPinZone229 (Round 229) -->
         <div class="hf-buycard215" id="hfBuyCard215">
           <div class="hf-sec-head222 hf-sec-in-card222">
             <span class="hf-sec-k222">Color &amp; size</span>
@@ -2554,6 +2578,6 @@
   </div>
 </div>
 
-<script src="app.js?v=224"></script>
+<script src="app.js?v=225"></script>
 </body>
 </html>
