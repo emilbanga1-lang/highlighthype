@@ -791,6 +791,16 @@ db.exec(`CREATE TABLE IF NOT EXISTS drop_notifications(
   UNIQUE(email, sport)
 );`);
 const DROP_NOTIFY_SPORTS = ["baseball", "football", "basketball", "soccer", "softball", "volleyball"];
+// Round 227 (2026-11-27): the coming-soon store cards (the six Drop 001
+// collection quick views + the per-sport Hype Sports hoodies) reuse the
+// bottles' notify-me capture VERBATIM — same endpoint, same table, same
+// confirmation. Their keys join the allowlist beside the six bottle
+// sports; the bottle path itself is byte-identical (the six keys, the
+// messages, the dedupe). Collection keys are the quick view's own slugs;
+// hoodie keys are "hoodie-" + the store's sport key.
+const DROP_NOTIFY_KEYS227 = [...DROP_NOTIFY_SPORTS,
+  "boys-street", "boys-athletics", "boys-unleashed", "girls-street", "girls-athletics", "girls-essentials",
+  ...["baseball", "basketball", "football", "soccer", "hockey", "martialarts", "lacrosse"].map((s) => "hoodie-" + s)];
 try { db.exec("ALTER TABLE highlights ADD COLUMN story_consent_at TEXT DEFAULT ''"); } catch {}
 try { db.exec("ALTER TABLE highlights ADD COLUMN text_consent INTEGER DEFAULT 0"); } catch {}
 // Sample plays (Round 7, 2026-11-05): owner-flagged demo plays (the
@@ -2228,6 +2238,15 @@ function publicHighlight(row, voterToken = "", viewsMap151 = null) {
     const ej223 = row.enhance_json ? JSON.parse(row.enhance_json) : null;
     const ct223 = ej223 && ej223.r209 ? Number(ej223.r209.chosenTime) : NaN;
     if (Number.isFinite(ct223) && ct223 > 0) posterTime223 = ct223;
+    // Round 227: when no smart pick exists, fall back to the initial
+    // grab's recorded frame time (enhance_json.r227time, written by
+    // r124PosterFor at every poster creation). A real smart pick
+    // always wins; the fallback is the same finite-and-positive rule,
+    // and stays null when neither record knows the frame's time.
+    if (posterTime223 === null) {
+      const it227 = ej223 && ej223.r227time ? Number(ej223.r227time.t) : NaN;
+      if (Number.isFinite(it227) && it227 > 0) posterTime223 = it227;
+    }
   } catch { posterTime223 = null; }
   return {
     id: row.id,
@@ -2544,8 +2563,29 @@ async function r124MakePosterNow(bins, videoFile, posterFile, atSec) {
 }
 async function r124PosterFor(bins, id, absFile, info) {
   const posterName = `poster-${id}.jpg`;
-  if (await r124MakePoster(bins, absFile, path.join(UPLOAD_DIR, posterName), r124FreezeAt(id, info ? info.duration : 0))) {
+  const at227 = r124FreezeAt(id, info ? info.duration : 0);
+  if (await r124MakePoster(bins, absFile, path.join(UPLOAD_DIR, posterName), at227)) {
     db.prepare("UPDATE highlights SET poster_url=? WHERE id=?").run(`/uploads/${posterName}`, id);
+    // Round 227 (workstream 2): record the frame time this poster was
+    // grabbed from, so R223's feed seek (publicHighlight poster_time)
+    // has a truthful value from the very first poster. Deliberately a
+    // SEPARATE field (enhance_json.r227time), never r209.chosenTime:
+    // r209StoreEval replaces the whole r209 record on every evaluation
+    // (a kept-flat/kept-dark verdict would null a value written there),
+    // and the r209/r213 *_checked_at stamp columns must stay unset
+    // until the smart-poster stage has actually evaluated the play —
+    // stamping them here would suppress a needed later re-pick.
+    // publicHighlight falls back to r227time.t when no real smart pick
+    // exists. Only a finite, positive seek time is recorded — an
+    // unknown frame time is never fabricated.
+    try {
+      if (Number.isFinite(at227) && at227 > 0) {
+        const row227 = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+        const obj227 = row227 && row227.enhance_json ? (JSON.parse(row227.enhance_json) || {}) : {};
+        obj227.r227time = { t: Math.round(at227 * 1000) / 1000, origin: "initial", at: new Date().toISOString() };
+        db.prepare("UPDATE highlights SET enhance_json=? WHERE id=?").run(JSON.stringify(obj227), id);
+      }
+    } catch (e227) { console.log("[r227] poster-time stamp failed for", id, e227 && e227.message); }
     return true;
   }
   return false;
@@ -2647,6 +2687,14 @@ async function r124ProcessUpload(id, name) {
       // the same discipline as every stage on this chain.
       .then(() => r209PosterAfterR203(id))
       .catch((e) => console.error(`[r209] upload ${id}: smart-poster stage error (poster kept):`, e.message))
+      // Round 227: the poster auto-clean rides after the smart
+      // poster settles and before the rendition + welcome email,
+      // so the poster the email carries is the cleaned one. It
+      // touches the POSTER only — never the video file. Its own
+      // catch-all is inside; this .catch is the belt to its
+      // suspenders, the same discipline as every stage here.
+      .then(() => r227PosterCleanAfterR209(id))
+      .catch((e) => console.error(`[r227] upload ${id}: poster-clean stage error (poster kept):`, e.message))
       // Round 192: the streaming rendition is made from the
       // FINAL display file (the enhanced one, when it enhanced),
       // so it rides after the agent settles. Its catch-all is
@@ -2830,6 +2878,52 @@ function r224MissingRendition(r) {
   if (!/\.(mp4|mov|webm|avi|m4v)$/i.test(name)) return false;
   const t = Date.parse(String(r.created_at || "").replace(" ", "T") + "Z");
   return !isNaN(t) && Date.now() - t > 24 * 3600 * 1000;
+}
+/* ================= Round 227 (2026-11-27): upload text safety flag =================
+   The site audit's finding, made concrete by the Nov 26 case (a play
+   whose TEAM field carried the athlete's full name, "Kameron
+   Angelin", shown publicly): the upload form now hints that the team
+   field is public, and this helper gives the OWNER a heads-up chip in
+   the queue when an upload's story/team text looks like it names a
+   child's age or puts a person's full name in the team field. The
+   flag NEVER blocks an upload and NEVER edits text — it only
+   surfaces for the owner, computed at queue-read time from the
+   stored row (the same pattern as r224MissingRendition above), so it
+   covers plays uploaded before this round too.
+   Age patterns (conservative, case-insensitive; the captured number
+   must be 4–17 — a child's plausible age — so "scored 21 points at
+   12 years old" flags on the age, never on the score):
+     /\bis only (\d{1,2})\b/                    "is only 10"
+     /\b(\d{1,2})\s*(?:years?\s*old|yrs?\.?\s*old)\b/   "10 years old", "9 yrs old"
+     /\b(\d{1,2})[-]year[-]old\b/               "9-year-old"
+     /\bage (\d{1,2})\b/                        "age 9"
+   Full-name pattern: the team field, trimmed, is exactly two words,
+   each Title-case alphabetic (/^[A-Z][a-z]+(?:['-][A-Za-z]+)?$/ —
+   so all-caps "PLAINVIEW HAWKS" and lowercase entries never match),
+   and neither word (lowercased) is in the team-word allowlist:
+   hawks, school, academy, athletics, baseball, softball, soccer,
+   club, team, travel, elite, united, fc, llc, inc. */
+const R227_AGE_RES = [/\bis only (\d{1,2})\b/i, /\b(\d{1,2})\s*(?:years?\s*old|yrs?\.?\s*old)\b/i, /\b(\d{1,2})[-]year[-]old\b/i, /\bage (\d{1,2})\b/i];
+const R227_TEAM_WORDS = new Set(["hawks", "school", "academy", "athletics", "baseball", "softball", "soccer", "club", "team", "travel", "elite", "united", "fc", "llc", "inc"]);
+function r227AgeMentioned(text) {
+  const s = String(text || "");
+  for (const re of R227_AGE_RES) { const m = s.match(re); if (m) { const n = Number(m[1]); if (n >= 4 && n <= 17) return true; } }
+  return false;
+}
+function r227TeamLooksLikeName(team) {
+  const words = String(team || "").trim().split(/\s+/).filter(Boolean);
+  if (words.length !== 2) return false;
+  if (!words.every((w) => /^[A-Z][a-z]+(?:['-][A-Za-z]+)?$/.test(w))) return false;
+  return !words.some((w) => R227_TEAM_WORDS.has(w.toLowerCase().replace(/['-].*$/, "")));
+}
+function r227TextFlag(r) {
+  if (!r) return "";
+  const bits = [];
+  // The row's story lives in the `story` column (the queue
+  // serializer republishes it as story_text for the client).
+  if (r227AgeMentioned(r.story || r.story_text) || r227AgeMentioned(r.team)) bits.push("Age mentioned");
+  if (r227TeamLooksLikeName(r.team)) bits.push("Team looks like a full name");
+  return bits.join(" · ");
 }
 /* ================= Round 192 (2026-11-25): streaming renditions + homepage load discipline =================
    WHY: Emil, from his iPhone (2026-11-25): "It's taking awhile
@@ -4305,6 +4399,177 @@ async function r209Backfill() {
     }
     console.log(`[r209] backfill complete (${picked} posters re-picked, ${rows.length} file plays scanned)`);
   } catch (e) { console.error("[r209] backfill error:", e.message); }
+}
+
+/* ================= Round 227 (2026-11-27): poster auto-clean — "no fences at all" =================
+   Emil (2026-11-27), after Round 222 shipped the studio's manual
+   Remove-the-fence step: "I would still prefer no fences at all."
+   So the POSTER of every video play is now checked for a chain-link
+   fence and cleaned automatically. Posters only — the video files
+   themselves are never touched (the studio's manual step is
+   unchanged, and a play's clip stays the real clip).
+
+   HOW IT RUNS: detection first, edit second. The poster frame goes
+   to the same Anthropic vision machinery as the upload review
+   (AI_VISION_API_KEY / AI_VISION_BASE_URL / AI_VISION_MODEL) with a
+   single yes/no question — is a chain-link fence in this frame?
+   Only a YES runs the Round 222 fence-removal edit
+   (runHfFence222, the runner behind POST /api/hype-frame/
+   remove-fence) on the poster, and the cleaned image replaces the
+   poster file (re-encoded to JPEG through the ffmpeg serializer so
+   poster-<id>.jpg stays an honest JPEG). The pre-clean poster is
+   preserved on disk as poster-<id>-preclean.jpg (never publicly
+   linked), mirroring the Round 186 -preenhance preservation, so
+   the change is reversible by hand.
+
+   BOOKKEEPING / NO LOOPS: the outcome lands in enhance_json as an
+   r227 record {decision, at, poster, sig} — decision is "none" (no
+   fence), "cleaned", "failed" (detection said yes, the edit or the
+   apply failed; the original poster stands), or
+   "skipped-unconfigured". sig is the poster file's "size:mtime" —
+   the stage applies to a poster only while the record does not
+   match the CURRENT poster file, so each distinct poster is
+   processed exactly once: a later smart re-pick (a new poster under
+   the same filename) is processed once, and nothing ever loops.
+   If the vision key is missing OR the fence edit is unconfigured,
+   the record is "skipped-unconfigured" and the poster is NEVER
+   blind-cleaned. A detection ERROR records nothing — the poster is
+   retried on the next pass, the house pattern. Kill switch:
+   HH_NO_POSTERCLEAN=1 stands the whole stage down (no records, no
+   calls).
+
+   WHERE IT RUNS: (1) the upload chain, after the smart poster
+   settles and before the rendition + welcome email, so the email
+   carries the cleaned poster; (2) a one-time boot backfill in the
+   Round 224 style for existing video plays. The backfill doubles
+   as the poster_time coverage pass (workstream 2): a play whose
+   poster has no recorded frame time (no r209.chosenTime and no
+   r227time) gets ONE smart-poster re-pick first — which smart-picks
+   and timestamps it — and the resulting poster is then
+   detect+cleaned. A play whose r227 record already matches its
+   poster is skipped before any of that: healthy, settled plays
+   never churn. */
+function r227ReadEnhance227(id) {
+  const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
+  if (!row) return null;
+  try { return JSON.parse(row.enhance_json || "{}") || {}; } catch { return {}; }
+}
+function r227WriteRecord227(id, rec) {
+  const obj = r227ReadEnhance227(id);
+  if (!obj) return;
+  obj.r227 = rec;
+  db.prepare("UPDATE highlights SET enhance_json=? WHERE id=?").run(JSON.stringify(obj), id);
+}
+function r227PosterSig227(absPoster) {
+  try { const st = fs.statSync(absPoster); return st.size + ":" + Math.round(st.mtimeMs); } catch { return ""; }
+}
+async function r227DetectFence227(posterBuf) {
+  const base = String(process.env.AI_VISION_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "");
+  const content = [
+    { type: "image", source: { type: "base64", media_type: "image/jpeg", data: posterBuf.toString("base64") } },
+    { type: "text", text: "This is a still frame from a youth sports video. Is a chain-link fence — a metal wire-mesh fence, like a baseball backstop — visible anywhere in this frame, whether between the camera and the scene or anywhere else in the image? Reply with ONLY a JSON object, no other text:\n{\"fence\": true} or {\"fence\": false}" },
+  ];
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const r = await fetch(base + "/v1/messages", {
+      method: "POST", signal: ctl.signal,
+      headers: { "content-type": "application/json", "x-api-key": process.env.AI_VISION_API_KEY, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: AI_VISION_MODEL, max_tokens: 60, messages: [{ role: "user", content }] }),
+    });
+    if (!r.ok) throw new Error("vision model answered " + r.status);
+    const j = await r.json();
+    const text = (j.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("");
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error("vision model returned no JSON");
+    return JSON.parse(m[0]).fence === true;
+  } finally { clearTimeout(timer); }
+}
+async function r227ProcessPoster227(bins, id) {
+  const out = { cleaned: 0 };
+  if (process.env.HH_NO_POSTERCLEAN === "1") return out;
+  const row = db.prepare("SELECT media_kind, media_url, poster_url, status, enhance_json FROM highlights WHERE id=?").get(id);
+  if (!row || row.status === "trashed" || row.media_kind !== "file" || !row.poster_url) return out;
+  if (!/\.(mp4|mov|webm|avi|m4v)$/i.test(path.basename(row.media_url || ""))) return out;
+  const posterName = path.basename(row.poster_url);
+  const absPoster = path.join(UPLOAD_DIR, posterName);
+  if (!fs.existsSync(absPoster)) return out;
+  const sig = r227PosterSig227(absPoster);
+  let ej = {}; try { ej = JSON.parse(row.enhance_json || "{}") || {}; } catch {}
+  const rec = ej.r227;
+  if (rec && rec.poster === posterName && rec.sig === sig) return out; // settled for this exact poster
+  if (!process.env.AI_VISION_API_KEY || !hfFenceConfigured222()) {
+    r227WriteRecord227(id, { decision: "skipped-unconfigured", at: new Date().toISOString(), poster: posterName, sig });
+    return out;
+  }
+  let fence = false;
+  try { fence = await r227DetectFence227(fs.readFileSync(absPoster)); }
+  catch (e) { console.error(`[r227] play ${id}: fence detection failed (no record — retried next pass):`, e.message); return out; }
+  if (!fence) {
+    r227WriteRecord227(id, { decision: "none", at: new Date().toISOString(), poster: posterName, sig });
+    return out;
+  }
+  try {
+    fs.copyFileSync(absPoster, path.join(UPLOAD_DIR, `poster-${id}-preclean.jpg`));
+    const dataUrl = await runHfFence222(fs.readFileSync(absPoster), "image/jpeg");
+    const m = /^data:image\/png;base64,(.+)$/.exec(String(dataUrl || ""));
+    if (!m) throw new Error("fence edit returned no PNG");
+    const tmpPng = path.join(UPLOAD_DIR, `poster-${id}-clean227.png`);
+    fs.writeFileSync(tmpPng, Buffer.from(m[1], "base64"));
+    const ok = await r138SerializeFfmpeg(async () => {
+      const { err } = await r124Run(bins.ffmpeg, ["-y", "-i", tmpPng, "-q:v", "3", absPoster], 60000);
+      return !err;
+    });
+    try { fs.unlinkSync(tmpPng); } catch {}
+    if (!ok) throw new Error("cleaned poster re-encode failed");
+    r227WriteRecord227(id, { decision: "cleaned", at: new Date().toISOString(), poster: posterName, sig: r227PosterSig227(absPoster) });
+    out.cleaned = 1;
+    console.log(`[r227] play ${id}: poster fence-cleaned (pre-clean poster preserved as poster-${id}-preclean.jpg)`);
+  } catch (e) {
+    console.error(`[r227] play ${id}: poster clean failed (poster kept):`, e.message);
+    r227WriteRecord227(id, { decision: "failed", at: new Date().toISOString(), poster: posterName, sig });
+  }
+  return out;
+}
+async function r227PosterCleanAfterR209(id) {
+  try {
+    if (process.env.HH_NO_POSTERCLEAN === "1") return;
+    const bins = await r124ResolveBins();
+    if (!bins) return;
+    await r227ProcessPoster227(bins, id);
+  } catch (e) { console.error(`[r227] upload ${id}: poster-clean stage error (poster kept):`, e.message); }
+}
+async function r227Backfill() {
+  try {
+    if (process.env.HH_NO_POSTERCLEAN === "1") { console.log("[r227] backfill disabled via HH_NO_POSTERCLEAN"); return; }
+    const bins = await r124ResolveBins();
+    if (!bins) { console.log("[r227] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    const rows = db.prepare("SELECT id, media_url, poster_url, enhance_json FROM highlights WHERE media_kind='file' AND status!='trashed' AND poster_url IS NOT NULL AND poster_url!=''").all();
+    let cleaned = 0, repicked = 0;
+    for (const row of rows) {
+      try {
+        if (!/\.(mp4|mov|webm|avi|m4v)$/i.test(path.basename(row.media_url || ""))) continue;
+        const posterName = path.basename(row.poster_url || "");
+        const absPoster = path.join(UPLOAD_DIR, posterName);
+        if (!fs.existsSync(absPoster)) continue;
+        let ej = {}; try { ej = JSON.parse(row.enhance_json || "{}") || {}; } catch {}
+        const rec = ej.r227;
+        if (rec && rec.poster === posterName && rec.sig === r227PosterSig227(absPoster)) continue; // settled — never churn
+        // Poster-time coverage (workstream 2): no recorded frame
+        // time for this poster → run the smart-poster re-pick once
+        // (it smart-picks AND timestamps), then clean THAT poster.
+        const ct227 = ej.r209 ? Number(ej.r209.chosenTime) : NaN;
+        const it227 = ej.r227time ? Number(ej.r227time.t) : NaN;
+        if (!(Number.isFinite(ct227) && ct227 > 0) && !(Number.isFinite(it227) && it227 > 0)) {
+          const o = await r209ProcessPlay(bins, row.id, "backfill");
+          if (o && o.picked) repicked++;
+        }
+        const o2 = await r227ProcessPoster227(bins, row.id);
+        cleaned += o2.cleaned;
+      } catch (e) { console.error(`[r227] backfill row ${row.id} failed:`, e.message); }
+    }
+    console.log(`[r227] backfill complete (${cleaned} posters cleaned, ${repicked} posters re-picked, ${rows.length} file plays scanned)`);
+  } catch (e) { console.error("[r227] backfill error:", e.message); }
 }
 
 /* ================= Round 186 (2026-11-24): upload-time video enhancement agent =================
@@ -6475,7 +6740,10 @@ const server = http.createServer(async (req, res) => {
       try { body = JSON.parse((await readBody(req, 8192)).toString("utf8") || "{}"); } catch { body = null; }
       if (!body) return sendJson(res, 400, { ok: false, message: "That signup didn't come through — please try again." });
       const sport = String(body.sport || "").trim().toLowerCase();
-      if (!DROP_NOTIFY_SPORTS.includes(sport))
+      // Round 227: the allowlist widened to the coming-soon store keys
+      // (DROP_NOTIFY_KEYS227) — the six bottle sports behave exactly as
+      // before; anything outside the full list still 400s here.
+      if (!DROP_NOTIFY_KEYS227.includes(sport))
         return sendJson(res, 400, { ok: false, message: "Pick one of the six bottles first." });
       const email = String(body.email || "").trim().toLowerCase();
       if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
@@ -6997,7 +7265,13 @@ const server = http.createServer(async (req, res) => {
           // like the fields above) — the queue card wears a
           // warning chip for a file play rendition-less for
           // over 24h, the state play 78 hid in for a day.
-          missing_rendition: r224MissingRendition(r) };
+          missing_rendition: r224MissingRendition(r),
+          // Round 227: the upload text-safety flag (owner-only,
+          // like the fields above) — a short label when the
+          // story/team text mentions a child's age or the team
+          // field looks like a person's full name. Display
+          // only: it never blocks and never edits anything.
+          text_flag227: r227TextFlag(r) };
       });
       return sendJson(res, 200, { queue: rows });
     }
@@ -7128,7 +7402,10 @@ const server = http.createServer(async (req, res) => {
     if (p === "/api/owner/drop-notifications" && req.method === "GET") {
       if (!ownerAuthorized(req)) return sendJson(res, 403, { ok: false, message: "Owner access required." });
       const signups = db.prepare("SELECT email, sport, created_at FROM drop_notifications ORDER BY id DESC").all();
-      const counts = DROP_NOTIFY_SPORTS.map((sport) => ({ sport, count: signups.filter((s) => s.sport === sport).length }));
+      // Round 227: counts cover the full key list (bottles first, in
+      // their original order, then the coming-soon store keys) so the
+      // hoodie/collection signups are visible to the owner too.
+      const counts = DROP_NOTIFY_KEYS227.map((sport) => ({ sport, count: signups.filter((s) => s.sport === sport).length }));
       return sendJson(res, 200, { signups, counts });
     }
     // ---- Round 197: owner marks a custom back-text line reviewed ----
@@ -7665,4 +7942,4 @@ function r226TeamFix78() {
     if (r.changes) console.log("[r226] play 78 team corrected: 'Kameron Angelin' -> 'Kameron A' (Emil-approved surname removal)");
   } catch (e) { console.error("[r226] play 78 team correction failed:", e && e.message); }
 }
-server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); r226TeamFix78(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); });
+server.listen(PORT, () => { console.log(`HighlightHype listening on http://localhost:${PORT} (data: ${DATA_DIR})`); r131RunMigration(); r130RunMigration(); r124RunMigration(); r146PurgeExpiredTrash(); r226TeamFix78(); /* Round 224: the recovery scan starts ahead of the backfills below — a play it converts has its stage stamps cleared, so those scans re-run their stages against the healed file within this same boot; it starts a few seconds late for the same reason Round 192 does (the boot migrations and the first requests own the ffmpeg queue first). */ setTimeout(() => { r224Backfill(); }, 2500); /* Round 192: the rendition backfill starts a few seconds late on purpose — the boot migrations and the first requests own the ffmpeg queue first, so a background encode never delays a migration poster or a fresh upload's pipeline. */ setTimeout(() => { r192Backfill(); }, 5000); /* Round 195: the trim/upscale backfill starts on the same delay — the two scans share the ffmpeg serializer, and a play this round trims or upscales gets its rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r195Backfill(); }, 5000); /* Round 203: the reframe backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and a play this round reframes gets its poster and rendition regenerated in place, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r203Backfill(); }, 5000); /* Round 209: the smart-poster backfill starts on the same delay, on the same reasoning — the scans share the ffmpeg serializer, and this stage only ever rewrites the poster file, so the end state is the same whichever scan reaches a play first. */ setTimeout(() => { r209Backfill(); }, 5000); /* Round 227: the poster auto-clean backfill starts last on purpose — the poster backfills above settle first (a re-pick it would otherwise race is exactly the poster this scan then detect+cleans), and its own smart re-pick gate covers the plays those scans leave unstamped. */ setTimeout(() => { r227Backfill(); }, 8000); });
