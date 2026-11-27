@@ -4427,10 +4427,11 @@ async function r209Backfill() {
    fence), "cleaned", "failed" (detection said yes, the edit or the
    apply failed; the original poster stands), or
    "skipped-unconfigured". sig is the poster file's "size:mtime" —
-   the stage applies to a poster only while the record does not
-   match the CURRENT poster file, so each distinct poster is
-   processed exactly once: a later smart re-pick (a new poster under
-   the same filename) is processed once, and nothing ever loops.
+   a verdict record ("none"/"cleaned"/"failed") settles the poster
+   it matches, so each distinct poster is processed exactly once: a
+   later smart re-pick (a new poster under the same filename) is
+   processed once, and nothing ever loops. A "skipped-unconfigured"
+   record settles nothing (Round 228, below).
    If the vision key is missing OR the fence edit is unconfigured,
    the record is "skipped-unconfigured" and the poster is NEVER
    blind-cleaned. A detection ERROR records nothing — the poster is
@@ -4446,9 +4447,18 @@ async function r209Backfill() {
    poster has no recorded frame time (no r209.chosenTime and no
    r227time) gets ONE smart-poster re-pick first — which smart-picks
    and timestamps it — and the resulting poster is then
-   detect+cleaned. A play whose r227 record already matches its
-   poster is skipped before any of that: healthy, settled plays
-   never churn. */
+   detect+cleaned. A play whose r227 verdict record already matches
+   its poster is skipped before any of that: healthy, settled plays
+   never churn.
+
+   Round 228 (2026-11-27): a "skipped-unconfigured" record does NOT
+   settle a poster. It only says the stage could not run at all
+   (no vision key / fence edit unconfigured) — if it settled, the
+   library posters written while the key was missing would stay
+   uncleaned forever even after the key is added. Only a real
+   verdict ("none" / "cleaned" / "failed") settles the poster it
+   names; skipped plays are reprocessed on the next pass, so the
+   first pass after configuration runs for real. */
 function r227ReadEnhance227(id) {
   const row = db.prepare("SELECT enhance_json FROM highlights WHERE id=?").get(id);
   if (!row) return null;
@@ -4462,6 +4472,17 @@ function r227WriteRecord227(id, rec) {
 }
 function r227PosterSig227(absPoster) {
   try { const st = fs.statSync(absPoster); return st.size + ":" + Math.round(st.mtimeMs); } catch { return ""; }
+}
+/* Round 228: the settle test shared by the upload chain and the
+   backfill. A record settles its poster only when it names this
+   exact poster file (name + sig) AND carries a real verdict —
+   "skipped-unconfigured" is not a verdict (see the block above). */
+function r227IsSettled228(rec, posterName, sig) {
+  return !!rec && rec.poster === posterName && rec.sig === sig &&
+    (rec.decision === "none" || rec.decision === "cleaned" || rec.decision === "failed");
+}
+function r227Configured228() {
+  return !!process.env.AI_VISION_API_KEY && hfFenceConfigured222();
 }
 async function r227DetectFence227(posterBuf) {
   const base = String(process.env.AI_VISION_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "");
@@ -4497,8 +4518,8 @@ async function r227ProcessPoster227(bins, id) {
   const sig = r227PosterSig227(absPoster);
   let ej = {}; try { ej = JSON.parse(row.enhance_json || "{}") || {}; } catch {}
   const rec = ej.r227;
-  if (rec && rec.poster === posterName && rec.sig === sig) return out; // settled for this exact poster
-  if (!process.env.AI_VISION_API_KEY || !hfFenceConfigured222()) {
+  if (r227IsSettled228(rec, posterName, sig)) return out; // settled for this exact poster (Round 228: skipped-unconfigured never settles)
+  if (!r227Configured228()) {
     r227WriteRecord227(id, { decision: "skipped-unconfigured", at: new Date().toISOString(), poster: posterName, sig });
     return out;
   }
@@ -4534,6 +4555,11 @@ async function r227ProcessPoster227(bins, id) {
 async function r227PosterCleanAfterR209(id) {
   try {
     if (process.env.HH_NO_POSTERCLEAN === "1") return;
+    // Round 228: one clear line per upload while unconfigured —
+    // uploads are infrequent, and a silent skip is how the missing
+    // vision key hid in production. The poster is left as-is and
+    // the (unsettled) skipped record retries on a later pass.
+    if (!r227Configured228()) console.log(`[r227] upload ${id}: poster auto-clean not configured (vision key or fence edit missing) — poster left as-is; will retry on a later pass`);
     const bins = await r124ResolveBins();
     if (!bins) return;
     await r227ProcessPoster227(bins, id);
@@ -4544,6 +4570,9 @@ async function r227Backfill() {
     if (process.env.HH_NO_POSTERCLEAN === "1") { console.log("[r227] backfill disabled via HH_NO_POSTERCLEAN"); return; }
     const bins = await r124ResolveBins();
     if (!bins) { console.log("[r227] backfill deferred — ffmpeg unavailable (will retry next boot)"); return; }
+    // Round 228: say it once, plainly, when the stage cannot run —
+    // a silent skip is how the missing vision key hid in production.
+    if (!r227Configured228()) console.log("[r227] backfill: poster auto-clean not configured (vision key or fence edit missing) — posters left as-is; will retry on a later boot");
     const rows = db.prepare("SELECT id, media_url, poster_url, enhance_json FROM highlights WHERE media_kind='file' AND status!='trashed' AND poster_url IS NOT NULL AND poster_url!=''").all();
     let cleaned = 0, repicked = 0;
     for (const row of rows) {
@@ -4554,7 +4583,7 @@ async function r227Backfill() {
         if (!fs.existsSync(absPoster)) continue;
         let ej = {}; try { ej = JSON.parse(row.enhance_json || "{}") || {}; } catch {}
         const rec = ej.r227;
-        if (rec && rec.poster === posterName && rec.sig === r227PosterSig227(absPoster)) continue; // settled — never churn
+        if (r227IsSettled228(rec, posterName, r227PosterSig227(absPoster))) continue; // settled — never churn (Round 228: skipped-unconfigured never settles)
         // Poster-time coverage (workstream 2): no recorded frame
         // time for this poster → run the smart-poster re-pick once
         // (it smart-picks AND timestamps), then clean THAT poster.
