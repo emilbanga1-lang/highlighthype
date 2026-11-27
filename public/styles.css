@@ -3383,10 +3383,14 @@ body.hf-studio-open205 #deck.view-home{display:block}
      studio is open (the menu carries the entry instead);
    - the Upload a photo row, the fence step card, the size
      gate prompt, and the upload flow's fence shooting tip.
-   [hidden] guards explicit, per the standing CSS trap. */
+   [hidden] guards explicit, per the standing CSS trap.
+   →238 (2026-11-27, Emil): the first bullet is history — the
+   garment pin is gone; the preview is a plain in-flow card at
+   the top of the product page and the page scrolls as one
+   page (see the garment rule below and the R229 block). */
 body.hf-studio-open205 #postPlayBtn{display:none}
 .hf-price-top222{margin:0 0 10px;font-size:15px;font-weight:800;color:#e8d5a3}
-#hfProduct215 .hf-garment206{position:sticky;top:70px;z-index:40;background:#101012;border:1px solid var(--line2);border-radius:16px;padding:10px 10px 8px;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+#hfProduct215 .hf-garment206{background:#101012;border:1px solid var(--line2);border-radius:16px;padding:10px 10px 8px;box-shadow:0 10px 26px rgba(0,0,0,.4)} /* →238 (2026-11-27, Emil: "I don't like the hoodie scroll on the hype frame order page. It's hard to use the page."): the R222 pin is GONE — this rule used to open with the sticky trio (position sticky, top 70px, z-index 40); the garment is now a plain in-flow card at the top of the product page and scrolls away with it. The card skin stays as ordinary styling; nothing is pinned and no space is held for it anywhere. The R229 pin-zone wrapper in index.html is retired with the pin. */
 .hf-sec-head222{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:20px 0 8px}
 .hf-sec-k222{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#c9c9cf}
 .hf-sec-v222{font-size:13px;font-weight:700;color:#fff}
@@ -3430,7 +3434,15 @@ body.hf-studio-open205 #postPlayBtn{display:none}
    padding drops to the compact bar's real height (~86px incl.
    safe-area) + a small breathing margin — no void.
    (b) The auto fence-clean note/actions under the garment
-   preview. [hidden] guards explicit, per the standing trap. */
+   preview. [hidden] guards explicit, per the standing trap.
+   →238 (2026-11-27, Emil: "I don't like the hoodie scroll on
+   the hype frame order page. It's hard to use the page."):
+   (a) is superseded — after three rounds of pin complaints
+   the pin itself is gone at his word, and the zone wrapper
+   in index.html went with it; the garment is a plain
+   in-flow card again and the whole studio scrolls as one
+   page. (b) stands: the fence note and the revert still
+   ride under the preview, inside the card. */
 .hf-fence-auto229{margin-top:10px;border-top:1px solid var(--line2);padding-top:9px}
 .hf-fence-auto229[hidden]{display:none}
 .hf-fence-auto-disclosure229{margin:0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.45}

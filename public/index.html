@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=224" />
+<link rel="stylesheet" href="styles.css?v=225" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1491,20 +1491,26 @@
            Round 215 collapsible option rows are retired: the
            sections stand open, the row/panel ids survive as the
            section heads/bodies, and every control keeps its id,
-           its hfState wiring and the same order path. -->
+           its hfState wiring and the same order path.
+           →238 (2026-11-27, Emil: "I don't like the hoodie
+           scroll on the hype frame order page. It's hard to
+           use the page."): the STICKY pin above is gone — the
+           garment preview is a plain in-flow block at the top
+           of the product page and scrolls away with it, and
+           the Round 229 pin-zone wrapper is retired with it.
+           Everything else in this note stands. -->
       <div id="hfProduct215">
         <h3 class="hf-product-title215" id="hfProductTitle215">Your Hype Frame Hoodie</h3>
         <p class="hf-product-sub215" id="hfProductSub215"></p>
         <p class="hf-price-top222" id="hfPriceTop222">$110 · Made to order</p>
-<!-- Round 229 (2026-11-27): the pin zone — the sticky
-           garment's containing block. The garment + Your moment
-           + Artwork live inside it; Color & size and everything
-           below live OUTSIDE it, so the pinned preview's sticky
-           range ends with the Artwork section and it can never
-           ride over the size rows (Emil's phone screenshot: the
-           pinned card half-covered the YOUTH row because its
-           parent used to be the whole product page). -->
-      <div class="hf-pinzone229" id="hfPinZone229">
+<!-- Round 238 (2026-11-27, Emil): the pin zone is gone.
+           Round 229 wrapped the garment + Your moment + Artwork
+           in a wrapper div (the old hfPinZone229) purely to
+           confine the garment's sticky pin; with the pin gone
+           (styles.css) the wrapper has no job left, so the
+           garment and the sections stand directly in the
+           product page again, in the same order, with every
+           id and control unchanged. -->
 <div class="hf-garment206" id="hfGarment206" hidden>
                     <div class="hf-garment-stage206" id="hfGarmentStage206">
                       <img class="hf-garment-img206" id="hfGarmentImg206" alt="Hoodie preview">
@@ -1724,7 +1730,6 @@
                     </div>
           </div>
         </div>
-              </div><!-- /hfPinZone229 (Round 229) -->
         <div class="hf-buycard215" id="hfBuyCard215">
           <div class="hf-sec-head222 hf-sec-in-card222">
             <span class="hf-sec-k222">Color &amp; size</span>
@@ -2642,6 +2647,6 @@
   </div>
 </div>
 
-<script src="app.js?v=233"></script>
+<script src="app.js?v=234"></script>
 </body>
 </html>

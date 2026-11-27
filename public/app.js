@@ -3886,6 +3886,9 @@ function hfJumpToFrame(t, btn) {
   // is a no-op — the moment section stands open and the pinned
   // hoodie has already updated in view. The fine steppers pass
   // no button and never call it.
+  // →238: the hoodie is unpinned now (Emil) — the no-op stands
+  // on the open section alone: a pick needs no close, and the
+  // garment still updates in place at the top of the page.
   const select = () => { if (token === hfTapToken127) { /* Round 235: the instant preview stands down only once the capture COMMITS — a draw that painted nothing keeps the previous print (and this preview) while the capture retry chases the real frame. */ if (hfCapturePrint()) { hfHideInstant205(); if (btn) hfPhotoPicked215(); } } };
   if (v.readyState >= 2 && v.videoWidth && Math.abs((v.currentTime || 0) - target) < 0.05) { select(); return; }
   const onSeeked = () => { v.removeEventListener("seeked", onSeeked); select(); };
@@ -3899,7 +3902,11 @@ function hfJumpToFrame(t, btn) {
    always-open Your moment section, and the garment preview is
    pinned above it, so a pick needs no close and no scroll:
    the hoodie updates in place, already in view. Kept as a
-   no-op: hfJumpToFrame still calls it on a thumbnail pick. */
+   no-op: hfJumpToFrame still calls it on a thumbnail pick.
+   →238 (2026-11-27, Emil): the pin is gone — the garment is
+   a plain in-flow block at the top of the product page. The
+   no-op stands unchanged: a pick still needs no close, and
+   the hoodie updates in place. */
 function hfPhotoPicked215() {}
 /* Round 205 still recommendation (Emil: "Can an agent recommend
    which still to use?"): the strip's OWN thumbnails are scored
