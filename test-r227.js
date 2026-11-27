@@ -152,7 +152,7 @@ const sigOf = (abs) => { const st = fs.statSync(abs); return st.size + ":" + Mat
   const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
   const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
   const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
-  assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v224 / styles v217 (Round 227; both files changed)");
+  assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "A: asset pins — app.js v224 / styles v217 (Round 227; both files changed) — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
   // Workstream 1+2 machinery.
   assert(serverJs.includes("HH_NO_POSTERCLEAN") && serverJs.includes("r227ProcessPoster227") && serverJs.includes("r227Backfill") && serverJs.includes("skipped-unconfigured") && serverJs.includes("poster-${id}-preclean.jpg"), "A: the poster-clean stage, its kill switch, its unconfigured verdict and the preclean preservation are in server.js");
   assert(serverJs.includes("r227time") && serverJs.includes('origin: "initial"') && serverJs.includes("ej223.r227time"), "A: the initial-grab poster-time record (r227time, origin initial) + the publicHighlight fallback are in server.js");

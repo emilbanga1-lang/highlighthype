@@ -63,7 +63,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v222 / styles v215 (Round 223; both files changed)");
+assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "A: asset pins — app.js v222 / styles v215 (Round 223; both files changed) — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
 
 // ---- B. statics ----
 // The server field (scope 5).
@@ -382,7 +382,7 @@ async function boot(port, extraEnv = {}) {
     assert(!!board.vid.poster_url, "D: …and the poster itself was re-picked (the moment and the frame agree)");
 
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=227"') && served.includes('href="styles.css?v=219"'), "D: the served homepage carries the Round 223 pins");
+    assert(served.includes('src="app.js?v=228"') && served.includes('href="styles.css?v=220"'), "D: the served homepage carries the Round 223 pins — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("feedWireControls223") && servedApp.includes("data-feed-scrub") && servedApp.includes("openHeroFeed223"), "D: the served app.js carries the feed controls + the hero entry");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();

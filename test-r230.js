@@ -54,7 +54,7 @@ const css = read("public/styles.css");
 const serverJs = read("server.js");
 
 // ---------- A. statics: pins, hero, section order, stories ----------
-assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round)");
+assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "A: asset pins — app.js v226 / styles v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
 {
   const hero = home.slice(home.indexOf('<div class="hero view-home"'), home.indexOf('id="homeBattle230"'));
   assert(hero.includes('id="heroVideo"') && hero.includes('data-src="/hero-film.mp4"'), "A: the hero film is untouched (same video, same source)");
@@ -93,7 +93,7 @@ assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=
   assert(block230.includes('dailyPick100(slot)') && block230.includes("toggleVote(${h.id}, this)"), "B: the home surfaces call the board's own dailyPick100 and toggleVote — no parallel pick/vote logic");
   assert(!block230.includes("api("), "B: the Round 230 block makes no api() calls of its own — it renders state the board already loads (no new endpoints)");
   assert(block230.includes("CONTEST.entries") && block230.includes("fameRowHtml134") && block230.includes("homeSameAthlete230"), "B: featured + leaderboard read CONTEST.entries through the shared row renderer; exclusions run through the athlete-identity helper");
-  assert(!serverJs.includes("renderHome230") && !serverJs.includes("homeBattle"), "B: server.js carries no Round 230 code — the round is client-only");
+  assert(!serverJs.includes("renderHome230") && !serverJs.includes("homeBattle"), "B: server.js carries no Round 230 code — the round is client-only — →232: still true of the R230 block itself; Round 232 item 6 adds a separate server change (posterUrl232's cache-bust token in publicHighlight), covered in test-r232");
 }
 
 // ---------- C. VM drive ----------
@@ -215,9 +215,9 @@ try {
   sb.ALL_PLAYS = [P75, P71, P50, P51, P77, P76, P66, P78, P99];
   vm.runInContext("renderHomeMore230()", sb);
   const grid = $id("homeMoreGrid230").innerHTML;
-  for (const id of [50, 77, 76, 66]) assert(grid.includes(`openPlayDetail(${id})`), `C: More Highlights shows play ${id} (a different athlete)`);
-  for (const id of [75, 71, 51, 78, 99]) assert(!grid.includes(`openPlayDetail(${id})`), `C: More Highlights excludes play ${id} (featured / battle-pair athlete — 78 + 99 prove identity, not play id: same athlete_id, and same label with no id)`);
-  assert(grid.indexOf("openPlayDetail(50)") < grid.indexOf("openPlayDetail(77)") && grid.indexOf("openPlayDetail(77)") < grid.indexOf("openPlayDetail(76)"), "C: tiles keep the payload's order");
+  for (const id of [50, 77, 76, 66]) assert(grid.includes(`homeOpenPlay232(${id})`), `C: More Highlights shows play ${id} (a different athlete) — →232: tile media taps route to the swipe feed (homeOpenPlay232), not openPlayDetail`);
+  for (const id of [75, 71, 51, 78, 99]) assert(!grid.includes(`homeOpenPlay232(${id})`), `C: More Highlights excludes play ${id} (featured / battle-pair athlete — 78 + 99 prove identity, not play id: same athlete_id, and same label with no id)`);
+  assert(grid.indexOf("homeOpenPlay232(50)") < grid.indexOf("homeOpenPlay232(77)") && grid.indexOf("homeOpenPlay232(77)") < grid.indexOf("homeOpenPlay232(76)"), "C: tiles keep the payload's order");
 
   // C8: the leaderboard inside the section — complete, leader first; Fame tab mirrors renderFame.
   const lb = $id("homeLbRows230").innerHTML;

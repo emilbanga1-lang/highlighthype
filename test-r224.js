@@ -250,7 +250,7 @@ try {
   const sA = await boot(45241, {});
   try {
     const home = await (await fetch(sA.base + "/")).text();
-    assert(home.includes('src="app.js?v=227"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round)");
+    assert(home.includes('src="app.js?v=228"') && home.includes('href="styles.css?v=220"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232)");
     const up = await sA.upload({ ...F, playerName: "Kameron A.", title: "Touchdown224" }, "fixture-rot.mov", FIX_ROT, "video/quicktime");
     assert(up.status === 201, "A: the play-78-class .mov uploads (201)");
     const id = up.body.id;
@@ -279,7 +279,7 @@ try {
     assert(Math.abs(vs.width / vs.height - vm.width / vm.height) < 0.05, `A: the rendition matches the display master's shape (${vs.width}x${vs.height} vs master ${vm.width}x${vm.height}) — no coded-dims stretch`);
     assert(!(vs.width === 1280 && vs.height === 720), "A: the rendition is NOT the stretched 1280x720 the coded dims would have produced");
     assert(!hasLocationTag(ps), "A: the rendition carries NO location tag");
-    assert(fs.existsSync(path.join(upDir, path.basename(play.poster_url))), "A: the poster file exists");
+    assert(fs.existsSync(path.join(upDir, path.basename(play.poster_url.split("?")[0]))), "A: the poster file exists — →232: the payload poster_url carries the cache-bust token; strip it to name the file on disk");
     const qr = await queueRow(sA, tok, id);
     assert(qr && !qr.missing_rendition, "A: the owner queue does NOT flag a fresh play as missing a rendition");
   } finally { await sA.stop(); }
