@@ -4347,6 +4347,13 @@ body.feed-open189{overflow:hidden}
 .hlb230-tabs button{background:none;border:0;color:var(--muted);font:inherit;cursor:pointer;padding:0 0 2px}
 .hlb230-tabs button[aria-pressed="true"]{color:var(--white);border-bottom:2px solid var(--gold)}
 .hlb230-empty{color:var(--muted);font-weight:600;margin:10px 0 0}
+/* Round 240 (2026-11-27, Emil's homepage review): the Today's
+   Battle clarifier line — the practice line's twin, the same
+   small print — and the short homepage leaderboard's "View
+   full leaderboard" link, styled as the battle card's skip:
+   a quiet centered text button. */
+.hb230-official240{text-align:center;color:var(--muted);font-weight:700;font-size:13.5px;margin:10px 0 0}
+.hlb230-more240{display:block;margin:14px auto 0;background:none;border:0;color:var(--muted);font-weight:700;font-size:14px;cursor:pointer;font-family:"Archivo",sans-serif}
 
 /* ================================================================
    Round 232 (2026-11-27): Emil's phone-review fixes.

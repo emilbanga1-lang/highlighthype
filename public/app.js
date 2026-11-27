@@ -12153,7 +12153,25 @@ window.openHeroFeed223 = () => {
    the contest's own toggleVote, exactly as on the board.
    The sections are decoration-grade: the orchestrator swallows
    its own errors, so a hiccup here never breaks the board. */
+/* ---------------- Round 240 (2026-11-27): Emil's homepage
+   review fixes — the layout he approved stands; four targeted
+   fixes. (1) Battle labeling: the Today's Battle card names
+   itself the official daily matchup in one line (renderHome-
+   Battle230), and its skip reads "Try another battle" — the
+   skip's path into Quick Battles is unchanged, and picks stay
+   just-for-fun (Round 179). (2) Moment thumbnails: plays 75
+   and 51 got hand-picked poster frames at the moment (a data
+   deploy — see test-r240 and the round's deploy note; no code
+   here). (3) The homepage leaderboard renders SHORT — top 3
+   rows + a "View full leaderboard" link (renderHomeLb230);
+   the link lands where every full-board landing lands
+   (homeLbLanding232), and a landing paints the FULL rankings,
+   so the complete leaderboard itself never moved — only the
+   homepage's first render is short. (4) The hero's Watch
+   Highlights one-tap chain (R223) is verified end-to-end in
+   test-r240; no link needed repair. */
 let homeLbTab230 = "month";
+let homeLbFull240 = false;
 let homeDailyKicked230 = false;
 
 function homeAthleteKeys230(h) {
@@ -12244,10 +12262,16 @@ function renderHomeBattle230() {
   if (!avail) { sec.hidden = true; body.innerHTML = ""; return; }
   const split = r.yourPick && r.split && typeof splitHtml100 === "function"
     ? `<div class="hb230-split">${splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice)}</div>` : "";
-  body.innerHTML = `${r.practice ? `<p class="hb230-practice">Practice matchup · Picks are just for fun</p>` : ""}
+  /* Round 240 (2026-11-27, Emil's homepage review): on a real
+     day the card IS the official daily matchup — say so in one
+     line, in the same slot the practice card carries its label,
+     so nobody wonders which vote counts; and the skip below is
+     labeled for what it does (it leaves this matchup for Quick
+     Battles — homeBattleSkip230's path is unchanged). */
+  body.innerHTML = `${r.practice ? `<p class="hb230-practice">Practice matchup · Picks are just for fun</p>` : `<p class="hb230-official240">Today's official matchup — votes here decide today's winner.</p>`}
     <div class="hb230-grid">${homeBattleCard230("A", r.a, r)}${homeBattleCard230("B", r.b, r)}</div>
     ${split}
-    <button type="button" class="hb230-skip" onclick="homeBattleSkip230()">Skip matchup →</button>`;
+    <button type="button" class="hb230-skip" onclick="homeBattleSkip230()">Try another battle →</button>`;
   sec.hidden = false;
 }
 /* The home Vote buttons call the Battles view's own pick —
@@ -12261,7 +12285,9 @@ async function homeBattlePick230(slot) {
   renderHomeBattle230();
 }
 /* Skip = the Daily card's own "Play another battle" path: open
-   the Battles view on a fresh Quick matchup. */
+   the Battles view on a fresh Quick matchup. (Round 240: the
+   button's label now says exactly that — "Try another battle";
+   the path itself is untouched.) */
 function homeBattleSkip230() {
   if (typeof switchView === "function") switchView("battles");
   if (typeof playAnotherBattle102 === "function") playAnotherBattle102();
@@ -12325,9 +12351,29 @@ function homeMoreTile230(h) {
     <div class="hm230-body"><h4>${esc(shortTitle(h.title))}</h4><p>${esc(homeAthleteLabel230(h))} · ${esc(cap(h.sport))}</p>${pill}</div>
   </article>`;
 }
+/* Round 240: the "View full leaderboard" tail of the short
+   homepage render — present only while rows remain hidden. */
+function homeLbMoreHtml240(more) {
+  return more ? `<button type="button" class="hlb230-more240" onclick="homeLbMore240()">View full leaderboard</button>` : "";
+}
+/* The link lands exactly where the existing full-board
+   landings land — homeLbLanding232, the fame/month links'
+   destination — which paints the complete rankings in this
+   same section (and scrolls it in). The full leaderboard
+   itself is unchanged; only the first render is short. */
+function homeLbMore240() {
+  try { homeLbFull240 = true; } catch (e) { /* a slice without the R240 state — the landing below still repaints this tab */ }
+  if (typeof homeLbLanding232 === "function") homeLbLanding232(homeLbTab230);
+  else if (typeof renderHomeLb230 === "function") renderHomeLb230();
+}
 function renderHomeLb230() {
   const rows = document.getElementById("homeLbRows230");
   if (!rows) return false;
+  /* Round 240: short (top 3 + the View-full link) until a
+     full-board landing expands the section — homeLbLanding232
+     and homeLbMore240 set homeLbFull240. Read defensively like
+     every cross-round state read in this file. */
+  let lbFull240 = false; try { lbFull240 = !!homeLbFull240; } catch (e) { /* the R240 state is not initialized in this slice — the short render stands */ }
   const mBtn = document.getElementById("homeLbTabMonth230"), fBtn = document.getElementById("homeLbTabFame230");
   if (mBtn) mBtn.setAttribute("aria-pressed", String(homeLbTab230 !== "fame"));
   if (fBtn) fBtn.setAttribute("aria-pressed", String(homeLbTab230 === "fame"));
@@ -12335,10 +12381,11 @@ function renderHomeLb230() {
     /* The Hall of Fame ranking, computed exactly as renderFame
        computes it (samples never take a Fame slot) — rendered
        here, into the home section's own rows. */
-    const ranked = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
+    const rankedAll = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
       .filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
-    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
-    return ranked.length > 0;
+    const ranked = lbFull240 ? rankedAll : rankedAll.slice(0, 3);
+    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbMoreHtml240(rankedAll.length > ranked.length) : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
+    return rankedAll.length > 0;
   }
   const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
   /* Round 232: homepage rows route their media tap to the
@@ -12346,7 +12393,8 @@ function renderHomeLb230() {
      rows rode feed189, whose host check only recognizes the
      board's own lists, so homepage taps fell back to the
      static detail; the fame rows rode goToPlayCard outright. */
-  rows.innerHTML = entries.length ? entries.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
+  const shown240 = lbFull240 ? entries : entries.slice(0, 3);
+  rows.innerHTML = entries.length ? shown240.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbMoreHtml240(entries.length > shown240.length) : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
   if (typeof hydrateDurPills === "function") hydrateDurPills();
   return entries.length > 0;
 }
@@ -12489,6 +12537,12 @@ window.homeOpenPlay232 = (id) => {
    feed close that precedes it. */
 function homeLbLanding232(tab) {
   try { homeLbTab230 = tab === "fame" ? "fame" : "month"; } catch (e) { /* the R230 tab state is not initialized in this context — the default tab stands */ }
+  /* Round 240: a landing is a FULL-board landing — the fame /
+     month links and the section's own "View full leaderboard"
+     link all land on the complete rankings, so the landing
+     expands the homepage's short (top-3) render before it
+     repaints. */
+  try { homeLbFull240 = true; } catch (e) { /* the R240 state is not initialized in this context — the short render stands until the next landing */ }
   try { if (typeof renderHomeLb230 === "function") renderHomeLb230(); } catch (e) { /* rows repaint on the next renderAll */ }
   try {
     const go = () => { const s = document.getElementById("homeMore230"); if (s && !s.hidden && typeof s.scrollIntoView === "function") s.scrollIntoView({ behavior: "smooth", block: "start" }); };
