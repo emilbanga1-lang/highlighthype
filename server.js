@@ -6866,6 +6866,17 @@ const server = http.createServer(async (req, res) => {
       const play = db.prepare("SELECT * FROM highlights WHERE id=?").get(Number(body.highlightId));
       if (!play || play.status !== "approved")
         return sendJson(res, 404, { ok: false, message: "Hype Frame starts from an approved play on the board — this play is not approved yet." });
+      // Round 231 (2026-11-27, Emil): sample plays can't be used
+      // in the studio at all — this is the defense-in-depth layer
+      // behind the client's hidden Frame buttons, the picker's
+      // sample exclusion and openHypeFrame's seed refusal, so no
+      // client path (stale, cached or hand-built) can order a
+      // print from a sample. Keyed strictly off the resolved
+      // play's flag: real plays are unaffected, including a
+      // studio session where the parent uploaded their own photo
+      // as the frame (that order still carries the real play).
+      if (play.is_sample)
+        return sendJson(res, 400, { ok: false, message: "Sample plays are demos — a Hype Frame starts from a real play on the board." });
       const guardianEmail = String(body.guardianEmail || "").trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail))
         return sendJson(res, 400, { ok: false, message: "A parent/guardian email is required so we can confirm the order before printing." });
