@@ -250,7 +250,7 @@ try {
   const sA = await boot(45241, {});
   try {
     const home = await (await fetch(sA.base + "/")).text();
-    assert(home.includes('src="app.js?v=225"') && home.includes('href="styles.css?v=218"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229)");
+    assert(home.includes('src="app.js?v=226"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230)");
     const up = await sA.upload({ ...F, playerName: "Kameron A.", title: "Touchdown224" }, "fixture-rot.mov", FIX_ROT, "video/quicktime");
     assert(up.status === 201, "A: the play-78-class .mov uploads (201)");
     const id = up.body.id;

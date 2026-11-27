@@ -55,7 +55,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins + sticky statics ----
-assert(home.includes('src="app.js?v=225"') && home.includes('href="styles.css?v=218"'), "A: asset pins — app.js v225 / styles v218 (Round 229)");
+assert(home.includes('src="app.js?v=226"') && home.includes('href="styles.css?v=219"'), "A: asset pins — app.js v225 / styles v218 (Round 229)");
 {
   const zoneOpen = prod.indexOf('id="hfPinZone229"');
   const garment = prod.indexOf('id="hfGarment206"');
