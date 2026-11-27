@@ -57,7 +57,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins + sticky statics ----
-assert(home.includes('src="app.js?v=232"') && home.includes('href="styles.css?v=223"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
+assert(home.includes('src="app.js?v=233"') && home.includes('href="styles.css?v=224"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237)");
 {
   const zoneOpen = prod.indexOf('id="hfPinZone229"');
   const garment = prod.indexOf('id="hfGarment206"');
@@ -67,7 +67,7 @@ assert(home.includes('src="app.js?v=232"') && home.includes('href="styles.css?v=
   const bar = prod.indexOf('id="hfStickyBar215"');
   assert(zoneOpen > -1 && garment > zoneOpen && artwork > garment && zoneClose > artwork && buy > zoneClose && bar > buy, "A: the pin zone wraps garment → moment → artwork and closes BEFORE Color & size; the buy card + Review bar live outside it");
   assert(css.includes("#hfProduct215 .hf-garment206{position:sticky;top:70px;z-index:40"), "A: the sticky rule itself is unchanged — confinement is structural (the parent), not a new position scheme");
-  assert(css.includes("#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:12px}") && !css.includes("padding-bottom:118px") && css.includes(".hf-stickybar215{position:sticky;bottom:0"), "A: the product page's bottom padding is normal (12px) and the bar is sticky-in-flow — →235: the 96px reserve this round set is deleted (the fixed bar + reserve still read as a dead band in Emil's 15:06 shot; measured bar height ~81px vs 118px of stacked void)");
+  assert(css.includes("#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:12px}") && !css.includes("padding-bottom:118px") && css.includes(".hf-stickybar215{width:calc(100% - 24px);max-width:584px;margin:12px auto 0"), "A: the product page's bottom padding is normal (12px) and the bar sits in flow below the buy card — →235: the 96px reserve this round set is deleted (the fixed bar + reserve still read as a dead band in Emil's 15:06 shot; measured bar height ~81px vs 118px of stacked void) — →237: the bar is unpositioned entirely (the →235 sticky form floated over the size pills in Emil's 15:50 shot)");
   assert(css.includes(".hf-fence-auto229") && css.includes(".hf-fence-auto229[hidden]{display:none}"), "A: the auto fence block's styles + [hidden] guard ship");
 }
 

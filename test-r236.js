@@ -68,7 +68,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=223"') && home.includes('src="app.js?v=232"'), "A: asset pins — app.js now v232 (Round 236); styles now v223 (Round 236)");
+assert(home.includes('href="styles.css?v=224"') && home.includes('src="app.js?v=233"'), "A: asset pins — app.js now v232 (Round 236); styles now v223 (Round 236)");
 
 // ---- B. the tab control is gone from the homepage ----
 assert(!home.includes('class="viewseg"'), "B: no .viewseg tab control anywhere in the homepage markup");
@@ -194,7 +194,7 @@ assert(bootSrc.includes('const ap236 = document.querySelector(".panel.active")')
       await new Promise((r) => setTimeout(r, 400));
     }
     assert(served.length > 0, "H: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=232"') && served.includes('href="styles.css?v=223"'), "H: the served homepage carries the v232/v223 pins");
+    assert(served.includes('src="app.js?v=233"') && served.includes('href="styles.css?v=224"'), "H: the served homepage carries the v232/v223 pins");
     assert(!served.includes('class="viewseg"') && !served.includes('id="contestStrip"'), "H: the served homepage has no tab control and no banner card");
     assert(served.includes('id="seeAllRow"') && served.includes("See all plays →") && served.includes('id="homeLbRows230"'), "H: the served homepage keeps See all plays and the homepage leaderboard");
   } finally {

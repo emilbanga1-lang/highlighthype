@@ -96,7 +96,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=223"') && home.includes('src="app.js?v=232"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236)");
+assert(home.includes('href="styles.css?v=224"') && home.includes('src="app.js?v=233"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237)");
 
 // ---- B. Item A statics ----
 const captureBlock = appJs.slice(appJs.indexOf("function hfCapturePrint()"), appJs.indexOf("function freezeHfFrame()"));
@@ -242,7 +242,7 @@ assert(appJs.includes("Checking your frame for a fence…"), "E: the live fence 
 // ---- F. Item F: the spacing math ----
 {
   const barRule = css.slice(css.indexOf(".hf-stickybar215{"), css.indexOf("}", css.indexOf(".hf-stickybar215{")));
-  assert(barRule.includes("position:sticky") && barRule.includes("bottom:0") && barRule.includes("margin:12px auto 0"), "F: the Review bar is sticky-in-flow on a 12px top margin — it rests directly below the buy card and pins to the viewport bottom while the studio scrolls");
+  assert(!barRule.includes("position:sticky") && !barRule.includes("position:fixed") && !barRule.includes("bottom:0") && barRule.includes("margin:12px auto 0"), "F: the Review bar rests directly below the buy card on a 12px top margin — →237: UNSTUCK entirely (Emil, 15:50: 'The review hoodie button is now floating' — the sticky bar rode over the ADULT size pills while scrolling): no position:sticky, no position:fixed, no bottom pin — a plain in-flow block that scrolls naturally with the page");
   assert(css.includes("#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:12px}") && !css.includes("padding-bottom:96px"), "F: the fixed-bar reserve is DELETED (the product page ends on a normal 12px padding)");
   assert(css.includes(".hf-stickybar215{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}") && css.includes(".hf-review-btn215{padding:12px}") && css.includes(".hf-stickybar-note215{margin-top:5px}"), "F: the bar's real components ship — compact padding 8+8, the button's 12+12 padding, the note's 5px margin");
   const barHeight = 8 + 8 + (12 + 12 + 21) + (5 + 14); // padding + button (padding + line) + note (margin + line) ≈ 80px
