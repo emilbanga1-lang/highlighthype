@@ -2126,6 +2126,9 @@ function showPanel(name) {
   // store…) replace the view. hidePlayDetail leaves the hash alone —
   // the #play- route reads it after showPanel runs.
   hidePlayDetail();
+  /* Round 214: remember whether the studio was the panel being
+     left — the media block below needs the pre-toggle state. */
+  const wasStudio214 = !!(document.body && document.body.classList && typeof document.body.classList.contains === "function" && document.body.classList.contains("hf-studio-open205"));
   /* Round 205 (2026-11-26, Emil): while the Hype Frame studio is
      the active panel, the floating Post a Play pill stands down —
      it parked over the studio's own controls (the Avatar option,
@@ -2146,6 +2149,21 @@ function showPanel(name) {
      (featEnter163 gates on that itself). */
   if (name === "plays") { if (typeof featEnter163 === "function") featEnter163(); }
   else if (typeof featPause163 === "function") featPause163();
+  /* Round 214 (2026-11-26, Emil): the studio stands alone — entering
+     it silences the home films with the same sweep showStore uses
+     (the stack itself is hidden by styles.css under the Round 205
+     body class), and leaving it for any other panel restarts the
+     hero under the standing Round 125 preference (music ON unless
+     the visitor muted it — hh_music), exactly as showHome does, so
+     the hero never stays dead after a studio visit. The Store keeps
+     its own entry/exit handling: a studio → Store hop is paused by
+     showStore and resumed on the way back through showPanel, and
+     the store-open gate keeps this block out of that path. */
+  if (name === "hypeframe") { $$(".view-home video").forEach((v) => v.pause()); }
+  else if (wasStudio214 && !(document.body && document.body.classList && document.body.classList.contains("store-open"))) {
+    const hv214 = $("#heroVideo");
+    if (hv214) { if (hv214.dataset && hv214.dataset.src && !hv214.getAttribute("src")) hv214.src = hv214.dataset.src; hv214.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p214 = hv214.play(); if (p214 && p214.catch) p214.catch(() => {}); }
+  }
   // Site stats: count the MAIN views only. Athlete pages and the
   // Hype Frame studio are steps inside a visit, not front doors, so
   // they are deliberately not counted as views.
@@ -2484,7 +2502,12 @@ function showHome() {
      next tap. The typeof guard keeps this block runnable in
      isolation (the Round 26 behavioral suite drives showHome
      in a vm without the storage helper in scope). */
-  const hv = $("#heroVideo"); if (hv) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
+  /* Round 214: while the studio is the active panel the hero is
+     hidden (styles.css) and must NOT restart here — showPanel
+     owns the hero's resume on studio exit. Every caller that
+     pairs showHome with a panel switch is unaffected: showPanel
+     runs immediately after and performs the resume. */
+  const hv = $("#heroVideo"); if (hv && !document.body.classList.contains("hf-studio-open205")) { if (hv.dataset && hv.dataset.src && !hv.getAttribute("src")) hv.src = hv.dataset.src; hv.muted = (typeof hhStorageGet === "function") ? hhStorageGet("hh_music") === "off" : false; const p = hv.play(); if (p && p.catch) p.catch(() => {}); }
   /* Round 48 (2026-11-08): the old homepage-film resume is retired —
      the homepage Hype Frame film is click-to-play now (Emil: no
      autoplay competing with the hero), so returning home must NOT

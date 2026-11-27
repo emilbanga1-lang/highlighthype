@@ -3172,6 +3172,21 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
      .hf-studio .seg flex rule;
    - the size guide expander and the order summary line. */
 body.hf-studio-open205 .float-submit{display:none}
+/* Round 214 (2026-11-26, Emil): while the studio is open the
+   whole home marketing stack stands down — the studio is its
+   own page, not a panel under the homepage. Same body class as
+   the pill rule above; the same treatment body.store-open
+   gives .view-home, with ONE carve-out the Store doesn't need:
+   #deck hosts the panels (its only children are the six
+   panels, and only the active one renders), so hiding it
+   would take the studio itself off the page. Everything else
+   carrying .view-home goes: the hero (#top), the owner strip,
+   #merchTeaser125 (the homepage Hype Frame card — Emil named
+   it: scrolling in the studio must not surface it), the final
+   CTA and the trust strip. The header and the footer never
+   carried .view-home and stay. */
+body.hf-studio-open205 .view-home{display:none}
+body.hf-studio-open205 #deck.view-home{display:block}
 .hf-instant205{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;pointer-events:none}
 .hf-instant205[hidden]{display:none}
 .hf-selected205{margin:8px 0 0;font-size:13.5px;font-weight:800;color:var(--volt)}
