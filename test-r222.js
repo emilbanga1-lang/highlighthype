@@ -92,7 +92,7 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed)");
+assert(home.includes('src="app.js?v=221"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v220 / styles v214 (Round 222; both files changed)");
 
 // ---- B. Layout statics ----
 {
@@ -255,6 +255,7 @@ assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=
     assert(body.includes("Remove the chain-link fence from this photo") && body.includes("Change nothing else") && body.includes("return the same photograph, cleaned of the fence"), "E: the upstream request carries the remove-fence-only prompt");
     assert(!body.includes("brush-stroke") && !body.includes("HYPE FRAME"), "E: ...and NONE of the avatar's format language (no stylizing rides along)");
     assert((body.match(/name="image"; filename=/g) || []).length === 1, "E: the fence request sends exactly ONE image (no style reference)");
+    assert(!(body.match(/name="image\[\]"/g) || []).length, "E: →224: the single-image fence request uses NO \"image[]\" field (single-image requests keep the plain \"image\" name)");
     assert(body.includes('name="model"') && body.includes("test-model-222"), "E: the fence call uses the same env model as the avatar (HF_AVATAR_MODEL)");
     for (let i = 0; i < 5; i++) {
       const rr = await post(s2, { image: PNG });
@@ -296,7 +297,8 @@ assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=
     assert(d && Math.max(d.w, d.h) <= 1024, `F: the ${name} reference asset's long side is ≤1024px (${d ? d.w + "×" + d.h : "unparsed"})`);
   }
   assert(serverJs.includes("hf-avatar-ref-boys.jpg") && serverJs.includes("hf-avatar-ref-girls.jpg"), "F: the server loads both reference assets at startup");
-  assert(serverJs.includes('form.append("image", new Blob([ref222]'), "F: the avatar request appends the reference as a second image part");
+  assert(serverJs.includes('form.append("image[]", new Blob([ref222]'), "F: the avatar request appends the reference as a second image part — →224: under the field name \"image[]\" (OpenAI's edits endpoint rejects two parts both named \"image\" with a fast 400; the R222 live test 502'd on exactly that)");
+  assert(serverJs.includes('ref222 ? "image[]" : "image"'), "F: →224: the image field name is chosen by whether a reference rides — multi-image uses \"image[]\", a single-image request keeps the plain \"image\" field exactly as before");
 
   const up = stubUpstream();
   await new Promise((r) => up.stub.listen(0, "127.0.0.1", r));
@@ -308,7 +310,8 @@ assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=
     assert(rb.status === 200 && rb.body.image === PNG, "F: the anchored generation round-trips (blue tone)");
     const bufB = up.calls[up.calls.length - 1];
     const strB = bufB.toString("latin1");
-    assert((strB.match(/name="image"; filename=/g) || []).length === 2, "F: the avatar request carries exactly TWO image parts");
+    assert((strB.match(/name="image\[\]"; filename=/g) || []).length === 2, "F: the avatar request carries exactly TWO image parts — →224: both under the field name \"image[]\" (photo first, reference second)");
+    assert(!(strB.match(/name="image"; filename=/g) || []).length, "F: →224: NO part of the anchored request uses the plain \"image\" field name (the upstream 400 that failed the R222 live test)");
     assert(strB.indexOf('filename="frame.png"') > -1 && strB.indexOf('filename="frame.png"') < strB.indexOf('filename="style-reference.jpg"'), "F: the photo rides first, the style reference second");
     assert(bufB.includes(boysRef) && !bufB.includes(girlsRef), "F: the blue tone attaches the BOYS reference asset's exact bytes (and not the girls')");
     assert(strB.includes("Two images are attached: the photo to illustrate, and a finished Hype Frame design that is the house style reference."), "F: the prompt names the second image's role");
@@ -369,7 +372,7 @@ assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=
   const s = await boot(45236);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "H: the served homepage carries the Round 222 pins");
+    assert(served.includes('src="app.js?v=221"') && served.includes('href="styles.css?v=214"'), "H: the served homepage carries the Round 222 pins");
     assert(served.includes('id="hfProduct215"') && served.includes('id="hfPriceTop222"') && served.includes('id="hfFence222"') && served.includes('id="menuPost222"') && served.includes("Send order request"), "H: the served studio is the rebuilt studio (price line, fence step, menu entry, renamed submit)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function wireHf222") && servedApp.includes("function hfDistinctPick222") && servedApp.includes("HF_STUDIO_SIZES222") && servedApp.includes("function hfMakeFence222"), "H: the served app.js carries the rebuild (wiring, distinct picker, studio sizes, fence flow)");

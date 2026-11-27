@@ -47,7 +47,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=220"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v217 / styles v211 (Round 219; both files changed) — →220: app.js now v218, styles now v212 (Round 220; both files changed) — →221: app.js now v219, styles now v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed)");
+assert(home.includes('src="app.js?v=221"') && home.includes('href="styles.css?v=214"'), "A: asset pins — app.js v217 / styles v211 (Round 219; both files changed) — →220: app.js now v218, styles now v212 (Round 220; both files changed) — →221: app.js now v219, styles now v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round)");
 
 // ---- B/C statics ----
 assert(css.includes(".feat-meta-row219{display:flex") && css.includes(".feat-meta-row219 .feat-views151{margin:0}"), "B: the meta row ships as a flex row and the watches span loses its block margin inside it");
@@ -157,7 +157,7 @@ async function boot(port, extraEnv = {}) {
   const s = await boot(4219);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "served: the homepage carries the Round 219 pins — →220: now the Round 220 pins (app.js v218 / styles v212) — →221: now the Round 221 pins (app.js v219 / styles v213) — →222: now the Round 222 pins (app.js v220 / styles v214)");
+    assert(served.includes('src="app.js?v=221"') && served.includes('href="styles.css?v=214"'), "served: the homepage carries the Round 219 pins — →220: now the Round 220 pins (app.js v218 / styles v212) — →221: now the Round 221 pins (app.js v219 / styles v213) — →222: now the Round 222 pins (app.js v220 / styles v214) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("feat-meta-row219") && servedApp.includes('fame-votes-pill134">Vote · '), "served: app.js carries the meta row + the Vote pill — →220: the sample-span source line still ships; the button form rides pill220 (Round 220)");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();

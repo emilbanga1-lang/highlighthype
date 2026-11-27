@@ -83,7 +83,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=214"') && home.includes('src="app.js?v=220"'), "A: asset pins — app.js v213 / styles v209 (Round 214; both files changed) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222)");
+assert(home.includes('href="styles.css?v=214"') && home.includes('src="app.js?v=221"'), "A: asset pins — app.js v213 / styles v209 (Round 214; both files changed) — →214: app.js now v214 (Round 215) — →217: app.js now v215 (Round 217); styles keeps v210 (unchanged this round); styles now v210 (Round 215) — →218: app.js now v216 (Round 218); styles keeps v210 (unchanged this round) — →219: app.js now v217 (Round 219); styles now v211 (Round 219) — →220: app.js now v218 (Round 220); styles now v212 (Round 220) — →221: app.js now v219 (Round 221); styles now v213 (Round 221) — →222: app.js now v220 (Round 222); styles now v214 (Round 222) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round)");
 
 // ---- B. the CSS hide rule + the deck carve-out ----
 assert(css.includes("body.hf-studio-open205 .view-home{display:none}"), "B: while the studio is open, every .view-home element is display:none under the Round 205 body class");
@@ -196,7 +196,7 @@ assert((appJs.match(/classList\.toggle\("hf-studio-open205"/g) || []).length ===
   const s = await boot(41214);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=220"') && served.includes('href="styles.css?v=214"'), "G: the served homepage carries the Round 214 pins — →221: now app.js v219 / styles v213 (Round 221)");
+    assert(served.includes('src="app.js?v=221"') && served.includes('href="styles.css?v=214"'), "G: the served homepage carries the Round 214 pins — →221: now app.js v219 / styles v213 (Round 221)");
     assert(served.includes('id="merchTeaser125"') && served.includes('class="merch-teaser125 view-home"'), "G: the served homepage still ships the teaser on the home page — it is hidden only while the studio is open");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();
     assert(servedCss.includes("body.hf-studio-open205 .view-home{display:none}") && servedCss.includes("body.hf-studio-open205 #deck.view-home{display:block}"), "G: the served styles carry the hide rule + the deck carve-out");
