@@ -250,7 +250,7 @@ try {
   const sA = await boot(45241, {});
   try {
     const home = await (await fetch(sA.base + "/")).text();
-    assert(home.includes('src="app.js?v=223"') && home.includes('href="styles.css?v=216"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226)");
+    assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=217"'), "A: asset pins — app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227)");
     const up = await sA.upload({ ...F, playerName: "Kameron A.", title: "Touchdown224" }, "fixture-rot.mov", FIX_ROT, "video/quicktime");
     assert(up.status === 201, "A: the play-78-class .mov uploads (201)");
     const id = up.body.id;
@@ -359,7 +359,15 @@ try {
     const dbR = new DatabaseSync(path.join(dirC, "highlighthype.db"), { readOnly: true });
     const ctl = dbR.prepare("SELECT media_url, r209_checked_at, enhance_json FROM highlights WHERE id=?").get(cId);
     dbR.close();
-    assert(ctl.media_url === "/uploads/control224.mp4" && ctl.r209_checked_at === stamp && ctl.enhance_json === enhance0, "C: the healthy control play is untouched — same master, same stamp, same enhance record (no churn)");
+    // →227: the control's enhance record gains ONLY Round 227's
+    // bookkeeping — the R192 backfill's poster (re)creation stamps
+    // r227time via the shared poster path, and the r227 backfill
+    // records its skipped-unconfigured verdict for that poster.
+    // Master, stamps and the pre-existing enhance content are
+    // byte-identical; the no-churn rule binds everything else.
+    const ctlEj = JSON.parse(ctl.enhance_json || "{}");
+    const ctlRec227 = ctlEj.r227; delete ctlEj.r227; delete ctlEj.r227time;
+    assert(ctl.media_url === "/uploads/control224.mp4" && ctl.r209_checked_at === stamp && JSON.stringify(ctlEj) === enhance0 && (!ctlRec227 || ctlRec227.decision === "skipped-unconfigured"), "C: the healthy control play is untouched — same master, same stamp, same enhance record (no churn) — →227: modulo the r227 bookkeeping keys only (r227time from the backfill-made poster, plus the r227 record when its pass has landed — skipped-unconfigured in this keyless env)");
   } finally { await sC.stop(); }
 
   console.log("\nAll Round 224 checks passed.");

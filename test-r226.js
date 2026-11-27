@@ -43,7 +43,7 @@ const css = read("public/styles.css");
 const home = read("public/index.html");
 
 // ---------- statics: pins ----------
-assert(home.includes('src="app.js?v=223"') && home.includes('href="styles.css?v=216"'), "pins: app.js v223 / styles v216");
+assert(home.includes('src="app.js?v=224"') && home.includes('href="styles.css?v=217"'), "pins: app.js v223 / styles v216");
 
 // ---------- A. Battles statics ----------
 {
@@ -56,7 +56,7 @@ assert(home.includes('src="app.js?v=223"') && home.includes('href="styles.css?v=
   assert(home.includes('id="btlPickL">Pick A</button>') && home.includes('id="btlPickR">Pick B</button>'), "A: the Quick stage buttons keep their Pick A / Pick B labels (out of scope, untouched)");
   const dailyFn = appJs.slice(appJs.indexOf("async function loadDaily100"), appJs.indexOf("async function dailyPick100"));
   assert(dailyFn.includes('textContent = "Vote A"') && dailyFn.includes('textContent = "Vote B"'), "A: loadDaily100 resets the Daily buttons to Vote A / Vote B");
-  assert(dailyFn.includes('"👑 Your pick"') && !dailyFn.includes('textContent = "Pick A"') && !dailyFn.includes('textContent = "Pick B"'), "A: the picked state still shows 👑 Your pick on the Daily buttons; no Pick A/B labels remain in the Daily renderer");
+  assert(dailyFn.includes('innerHTML = `${CROWN227} Your pick`') && !dailyFn.includes("👑") && !dailyFn.includes('textContent = "Pick A"') && !dailyFn.includes('textContent = "Pick B"'), "A: the picked state still shows Your pick on the Daily buttons; no Pick A/B labels remain in the Daily renderer — →227: the 👑 emoji is now the /crown.png asset, set via innerHTML with the CROWN227 constant");
   assert(appJs.includes('pickL.textContent = "Pick A"') && appJs.includes('pickR.textContent = "Pick B"'), "A: the Quick stage renderer keeps its Pick A / Pick B resets");
   assert(appJs.includes('bind("dailyPickA", "click", () => dailyPick100("A"))') && appJs.includes('bind("dailyPickB", "click", () => dailyPick100("B"))'), "A: the vote buttons wire to the existing dailyPick100 pick logic, unchanged");
   assert(appJs.includes("data-poster226=") && appJs.includes("opts.poster226") && appJs.includes("poster226: true"), "A: the Daily minis carry the play's poster (poster226) from the Daily call site only");
