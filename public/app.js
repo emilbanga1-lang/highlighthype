@@ -364,7 +364,7 @@ function cardHtml(h, opts = {}) {
         <span class="votecount"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>
       </div>
       <div class="card-actions">
-        <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
+        ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>`}
         ${enterControl182(h, enteredNow179(h.id) ? ENTERED_BTN179 : "")}
         <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
         ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
@@ -703,7 +703,7 @@ function tileHtml(h, opts = {}) {
         <div class="tile-chips181">${typeof badgesHtml100 === "function" ? badgesHtml100(h) : ""}${typeof momentChip162 === "function" ? momentChip162(h) : ""}${typeof crownsHtml105 === "function" ? crownsHtml105(h) : ""}</div>
         <div class="tile-votes">
           ${h.isSample ? `<span class="vote-chip">${CROWN227} <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
-          <button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>
+          ${h.isSample ? "" : `<button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>`}
         </div>
       </div>
     </div>
@@ -1790,7 +1790,7 @@ function watchHtml107(h, entry) {
       <p class="watch-count"><b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</p>
     </div>
     <div class="card-actions watch-actions">
-      <button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>
+      ${h.isSample ? "" : `<button type="button" class="mini-btn" onclick="openHypeFrame(${h.id})">📸 Create a Hype Frame</button>`}
       ${enterControl182(h, entry ? ENTERED_BTN179 : "")}
       <button type="button" class="mini-btn" onclick="sharePlay(${h.id}, this)">🔗 Share</button>
       ${playHasVideo(h) ? `<button type="button" class="mini-btn" onclick="saveClip(${h.id}, this)">⬇ Save clip</button>` : ""}
@@ -3434,6 +3434,17 @@ const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", im
 window.openHypeFrame = (id) => {
   const play = ALL_PLAYS.find((p) => p.id === id) || (CONTEST.entries || []).find((p) => p.id === id);
   if (!play) { alert("That play isn't on the board anymore."); return; }
+  /* Round 231 (2026-11-27, Emil): sample plays can't be used in
+     the studio at all. Every entry route funnels through here —
+     the per-play Frame buttons (now hidden on samples at render),
+     the posted-play picker (which excludes samples since this
+     round), the #hype-frame-<id> deep links (boot + hashchange)
+     and the Round 139 history restore — so this one refusal
+     covers all of them: a sample seed attempt lands on the
+     choice card instead, and the sample's frames never load.
+     The server refuses sample-sourced orders too (defense in
+     depth). Samples everywhere else are untouched. */
+  if (play.isSample) { if (typeof openHfChoice === "function") openHfChoice(); return; }
   showHome(); closeMenu(false); showPanel("hypeframe");
   /* Round 139: the studio gets its own history entry, pushed
      with its #hype-frame- hash as the URL (the play detail's
@@ -7485,11 +7496,21 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeHfHom
    (samples, photo plays and link plays all open the studio from
    their own cards), so the picker excludes nothing; sample rows
    keep their ⭐ SAMPLE PLAY tag, as the tiles show it.
+   (→231: samples are excluded now — see the Round 231 note
+   below.)
    Round 205 (2026-11-26, Emil): the Sample choice LEAVES the
    card — hfChoiceSample is gone and the card offers two starts
    (a posted play, or your own video). Sample plays are
    untouched: they stay on the boards and in the picker, and
-   their own cards still open the studio directly. */
+   their own cards still open the studio directly.
+   Round 231 (2026-11-27, Emil) SUPERSEDES that last part:
+   sample plays can't be used in the studio at all — the picker
+   excludes them (hfPickerEligible202), the per-play Frame
+   buttons are hidden on samples (cardHtml, tileHtml, the
+   watch view), openHypeFrame refuses a sample seed by landing
+   the visitor on this choice card instead, and the server
+   rejects sample-sourced orders. Samples stay on the boards,
+   the feed, the watch page and practice battles, unchanged. */
 window.openHfChoice = () => { const m = $("#hfChoiceModal"); if (!m) return; if (m.parentElement !== document.body) document.body.appendChild(m); hfPickerReset202(); m.hidden = false; };
 window.closeHfChoice = () => { const m = $("#hfChoiceModal"); if (m) m.hidden = true; hfPickerReset202(); };
 window.hfChoiceOwn = () => { closeHfChoice(); goSubmit(); };
@@ -7507,6 +7528,7 @@ function hfPickerEligible202() {
   const seen = new Set(), out = [];
   for (const p of [...(ALL_PLAYS || []), ...((CONTEST && CONTEST.entries) || [])]) {
     if (!p || p.id == null || seen.has(p.id)) continue;
+    if (p.isSample) continue; // Round 231: samples are out of the studio entirely — never listed
     seen.add(p.id); out.push(p);
   }
   const stamp = (p) => { const t = parsePlayDate(p.created_at); return Number.isFinite(t) ? t : (p.id || 0); };
@@ -7527,7 +7549,7 @@ function hfPickerRender202(q) {
   list.innerHTML = hits.map((p) => {
     const poster = hfPickerPoster202(p);
     const who = [p.athlete_label || p.player_name || "", cap(p.sport), p.team || ""].filter(Boolean).join(" · ");
-    return `<button type="button" class="hf-picker-row" onclick="hfPickerPick202(${p.id})">${poster ? `<img class="hf-picker-thumb" src="${esc(poster)}" alt="" loading="lazy">` : `<span class="hf-picker-thumb hf-picker-thumb-none">${esc(cap(p.sport || "Play"))}</span>`}<span class="hf-picker-main"><b>${esc(p.title)}</b><span>${esc(who)}</span></span>${p.isSample ? `<span class="tile-sample-tag">⭐ SAMPLE PLAY</span>` : ""}</button>`;
+    return `<button type="button" class="hf-picker-row" onclick="hfPickerPick202(${p.id})">${poster ? `<img class="hf-picker-thumb" src="${esc(poster)}" alt="" loading="lazy">` : `<span class="hf-picker-thumb hf-picker-thumb-none">${esc(cap(p.sport || "Play"))}</span>`}<span class="hf-picker-main"><b>${esc(p.title)}</b><span>${esc(who)}</span></span></button>`;
   }).join("");
   if (empty) {
     if (!eligible.length) { empty.textContent = "No plays are up yet — post yours to get started."; empty.hidden = false; }
