@@ -63,7 +63,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=229"') && home.includes('href="styles.css?v=221"'), "A: asset pins — app.js v222 / styles v215 (Round 223; both files changed) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
+assert(home.includes('src="app.js?v=230"') && home.includes('href="styles.css?v=221"'), "A: asset pins — app.js v222 / styles v215 (Round 223; both files changed) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round)");
 
 // ---- B. statics ----
 // The server field (scope 5).
@@ -382,7 +382,7 @@ async function boot(port, extraEnv = {}) {
     assert(!!board.vid.poster_url, "D: …and the poster itself was re-picked (the moment and the frame agree)");
 
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=229"') && served.includes('href="styles.css?v=221"'), "D: the served homepage carries the Round 223 pins — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
+    assert(served.includes('src="app.js?v=230"') && served.includes('href="styles.css?v=221"'), "D: the served homepage carries the Round 223 pins — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("feedWireControls223") && servedApp.includes("data-feed-scrub") && servedApp.includes("openHeroFeed223"), "D: the served app.js carries the feed controls + the hero entry");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();

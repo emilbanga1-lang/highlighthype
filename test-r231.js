@@ -60,7 +60,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=229"'), "A: asset pins — app.js v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233)");
+assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=230"'), "A: asset pins — app.js v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round)");
 
 // ---- B. statics: the three layers ----
 const elig = appJs.slice(appJs.indexOf("function hfPickerEligible202()"), appJs.indexOf("function hfPickerPoster202("));

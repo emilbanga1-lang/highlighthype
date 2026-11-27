@@ -34,7 +34,8 @@
 //    hero start paths (controller, showHome, studio-exit
 //    resume) route through the pick and respect the hold.
 //
-// Pins: app.js v229 / styles v221.
+// Pins: app.js v229 / styles v221. — →234: app.js now v230
+// (Round 234); styles keeps v221 (unchanged this round).
 // Run: node test-r233.js — exits non-zero on failure.
 import fs from "node:fs";
 import path from "node:path";
@@ -48,7 +49,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + the lite asset ----
-assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=229"'), "A: asset pins — app.js v229 / styles v221 (Round 233)");
+assert(home.includes('href="styles.css?v=221"') && home.includes('src="app.js?v=230"'), "A: asset pins — app.js v229 / styles v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round)");
 const fullSize = fs.statSync(path.join(ROOT, "public/hero-film.mp4")).size;
 const liteSize = fs.statSync(path.join(ROOT, "public/hero-film-lite.mp4")).size;
 assert(fullSize === 6964246, "A: the full hero film is untouched (6,964,246 B)");
@@ -65,7 +66,7 @@ assert(fameFn.includes('opts.rest133 ? "" : " autoplay"') && fameFn.includes('pr
 const tileFn = appJs.slice(appJs.indexOf("function tileHtml("), appJs.indexOf("/* Vote hardening"));
 assert(tileFn.includes("Object.assign({}, opts, { gate233: true })"), "B1: tileHtml threads gate233 into fameThumbHtml (board grid tiles only)");
 const renderAll2Fn = appJs.slice(appJs.indexOf("function renderAll2()"), appJs.indexOf("function renderPlayDetail"));
-assert(renderAll2Fn.includes("bindTileGate233(b233)"), "B1: renderAll2 binds the gate to the fresh grid after every board render");
+assert(renderAll2Fn.includes("bindTileGate233()") && !renderAll2Fn.includes("bindTileGate233(b233)"), "B1: renderAll2 binds the gate after every board render — →234: the bind is DOCUMENT-WIDE (bindTileGate233() with no root), not scoped to #allBoard: a scoped bind makes coverage depend on the container a renderer used, so any gated tile outside #allBoard would sit unobserved forever (Round 234)");
 // B2: the gate machinery.
 assert(appJs.includes("function bindTileGate233(") && appJs.includes("function tileGateLoad233(") && appJs.includes("function tileGateUnload233("), "B2: the gate machinery exists (bind / load / unload)");
 assert(appJs.includes('rootMargin: "400px 0px 400px 0px"') && appJs.includes('querySelectorAll("video[data-src233]:not(.vfill)")'), "B2: one shared observer, 400px rootMargin, .vfill clones never observed");
