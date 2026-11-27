@@ -5860,6 +5860,35 @@ function avatarRateLimited(req) {
   avatarHitsByIp.set(ip, hits);
   return false;
 }
+/* Round 229 (2026-11-27, Emil): studio auto fence-clean — the
+   detect half. Detection (the Round 227 vision question, reused
+   verbatim via r227DetectFence227) gets its OWN lighter per-IP
+   budget (30/hr): a studio session legitimately checks several
+   frames (seed + a few picks), and detection must never eat the
+   fence EDIT budget below (6/hr), which auto and manual cleans
+   share through the remove-fence endpoint exactly as before.
+   Auto-clean is "on" only when detection can run (vision key),
+   the edit can run (hfFenceConfigured222 — OpenAI key +
+   HH_NO_FENCE unset) and neither kill switch stands it down:
+   HH_NO_FENCE (everything) or HH_NO_FENCE_AUTO=1 (auto only —
+   the manual Round 222 step returns). */
+const FENCE_DETECT_RATE_LIMIT229 = 30;    // detections per IP per window
+const fenceDetectHitsByIp229 = new Map();
+function fenceDetectConfigured229() {
+  return !!process.env.AI_VISION_API_KEY && hfFenceConfigured222();
+}
+function fenceAutoConfigured229() {
+  return fenceDetectConfigured229() && process.env.HH_NO_FENCE_AUTO !== "1";
+}
+function fenceDetectRateLimited229(req) {
+  const ip = clientIp(req);
+  const now = Date.now();
+  const hits = (fenceDetectHitsByIp229.get(ip) || []).filter((t) => now - t < FENCE_RATE_WINDOW_MS);
+  if (hits.length >= FENCE_DETECT_RATE_LIMIT229) { fenceDetectHitsByIp229.set(ip, hits); return true; }
+  hits.push(now);
+  fenceDetectHitsByIp229.set(ip, hits);
+  return false;
+}
 // Same per-IP pattern for Hype Frame fence removal (Round 222, see constants).
 function fenceRateLimited222(req) {
   const ip = clientIp(req);
@@ -6509,7 +6538,45 @@ const server = http.createServer(async (req, res) => {
     // set, HH_NO_FENCE unset) — otherwise the photo path behaves
     // exactly as it did before this round.
     if (p === "/api/hype-frame/fence-status" && req.method === "GET") {
-      return sendJson(res, 200, { ok: true, configured: hfFenceConfigured222() });
+      // Round 229: the status now also carries the auto-clean
+      // word — detect (vision + edit both configured) and auto
+      // (detect, minus the HH_NO_FENCE_AUTO kill switch) — so
+      // the studio knows whether entering it auto-cleans frames
+      // or keeps the manual Round 222 step. `configured` is
+      // unchanged (the edit's word, Round 222).
+      return sendJson(res, 200, { ok: true, configured: hfFenceConfigured222(), detect: fenceDetectConfigured229(), auto: fenceAutoConfigured229() });
+    }
+    // ---- Hype Frame fence detection (Round 229) ----
+    // The detect half of the studio's auto-clean: the browser
+    // posts the current print-source frame (same data-URL shape
+    // as remove-fence); the server asks the Round 227 vision
+    // question and answers {fence}. Detection NEVER cleans —
+    // a yes is the studio's cue to run the ordinary remove-fence
+    // edit. The frame is forwarded and dropped, never logged,
+    // never stored, exactly like the edit's.
+    if (p === "/api/hype-frame/fence-detect" && req.method === "POST") {
+      if (!process.env.AI_VISION_API_KEY) return sendJson(res, 503, { ok: false, configured: false, auto: false, message: "Fence detection isn't switched on right now — your photo still works as it is." });
+      if (!fenceAutoConfigured229()) return sendJson(res, 200, { ok: true, configured: true, auto: false, fence: false });
+      if (fenceDetectRateLimited229(req)) return sendJson(res, 429, { ok: false, configured: true, auto: true, message: "That's a lot of fence checks in an hour — give it a little while. Your photo still works as it is." });
+      const FENCE_BODY_MAX222 = 8 * 1024 * 1024;
+      if (Number(req.headers["content-length"] || 0) > FENCE_BODY_MAX222) return sendJson(res, 413, { ok: false, configured: true, auto: true, message: "That photo is too large to check for a fence." });
+      let raw;
+      try { raw = await readBody(req, FENCE_BODY_MAX222); }
+      catch { try { return sendJson(res, 413, { ok: false, configured: true, auto: true, message: "That photo is too large to check for a fence." }); } catch { return; } }
+      let body = null;
+      try { body = JSON.parse(raw.toString("utf8") || "{}"); } catch { body = null; }
+      const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String((body && body.image) || ""));
+      if (!m) return sendJson(res, 400, { ok: false, configured: true, auto: true, message: "Send the photo as a jpeg/png data URL." });
+      const buf = Buffer.from(m[2], "base64");
+      if (!buf.length || buf.length > HF_FENCE_MAX222) return sendJson(res, 400, { ok: false, configured: true, auto: true, message: "That photo is too large to check for a fence." });
+      try {
+        const fence = await r227DetectFence227(buf);
+        console.log("hype-frame fence-detect: " + (fence ? "fence found" : "no fence"));
+        return sendJson(res, 200, { ok: true, configured: true, auto: true, fence });
+      } catch (e) {
+        console.error("hype-frame fence-detect failed:", e.message);
+        return sendJson(res, 502, { ok: false, configured: true, auto: true, failed: true, message: "The fence check couldn't finish that one — your photo still works as it is." });
+      }
     }
     // Removal: the browser posts the current print-source photo
     // (a data URL it holds itself); the photo is validated and
@@ -6518,6 +6585,12 @@ const server = http.createServer(async (req, res) => {
     // returns as a data URL; the studio shows it for the
     // parent's explicit approval before it can become the print
     // source. Nothing is ever cleaned automatically.
+    // →229: Emil reversed the never-automatic rule for the
+    // studio — entering the studio now detect+cleans the frame
+    // automatically (fence-detect above + this edit), with the
+    // cleaned frame as the default and a one-tap "Use original"
+    // revert. This endpoint itself is unchanged: it still just
+    // returns the cleaned photo; the studio decides.
     if (p === "/api/hype-frame/remove-fence" && req.method === "POST") {
       if (!hfFenceConfigured222()) return sendJson(res, 503, { ok: false, configured: false, message: "Fence removal isn't switched on right now — your photo still works as it is." });
       if (fenceRateLimited222(req)) return sendJson(res, 429, { ok: false, configured: true, message: "That's a lot of fence removals in an hour — give it a little while and try again. Your photo still works as it is." });
@@ -6882,7 +6955,15 @@ const server = http.createServer(async (req, res) => {
         back_text_custom: backTextCustom,
         name_mode: nameMode218,
         design_label: designLabel218,
-        branding: body.branding === false ? 0 : 1,
+        // Round 229 (2026-11-27, Emil): the Print style picker is
+        // gone — every design is the Hype Frame format. A missing
+        // preset value, or a legacy one (classic / signature)
+        // riding in from a cached old studio, is treated as
+        // hypeframe: branding is always on for a NEW order,
+        // whatever the payload claims. Historical rows keep
+        // their stored values — only new-payload interpretation
+        // changes.
+        branding: 1,
         apparel: String(body.apparel || "").trim().toLowerCase() === "tee" ? "tee" : "hoodie",
         // Round 208 (2026-11-26, Emil): the print-side default
         // flips to "back" — the framed print is a back print (his
