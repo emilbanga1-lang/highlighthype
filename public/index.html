@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=227" />
+<link rel="stylesheet" href="styles.css?v=228" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1440,11 +1440,13 @@
 <section class="panel" id="hypeframe" data-panel="hypeframe">
   <div class="wrap">
     <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
-    <div class="sec-head">
-      <span class="sec-tag">Hype Frame · Studio</span>
-      <h2>Your moment. <span class="lime">Your swag.</span></h2>
-      <p id="hfPlayLine">Turn your highlight into wearable hype — freeze a real frame from the highlight, put it on premium youth apparel, and send the request. A parent or guardian confirms before anything is printed.</p>
-    </div>
+    <!-- Round 244 (2026-11-27, Emil): the studio hero block is
+         GONE — the "Hype Frame · Studio" eyebrow, the "Your
+         moment. Your swag." headline and the play-line paragraph
+         repeated what the product card says and pushed the
+         hoodie a full screen down ("too much scrolling"). Back
+         to the board now sits at the very top of the page and
+         the product card follows immediately. -->
 
     <!-- Round 200 (2026-11-26): the payment return landing. A
          parent coming back from Shopify checkout lands on
@@ -1511,8 +1513,19 @@
            Everything else in this note stands. -->
       <div id="hfProduct215">
         <h3 class="hf-product-title215" id="hfProductTitle215">Your Hype Frame Hoodie</h3>
-        <p class="hf-product-sub215" id="hfProductSub215"></p>
-        <p class="hf-price-top222" id="hfPriceTop222">$110 · Made to order</p>
+        <!-- Round 244 (2026-11-27, Emil): the "From the play …"
+             sub-line is removed (it repeated the title), and the
+             Front/Back flip rides HERE now — small toggles on the
+             price row, out of the garment card. Same buttons,
+             same data-hf-garment-view wiring; the sync + click
+             binding select them by the group's own id now. -->
+        <div class="hf-price-row244">
+          <p class="hf-price-top222" id="hfPriceTop222">$110 · Made to order</p>
+          <div class="seg hf-garment-flip206" id="hfGarmentFlip206" role="group" aria-label="Preview the front or back of the hoodie">
+            <button type="button" data-hf-garment-view="front" aria-pressed="false">Front</button>
+            <button type="button" data-hf-garment-view="back" aria-pressed="true">Back</button>
+          </div>
+        </div>
 <!-- Round 238 (2026-11-27, Emil): the pin zone is gone.
            Round 229 wrapped the garment + Your moment + Artwork
            in a wrapper div (the old hfPinZone229) purely to
@@ -1532,10 +1545,9 @@
                       <div class="hf-garment-backtext206" id="hfGarmentBackText206" hidden></div>
                     </div>
                     <div class="hf-garment-bar206">
-                      <div class="seg hf-garment-flip206" role="group" aria-label="Preview the front or back of the hoodie">
-                        <button type="button" data-hf-garment-view="front" aria-pressed="false">Front</button>
-                        <button type="button" data-hf-garment-view="back" aria-pressed="true">Back</button>
-                      </div>
+                      <!-- →244: the Front/Back flip moved up to the
+                           price row (see #hfGarmentFlip206) — the
+                           bar keeps only the preview caption. -->
                       <span class="hf-garment-cap206">Preview — your design on the hoodie</span>
                     </div>
                     <!-- Round 242 (2026-11-27, Emil): the artwork choice
@@ -1547,6 +1559,18 @@
                     <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
                       <button type="button" data-hf-image-style="photo" aria-pressed="true">Frame</button>
                       <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
+                    </div>
+                    <!-- Round 244 (2026-11-27, Emil): picking
+                         Illustrated avatar STARTS the generation
+                         right here — this block carries its
+                         progress where the parent is looking (the
+                         preview card), plus the failure + retry.
+                         The maker panel in the Artwork section
+                         keeps the crop, the result and the
+                         Use-this-avatar / Use-my-photo choice. -->
+                    <div class="hf-avatar-card244" id="hfAvatarCard244" hidden>
+                      <p class="hf-avatar-card-note244" id="hfAvatarCardNote244" aria-live="polite"></p>
+                      <button type="button" class="mini-btn" id="hfAvatarRetry244" hidden>Try the avatar again</button>
                     </div>
                     <!-- Round 229 (2026-11-27, Emil): auto fence-clean —
                          entering the studio checks the frame and cleans
@@ -1566,6 +1590,10 @@
                         <button type="button" id="hfFenceAutoOriginal229">Use original</button>
                         <button type="button" id="hfFenceAutoCleaned229">Use cleaned photo</button>
                       </div>
+                      <!-- Round 244: a failed auto check offers its
+                           own retry here (the manual step below is
+                           the other fallback). -->
+                      <button type="button" class="mini-btn hf-fence-auto-retry244" id="hfFenceAutoRetry244" hidden>Try the fence check again</button>
                     </div>
                   </div>
         <div class="hf-sec-head222" id="hfRowPhoto215">
@@ -1667,6 +1695,31 @@
           </div>
           <p class="hf-photo-msg215" id="hfPhotoMsg215" aria-live="polite" hidden></p>
         </div>
+        <!-- Round 244 (2026-11-27, Emil): Name on design rides HERE now —
+             his studio order is: pick the image, pick Frame or avatar,
+             decide the name, then the rest. It lived inside the Artwork
+             section below placement; same head + panel, same wiring. -->
+        <div class="hf-sec-head222" id="hfRowBackText215">
+          <span class="hf-sec-k222">Name on design</span>
+          <span class="hf-sec-v222" id="hfRowBackTextState215"></span>
+        </div>
+        <div class="hf-optpanel215 hf-sec-body222" id="hfBackTextPanel215">
+          <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Name on the design">
+                    <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
+                    <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
+                    <button type="button" data-hf-back-text="none" aria-pressed="false">No name</button>
+                    <button type="button" data-hf-back-text="custom" aria-pressed="false">Your own words</button>
+                  </div>
+          <p class="small">What rides on the top line of the print design — the athlete's name in big brush lettering, the name with their number, no name line at all, or your own words instead.</p>
+          <div id="hfBackCustomRow197" hidden>
+                    <label>Your words for the top line <input type="text" id="hfBackCustom197" maxlength="16" placeholder="e.g. GO HAWKS!"></label>
+                    <p class="small">Up to 16 characters — letters, numbers, spaces and basic punctuation. We read every custom line before it's made.</p>
+                  </div>
+          <label>Name — printed at the top of the design <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
+          <div class="row2" id="hfJerseyRow205" hidden>
+                    <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
+                  </div>
+        </div>
         <div class="hf-sec-head222" id="hfRowArtwork215">
           <span class="hf-sec-k222">Artwork</span>
           <span class="hf-sec-v222" id="hfRowArtworkState215"></span>
@@ -1728,27 +1781,6 @@
                       <button type="button" data-hf-side="back" aria-pressed="true">Back</button>
                     </div>
             <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above. This is where the print goes — the Front/Back flip on the preview just turns the hoodie around.</p>
-          </div>
-          <div class="hf-sec-head222 hf-sec-sub222" id="hfRowBackText215">
-            <span class="hf-sec-k222">Name on design</span>
-            <span class="hf-sec-v222" id="hfRowBackTextState215"></span>
-          </div>
-          <div class="hf-optpanel215 hf-sec-body222" id="hfBackTextPanel215">
-            <div class="seg hf-backtext197" id="hfBackText197" role="group" aria-label="Name on the design">
-                      <button type="button" data-hf-back-text="name" aria-pressed="true">Name</button>
-                      <button type="button" data-hf-back-text="name_number" aria-pressed="false">Name + number</button>
-                      <button type="button" data-hf-back-text="none" aria-pressed="false">No name</button>
-                      <button type="button" data-hf-back-text="custom" aria-pressed="false">Your own words</button>
-                    </div>
-            <p class="small">What rides on the top line of the print design — the athlete's name in big brush lettering, the name with their number, no name line at all, or your own words instead.</p>
-            <div id="hfBackCustomRow197" hidden>
-                      <label>Your words for the top line <input type="text" id="hfBackCustom197" maxlength="16" placeholder="e.g. GO HAWKS!"></label>
-                      <p class="small">Up to 16 characters — letters, numbers, spaces and basic punctuation. We read every custom line before it's made.</p>
-                    </div>
-            <label>Name — printed at the top of the design <input type="text" id="hfName" maxlength="30" placeholder="e.g. Nick"></label>
-            <div class="row2" id="hfJerseyRow205" hidden>
-                      <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
-                    </div>
           </div>
         </div>
         <div class="hf-buycard215" id="hfBuyCard215">
@@ -2668,6 +2700,6 @@
   </div>
 </div>
 
-<script src="app.js?v=238"></script>
+<script src="app.js?v=239"></script>
 </body>
 </html>

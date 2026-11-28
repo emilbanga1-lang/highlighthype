@@ -3538,7 +3538,12 @@ const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // maker, null = not asked yet), and frameCanvas206 — the frozen
 // frame's canvas snapshot (the photo the avatar reverts to; a
 // canvas clone, so reverting never re-seeks the video).
-const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0, avatarFocus221: null, seedFrame215: false, fenceConfigured222: null, fenceBusy222: false, fenceClean222: "", fenceDetect229: null, fenceAuto229: null, fenceAutoCache229: {}, fenceAutoKey229: "", fenceAutoClean229: "", fenceAutoOriginal229: null, fenceAutoBusy229: false, fenceAutoFailed229: false, fenceAutoToken229: 0 };
+const hfState = { play: null, mediaType: "", apparel: "hoodie", side: "back", imageStyle: "photo", colorway: "Black", size: "", frozen: false, printDataUrl: "", printAspect: 0, placement: { ...HF_PLACEMENT_DEFAULT }, preset: "hypeframe", backText: "name", frameTime205: null, garmentView206: "back", avatarDataUrl206: "", avatarApplied206: false, avatarPreview206: false, avatarConfigured206: null, avatarBusy206: false, frameCanvas206: null, clipOpen211: false, screen215: "product", designAspect218: 0, avatarFocus221: null, seedFrame215: false, fenceConfigured222: null, fenceBusy222: false, fenceClean222: "", fenceDetect229: null, fenceAuto229: null, fenceAutoCache229: {}, fenceAutoKey229: "", fenceAutoClean229: "", fenceAutoOriginal229: null, fenceAutoBusy229: false, fenceAutoFailed229: false, fenceAutoToken229: 0, avatarFailed244: false, avatarStale244: false };
+// Round 244 state: avatarFailed244 (the last auto-started avatar
+// generation produced nothing — the preview card offers its
+// retry) and avatarStale244 (a generation finished for a frame
+// the parent has since replaced — its result was discarded and
+// the auto-start re-runs for the current frame).
 // Round 215 state: screen215 (the one-page studio's two
 // screens — "product" / "review" — presentation only, never
 // read by the order path; the Round 211 step211 / stepMax211
@@ -3603,7 +3608,8 @@ function initHfStudio(play) {
   hfState.printDataUrl = "";
   hfState.printAspect = 0;
   hfState.placement = { ...HF_PLACEMENT_DEFAULT };
-  $("#hfPlayLine").textContent = `From the play “${play.title}” — freeze the frame, make it yours, and send the request. A parent or guardian confirms before anything is printed.`;
+  // →244: the studio hero block (with #hfPlayLine) is removed
+  // from the page — nothing writes to it any more.
   $("#hfName").value = play.athlete_label || play.player_name || "";
   $("#hfJersey").value = play.jersey || "";
   hfState.preset = "hypeframe"; // Round 229: fixed — the Print style picker is gone
@@ -3666,6 +3672,8 @@ function initHfStudio(play) {
   hfState.avatarApplied206 = false;
   hfState.avatarPreview206 = false;
   hfState.avatarBusy206 = false;
+  hfState.avatarFailed244 = false; // Round 244: the card retry belongs to the previous play too
+  hfState.avatarStale244 = false;
   hfState.frameCanvas206 = null;
   hfState.designAspect218 = 0;
   hfState.avatarFocus221 = null;
@@ -3708,8 +3716,9 @@ function initHfStudio(play) {
   // (hfRecommend205 reads seedFrame215).
   const title215 = $("#hfProductTitle215");
   if (title215) { const who215 = (play.athlete_label || play.player_name || "").trim(); title215.textContent = who215 ? `${who215}'s Hype Frame Hoodie` : "Your Hype Frame Hoodie"; }
-  const sub215 = $("#hfProductSub215");
-  if (sub215) sub215.textContent = hfState.mediaType === "link" ? `From the play “${play.title}”.` : `From the play “${play.title}” — the frame is already on the hoodie.`;
+  // →244: the product card's "From the play …" sub-line is
+  // removed from the page (Emil) — the title + price row carry
+  // the card now.
   hfShowScreen215("product", true);
   hfSyncClipRow211();
   hfSetClipOpen211(hfState.mediaType !== "video");
@@ -3937,7 +3946,13 @@ function hfPhotoPicked215() {}
    winner wears a "Recommended" badge and is pre-selected through
    the same one-tap path as a manual pick; any other tap
    overrides it. Scoring runs after the strip renders and never
-   blocks the studio opening. */
+   blocks the studio opening.
+   →244 (2026-11-27, Emil): two corrections — when the play
+   carries a poster_time, the ★ is the strip frame nearest it
+   (the poster is the curated action frame; scoring never gets
+   a say), and the scorer itself now disqualifies empty/static
+   frames whenever any frame carries real motion — the old
+   sharpness-led contest crowned play 71's empty-fence 0:12. */
 function hfThumbLuma205(img) {
   const W = 48;
   const iw = img.naturalWidth || 16, ih = img.naturalHeight || 9;
@@ -3997,6 +4012,29 @@ function hfScoreStills205(frames) {
   const motionAt = (i) => Math.max(pairs[i - 1] ? pairs[i - 1].energy : 0, pairs[i] ? pairs[i].energy : 0);
   const ok = stats.map((s) => s.mean >= 10); // near-black / blank stills never win
   if (!ok.some(Boolean)) return -1;
+  // Round 244 (2026-11-27, Emil): an EMPTY, STATIC frame must
+  // never win either. On play 71 the ★ landed on 0:12 — an
+  // empty patch of field behind the fence: nobody in it,
+  // nothing happening. It won on sharpness alone (a chain-link
+  // fence is a luma-gradient magnet and a still camera is never
+  // motion-blurred), because the old rule only disqualified
+  // near-black frames. Now: when any frame carries real motion,
+  // a frame with effectively no motion AND no moving-subject
+  // mask is disqualified — it can only win when the whole strip
+  // reads still, where nothing better exists.
+  {
+    const maxMotion244 = Math.max(...frames.map((_, i) => motionAt(i)), 0);
+    if (maxMotion244 > 0) {
+      let kept244 = 0;
+      for (let i = 0; i < n; i++) {
+        if (!ok[i]) continue;
+        const pr = pairAt(i);
+        const still244 = motionAt(i) <= maxMotion244 * 0.06 && (!pr || pr.maskFrac < 0.01);
+        if (still244) ok[i] = false; else kept244++;
+      }
+      if (!kept244) stats.forEach((s, i) => { ok[i] = s.mean >= 10; }); // every candidate read still — the old ranking stands
+    }
+  }
   const norm = (vals) => { const m = Math.max(...vals, 1e-9); return vals.map((v) => v / m); };
   const sharpN = norm(stats.map((s) => s.sharp));
   const motionN = norm(stats.map((_, i) => motionAt(i)));
@@ -4026,9 +4064,25 @@ async function hfRecommend205(strip, token) {
   // strip is already on screen and tappable).
   await Promise.all(imgs.map((im) => (im.complete && im.naturalWidth) ? null : new Promise((res) => { im.addEventListener("load", res, { once: true }); im.addEventListener("error", res, { once: true }); })));
   if (token !== hfStripToken) return;
-  let frames;
-  try { frames = imgs.map((im) => hfThumbLuma205(im)); } catch { return; }
-  const best = hfScoreStills205(frames);
+  // Round 244: the POSTER ANCHOR comes first. A play's
+  // poster_time is its curated action moment (the poster was
+  // picked from it — Rounds 209/227/241), so when the play
+  // carries one, the recommended frame is simply the strip
+  // frame nearest that time — no scoring contest for an empty
+  // fence shot to steal (Emil, on play 71: the ★ was 0:12, an
+  // empty field). The local scoring below only serves plays
+  // with no poster_time.
+  const pt244 = hfState.play && Number(hfState.play.poster_time) > 0 ? Number(hfState.play.poster_time) : 0;
+  let best = -1;
+  if (pt244 > 0) {
+    let bd244 = Infinity;
+    thumbs.forEach((b, i) => { const d244 = Math.abs(Number(b.dataset.hfT || 0) - pt244); if (d244 < bd244) { bd244 = d244; best = i; } });
+  }
+  if (best < 0) {
+    let frames;
+    try { frames = imgs.map((im) => hfThumbLuma205(im)); } catch { return; }
+    best = hfScoreStills205(frames);
+  }
   if (best < 0 || token !== hfStripToken) return;
   const btn = thumbs[best];
   if (!btn || btn.querySelector(".hf-rec-badge205")) return;
@@ -4230,6 +4284,7 @@ function hfCommitCapture235(scratch) {
   if (typeof hfSyncFence222 === "function") hfSyncFence222();
   composeHfPrint();
   if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: a picked/frozen frame is auto-checked + cleaned
+  if (typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244(); // Round 244: a new frame under a picked avatar regenerates the avatar from it
   return true;
 }
 function freezeHfFrame() {
@@ -4758,6 +4813,16 @@ function hfPickImageStyle(style) {
   // (it also kicks the one-time configured check).
   if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
   if (typeof hfSyncRowStates215 === "function") hfSyncRowStates215();
+  // Round 244 (2026-11-27, Emil): picking Illustrated avatar
+  // STARTS the generation — his flow is "pick image → pick
+  // Frame or avatar → if avatar, generate it right when avatar
+  // is clicked". Before this round the tap only unhid a panel
+  // two sections down (off-screen on a phone) where a second
+  // tap on "Make my avatar" was still required, and the
+  // garment never changed — from the parent's seat, nothing
+  // happened. The auto-start is typeof-guarded for the narrow
+  // VM slices that drive this picker alone.
+  if (hfState.imageStyle === "avatar" && typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244();
 }
 /* Words on the back (Round 197, 2026-11-25 — parent feedback Emil
    received with the first delivered sweatshirt): the embroidered
@@ -5087,6 +5152,7 @@ function hfSeedPoster215(play) {
       composeHfPrint();
       if (!hfState.printDataUrl) throw new Error("empty print");
       if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: the seeded frame is auto-checked + cleaned on entry
+      if (typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244(); // Round 244: no-op while Frame is picked (the studio opens on Frame)
     } catch {
       // Fall back to the pre-seed behavior: no frozen frame.
       hfState.frozen = false;
@@ -5143,6 +5209,7 @@ function hfUploadPhoto222(file) {
       if (typeof hfSyncFence222 === "function") hfSyncFence222();
       composeHfPrint();
       if (typeof hfAutoFence229 === "function") hfAutoFence229(); // Round 229: an uploaded photo is auto-checked + cleaned too
+      if (typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244(); // Round 244: an uploaded photo under a picked avatar regenerates the avatar from it
       note222("Your photo is on the hoodie — it's the print now. Pick a frame instead any time.");
     } catch {
       note222("That photo couldn't be read — try another one.");
@@ -5267,6 +5334,13 @@ function hfGarmentBackText206() {
 
 function hfGarmentSync206() {
   const wrap = $("#hfGarment206"); if (!wrap) return;
+  const view = hfState.garmentView206 === "back" ? "back" : "front";
+  // Round 244: the Front/Back flip lives in the price row now
+  // (#hfGarmentFlip206, out of this card — Emil), so its pills
+  // sync by the group's own id, and they sync even when the
+  // garment card itself stands down (the toggles stay visible
+  // on the price row either way).
+  $$("#hfGarmentFlip206 [data-hf-garment-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfGarmentView === view)));
   // Round 211: the garment IS the studio's first screen — it
   // shows whenever a play is open (a frozen print is no longer
   // the gate). Before a frame is captured the print area
@@ -5277,8 +5351,6 @@ function hfGarmentSync206() {
   const show = !!(hfState.play || (hfState.frozen && hfState.printDataUrl));
   wrap.hidden = !show;
   if (!show) return;
-  const view = hfState.garmentView206 === "back" ? "back" : "front";
-  $$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hfGarmentView === view)));
   // The garment shows what WILL print: while an avatar
   // preview waits for the family's call it is the preview
   // (approval flips it — hfApplyAvatar206); otherwise the
@@ -5407,6 +5479,10 @@ function hfAvatarNote206(text) {
   const el = $("#hfAvatarStatus206"); if (!el) return;
   el.textContent = text || "";
   el.hidden = !text;
+  // Round 244: the same note mirrors into the preview card —
+  // the parent is looking at the garment when they pick the
+  // avatar, not at the maker panel two sections down.
+  if (typeof hfAvatarCardSync244 === "function") hfAvatarCardSync244();
 }
 function hfSyncAvatar206() {
   const panel = $("#hfAvatarPanel206"); if (!panel) return;
@@ -5429,6 +5505,61 @@ function hfSyncAvatar206() {
   if (useBtn) useBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 === true));
   if (photoBtn) photoBtn.setAttribute("aria-pressed", String(hfState.avatarApplied206 !== true));
   hfSyncAvatarCrop221();
+  if (typeof hfAvatarCardSync244 === "function") hfAvatarCardSync244();
+}
+/* Round 244 (2026-11-27, Emil): the avatar's in-card status.
+   The preview card carries the generation's progress, its
+   landing and its failure (+ retry) — hfAvatarNote206's panel
+   note is mirrored here while the avatar style is picked, so
+   the parent never has to go looking for what happened. */
+function hfAvatarCardSync244() {
+  const box = $("#hfAvatarCard244"); if (!box) return;
+  const note = $("#hfAvatarCardNote244"), retry = $("#hfAvatarRetry244");
+  const avatar = hfState.imageStyle === "avatar";
+  const panelNote = $("#hfAvatarStatus206");
+  const text = avatar ? (panelNote ? (panelNote.textContent || "") : "") : "";
+  box.hidden = !(avatar && (text || hfState.avatarBusy206 || hfState.avatarFailed244));
+  if (note) note.textContent = hfState.avatarBusy206 ? "Creating your avatar from this frame…" : text;
+  if (retry) retry.hidden = !(avatar && hfState.avatarFailed244 && !hfState.avatarBusy206);
+}
+/* Round 244: the auto-start behind the avatar pick (and behind
+   a frame change while the avatar is picked). One rule: while
+   Illustrated avatar is the picked style, the design IS an
+   avatar of the current frame — generated on the pick, applied
+   to the garment when it lands, regenerated when the frame
+   changes under it. The panel's own Make button keeps its
+   Round 206 preview-then-approve semantics; this path is the
+   one Emil's flow names ("generate it right when avatar is
+   clicked"), so its result is approved into the print on
+   arrival — "Use my photo" (panel) or the Frame pill always
+   brings the photo back. Failure never goes silent: the make's
+   own note lands in the panel AND the card, and the card
+   offers the retry. */
+async function hfAvatarAutoStart244() {
+  if (hfState.imageStyle !== "avatar" || hfState.avatarBusy206) { hfAvatarCardSync244(); return; }
+  if (hfState.avatarApplied206 && hfState.avatarDataUrl206) { hfAvatarCardSync244(); return; } // already the design
+  if (hfState.avatarDataUrl206) { hfApplyAvatar206(); hfAvatarCardSync244(); return; } // generated for this frame, not yet the print
+  if (!hfState.frozen || !hfState.frameCanvas206) { hfAvatarNote206("Pick a frame first — the avatar is made from your frame."); hfAvatarCardSync244(); return; }
+  if (hfState.avatarConfigured206 === null) { hfAvatarStatus206().then(() => hfAvatarAutoStart244()); return; } // the one-time status word is still out
+  if (hfState.avatarConfigured206 !== true) { hfAvatarNote206("The avatar maker isn't available right now — your Frame design still works."); hfState.avatarFailed244 = true; hfAvatarCardSync244(); return; }
+  hfState.avatarFailed244 = false;
+  hfAvatarCardSync244();
+  await hfMakeAvatar206();
+  if (hfState.avatarStale244) {
+    // The frame changed mid-generation and the result was
+    // discarded — go again for the frame that's picked now.
+    hfState.avatarStale244 = false;
+    if (hfState.imageStyle === "avatar") return hfAvatarAutoStart244();
+    return;
+  }
+  if (hfState.imageStyle === "avatar" && hfState.avatarDataUrl206 && !hfState.avatarApplied206) {
+    hfApplyAvatar206(); // the generated avatar becomes the design on the garment
+    hfAvatarNote206("Your avatar is ready — it's the design on the hoodie now. Prefer the photo? Tap Frame above, or “Use my photo” in the Artwork section.");
+    hfState.avatarFailed244 = false;
+  } else if (!hfState.avatarDataUrl206) {
+    hfState.avatarFailed244 = true; // the make stood down or failed — its note already landed; the card adds the retry
+  }
+  hfAvatarCardSync244();
 }
 /* Round 221 (Emil, from the first live R218 test): the maker
    was fed the WHOLE frame and invented a generic scene around
@@ -5538,6 +5669,12 @@ async function hfMakeAvatar206() {
     // first live tests garbled (the bat's color, the helmet
     // worn straight, the feet) arrive with real pixels.
     const src = hfState.frameCanvas206;
+    // Round 244: the frame's content key at send time — a
+    // generation that lands after the parent replaced the
+    // frame is discarded, never painted (see the landing
+    // check below). typeof-guarded for the narrow VM slices
+    // that drive this maker alone.
+    const frameKey244 = (typeof hfFenceFrameKey229 === "function") ? hfFenceFrameKey229(src) : "";
     const crop221 = hfAvatarCrop221(src.width, src.height, hfState.avatarFocus221);
     const scale = Math.min(2, 2048 / Math.max(crop221.w, crop221.h));
     const tc = document.createElement("canvas");
@@ -5554,12 +5691,26 @@ async function hfMakeAvatar206() {
       j = await r.json().catch(() => null);
       if (!r.ok || !j || !j.ok || !j.image) throw new Error((j && j.message) || "The avatar maker couldn't finish that one.");
     } finally { clearTimeout(timer); }
+    // Round 244: a generation that lands for a frame the
+    // parent has since replaced is DISCARDED, never painted —
+    // the key is content-based, so a redrawn snapshot of a new
+    // frame reads different even though the canvas object is
+    // the same one. The auto-start re-runs for the current
+    // frame (avatarStale244 is its signal).
+    if (frameKey244 && hfState.frameCanvas206 && hfFenceFrameKey229(hfState.frameCanvas206) !== frameKey244) {
+      hfState.avatarStale244 = true;
+      hfAvatarNote206("The frame changed while the avatar was being made — making it from your new frame instead.");
+      return;
+    }
     hfState.avatarDataUrl206 = j.image;
     // Approval gate (Round 206 scope update, Emil): the avatar
     // PREVIEWS on the garment — the order's print art is still
     // the photo. It becomes the print only when the parent taps
     // "Use this avatar" (hfApplyAvatar206); ignoring it, or
-    // tapping "Use my photo", keeps the photo.
+    // tapping "Use my photo", keeps the photo. (→244: the
+    // auto-start path — avatar picked in the card — approves
+    // it into the print on arrival via hfAvatarAutoStart244;
+    // this panel path keeps the explicit gate.)
     hfState.avatarPreview206 = true;
     hfGarmentSync206();
     hfAvatarNote206("Your avatar is ready — it's previewing on the hoodie above. Tap “Use this avatar” to make it your print — until then, your print is still the photo.");
@@ -5725,9 +5876,13 @@ async function hfMakeFence222() {
    made from the fenced photo), and the print recomposes from
    the cleaned photo. Returns via the Image onload, like the
    Round 222 flow always did. */
-function hfApplyCleanedFrame229(url, onDone) {
+function hfApplyCleanedFrame229(url, onDone, guard229) {
   const im = new Image();
   im.onload = () => {
+    // Round 244: an optional freshness guard (the auto flow
+    // passes its run token) — a superseded clean never swaps
+    // into a frame the parent has since replaced.
+    if (guard229 && !guard229()) { if (onDone) onDone(false); return; }
     const c = $("#hfCanvas"); if (!c) { if (onDone) onDone(false); return; }
     const w = im.naturalWidth || 0, h = im.naturalHeight || 0;
     if (!w || !h) { if (onDone) onDone(false); return; }
@@ -5749,6 +5904,7 @@ function hfApplyCleanedFrame229(url, onDone) {
     if (typeof hfSyncAvatar206 === "function") hfSyncAvatar206();
     composeHfPrint();
     hfSyncFence222();
+    if (typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244(); // Round 244: the clean stood the avatar down — under a picked avatar it regenerates from the cleaned frame
     if (onDone) onDone(true);
   };
   im.onerror = () => { if (onDone) onDone(false); };
@@ -5816,6 +5972,19 @@ function hfFenceAutoReset229() {
   hfState.fenceAutoClean229 = "";
   hfState.fenceAutoOriginal229 = null;
   hfState.fenceAutoToken229 = (hfState.fenceAutoToken229 || 0) + 1;
+  // Round 244: the reset also clears the busy flag. The token
+  // bump above already invalidates any in-flight run (its
+  // finally is token-guarded, so it can never clear a NEWER
+  // run's flag) — but before this line the flag itself was the
+  // deadlock: a run superseded mid-flight never cleared it,
+  // every later check early-returned on it, and "Checking your
+  // frame for a fence…" stayed on screen forever (Emil's
+  // 2026-11-27 phone: the seed's detect was still in flight
+  // when the ★ frame committed; the new frame never got a run
+  // and the note never resolved). The commit that calls this
+  // reset calls hfAutoFence229 immediately after, so the new
+  // frame's run starts fresh.
+  hfState.fenceAutoBusy229 = false;
   if (typeof hfSyncFenceAuto229 === "function") hfSyncFenceAuto229();
 }
 function hfFenceFrameKey229(src) {
@@ -5849,9 +6018,17 @@ function hfSyncFenceAuto229() {
   if (actions) actions.hidden = !(applied || reverted);
   if (origBtn) origBtn.hidden = !applied;
   if (cleanBtn) cleanBtn.hidden = !reverted;
+  // Round 244: a FAILED verdict is a first-class state here —
+  // its own note + the retry button. (Before, the failure note
+  // the run's catch wrote was wiped by this very sync's empty
+  // else-branch the moment the run settled.)
+  const retry244 = $("#hfFenceAutoRetry244");
+  const failed = !!(entry && entry.status === "failed");
+  if (retry244) retry244.hidden = !(failed && !hfState.fenceAutoBusy229);
   if (!hfState.fenceAutoBusy229) {
     if (applied) hfFenceAutoNote229("Fence removed from your photo automatically — the cleaned photo is your print. Not happy with it? Use your original instead.");
     else if (reverted) hfFenceAutoNote229("Using your original photo, fence and all. The cleaned version is still here if you want it.");
+    else if (failed) hfFenceAutoNote229("The automatic fence check didn't finish — your photo works as it is. Try the check again, or use the manual fence step below.");
     else hfFenceAutoNote229("");
   }
 }
@@ -5902,6 +6079,7 @@ function hfAutoFence229() {
         hfFenceAutoNote229(""); // no fence → no UI noise
         return;
       }
+      hfFenceAutoNote229("Fence found in your frame — removing it…"); // Round 244: the removing state gets its own words (the edit can take a while; "Checking…" lied about which step was running)
       const cleaned = await hfFencePost229("/api/hype-frame/remove-fence", image);
       if (token229 !== hfState.fenceAutoToken229) return; // superseded while the edit ran — never apply a stale frame
       hfState.fenceAutoCache229[key] = { status: "cleaned", clean: cleaned.image, choice: "auto" };
@@ -5911,20 +6089,43 @@ function hfAutoFence229() {
       hfState.fenceAutoOriginal229.width = src.width; hfState.fenceAutoOriginal229.height = src.height;
       hfState.fenceAutoOriginal229.getContext("2d").drawImage(src, 0, 0);
       hfApplyCleanedFrame229(cleaned.image, (ok) => {
-        if (!ok) { hfState.fenceAutoFailed229 = true; hfFenceAutoNote229("The cleaned photo didn't load — your original is still your print, and the manual fence step is below if you want it."); }
+        // Round 244: !ok splits two ways — a genuine load
+        // failure on the CURRENT run (surface the fallback) vs
+        // the guard standing a superseded apply down (say
+        // nothing; the newer frame's own run is in charge).
+        if (!ok && token229 === hfState.fenceAutoToken229) { hfState.fenceAutoFailed229 = true; hfFenceAutoNote229("The cleaned photo didn't load — your original is still your print, and the manual fence step is below if you want it."); }
         hfSyncFenceAuto229();
-      });
+      }, () => token229 === hfState.fenceAutoToken229); // Round 244: never swap a stale clean into a frame the parent has since replaced
     } catch (e) {
       // A failed auto attempt never blocks the parent: the
       // original stands, the verdict is cached (no retry loop
       // on this frame), and the manual step surfaces.
-      hfState.fenceAutoCache229[key] = { status: "failed" };
-      hfState.fenceAutoFailed229 = true;
-      hfFenceAutoNote229("The automatic fence check didn't finish — your photo works as it is, and the manual fence step is below if you want it.");
+      // Round 244: token-guarded — a SUPERSEDED run's failure
+      // records nothing (before, its late rejection poisoned
+      // the session: fenceAutoFailed229 killed auto mode and
+      // the failure note landed on a frame it never checked).
+      // The visible failure note itself is hfSyncFenceAuto229's
+      // failed branch, written when this run settles.
+      if (token229 === hfState.fenceAutoToken229) {
+        hfState.fenceAutoCache229[key] = { status: "failed" };
+        hfState.fenceAutoFailed229 = true;
+      }
     } finally {
       if (token229 === hfState.fenceAutoToken229) { hfState.fenceAutoBusy229 = false; hfSyncFence222(); }
     }
   })();
+}
+/* Round 244: "Try the fence check again" — the failed frame's
+   verdict is dropped, the session fallback stands down, and
+   the auto flow re-runs for the frame that's picked now. The
+   manual step remains the other fallback (it hides again once
+   auto mode resumes). */
+function hfFenceAutoRetry229() {
+  const key = hfState.fenceAutoKey229;
+  if (key && hfState.fenceAutoCache229[key] && hfState.fenceAutoCache229[key].status === "failed") delete hfState.fenceAutoCache229[key];
+  hfState.fenceAutoFailed229 = false;
+  hfSyncFence222();
+  hfAutoFence229();
 }
 /* "Use original": the as-shot frame retakes the print source's
    seat (the exact inverse of hfApplyCleanedFrame229), and the
@@ -6093,7 +6294,11 @@ async function hfSubmitOrder206() {
   } catch (err) { if (msg) msg.textContent = "Error: " + err.message; }
 }
 (function wireHf206() {
-  $$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.addEventListener("click", () => { hfState.garmentView206 = b.dataset.hfGarmentView === "back" ? "back" : "front"; hfGarmentSync206(); }));
+  $$("#hfGarmentFlip206 [data-hf-garment-view]").forEach((b) => b.addEventListener("click", () => { hfState.garmentView206 = b.dataset.hfGarmentView === "back" ? "back" : "front"; hfGarmentSync206(); })); // →244: the flip group lives in the price row now, under its own id
+  const avatarRetry244 = $("#hfAvatarRetry244");
+  if (avatarRetry244) avatarRetry244.addEventListener("click", () => { if (typeof hfAvatarAutoStart244 === "function") hfAvatarAutoStart244(); });
+  const fenceRetry244 = $("#hfFenceAutoRetry244");
+  if (fenceRetry244) fenceRetry244.addEventListener("click", () => { if (typeof hfFenceAutoRetry229 === "function") hfFenceAutoRetry229(); });
   const fineBack206 = $("#hfFineBack206"), fineFwd206 = $("#hfFineFwd206");
   if (fineBack206) fineBack206.addEventListener("click", () => hfFineStep206(-0.1));
   if (fineFwd206) fineFwd206.addEventListener("click", () => hfFineStep206(0.1));

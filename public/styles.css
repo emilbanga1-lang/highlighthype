@@ -931,10 +931,13 @@
      tightens the shared home-panel rhythm (.panel padding, .sec-head
      margins), but the Hype Frame STUDIO keeps its original spacing —
      restore it here with panel-level specificity. */
-  #hypeframe{padding:36px 0 42px}
-  #hypeframe .sec-head{margin-bottom:26px}
-  #hypeframe .sec-tag{margin-bottom:14px}
-  #hypeframe .sec-head p{margin-top:14px}
+  /* →244 (2026-11-27, Emil): the studio hero block is removed
+     and "Back to the board" sits at the very top of the page —
+     the panel's top padding shrinks to a breath (8px) so the
+     whole page shifts up and the hoodie lands on the first
+     screen; the sec-head rules that rode here are retired
+     with the block they spaced. */
+  #hypeframe{padding:8px 0 42px}
   .hf-colors{display:flex;flex-wrap:wrap;gap:8px}
   .hf-color{display:inline-flex;align-items:center;gap:8px;appearance:none;border:1px solid var(--line2);background:#101010;color:#e8e8e8;font:inherit;font-weight:700;font-size:13.5px;padding:9px 14px 9px 10px;border-radius:999px;cursor:pointer;touch-action:manipulation}
   .hf-color-dot{width:18px;height:18px;border-radius:50%;background:var(--sw);border:1px solid rgba(255,255,255,.35);flex:none}
@@ -2057,8 +2060,10 @@
   .story-close{position:absolute;top:10px;right:10px;z-index:5;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(0,0,0,.55);color:#fff;font-size:21px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .story-close[hidden]{display:none !important}
   .stories{padding:32px 0 4px}
-  #hypeframe{padding:22px 0 28px}
-  #hypeframe .sec-head{margin-bottom:16px}
+  /* →244: top aligned with the base rule (the back link sits
+     at the very top now); the .sec-head override is retired
+     with the studio hero block itself. */
+  #hypeframe{padding:8px 0 28px}
   .hf-examples{margin-top:14px}
   .board-under{margin-top:14px}
   .final{padding:26px 0 32px}
@@ -2091,7 +2096,7 @@
     section{padding:30px 0}
     .sec-head h2{font-size:clamp(38px,4.5vw,54px)}
     .stories{padding-top:24px}
-    #hypeframe{padding:18px 0 22px}
+    #hypeframe{padding:8px 0 22px} /* →244: top aligned — the back link sits at the very top */
     .final{padding:20px 0 26px}
     footer{padding-bottom:36px}
   }
@@ -3254,16 +3259,24 @@ body.hf-studio-open205 #deck.view-home{display:block}
    tall in the card, about half its phone height), and the
    Frame / Illustrated avatar selector that moved up into the
    garment card wears the same slim sizing so the card stays
-   tidy. Scoped to the garment card — no other .seg changes. */
-#hfGarment206 .hf-garment-flip206{padding:3px}
-#hfGarment206 .hf-garment-flip206 button{font-size:13px;padding:5px 14px}
+   tidy. Scoped to the garment card — no other .seg changes.
+   →244 (2026-11-27, Emil): the flip leaves the card entirely —
+   it rides the price row as small toggles (#hfGarmentFlip206,
+   ≈29px) next to "$110 · Made to order"; the price-row rules
+   live with .hf-price-top222 below. The avatar selector keeps
+   its slim card sizing here. */
 #hfGarment206 .hf-image-styles{margin-top:8px;padding:3px}
 #hfGarment206 .hf-image-styles button{font-size:13px;padding:5px 14px}
 @media (max-width:560px){
-  #hfGarment206 .hf-garment-flip206{width:auto}
-  #hfGarment206 .hf-garment-flip206 button{flex:0 0 auto;padding:5px 12px}
   #hfGarment206 .hf-image-styles button{padding:5px 6px}
 }
+/* Round 244: the avatar's in-card status (progress / landed /
+   failure + retry), under the Frame | Avatar selector. */
+.hf-avatar-card244{margin-top:8px}
+.hf-avatar-card244[hidden]{display:none}
+.hf-avatar-card-note244{margin:0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
+.hf-avatar-card244 .mini-btn{margin-top:8px}
+#hfAvatarRetry244[hidden]{display:none}
 .hf-finerow206{display:flex;align-items:center;gap:9px;margin-top:9px}
 .hf-finerow206[hidden]{display:none}
 .hf-fine-label206{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
@@ -3405,6 +3418,17 @@ body.hf-studio-open205 #deck.view-home{display:block}
    page (see the garment rule below and the R229 block). */
 body.hf-studio-open205 #postPlayBtn{display:none}
 .hf-price-top222{margin:0 0 10px;font-size:15px;font-weight:800;color:#e8d5a3}
+/* Round 244 (2026-11-27, Emil): the price line becomes a row —
+   the price on the left, the Front/Back flip as small toggles
+   (≈29px) on the right, out of the garment card. */
+.hf-price-row244{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.hf-price-row244 .hf-price-top222{margin:0}
+#hfGarmentFlip206{padding:2px;flex:0 0 auto}
+#hfGarmentFlip206 button{font-size:12.5px;padding:4px 12px}
+@media (max-width:560px){
+  #hfGarmentFlip206{width:auto}
+  #hfGarmentFlip206 button{flex:0 0 auto;padding:4px 10px}
+}
 #hfProduct215 .hf-garment206{background:#101012;border:1px solid var(--line2);border-radius:16px;padding:10px 10px 8px;box-shadow:0 10px 26px rgba(0,0,0,.4)} /* →238 (2026-11-27, Emil: "I don't like the hoodie scroll on the hype frame order page. It's hard to use the page."): the R222 pin is GONE — this rule used to open with the sticky trio (position sticky, top 70px, z-index 40); the garment is now a plain in-flow card at the top of the product page and scrolls away with it. The card skin stays as ordinary styling; nothing is pinned and no space is held for it anywhere. The R229 pin-zone wrapper in index.html is retired with the pin. */
 .hf-sec-head222{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:20px 0 8px}
 .hf-sec-k222{font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#c9c9cf}
@@ -3460,6 +3484,8 @@ body.hf-studio-open205 #postPlayBtn{display:none}
    ride under the preview, inside the card. */
 .hf-fence-auto229{margin-top:10px;border-top:1px solid var(--line2);padding-top:9px}
 .hf-fence-auto229[hidden]{display:none}
+.hf-fence-auto-retry244{margin-top:8px}
+.hf-fence-auto-retry244[hidden]{display:none}
 .hf-fence-auto-disclosure229{margin:0;font-size:12px;font-weight:600;color:var(--muted);line-height:1.45}
 .hf-fence-auto-note229{margin:7px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
 .hf-fence-auto-note229[hidden]{display:none}
