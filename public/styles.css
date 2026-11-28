@@ -3249,6 +3249,21 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-garment-bar206{display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap}
 .hf-garment-flip206{flex:0 0 auto}
 .hf-garment-cap206{font-size:12.5px;font-weight:700;color:var(--muted)}
+/* Round 242 (2026-11-27, Emil): the Front/Back flip takes too
+   much room — it shrinks to a slim segmented switch (≈38px
+   tall in the card, about half its phone height), and the
+   Frame / Illustrated avatar selector that moved up into the
+   garment card wears the same slim sizing so the card stays
+   tidy. Scoped to the garment card — no other .seg changes. */
+#hfGarment206 .hf-garment-flip206{padding:3px}
+#hfGarment206 .hf-garment-flip206 button{font-size:13px;padding:5px 14px}
+#hfGarment206 .hf-image-styles{margin-top:8px;padding:3px}
+#hfGarment206 .hf-image-styles button{font-size:13px;padding:5px 14px}
+@media (max-width:560px){
+  #hfGarment206 .hf-garment-flip206{width:auto}
+  #hfGarment206 .hf-garment-flip206 button{flex:0 0 auto;padding:5px 12px}
+  #hfGarment206 .hf-image-styles button{padding:5px 6px}
+}
 .hf-finerow206{display:flex;align-items:center;gap:9px;margin-top:9px}
 .hf-finerow206[hidden]{display:none}
 .hf-fine-label206{font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}

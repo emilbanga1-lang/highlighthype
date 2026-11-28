@@ -3515,7 +3515,13 @@ const HF_COLORWAYS = {
 /* Print size raised 66% -> 78% (2026-11-05): the print read small and
    washed on the garment at 66%. ONE shared default — the composed
    print's placement values and the order payload both read it
-   (server fallback default matches). */
+   (server fallback default matches).
+   →242 (2026-11-27): still the default, deliberately — Round 242
+   grew the back ZONES around these values (see the HF_GARMENT_
+   AREA218 / 211 notes) instead of raising size past 100: the
+   server clamps a stored placement to ≤100, so a size-101
+   default would be recorded as 100 and the order would stop
+   matching the preview. */
 const HF_PLACEMENT_DEFAULT = { cx: 50, cy: 42, size: 78 };
 // Round 206 state: garmentView206 (the on-garment preview's
 // front/back VIEW — preview-only, never the order's side; opens
@@ -4432,6 +4438,12 @@ function hfCrown218() {
    in the flow (header above, branding below, header/footer
    heights unchanged). At the locked 12-inch print width the
    window prints 10.33" × 7.75" and the design is 13.0" tall.
+   — →242 (2026-11-27): that 12-inch width was the pre-242 back
+   placement's; at Round 242's extended-zone placement the
+   design prints ≈15.6" wide × ≈16.9" tall (the window
+   ≈13.4" × 10.1"). The placement percentages on the order
+   resolve against the current zones, so what's ordered stays
+   what's previewed.
    The art COVER-fits the window (never letterboxed, never
    distorted): the layout also returns the source crop rect
    (sx/sy/sw/sh). The crop centers horizontally; vertically,
@@ -4941,7 +4953,12 @@ const HF_GARMENT_AREA211 = {
     front: { left: 0.30, top: 0.315, width: 0.40, height: 0.30 },
   },
   "Heather Gray": {
-    back: { left: 0.26, top: 0.425, width: 0.48, height: 0.375 },
+    // →242 (2026-11-27): the Gray BACK zone is extended — the
+    // same relative change as Black's R242 zone below (design
+    // ×1.30 wider, top edge up just under the hood tip ≈.41).
+    // Gray's front zone and both Black entries here stand as
+    // measured (Black paints from the 218 table).
+    back: { left: 0.188, top: 0.42, width: 0.624, height: 0.42 },
     front: { left: 0.29, top: 0.315, width: 0.42, height: 0.30 },
   },
 };
@@ -4960,9 +4977,23 @@ const HF_GARMENT_CREST211 = {
    crest anchor is the wearer's left chest. Heather Gray keeps
    the Round 211 blanks, zones and anchor (looked up first here,
    falling back to the 211 tables). */
+/* Round 242 (2026-11-27, Emil — approved from the side-by-side
+   mock, NOW vs PROPOSED): the design reads too small on the
+   hoodie and sits too low. The Black BACK zone is EXTENDED —
+   nearly seam to seam (panel x .180–.831), its top just under
+   the hood tip (.263) — so the UNCHANGED placement default
+   {50 / 42 / 78} lands the R237 design at 520×565 px on the
+   blank: top edge 27.3% of the photo, center-x 50.5%, bottom
+   73.4% — ≈30% bigger, riding high on the back where a real
+   back print sits. In the old zone's terms that is size ≈101;
+   the zone grew instead of the number, deliberately: the
+   placement the order carries (and the server's ≤100 clamp +
+   fallback defaults) stays exactly the values the preview
+   used, so the order keeps matching the preview. The front
+   zone and the crest anchor do not move. */
 const HF_GARMENT_AREA218 = {
   Black: {
-    back: { left: 0.26, top: 0.28, width: 0.49, height: 0.585 },
+    back: { left: 0.186, top: 0.2725, width: 0.637, height: 0.55 },
     front: { left: 0.30, top: 0.315, width: 0.43, height: 0.29 },
   },
 };

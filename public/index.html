@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=226" />
+<link rel="stylesheet" href="styles.css?v=227" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1538,6 +1538,16 @@
                       </div>
                       <span class="hf-garment-cap206">Preview — your design on the hoodie</span>
                     </div>
+                    <!-- Round 242 (2026-11-27, Emil): the artwork choice
+                         rides in the garment card now, directly under
+                         the Front/Back flip — pick Frame or the
+                         illustrated avatar where you can see it land
+                         on the hoodie. It lived in the Artwork section
+                         before; same control, same wiring, one only. -->
+                    <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
+                      <button type="button" data-hf-image-style="photo" aria-pressed="true">Frame</button>
+                      <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
+                    </div>
                     <!-- Round 229 (2026-11-27, Emil): auto fence-clean —
                          entering the studio checks the frame and cleans
                          a fence automatically (detection first). The
@@ -1662,10 +1672,11 @@
           <span class="hf-sec-v222" id="hfRowArtworkState215"></span>
         </div>
         <div class="hf-optpanel215 hf-sec-body222" id="hfArtworkPanel215">
-          <div class="seg hf-image-styles" id="hfImageStyles" role="group" aria-label="Artwork">
-                      <button type="button" data-hf-image-style="photo" aria-pressed="true">Frame</button>
-                      <button type="button" data-hf-image-style="avatar" aria-pressed="false">Illustrated avatar</button>
-                    </div>
+          <!-- →242 (2026-11-27, Emil): the Frame / Illustrated avatar
+               selector moved UP into the garment card, directly under
+               the Front/Back flip — the choice sits with the preview
+               it changes. The explainer, the avatar maker and the
+               design label stay in this section. -->
             <p class="small"><b>Frame</b> — your frozen frame, printed just as it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
             <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
                       <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
@@ -2657,6 +2668,6 @@
   </div>
 </div>
 
-<script src="app.js?v=236"></script>
+<script src="app.js?v=237"></script>
 </body>
 </html>
