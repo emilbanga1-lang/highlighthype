@@ -70,8 +70,8 @@ const app = fs.readFileSync(path.join(PUB, "app.js"), "utf8");
 const css = fs.readFileSync(path.join(PUB, "styles.css"), "utf8");
 
 // ---------- A. statics ----------
-assert(html.includes('src="app.js?v=241"'), "A: app.js pin v241");
-assert(html.includes('href="styles.css?v=230"'), "A: styles pin v230 — →247: styles now v230 (Round 247)");
+assert(html.includes('src="app.js?v=242"'), "A: app.js pin v241");
+assert(html.includes('href="styles.css?v=231"'), "A: styles pin v230 — →247: styles now v230 (Round 247)");
 for (const gone of ["hfRowArtwork215", "hfArtworkPanel215", "hfAvatarPanel206", "hfAvatarMake206", "hfAvatarUse206", "hfAvatarPhoto206", "hfAvatarCropStage221", "hfAvatarImg206", "hfFence222", "hfFenceBtn222", "hfFenceUse222", "hfFenceKeep222", "hfFenceImg222", "hfRowArtworkState215", "hfAvatarStatus206", "hfAvatarResult206", "hfFenceStatus222", "hfFenceResult222"]) {
   assert(!html.includes('id="' + gone + '"'), `A: index.html no longer carries #${gone} (d/e)`);
   assert(!app.includes('$("#' + gone + '")'), `A: app.js no longer queries #${gone} (d/e)`);

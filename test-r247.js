@@ -37,8 +37,8 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 {
   const css = fs.readFileSync(path.join(ROOT, "public", "styles.css"), "utf8");
   const home = fs.readFileSync(path.join(ROOT, "public", "index.html"), "utf8");
-  assert(home.includes('href="styles.css?v=230"'), "A: index pins styles v230 — →247: styles now v230 (Round 247)");
-  assert(home.includes('src="app.js?v=241"'), "A: app.js pin stays v241 (CSS-only round)");
+  assert(home.includes('href="styles.css?v=231"'), "A: index pins styles v230 — →247: styles now v230 (Round 247)");
+  assert(home.includes('src="app.js?v=242"'), "A: app.js pin stays v241 (CSS-only round)");
   assert(css.includes(":root{--sec-gap:40px}"), "A: the --sec-gap:40px token ships on :root");
   const r247 = css.slice(css.indexOf("Round 247"));
   for (const rule of [

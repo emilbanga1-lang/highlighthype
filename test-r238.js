@@ -52,7 +52,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=230"') && home.includes('src="app.js?v=241"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
+assert(home.includes('href="styles.css?v=231"') && home.includes('src="app.js?v=242"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
 
 // ---- B. the unpin statics ----
 {
@@ -140,7 +140,7 @@ assert(home.includes('href="styles.css?v=230"') && home.includes('src="app.js?v=
       await wait(400);
     }
     assert(served.length > 0, "E: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=241"') && served.includes('href="styles.css?v=230"'), "E: the served homepage carries the v234/v225 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
+    assert(served.includes('src="app.js?v=242"') && served.includes('href="styles.css?v=231"'), "E: the served homepage carries the v234/v225 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
     assert(!served.includes('id="hfPinZone229"') && served.includes('id="hfGarment206"') && served.includes('id="hfFenceAuto229"'), "E: the served studio has no pin zone — and the garment card + fence block are served as ever");
     const servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
     const sAt = servedCss.indexOf("#hfProduct215 .hf-garment206{background:#101012");
