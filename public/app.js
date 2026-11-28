@@ -343,11 +343,19 @@ function numbersHtml105(h) {
   const vm = h.votesMonth || 0, vw = h.views || 0, bw = h.battleWins || 0;
   return `<p class="play-numbers105"><span><b>${vm}</b> vote${vm === 1 ? "" : "s"} this month</span><span><b>${vw}</b> view${vw === 1 ? "" : "s"}</span><span><b>${bw}</b> battle win${bw === 1 ? "" : "s"}</span></p>`;
 }
+/* Round 248 (2026-11-28, click-path audit): the card's thumb
+   gains the Watch tile's tap layer (.tile-tap → openPlay189)
+   for file / link_video media — athlete pages render ONLY
+   these cards, and their bare <video controls> thumb never
+   opened the play the way a board tile does. Embeds keep
+   their own surface and watch-links their anchor; mediaHtml
+   itself is untouched, so the detail view's inline playback
+   is unchanged. */
 function cardHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
   return `<article class="card" data-play-id="${h.id}">
-    <div class="thumb">${mediaHtml(h, { rest192: true })}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
+    <div class="thumb">${mediaHtml(h, { rest192: true })}${h.media_kind === "file" || h.media_kind === "link_video" ? `<span class="tile-tap" aria-hidden="true" onclick="event.stopPropagation();openPlay189(${h.id}, this)"></span>` : ""}${h.isWinner ? `<span class="badge" style="background:#fff;color:#0a0a0a">🏆 Hype of the Month winner</span>` : ""}${opts.rank && !h.isSample ? `<span class="ranktag">#${opts.rank}</span>` : ""}</div>
     <div class="card-body">
       <h3>${esc(h.title)}</h3>
       <p class="meta"><b>${esc(cap(h.sport))}</b>${h.play_type ? ` · ${esc(h.play_type)}` : ""} · ${h.division === "girls" ? "Girls" : h.division === "boys" ? "Boys" : "Coed"}</p>
@@ -682,7 +690,14 @@ function avatarDisc153(h) {
    Vote + Frame buttons right at their current sizes. The
    stacked rows cost the card ~69px of dead space under every
    play; the row gives it back. Samples keep the display-only
-   chip in the buttons' slot, as ever. */
+   chip in the buttons' slot, as ever.
+   Round 248 (2026-11-28, click-path audit): the card gains the
+   Share control it never had — a labeled 🔗 Share mini-btn in
+   the action row riding the stock sharePlay (the detail/feed
+   behavior: file share sheet, link share, clipboard flip) —
+   and the decorative ⋮ in the title row is GONE: it was an
+   aria-hidden span that opened nothing, and no dead glyphs
+   stay on the card. */
 function tileHtml(h, opts = {}) {
   const votes = opts.monthVotes != null ? opts.monthVotes : h.voteCount;
   const voteLabel = opts.monthVotes != null ? "this month" : "all-time";
@@ -694,7 +709,6 @@ function tileHtml(h, opts = {}) {
         <div class="tile-head-main153">
           <div class="tile-toprow">
             <h3 class="tile-title">${esc(h.title)}</h3>
-            <span class="tile-dots" aria-hidden="true">⋮</span>
           </div>
           ${tileInfoHtml(h, votes, voteLabel)}
         </div>
@@ -704,6 +718,7 @@ function tileHtml(h, opts = {}) {
         <div class="tile-votes">
           ${h.isSample ? `<span class="vote-chip">${CROWN227} <b>${votes}</b> ${voteLabel} vote${votes === 1 ? "" : "s"}</span>` : `<button type="button" class="vote-chip vote-chip-btn vote-pill153${h.hasVoted ? " voted" : ""}" aria-pressed="${h.hasVoted ? "true" : "false"}" aria-label="${h.hasVoted ? "You voted for this play — tap to remove your vote" : "Vote for this play"}" onclick="event.stopPropagation();toggleVote(${h.id}, this)">${h.hasVoted ? "Voted" : "Vote"} · <b>${votes}</b></button>`}
           ${h.isSample ? "" : `<button type="button" class="mini-btn tile-hf-btn" onclick="event.stopPropagation();openHypeFrame(${h.id})" aria-label="Create a Hype Frame from this play">📸 Frame</button>`}
+          <button type="button" class="mini-btn tile-share-btn248" onclick="event.stopPropagation();sharePlay(${h.id}, this)" aria-label="Share this play">🔗 Share</button>
         </div>
       </div>
     </div>
@@ -2337,6 +2352,9 @@ function showPanel(name) {
      the class from the markup's active panel (the panel switch
      itself is the sync from here on). */
   if (document.body && document.body.classList && typeof document.body.classList.toggle === "function") document.body.classList.toggle("plays-view236", name === "plays");
+  /* Round 248: any panel switch away from the studio retires
+     the studio-top scroll guard (see hfCancelStudioTop248). */
+  if (name !== "hypeframe" && typeof hfCancelStudioTop248 === "function") hfCancelStudioTop248();
   $$(".panel[data-panel]").forEach((p) => p.classList.toggle("active", p.dataset.panel === name));
   $$("[data-panel-btn]").forEach((b) => { if (b.dataset.panelBtn) b.setAttribute("aria-current", String(b.dataset.panelBtn === name)); });
   /* Round 158: a panel switch is a view change — the panels
@@ -3654,8 +3672,74 @@ window.openHypeFrame = (id) => {
   initHfStudio(play);
   // Round 127: the studio film that used to be restarted here is
   // gone with the payoff stack — the studio opens at the tool.
-  document.getElementById("hypeframe").scrollIntoView({ behavior: "smooth" });
+  // →248 (Fix 5): the landing scroll is hfScrollStudioTop248's —
+  // the old one-shot smooth scrollIntoView threw Emil to the
+  // BOTTOM of the studio on his iPhone (see the helper).
+  hfScrollStudioTop248();
 };
+/* Round 248 Fix 5 (2026-11-28, Emil's phone): picking a play
+   for the studio — the posted-play picker's row, a card's
+   📸 Frame button — landed him at the BOTTOM of the page
+   (size section, Review bar, footer) instead of the studio's
+   working top. The path's only scroll was openHypeFrame's
+   closing scrollIntoView({behavior:"smooth"}): ONE animated
+   scroll fired in the same task as the panel swap, into the
+   studio's seconds-long entry repaint storm (poster seed
+   composing the print, the garment blank loading, the
+   filmstrip extracting thumbs). On iOS the animated scroll
+   plus that layout growth lets scroll anchoring drag the
+   viewport down the studio as sections above the fold settle
+   — the size/Review/footer zone is where it stops. The fix
+   follows the house's R246 pattern for scroll assertions:
+   land INSTANTLY (the stylesheet's global smooth behavior is
+   suspended for the jump, so nothing animates into the
+   repaints), record where the studio top landed, and
+   re-assert that exact position on the next frame and as
+   the entry repaints land (300 / 800 / 1600ms) — unless the
+   user takes the scroll over (a touch or wheel cancels the
+   remaining re-assertions at once), and a newer studio entry
+   supersedes an older guard. */
+let hfTopGuard248 = 0;
+/* Leaving the studio retires the guard at once — the studio's
+   own Back button restores the origin scroll (hfBack246), and
+   a still-armed re-assertion would yank the page back to the
+   studio top over it (the r246 E(f) catch). */
+function hfCancelStudioTop248() { hfTopGuard248++; }
+function hfScrollStudioTop248() {
+  const el = document.getElementById("hypeframe");
+  if (!el) return;
+  const token = ++hfTopGuard248;
+  const leap248 = (y) => {
+    const rootEl = document.documentElement;
+    const style = rootEl && rootEl.style ? rootEl.style : null;
+    const prev = style ? style.scrollBehavior : "";
+    if (style) style.scrollBehavior = "auto";
+    if (typeof y === "number") window.scrollTo(0, y);
+    else document.getElementById("hypeframe").scrollIntoView({ block: "start" });
+    if (style) style.scrollBehavior = prev;
+  };
+  leap248();
+  const y0 = window.scrollY;
+  const cancel = () => {
+    if (token === hfTopGuard248) hfTopGuard248++;
+    if (typeof window.removeEventListener === "function") {
+      window.removeEventListener("touchstart", cancel);
+      window.removeEventListener("wheel", cancel);
+    }
+  };
+  if (typeof window.addEventListener === "function") {
+    window.addEventListener("touchstart", cancel, { passive: true });
+    window.addEventListener("wheel", cancel, { passive: true });
+  }
+  const reassert = () => { if (token === hfTopGuard248) leap248(y0); };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(reassert);
+  const later248 = (fn, ms) => { if (typeof setTimeout === "function") setTimeout(fn, ms); };
+  later248(reassert, 300);
+  later248(reassert, 800);
+  later248(reassert, 1600);
+  later248(reassert, 2800);
+  later248(cancel, 3400);
+}
 function initHfStudio(play) {
   hfState.play = play;
   hfState.frozen = false;
@@ -12522,9 +12606,14 @@ function homeSyncHeroAnchor230(avail) {
 function homeBattleCard230(slot, p, r) {
   const picked = !!r.yourPick;
   const mine = picked && r.yourPick === p.id;
+  /* Round 248: a just-for-fun rotation card (r.fun248) wires its
+     Vote buttons to the LOCAL pick (homeFunPick248 — no network,
+     no contest vote, Round 179 semantics); the daily card keeps
+     homeBattlePick230 exactly as before. */
+  const pickFn248 = r && r.fun248 ? "homeFunPick248" : "homeBattlePick230";
   const btn = picked
     ? `<button type="button" class="btn hb230-vote" disabled>${mine ? `${CROWN227} Your pick` : `Vote ${slot}`}</button>`
-    : `<button type="button" class="btn hb230-vote" id="homePick${slot}230" onclick="homeBattlePick230('${slot}')">Vote ${slot}</button>`;
+    : `<button type="button" class="btn hb230-vote" id="homePick${slot}230" onclick="${pickFn248}('${slot}')">Vote ${slot}</button>`;
   /* Round 232: (1) the media tap opens the swipe FEED at this
      play (homeOpenPlay232), not the static detail — Emil: "We
      lost the swipe concept." The Vote button below keeps its
@@ -12551,6 +12640,10 @@ function renderHomeBattle230() {
   const avail = !!(r && r.available && r.a && r.b);
   homeSyncHeroAnchor230(avail);
   if (!sec || !body) return;
+  /* Round 248: while the just-for-fun rotation owns the card, it
+     renders instead of the daily matchup (the daily state itself
+     is untouched — leaving fun mode re-renders it as-is). */
+  if (typeof homeFun248 !== "undefined" && homeFun248.on && renderHomeFunBattle248(body)) { sec.hidden = false; return; }
   if (!avail) { sec.hidden = true; body.innerHTML = ""; return; }
   const split = r.yourPick && r.split && typeof splitHtml100 === "function"
     ? `<div class="hb230-split">${splitHtml100(r.split, r.a, r.b, r.yourPick, r.practice)}</div>` : "";
@@ -12576,11 +12669,88 @@ async function homeBattlePick230(slot) {
   try { if (typeof dailyPick100 === "function") await dailyPick100(slot); } catch (e) { /* the re-render below restores the buttons */ }
   renderHomeBattle230();
 }
-/* Skip = the Daily card's own "Play another battle" path: open
-   the Battles view on a fresh Quick matchup. (Round 240: the
-   button's label now says exactly that — "Try another battle";
-   the path itself is untouched.) */
+/* ---------------- Round 248 (2026-11-28): the homepage
+   "Try another battle →" actually rotates — the click-path
+   audit found the old skip only NAVIGATED to the Battles view
+   (switchView + playAnotherBattle102), so on the homepage the
+   tap read as dead: 3 real taps, the matchup never changed.
+   Now the tap deals a just-for-fun matchup IN PLACE, from the
+   Battles view's own rotation pool (btlPairs — the same
+   same-sport pairs Quick Battles deals), with the daily pair
+   itself filtered out so the first tap always lands on a
+   DIFFERENT pairing. The fun card wears the practice label,
+   its picks are local only (homeFunPick248 — Round 179: a
+   battle pick never casts a contest vote), and "Today's
+   official matchup ↑" hands the card back to the daily. When
+   no alternative pair exists, the old Battles-view path below
+   remains as the fallback. Every Battles-state lookup is
+   typeof-guarded: slices without the Battles block (the
+   r230/r240 VM sandboxes) ride the fallback untouched. */
+const homeFun248 = { on: false, pairIdx: 0, flip: false, aId: null, bId: null, pick: null };
+function homeFunPairs248() {
+  if (typeof btlPairs !== "function") return [];
+  let pairs = [];
+  try { pairs = (btlPairs() || {}).pairs || []; } catch { pairs = []; }
+  const d = (typeof d100 !== "undefined" && d100) ? d100.daily : null;
+  if (d && d.available && d.a && d.b) {
+    pairs = pairs.filter(([x, y]) => !((x === d.a.id && y === d.b.id) || (x === d.b.id && y === d.a.id)));
+  }
+  return pairs;
+}
+function homeFunDeal248(advance) {
+  const pairs = homeFunPairs248();
+  if (!pairs.length) return false;
+  if (advance) {
+    homeFun248.pairIdx = (homeFun248.pairIdx + 1) % pairs.length;
+    if (homeFun248.pairIdx === 0) homeFun248.flip = !homeFun248.flip;
+  }
+  let pair = pairs[homeFun248.pairIdx % pairs.length];
+  let order = homeFun248.flip ? [pair[1], pair[0]] : pair;
+  if (order[0] === homeFun248.aId && order[1] === homeFun248.bId && pairs.length > 1) {
+    /* Never re-deal the showing ordered pair when an
+       alternative exists (a stale double-deal would read as
+       the same dead button the audit flagged). */
+    homeFun248.pairIdx = (homeFun248.pairIdx + 1) % pairs.length;
+    pair = pairs[homeFun248.pairIdx];
+    order = homeFun248.flip ? [pair[1], pair[0]] : pair;
+  }
+  homeFun248.aId = order[0];
+  homeFun248.bId = order[1];
+  homeFun248.pick = null;
+  return true;
+}
+function renderHomeFunBattle248(body) {
+  const a = typeof findPlay === "function" ? findPlay(homeFun248.aId) : null;
+  const b = typeof findPlay === "function" ? findPlay(homeFun248.bId) : null;
+  if (!a || !b) { homeFun248.on = false; homeFun248.pick = null; return false; }
+  const r = { a, b, yourPick: homeFun248.pick, practice: true, fun248: true };
+  const d = (typeof d100 !== "undefined" && d100) ? d100.daily : null;
+  const back = d && d.available && d.a && d.b
+    ? `<button type="button" class="hb230-skip hb230-official248" onclick="homeBattleOfficial248()">${d.practice ? "Today's matchup ↑" : "Today's official matchup ↑"}</button>` : "";
+  body.innerHTML = `<p class="hb230-practice">Practice matchup · Picks are just for fun</p>
+    <div class="hb230-grid">${homeBattleCard230("A", a, r)}${homeBattleCard230("B", b, r)}</div>
+    <button type="button" class="hb230-skip" onclick="homeBattleSkip230()">Try another battle →</button>${back}`;
+  return true;
+}
+function homeFunPick248(slot) {
+  if (!homeFun248.on || homeFun248.pick) return;
+  const id = slot === "B" ? homeFun248.bId : homeFun248.aId;
+  if (!id) return;
+  homeFun248.pick = id;
+  try { if (typeof trackEvent === "function") trackEvent("battle_pick", id); } catch { /* analytics never breaks a pick */ }
+  renderHomeBattle230();
+}
+function homeBattleOfficial248() {
+  homeFun248.on = false;
+  homeFun248.pick = null;
+  renderHomeBattle230();
+}
+/* Skip: deal the next just-for-fun matchup in place (Round
+   248). Only when no alternative pair exists does the tap
+   fall back to the pre-248 path — open the Battles view on a
+   fresh Quick matchup. */
 function homeBattleSkip230() {
+  if (homeFunDeal248(homeFun248.on)) { homeFun248.on = true; renderHomeBattle230(); return; }
   if (typeof switchView === "function") switchView("battles");
   if (typeof playAnotherBattle102 === "function") playAnotherBattle102();
   else if (typeof scrollBoardIntoView122 === "function") scrollBoardIntoView122();

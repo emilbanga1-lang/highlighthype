@@ -2527,7 +2527,6 @@ header.nav{position:sticky;top:0;background:rgba(10,10,10,.94);backdrop-filter:b
 #plays .tile-body{padding:10px 2px 0}
 #plays .tile-toprow{display:flex;align-items:flex-start;gap:10px;margin:0}
 #plays .tile-title{font-family:"Archivo",sans-serif;font-style:normal;font-weight:800;text-transform:none;letter-spacing:-.01em;font-size:17.5px;color:#fff;flex:1;min-width:0}
-#plays .tile-dots{color:#8f8f86;font-size:19px;line-height:1;padding:0 2px}
 #plays .tile-info{font-size:13.5px;color:#a8a8a0;margin-top:3px}
 #plays .tile-info b{color:var(--gold)}
 #plays .tile-media .dur-pill{left:10px;right:auto;background:rgba(0,0,0,.72);color:#fff}
@@ -3937,6 +3936,20 @@ body.a2hs-steps161 .float-submit{bottom:calc(18px + 200px + env(safe-area-inset-
   body.a2hs-open161 .float-submit{bottom:calc(14px + 118px + env(safe-area-inset-bottom,0px))}
   body.a2hs-steps161 .float-submit{bottom:calc(14px + 200px + env(safe-area-inset-bottom,0px))}
 }
+
+/* Round 248 (2026-11-28, click-path audit): the same clearance
+   the pill gets, for PAGE CONTENT — while the A2HS bar is up,
+   the footer (the last in-flow content) grows bottom padding
+   in the bar's own heights, so its links can always scroll
+   clear of the fixed bar instead of sitting under its Add
+   button (the audit's footer "Our Story" tap hit the bar).
+   The bar itself — show, Add/How, steps, dismiss — is
+   untouched. Plus: the homepage battle card's "Today's
+   official matchup ↑" return (Round 248) sits just under the
+   skip it reverses. */
+body.a2hs-open161 footer{padding-bottom:118px}
+body.a2hs-steps161 footer{padding-bottom:200px}
+.hb230-official248{margin-top:6px}
 
 /* ---- Round 162 (2026-11-14): milestone tags + the Moment
    That Mattered. The chip is gold-outline (the badges are
