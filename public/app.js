@@ -12597,15 +12597,27 @@ function homeMoreTile230(h) {
 function homeLbMoreHtml240(more) {
   return more ? `<button type="button" class="hlb230-more240" onclick="homeLbMore240()">View full leaderboard</button>` : "";
 }
-/* The link lands exactly where the existing full-board
-   landings land — homeLbLanding232, the fame/month links'
-   destination — which paints the complete rankings in this
-   same section (and scrolls it in). The full leaderboard
-   itself is unchanged; only the first render is short. */
+/* Round 240's link landed through the full-board landing
+   helper — the fame/month links' destination — which paints
+   the complete rankings in this same section (and scrolls
+   it in). Round 245 (2026-11-27): Emil tapped the link ON
+   the live site and the landing's scroll threw him UP to
+   the More Highlights grid — the helper scrolls the whole
+   combined section to ITS top, and the section's top is
+   More Highlights, not the leaderboard. But this link is
+   tapped by someone ALREADY standing at the leaderboard:
+   it now expands strictly in place (state + repaint, the
+   rows grow downward, no scroll at all). The landing helper
+   still serves the arrivals it was built for — the fame /
+   month links, the feed's end card, the Watch contest line,
+   ?view=fame — untouched. "Already here" vs "arriving" is
+   distinguished by the entry point: this in-section control
+   never calls the landing; every external door still does. */
 function homeLbMore240() {
-  try { homeLbFull240 = true; } catch (e) { /* a slice without the R240 state — the landing below still repaints this tab */ }
-  if (typeof homeLbLanding232 === "function") homeLbLanding232(homeLbTab230);
-  else if (typeof renderHomeLb230 === "function") renderHomeLb230();
+  const topBefore245 = typeof homeLbHeadTop245 === "function" ? homeLbHeadTop245() : null;
+  try { homeLbFull240 = true; } catch (e) { /* a slice without the R240 state — the repaint below still paints this tab where the state exists */ }
+  if (typeof renderHomeLb230 === "function") renderHomeLb230();
+  if (typeof homeLbReanchor245 === "function") homeLbReanchor245(topBefore245, false);
 }
 /* ---------------- Round 243 (2026-11-27): Emil, on the live
    site after Round 240: (A) "In the leaderboard when you
@@ -12637,8 +12649,15 @@ function homeLbLessHtml243() {
   return `<button type="button" class="hlb230-more240" onclick="homeLbLess243()">Show less</button>`;
 }
 function homeLbLess243() {
+  /* Round 245: the collapse re-anchors (see homeLbReanchor245
+     below) — the short repaint removes several rows of height
+     above the content that follows the section, and without a
+     restoring scroll the visitor is carried past the board
+     into whatever section comes next. */
+  const topBefore245 = typeof homeLbHeadTop245 === "function" ? homeLbHeadTop245() : null;
   try { homeLbFull240 = false; } catch (e) { /* a slice without the R240 state — the render below still repaints short where the state exists */ }
   if (typeof renderHomeLb230 === "function") renderHomeLb230();
+  if (typeof homeLbReanchor245 === "function") homeLbReanchor245(topBefore245, true);
 }
 /* The tail control under the rows: expanded with more than
    3 entries → "Show less"; short with rows still hidden →
@@ -12713,6 +12732,72 @@ function renderHomeLb230() {
   rows.innerHTML = entries.length ? shown240.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbTailHtml243(entries.length, shown240.length) : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
   if (typeof hydrateDurPills === "function") hydrateDurPills();
   return entries.length > 0;
+}
+/* ---------------- Round 245 (2026-11-27): the homepage
+   leaderboard's own controls act IN PLACE. Emil, on the live
+   site after Round 243: tapping "View full leaderboard" threw
+   the page UP to the More Highlights grid, and tapping "Show
+   less" carried him past the board into the sections below.
+   Both root causes were proven with real mouse clicks on the
+   real page (headless Chromium, production-shaped data):
+   (1) The expand link rode the cross-surface landing helper,
+   whose courtesy scroll targets the TOP OF THE WHOLE combined
+   section — and the section's top is More Highlights, with the
+   leaderboard below it. The click expanded the rows (3 → 8)
+   and then scrolled the section top to the viewport top:
+   scrollY 2661 → 1908, "MORE HIGHLIGHTS" at y=64, the
+   leaderboard head pushed to y=624. Right for an arrival from
+   another surface; wrong for a tap placed AT the board.
+   (2) The collapse fired NO scroll, NO view switch and NO hash
+   change at all (the instrumented click's call log was empty)
+   — it simply repainted the rows shorter. The repaint removes
+   the hidden rows' height (measured 680px) from the layout
+   while the scroll position stays numerically put (the repaint
+   replaces the rows box's whole contents, the very nodes a
+   browser's scroll anchoring would have tracked), so every
+   section below the leaderboard jumps up by the removed height
+   and the visitor lands in the next section — on Emil's phone,
+   the Watch board directly under the leaderboard.
+   The fix distinguishes the doors: the in-section controls
+   (homeLbMore240 / homeLbLess243 — each called ONLY by its own
+   button inside the section) expand/collapse with no landing
+   and no courtesy scroll; the collapse additionally re-anchors
+   through homeLbReanchor245 below so the leaderboard is what
+   stays on screen. Arrivals from other surfaces (the feed's
+   end card, fame/month links, the Watch contest line,
+   ?view=fame) keep the landing helper exactly as it was. */
+/* The leaderboard head's viewport position — the anchor the
+   in-place controls hold. Null whenever the head (or layout
+   reads) is unavailable, e.g. a VM slice: the re-anchor then
+   simply stands down. */
+function homeLbHeadTop245() {
+  try {
+    const head = document.querySelector(".hlb230-head");
+    if (!head || typeof head.getBoundingClientRect !== "function") return null;
+    return head.getBoundingClientRect().top;
+  } catch (e) { return null; }
+}
+/* Hold the leaderboard head where it was on screen across an
+   in-place repaint: undo any shift the repaint itself caused
+   (a delta scroll — normally zero, since the rows change height
+   BELOW the head), and, on a collapse that leaves the head
+   above the viewport (the tap started at the tail of the long
+   board, so the whole short board now sits above the fold),
+   settle the head at the top of the screen — the collapsed
+   board itself is what the visitor ends up looking at, never
+   the following section. Expanding never takes the second
+   step: it grows downward from wherever the visitor stands. */
+function homeLbReanchor245(topBefore, collapsed) {
+  try {
+    if (typeof window === "undefined" || !window || typeof window.scrollBy !== "function") return;
+    let top = homeLbHeadTop245();
+    if (top == null) return;
+    if (topBefore != null) {
+      const delta = top - topBefore;
+      if (Math.abs(delta) > 1) { window.scrollBy(0, delta); top = homeLbHeadTop245(); }
+    }
+    if (collapsed && top != null && top < -1) window.scrollBy(0, top);
+  } catch (e) { /* anchoring is a courtesy — the repaint already landed */ }
 }
 function renderHomeMore230() {
   const sec = document.getElementById("homeMore230");
