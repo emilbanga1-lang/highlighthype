@@ -47,7 +47,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:ital,wght@0,500;0,600;0,700;0,800;1,600&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css?v=228" />
+<link rel="stylesheet" href="styles.css?v=229" />
 </head>
 <body>
 <!-- Round 160 (2026-11-14, HOTFIX): the hero film froze on its
@@ -1439,7 +1439,7 @@
 <!-- ============ HYPE FRAME STUDIO ============ -->
 <section class="panel" id="hypeframe" data-panel="hypeframe">
   <div class="wrap">
-    <p><button type="button" class="mini-btn" data-panel-btn="plays">← Back to the board</button></p>
+    <p class="hf-backrow246"><button type="button" class="mini-btn" id="hfBackBtn246">← Back to the board</button></p>
     <!-- Round 244 (2026-11-27, Emil): the studio hero block is
          GONE — the "Hype Frame · Studio" eyebrow, the "Your
          moment. Your swag." headline and the play-line paragraph
@@ -1565,12 +1565,15 @@
                          right here — this block carries its
                          progress where the parent is looking (the
                          preview card), plus the failure + retry.
-                         The maker panel in the Artwork section
-                         keeps the crop, the result and the
-                         Use-this-avatar / Use-my-photo choice. -->
+                         →246 (2026-11-27, Emil): the maker panel
+                         in the Artwork section is GONE — the card
+                         is the avatar's whole lifecycle now:
+                         progress, ready, failure + retry, and
+                         "Make it again". -->
                     <div class="hf-avatar-card244" id="hfAvatarCard244" hidden>
                       <p class="hf-avatar-card-note244" id="hfAvatarCardNote244" aria-live="polite"></p>
                       <button type="button" class="mini-btn" id="hfAvatarRetry244" hidden>Try the avatar again</button>
+                      <button type="button" class="mini-btn" id="hfAvatarAgain246" hidden>Make it again</button>
                     </div>
                     <!-- Round 229 (2026-11-27, Emil): auto fence-clean —
                          entering the studio checks the frame and cleans
@@ -1678,21 +1681,11 @@
             <input type="file" id="hfUploadInput222" accept="image/*" hidden>
             <span class="small">No strong frame in the clip? Upload a photo instead — it becomes the print.</span>
           </div>
-          <div class="hf-fence222" id="hfFence222" hidden>
-            <p class="hf-fence-title222">Shot through a fence?</p>
-            <p class="small">If the backstop fence is in your frame, we can clean it out of the photo — the play stays exactly as it was, minus the fence.</p>
-            <p class="hf-fence-consent222" id="hfFenceConsent222">Fence removal is done by OpenAI's image AI — your photo is sent to OpenAI to clean it. Nothing is sent until you tap the button below. The AI rebuilds what the fence hid, so look the cleaned photo over before you approve it.</p>
-            <button type="button" class="btn btn-ghost" id="hfFenceBtn222">Remove the fence</button>
-            <p class="hf-fence-status222" id="hfFenceStatus222" aria-live="polite" hidden></p>
-            <div class="hf-fence-result222" id="hfFenceResult222" hidden>
-              <img id="hfFenceImg222" alt="Your photo with the fence removed — check it over before you approve it">
-              <div class="seg hf-fence-use222" role="group" aria-label="Use the cleaned photo or keep the original">
-                <button type="button" id="hfFenceUse222">Use the cleaned photo</button>
-                <button type="button" id="hfFenceKeep222">Keep the original</button>
-              </div>
-              <p class="small">The cleaned photo becomes your print only when you pick it — your original is always here to go back to.</p>
-            </div>
-          </div>
+          <!-- Round 246 (2026-11-27, Emil): the manual "Shot
+               through a fence?" section is GONE — the automatic
+               check on frame pick is the only fence surface now,
+               and its failure fallback is one plain line in the
+               preview card's fence note. -->
           <p class="hf-photo-msg215" id="hfPhotoMsg215" aria-live="polite" hidden></p>
         </div>
         <!-- Round 244 (2026-11-27, Emil): Name on design rides HERE now —
@@ -1720,58 +1713,26 @@
                     <label>Jersey number (optional) <input type="text" id="hfJersey" maxlength="3" placeholder="e.g. 13"></label>
                   </div>
         </div>
-        <div class="hf-sec-head222" id="hfRowArtwork215">
-          <span class="hf-sec-k222">Artwork</span>
-          <span class="hf-sec-v222" id="hfRowArtworkState215"></span>
+        <div class="hf-sec-head222" id="hfRowDesign246">
+          <span class="hf-sec-k222">Design label</span>
+          <span class="hf-sec-v222" id="hfRowDesignState246"></span>
         </div>
-        <div class="hf-optpanel215 hf-sec-body222" id="hfArtworkPanel215">
-          <!-- →242 (2026-11-27, Emil): the Frame / Illustrated avatar
-               selector moved UP into the garment card, directly under
-               the Front/Back flip — the choice sits with the preview
-               it changes. The explainer, the avatar maker and the
-               design label stay in this section. -->
-            <p class="small"><b>Frame</b> — your frozen frame, printed just as it is. <b>Illustrated avatar</b> — we turn your frame into a bold illustrated avatar of the same moment before printing: same play, same uniform, no real face on the garment. The artwork is confirmed with the parent/guardian before anything prints.</p>
-            <div class="hf-avatar206" id="hfAvatarPanel206" hidden>
-                      <p class="hf-avatar-consent206" id="hfAvatarConsent206">Avatar previews are made by OpenAI's image AI — your chosen frame, the athlete's first name and the design label below are sent to OpenAI to create it. Nothing is sent until you tap the button below.</p>
-                      <!-- Round 221: the avatar's view of the frame — a
-                           zoomed crop the parent centers on the
-                           athlete with a tap. Only the crop is sent;
-                           the photo print still uses the full frame.
-                           Round 222: the crop defaults
-                           athlete-dominant (55% wide, 4:5) and is
-                           sent upscaled 2×. -->
-                      <div class="hf-avatar-crop221" id="hfAvatarCrop221" hidden>
-                        <div class="hf-avatar-crop-stage221" id="hfAvatarCropStage221">
-                          <img id="hfAvatarCropImg221" alt="Your frozen frame — the outlined area is what the avatar artist works from">
-                          <div class="hf-avatar-crop-box221" id="hfAvatarCropBox221" aria-hidden="true"></div>
-                          <span class="hf-avatar-crop-dot221" id="hfAvatarCropDot221" aria-hidden="true"></span>
-                        </div>
-                        <p class="small hf-avatar-crop-cap221">This is what the artist sees — tap the photo to center on your athlete.</p>
-                      </div>
-                      <button type="button" class="btn btn-lime hf-avatar-make206" id="hfAvatarMake206" disabled>✨ Make my avatar</button>
-                      <p class="hf-avatar-status206" id="hfAvatarStatus206" aria-live="polite" hidden></p>
-                      <div class="hf-avatar-result206" id="hfAvatarResult206" hidden>
-                        <img id="hfAvatarImg206" alt="Your AI avatar, generated from the frozen frame">
-                        <div class="seg hf-avatar-use206" role="group" aria-label="Which artwork should print">
-                          <button type="button" id="hfAvatarUse206" data-hf-avatar-use="avatar" aria-pressed="false">Use this avatar</button>
-                          <button type="button" id="hfAvatarPhoto206" data-hf-avatar-use="photo" aria-pressed="true">Use my photo</button>
-                        </div>
-                        <p class="small">The avatar becomes the print only when you pick it — your photo frame is always here to go back to.</p>
-                      </div>
-                    </div>
-            <!-- Round 218: the format's label line — the play's
-                 moment in a few words, printed under the name.
-                 Prefilled from the play's title; the parent can
-                 shorten it. Sanitized again at compose/send. -->
-            <label style="display:block;margin-top:18px">Design label — the moment in a few words <input type="text" id="hfLabel218" maxlength="24" placeholder="e.g. HOME RUN"></label>
+        <div class="hf-optpanel215 hf-sec-body222" id="hfDesignPanel246">
+            <!-- Round 246 (2026-11-27, Emil): the Artwork section
+                 is GONE — "We don't want customers to know how the
+                 image is being generated." The Frame/Illustrated
+                 avatar explainer, the avatar maker panel (consent
+                 text, crop-centering, Make button, result + the
+                 Use-this-avatar / Use-my-photo choice) are all
+                 deleted; the avatar's whole lifecycle lives in
+                 the preview card now, and the Frame pill is the
+                 way back to the photo. The design label keeps its
+                 own section — it is part of the order, not of the
+                 machinery. -->
+            <label style="display:block">Design label — the moment in a few words <input type="text" id="hfLabel218" maxlength="24" placeholder="e.g. HOME RUN"></label>
             <p class="small">Printed in small capitals under the name on the design. Up to 24 characters — letters, numbers and spaces.</p>
-            <!-- Round 229 (2026-11-27, Emil): the Print style picker
-                 (Classic / Signature / Hype Frame) is OUT — every
-                 design is the Hype Frame format now, so there is
-                 nothing to pick. The composition, the payload and
-                 the server all treat the format as fixed. -->
-
-          <div class="hf-sec-head222 hf-sec-sub222" id="hfRowPlacement215">
+        </div>
+        <div class="hf-sec-head222" id="hfRowPlacement215">
             <span class="hf-sec-k222">Print placement</span>
             <span class="hf-sec-v222" id="hfRowPlacementState215"></span>
           </div>
@@ -1782,7 +1743,7 @@
                     </div>
             <p class="small"><b>Front</b> — the classic chest print. <b>Back</b> — the big statement print, like the hoodie example above. This is where the print goes — the Front/Back flip on the preview just turns the hoodie around.</p>
           </div>
-        </div>
+        
         <div class="hf-buycard215" id="hfBuyCard215">
           <div class="hf-sec-head222 hf-sec-in-card222">
             <span class="hf-sec-k222">Color &amp; size</span>
@@ -2700,6 +2661,6 @@
   </div>
 </div>
 
-<script src="app.js?v=240"></script>
+<script src="app.js?v=241"></script>
 </body>
 </html>

@@ -3284,25 +3284,6 @@ body.hf-studio-open205 #deck.view-home{display:block}
 .hf-fine-time206{font-size:13.5px;font-weight:800;color:var(--volt);min-width:44px;text-align:center}
 /* →229: the preset buttons' column layout + the preset-mini canvas
    styling retired with the Print style picker (Round 229). */
-.hf-avatar206{margin-top:14px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px 14px}
-.hf-avatar206[hidden]{display:none}
-.hf-avatar-consent206{margin:0 0 10px;font-size:13.5px;font-weight:700;color:#fff;line-height:1.45}
-.hf-avatar-make206{width:100%}
-.hf-avatar-make206[disabled]{opacity:.55;cursor:default}
-.hf-avatar-crop221{margin:0 0 12px}
-.hf-avatar-crop221[hidden]{display:none}
-.hf-avatar-crop-stage221{position:relative;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#000;cursor:pointer;line-height:0}
-.hf-avatar-crop-stage221 img{display:block;width:100%;height:auto}
-.hf-avatar-crop-box221{position:absolute;border:2px solid var(--volt);border-radius:6px;box-shadow:0 0 0 999px rgba(0,0,0,.45);pointer-events:none;box-sizing:border-box}
-.hf-avatar-crop-dot221{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--volt);border:2px solid #000;pointer-events:none;box-sizing:border-box}
-.hf-avatar-crop-cap221{margin:8px 0 0}
-.hf-avatar-status206{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
-.hf-avatar-status206[hidden]{display:none}
-.hf-avatar-result206{margin-top:12px}
-.hf-avatar-result206[hidden]{display:none}
-.hf-avatar-result206 img{display:block;width:auto;max-width:100%;max-height:190px;border:1px solid var(--line2);border-radius:12px;background:#000}
-.hf-avatar-use206{margin-top:10px;width:100%}
-.hf-avatar-use206 button{flex:1}
 .hf-changeframe206{margin-top:10px}
 .hf-changeframe206[hidden]{display:none}
 .hf-review-sub206{margin:6px 0 0;font-weight:700;color:var(--muted)}
@@ -3437,17 +3418,6 @@ body.hf-studio-open205 #postPlayBtn{display:none}
 .hf-sec-in-card222{margin:6px 0 2px}
 .hf-sec-body222{border-bottom:0;padding-bottom:2px}
 .hf-upload-row222{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
-.hf-fence222{margin-top:14px;background:var(--card);border:1px solid var(--line2);border-radius:12px;padding:12px 14px}
-.hf-fence222[hidden]{display:none}
-.hf-fence-title222{margin:0 0 4px;font-size:15px;font-weight:800;color:#fff}
-.hf-fence-consent222{margin:8px 0 10px;font-size:13.5px;font-weight:700;color:#fff;line-height:1.45}
-.hf-fence-status222{margin:10px 0 0;font-size:13px;font-weight:700;color:var(--volt);line-height:1.45}
-.hf-fence-status222[hidden]{display:none}
-.hf-fence-result222{margin-top:12px}
-.hf-fence-result222[hidden]{display:none}
-.hf-fence-result222 img{display:block;width:auto;max-width:100%;max-height:220px;border:1px solid var(--line2);border-radius:12px;background:#000}
-.hf-fence-use222{margin-top:10px;width:100%}
-.hf-fence-use222 button{flex:1}
 .hf-size-msg222{margin:10px 0 4px;font-size:13.5px;font-weight:800;color:var(--volt)}
 .hf-size-msg222[hidden]{display:none}
 .dz-fence-tip222{margin:10px 2px 0}
@@ -4437,3 +4407,24 @@ body.feed-open189{overflow:hidden}
    gates above are untouched.
    ================================================================ */
 body.plays-view236 .float-submit{display:none}
+
+/* ================================================================
+   Round 246 (2026-11-27, Emil): studio top compaction, round 2
+   ("Back to board can be pushed up more and then the Hype
+   Frame studio should get pushed up"), plus the feed rail's
+   restored Frame button. Measured pre-fix in a real browser
+   (iPhone width, fixture server): the sticky header is 61px;
+   the back row's <p> carried the base 16px top/bottom margins
+   on top of the panel's 8px top padding (R244), and the
+   studio card (.upload-card) carried a 34px top margin — the
+   back→card gap measured 34px, and with no scroll-margin the
+   studio's scrollIntoView rest slid the panel top under the
+   sticky header entirely. Now: the panel rests 63px down
+   (just under the header), the back row is 8 + 4 = 12px under
+   the panel top (14px under the header's bottom edge), and
+   the card sits 14px under the back row.
+   ================================================================ */
+#hypeframe{scroll-margin-top:63px}
+#hypeframe .hf-backrow246{margin:4px 0 0}
+#hfStudio{margin-top:14px}
+.feed189-frame246{width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);color:#fff;font-size:19px;cursor:pointer}
