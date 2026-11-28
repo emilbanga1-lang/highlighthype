@@ -47,7 +47,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + placement statics ----
 {
-  assert(home.includes('src="app.js?v=238"') && home.includes('href="styles.css?v=227"'), "A: asset pins — app.js v237 / styles v227 (Round 242)");
+  assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v237 / styles v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
   assert(appJs.includes("back: { left: 0.186, top: 0.2725, width: 0.637, height: 0.55 }"), "A: the Black BACK zone is the extended R242 zone (nearly seam to seam, top just under the hood tip)");
   assert(appJs.includes("back: { left: 0.188, top: 0.42, width: 0.624, height: 0.42 }"), "A: the Heather Gray BACK zone carries the same relative extension (in the 211 table — Gray has no 218 entry)");
   assert(appJs.includes("front: { left: 0.30, top: 0.315, width: 0.43, height: 0.29 }"), "A: the Black FRONT zone is unchanged");
@@ -165,15 +165,15 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
 {
   const segPad = (sel) => { const m = css.match(new RegExp(sel.replace(/[.#]/g, "\\$&") + "\\{[^}]*padding:(\\d+)px")); return m ? Number(m[1]) : null; };
   const btnRule = (sel) => { const m = css.match(new RegExp(sel.replace(/[.#]/g, "\\$&") + " button\\{[^}]*font-size:(\\d+(?:\\.\\d+)?)px;padding:(\\d+)px (\\d+)px")); return m ? { font: Number(m[1]), padV: Number(m[2]), padH: Number(m[3]) } : null; };
-  const flipSeg = segPad("#hfGarment206 .hf-garment-flip206");
-  const flipBtn = btnRule("#hfGarment206 .hf-garment-flip206");
-  assert(flipSeg === 3 && flipBtn && flipBtn.font === 13 && flipBtn.padV === 5, "D: the flip wears the R242 slim sizing in the card (seg padding 3px; buttons 13px / 5px vertical)");
+  const flipSeg = segPad("#hfGarmentFlip206");
+  const flipBtn = btnRule("#hfGarmentFlip206");
+  assert(flipSeg === 2 && flipBtn && flipBtn.font === 12.5 && flipBtn.padV === 4, "D: the flip wears the R242 slim sizing in the card (seg padding 3px; buttons 13px / 5px vertical) — →244: the flip LEFT the card for the price row (Emil) and shrank again — seg padding 2px; buttons 12.5px / 4px vertical under #hfGarmentFlip206");
   const est = 2 * flipSeg + 2 + 2 * flipBtn.padV + flipBtn.font * 1.5; // seg padding + seg border + button padding + one line of text
-  assert(est >= 34 && est <= 42, `D: the flip's computed height is ≈${est.toFixed(1)}px — inside the slim 36–40px band (± rounding)`);
+  assert(est >= 30 && est <= 34, `D: the flip's computed height is ≈${est.toFixed(1)}px — inside the slim 36–40px band (± rounding) — →244: inside Emil's ~28–32px ask for the price-row toggles`);
   const oldEst = 2 * 4 + 2 + 2 * 10 + 14.5 * 1.5; // pre-242 phone geometry from the same CSS terms: .seg padding 4px + the ≤560px studio button padding 10px at 14.5px
   assert(est < oldEst, `D: …and clearly shorter than the pre-242 phone toggle on the same terms (≈${oldEst.toFixed(1)}px from the CSS; ≈64px as measured on Emil's phone with the bar's wrap)`);
   const mq = css.slice(css.indexOf("@media (max-width:560px)", css.indexOf("Round 242")));
-  assert(mq.includes("#hfGarment206 .hf-garment-flip206{width:auto}") && mq.includes("#hfGarment206 .hf-garment-flip206 button{flex:0 0 auto"), "D: on phone the slim flip is content-width (it no longer stretches full-width like every studio .seg)");
+  assert(mq.includes("#hfGarmentFlip206{width:auto}") && mq.includes("#hfGarmentFlip206 button{flex:0 0 auto"), "D: on phone the slim flip is content-width (it no longer stretches full-width like every studio .seg) — →244: same guarantee, retargeted to the price-row group (the seg is content-width, buttons don't stretch)");
   const stylesSeg = segPad("#hfGarment206 .hf-image-styles");
   const stylesBtn = btnRule("#hfGarment206 .hf-image-styles");
   assert(stylesSeg === 3 && stylesBtn && stylesBtn.font === 13 && stylesBtn.padV === 5, "D: the moved artwork selector wears the same slim sizing in the card, so the card stays tidy");
@@ -186,10 +186,10 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
   const at = (id) => home.indexOf(`id="${id}"`);
   assert(at("hfImageStyles") > at("hfGarment206") && at("hfImageStyles") < at("hfRowPhoto215"), "E: the selector lives inside the garment card, above Your moment");
   const card = home.slice(at("hfGarment206"), at("hfRowPhoto215"));
-  assert(card.indexOf("hf-garment-flip206") > -1 && card.indexOf('id="hfImageStyles"') > card.indexOf("hf-garment-flip206"), "E: …directly under the Front/Back flip");
+  assert(!card.includes("hf-garment-flip206") && card.indexOf('id="hfImageStyles"') > -1 && card.indexOf('id="hfAvatarCard244"') > card.indexOf('id="hfImageStyles"'), "E: …directly under the Front/Back flip — →244: the flip left the card for the price row; the selector now sits under the card caption, with the avatar status card directly beneath it");
   const art = home.slice(at("hfArtworkPanel215"), at("hfBuyCard215"));
   assert(!art.includes('id="hfImageStyles"'), "E: the selector is GONE from the Artwork section (no duplicate left behind)");
-  assert(art.includes('id="hfAvatarPanel206"') && art.includes('id="hfAvatarMake206"') && art.includes('id="hfLabel218"') && art.includes('id="hfSides"') && art.includes('id="hfBackText197"'), "E: the Artwork section keeps its remaining content — avatar maker + entry, design label, print placement, name on design");
+  assert(art.includes('id="hfAvatarPanel206"') && art.includes('id="hfAvatarMake206"') && art.includes('id="hfLabel218"') && art.includes('id="hfSides"') && !art.includes('id="hfBackText197"'), "E: the Artwork section keeps its remaining content — avatar maker + entry, design label, print placement, name on design — →244: Name on design moved UP out of Artwork to follow Your moment (Emil's flow order), so it is absent here now");
   assert(home.includes('id="hfRowArtwork215"') && home.includes('id="hfRowArtworkState215"'), "E: the Artwork section head + its state line survive (hfSyncRowStates215 still names the choice there)");
   assert(appJs.includes('$$("#hfImageStyles [data-hf-image-style]")') && appJs.includes("function hfPickImageStyle"), "E: the wiring is untouched — the click binding + hfPickImageStyle select by id, so they follow the control to its new home");
   assert(appJs.includes("function hfSyncAvatar206") && appJs.includes("function hfMakeAvatar206") && appJs.includes("function hfApplyAvatar206"), "E: the avatar flow's entry points stand (sync + maker + approval all still in app.js)");
@@ -233,10 +233,10 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
       try { servedHome = await (await fetch("http://127.0.0.1:3542/")).text(); } catch { await wait(250); }
     }
     servedCss = await (await fetch("http://127.0.0.1:3542/styles.css")).text();
-    assert(servedHome.includes('src="app.js?v=238"') && servedHome.includes('href="styles.css?v=227"'), "G: the served homepage carries the Round 242 pins");
+    assert(servedHome.includes('src="app.js?v=239"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 242 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
     const gAt = servedHome.indexOf('id="hfGarment206"'), sAt = servedHome.indexOf('id="hfImageStyles"'), pAt = servedHome.indexOf('id="hfRowPhoto215"');
     assert(gAt > -1 && sAt > gAt && sAt < pAt && (servedHome.match(/id="hfImageStyles"/g) || []).length === 1, "G: the served page carries exactly one artwork selector, inside the garment card");
-    assert(servedCss.includes("#hfGarment206 .hf-garment-flip206 button"), "G: the served stylesheet carries the slim flip sizing");
+    assert(servedCss.includes("#hfGarmentFlip206 button"), "G: the served stylesheet carries the slim flip sizing — →244: retargeted to the price-row group");
   } finally {
     child.kill();
     fs.rmSync(tmp, { recursive: true, force: true });

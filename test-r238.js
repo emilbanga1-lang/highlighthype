@@ -52,7 +52,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
+assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=239"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
 
 // ---- B. the unpin statics ----
 {
@@ -77,12 +77,12 @@ assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=
   for (const id of ["hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentShade211", "hfGarmentCrest211", "hfGarmentBackText206"]) {
     assert(card.includes('id="' + id + '"'), "C: the garment card still carries #" + id);
   }
-  assert(card.includes('data-hf-garment-view="front"') && card.includes('data-hf-garment-view="back"'), "C: the Front/Back flip buttons are still in the card");
+  assert(!card.includes("data-hf-garment-view") && prod.slice(0, at("hfGarment206")).includes('id="hfGarmentFlip206"'), "C: the Front/Back flip buttons are still in the card — →244: they LEFT the card (Emil) and ride the price row as #hfGarmentFlip206, above the card");
   assert(card.includes("Preview — your design on the hoodie"), "C: the 'Preview — your design on the hoodie' line is still in the card");
   for (const id of ["hfFenceAuto229", "hfFenceAutoNote229", "hfFenceAutoActions229", "hfFenceAutoOriginal229", "hfFenceAutoCleaned229"]) {
     assert(card.includes('id="' + id + '"'), "C: the fence status line's #" + id + " still lives in the card");
   }
-  assert(appJs.includes('$$("#hfGarment206 [data-hf-garment-view]").forEach((b) => b.addEventListener("click"'), "C: the flip is still wired — a tap sets garmentView206 and re-syncs the garment");
+  assert(appJs.includes('$$("#hfGarmentFlip206 [data-hf-garment-view]").forEach((b) => b.addEventListener("click"'), "C: the flip is still wired — a tap sets garmentView206 and re-syncs the garment — →244: the binding selects the flip by its new price-row group id");
   assert(appJs.includes("function hfGarmentPaint211") && appJs.includes("function hfGarmentSync206") && appJs.includes("function hfShowScreen215"), "C: the garment painter, the garment sync and the screen switcher all stand");
   const laySrc = appJs.slice(appJs.indexOf("function hfFormatLayout218"), appJs.indexOf("function hfDrawFormat218"));
   assert(laySrc.includes("Math.round(W * 31 / 36)"), "C: the R237 wide geometry is untouched by the unpin (620×465 window at W=720)");
@@ -140,7 +140,7 @@ assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=
       await wait(400);
     }
     assert(served.length > 0, "E: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=238"') && served.includes('href="styles.css?v=227"'), "E: the served homepage carries the v234/v225 pins");
+    assert(served.includes('src="app.js?v=239"') && served.includes('href="styles.css?v=228"'), "E: the served homepage carries the v234/v225 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
     assert(!served.includes('id="hfPinZone229"') && served.includes('id="hfGarment206"') && served.includes('id="hfFenceAuto229"'), "E: the served studio has no pin zone — and the garment card + fence block are served as ever");
     const servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
     const sAt = servedCss.indexOf("#hfProduct215 .hf-garment206{background:#101012");

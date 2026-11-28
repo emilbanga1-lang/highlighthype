@@ -68,7 +68,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js now v232 (Round 236); styles now v223 (Round 236) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
+assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=239"'), "A: asset pins — app.js now v232 (Round 236); styles now v223 (Round 236) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
 
 // ---- B. the tab control is gone from the homepage ----
 assert(!home.includes('class="viewseg"'), "B: no .viewseg tab control anywhere in the homepage markup");
@@ -194,7 +194,7 @@ assert(bootSrc.includes('const ap236 = document.querySelector(".panel.active")')
       await new Promise((r) => setTimeout(r, 400));
     }
     assert(served.length > 0, "H: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=238"') && served.includes('href="styles.css?v=227"'), "H: the served homepage carries the v232/v223 pins — →238: served pins now v234/v225 (Round 238)");
+    assert(served.includes('src="app.js?v=239"') && served.includes('href="styles.css?v=228"'), "H: the served homepage carries the v232/v223 pins — →238: served pins now v234/v225 (Round 238) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
     assert(!served.includes('class="viewseg"') && !served.includes('id="contestStrip"'), "H: the served homepage has no tab control and no banner card");
     assert(served.includes('id="seeAllRow"') && served.includes("See all plays →") && served.includes('id="homeLbRows230"'), "H: the served homepage keeps See all plays and the homepage leaderboard");
   } finally {

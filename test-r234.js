@@ -66,7 +66,7 @@ const home = fs.readFileSync(path.join(ROOT, "public/index.html"), "utf8");
 const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
+assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=239"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
 
 // ---- B. statics ----
 // B1: the emitter census — exactly one gated template, one threading site.

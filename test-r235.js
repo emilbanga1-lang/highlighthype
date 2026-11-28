@@ -96,7 +96,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
+assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=239"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
 
 // ---- B. Item A statics ----
 const captureBlock = appJs.slice(appJs.indexOf("function hfCapturePrint()"), appJs.indexOf("function freezeHfFrame()"));
@@ -247,7 +247,7 @@ assert(appJs.includes("Checking your frame for a fence…"), "E: the live fence 
   assert(css.includes(".hf-stickybar215{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}") && css.includes(".hf-review-btn215{padding:12px}") && css.includes(".hf-stickybar-note215{margin-top:5px}"), "F: the bar's real components ship — compact padding 8+8, the button's 12+12 padding, the note's 5px margin");
   const barHeight = 8 + 8 + (12 + 12 + 21) + (5 + 14); // padding + button (padding + line) + note (margin + line) ≈ 80px
   const oldVoid = 96 + 22; // the R229 reserve + the section's bottom padding at phone widths
-  assert(css.includes("#hypeframe{padding:18px 0 22px}") && oldVoid === 118 && oldVoid > barHeight, "F: the measured cause — the stacked void after the buy card was 118px against the bar's ~" + barHeight + "px real height, all of it reading as one dead band under a fixed bar (Emil's 15:06 shot: ~163 CSS px card → bar)");
+  assert(css.includes("#hypeframe{padding:8px 0 22px}") && oldVoid === 118 && oldVoid > barHeight, "F: the measured cause — →244: the ≥1024px override's top padding aligned 18px → 8px with the page-top compaction (the historical void math below is untouched) — the stacked void after the buy card was 118px against the bar's ~" + barHeight + "px real height, all of it reading as one dead band under a fixed bar (Emil's 15:06 shot: ~163 CSS px card → bar)");
 }
 
 // ---- G. Item D: the copy mapping (display only) ----

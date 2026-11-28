@@ -48,7 +48,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + statics ----
-assert(home.includes('src="app.js?v=238"') && home.includes('href="styles.css?v=227"'), "A: asset pins — app.js v238 (Round 243); styles keeps v227 (unchanged this round — the collapse control reuses .hlb230-more240)");
+assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v238 (Round 243); styles keeps v227 (unchanged this round — the collapse control reuses .hlb230-more240) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
 const rowFn = appJs.slice(appJs.indexOf("function fameRowHtml134"), appJs.indexOf("function renderFame"));
 assert(rowFn.includes("homeLbOpenPlay243(${h.id})") && !rowFn.includes("opts.home232 ? `homeOpenPlay232"), "A: homepage leaderboard rows (opts.home232) call homeLbOpenPlay243 — the explicit-list opener, not homeOpenPlay232");
 const lbBlock = appJs.slice(appJs.indexOf("/* ---------------- Round 243"), appJs.indexOf("function renderHomeLb230"));
@@ -254,7 +254,7 @@ assert($id("homeLbRows230").innerHTML.includes("No plays yet") && !$id("homeLbRo
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3543/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=238"') && servedHome.includes('href="styles.css?v=227"'), "E: the served homepage carries the Round 243 pins");
+    assert(servedHome.includes('src="app.js?v=239"') && servedHome.includes('href="styles.css?v=228"'), "E: the served homepage carries the Round 243 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
     assert(servedApp.includes("homeLbOpenPlay243") && servedApp.includes("homeLbIds243") && servedApp.includes("Show less"), "E: the served app.js carries the explicit leaderboard opener and the collapse control");
   } finally {
     child.kill();
