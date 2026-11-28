@@ -49,7 +49,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=236"') && home.includes('href="styles.css?v=226"'), "A: asset pins — app.js v236 / styles v226 (Round 240)");
+assert(home.includes('src="app.js?v=237"') && home.includes('href="styles.css?v=227"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242)");
 
 // ---- B. statics ----
 // B1 (item 1): the clarifier + the relabeled skip.
@@ -279,7 +279,7 @@ if (fs.existsSync(deployDir)) {
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3541/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=236"') && servedHome.includes('href="styles.css?v=226"'), "G: the served homepage carries the Round 240 pins");
+    assert(servedHome.includes('src="app.js?v=237"') && servedHome.includes('href="styles.css?v=227"'), "G: the served homepage carries the Round 240 pins");
     assert(servedApp.includes("Today's official matchup — votes here decide today's winner.") && servedApp.includes("Try another battle →") && servedApp.includes("View full leaderboard"), "G: the served app.js carries the clarifier, the relabeled skip and the View-full link");
   } finally {
     child.kill();

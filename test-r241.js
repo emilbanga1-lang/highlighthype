@@ -14,7 +14,9 @@
 //      callback ahead of every backfill timer, writes records
 //      before any grab (phase 1 has no await), grabs through
 //      r124MakePoster (the pipeline's own grab shape), and the
-//      client is untouched (pins still v236 / v226).
+//      client is untouched (pins still v236 / v226)
+//      — →242: the client has since moved to v237 / v227;
+//      this suite's §A pin assertion follows the sweep.
 //   B. Seeded boot (the 2026-11-27 nightly backup's DB + the
 //      two source videos + the two old posters): both records
 //      land, both posters are re-grabbed byte-identical to the
@@ -93,7 +95,7 @@ const DH_REF51 = dhash(path.join(REF_DIR, "poster-51.jpg"));
 
 // ---- A. statics ----
 {
-  assert(home.includes('src="app.js?v=236"') && home.includes('href="styles.css?v=226"'), "A: client pins unchanged (v236 / v226) — Round 241 is server + tests only");
+  assert(home.includes('src="app.js?v=237"') && home.includes('href="styles.css?v=227"'), "A: client pins unchanged (v236 / v226) — Round 241 is server + tests only — →242: pins now v237 / v227 (Round 242)");
   const fnAt = serverJs.indexOf("async function r241RepickPosters()");
   assert(fnAt > -1 && serverJs.includes("repick-r240") && serverJs.includes("R241_REPICKS"), "A: the r241 migration, its re-pick table and the repick-r240 marker ship in server.js");
   const callAt = serverJs.indexOf("r241RepickPosters();");
