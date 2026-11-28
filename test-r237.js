@@ -58,7 +58,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=229"') && home.includes('src="app.js?v=241"'), "A: asset pins — app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
+assert(home.includes('href="styles.css?v=230"') && home.includes('src="app.js?v=241"'), "A: asset pins — app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
 
 // ---- B. layout statics: the wide window replaced contain-fit ----
 const laySrc = appJs.slice(appJs.indexOf("function hfFormatLayout218"), appJs.indexOf("function hfDrawFormat218"));
@@ -206,7 +206,7 @@ const L = sb.hfFormatLayout218;
       await new Promise((r) => setTimeout(r, 400));
     }
     assert(served.length > 0, "G: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=241"') && served.includes('href="styles.css?v=229"'), "G: the served homepage carries the v233/v224 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
+    assert(served.includes('src="app.js?v=241"') && served.includes('href="styles.css?v=230"'), "G: the served homepage carries the v233/v224 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v230 (Round 246) — →247: styles now v230 (Round 247)");
     servedApp = await (await fetch(`http://127.0.0.1:${port}/app.js`)).text();
     assert(servedApp.includes("Math.round(W * 31 / 36)") && servedApp.includes("0.60 * aH - sh / 2"), "G: the served app.js carries the wide layout + 60% band crop");
     servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
