@@ -1471,8 +1471,13 @@ function fameRowHtml134(h, i, opts = {}) {
   /* Round 232: opts.home232 — the HOMEPAGE leaderboard's rows
      open the swipe feed at the tapped play (Emil: "We lost
      the swipe concept"), via homeOpenPlay232 in the Round 232
-     block. The board's own rows keep feed189 / goToPlayCard. */
-  const tap134 = opts && opts.home232 ? `homeOpenPlay232(${h.id})` : opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
+     block. The board's own rows keep feed189 / goToPlayCard.
+     Round 243 (2026-11-27): the homepage rows call
+     homeLbOpenPlay243 instead — the leaderboard supplies its
+     OWN ordered ids explicitly (see the Round 243 block);
+     homeOpenPlay232's feedHeroIds223 DOM read could not see
+     the leaderboard's list at all. */
+  const tap134 = opts && opts.home232 ? `homeLbOpenPlay243(${h.id})` : opts && opts.feed189 ? `openPlay189(${h.id}, this)` : `goToPlayCard(${h.id})`;
   /* Round 220: the votes pill — a real toggleVote button for
      real plays (see the block above), the R219 display span
      for samples. */
@@ -12397,6 +12402,82 @@ function homeLbMore240() {
   if (typeof homeLbLanding232 === "function") homeLbLanding232(homeLbTab230);
   else if (typeof renderHomeLb230 === "function") renderHomeLb230();
 }
+/* ---------------- Round 243 (2026-11-27): Emil, on the live
+   site after Round 240: (A) "In the leaderboard when you
+   select a video we again lost the tik tok version of
+   swiping through videos." (B) "There is also no way to
+   collapse it."
+   (A) Root cause: the homepage leaderboard's rows called
+   homeOpenPlay232, which takes NO list from the leaderboard
+   — it asks feedHeroIds223 for one, and that helper reads
+   rendered DOM tiles from #monthRows or #allBoard. #monthRows
+   was retired from the markup in Round 232, so the read fell
+   to #allBoard — the WATCH board's tiles, in Watch order,
+   behind the Watch view's own filters. When that foreign
+   list was absent, filtered, or simply did not contain the
+   tapped play, openFeed189 was never reached and the tap
+   fell back to the static detail; when it did open, swiping
+   moved through Watch order, not the rankings. The fix: the
+   leaderboard supplies its ids EXPLICITLY — homeLbIds243
+   computes the exact list renderHomeLb230 renders (This
+   Month: CONTEST.entries in order; Hall of Fame: the same
+   top-10 ranking renderFame computes), and
+   homeLbOpenPlay243 opens the feed with that list at the
+   tapped play. No DOM is consulted.
+   (B) The expanded board gains the mirror of its expand
+   control: "Show less" (homeLbLess243) in the same spot and
+   style (.hlb230-more240), collapsing back to the top 3 with
+   the tab state preserved. */
+function homeLbLessHtml243() {
+  return `<button type="button" class="hlb230-more240" onclick="homeLbLess243()">Show less</button>`;
+}
+function homeLbLess243() {
+  try { homeLbFull240 = false; } catch (e) { /* a slice without the R240 state — the render below still repaints short where the state exists */ }
+  if (typeof renderHomeLb230 === "function") renderHomeLb230();
+}
+/* The tail control under the rows: expanded with more than
+   3 entries → "Show less"; short with rows still hidden →
+   "View full leaderboard"; otherwise nothing (a board of
+   ≤3, or an empty one, shows neither — as in Round 240). */
+function homeLbTailHtml243(total, shown) {
+  let expanded = false; try { expanded = !!homeLbFull240; } catch (e) { /* the R240 state is not initialized in this slice — the short tail stands */ }
+  if (expanded) return total > 3 ? homeLbLessHtml243() : "";
+  return homeLbMoreHtml240(total > shown);
+}
+/* The Hall of Fame ranking, computed exactly as renderFame
+   and the pre-243 renderHomeLb230 compute it (samples never
+   take a Fame slot) — ONE computation now feeds both the
+   rows and the feed list, so they can never disagree. */
+function homeLbFameRanked243() {
+  return (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
+    .filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
+}
+/* The leaderboard's ordered play ids for a tab — the feed
+   list a row tap opens. This Month rides CONTEST.entries in
+   their standing order; Hall of Fame rides the ranking
+   above. Pure on the standing state, like feedSequence189. */
+function homeLbIds243(tab) {
+  const t = tab || homeLbTab230;
+  if (t === "fame") return homeLbFameRanked243().map((h) => h.id);
+  const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
+  return entries.map((h) => h.id);
+}
+/* The leaderboard row tap: feed-first with the leaderboard's
+   OWN list (homeLbIds243), starting at the tapped play, so
+   swiping moves through the rankings in order. The static
+   detail remains the fallback when the feed cannot open
+   (kill switch, a stale row whose play left the list) —
+   openPlay189's contract, with an explicit list. */
+window.homeLbOpenPlay243 = (id) => {
+  const nid = Number(id);
+  try {
+    if (typeof feedEnabled189 === "function" && feedEnabled189() && typeof window.openFeed189 === "function") {
+      const ids = homeLbIds243();
+      if (ids && ids.indexOf(nid) > -1 && window.openFeed189(ids, nid, null)) return;
+    }
+  } catch (e) { /* the detail below is the fallback, exactly as in openPlay189 */ }
+  if (typeof window.openPlayDetail === "function") window.openPlayDetail(id);
+};
 function renderHomeLb230() {
   const rows = document.getElementById("homeLbRows230");
   if (!rows) return false;
@@ -12412,10 +12493,9 @@ function renderHomeLb230() {
     /* The Hall of Fame ranking, computed exactly as renderFame
        computes it (samples never take a Fame slot) — rendered
        here, into the home section's own rows. */
-    const rankedAll = (typeof ALL_PLAYS !== "undefined" && Array.isArray(ALL_PLAYS) ? [...ALL_PLAYS] : [])
-      .filter((h) => !h.isSample).sort((a, b) => b.voteCount - a.voteCount || b.id - a.id).slice(0, 10);
+    const rankedAll = homeLbFameRanked243();
     const ranked = lbFull240 ? rankedAll : rankedAll.slice(0, 3);
-    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbMoreHtml240(rankedAll.length > ranked.length) : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
+    rows.innerHTML = ranked.length ? ranked.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbTailHtml243(rankedAll.length, ranked.length) : `<p class="hlb230-empty">No plays yet — the Hall of Fame fills in as plays are posted and voted on.</p>`;
     return rankedAll.length > 0;
   }
   const entries = (typeof CONTEST !== "undefined" && CONTEST && CONTEST.entries) || [];
@@ -12425,7 +12505,7 @@ function renderHomeLb230() {
      board's own lists, so homepage taps fell back to the
      static detail; the fame rows rode goToPlayCard outright. */
   const shown240 = lbFull240 ? entries : entries.slice(0, 3);
-  rows.innerHTML = entries.length ? shown240.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbMoreHtml240(entries.length > shown240.length) : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
+  rows.innerHTML = entries.length ? shown240.map((h, i) => fameRowHtml134(h, i, { home232: true })).join("") + homeLbTailHtml243(entries.length, shown240.length) : `<p class="hlb230-empty">No entries yet this month — post a play, and once it's approved and entered it competes here.</p>`;
   if (typeof hydrateDurPills === "function") hydrateDurPills();
   return entries.length > 0;
 }
