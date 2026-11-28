@@ -73,7 +73,7 @@ const at = (id) => prod.indexOf(`id="${id}"`);
 
 // ---- A. pins + page-top / flip statics ----
 {
-  assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v239 / styles v228 (Round 244)");
+  assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v239 / styles v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
   // (5a) Back to the board is the first content of the studio view.
   const wrapOpen = studio.indexOf('<div class="wrap">');
   const firstBits = studio.slice(wrapOpen, wrapOpen + 220);
@@ -364,7 +364,7 @@ function driveFence() {
     for (let i = 0; i < 50 && !up; i++) { try { const r = await fetch(`http://localhost:${port}/api/health`); up = r.ok; } catch { await wait(200); } }
     assert(up, "G: the server boots");
     const html = await (await fetch(`http://localhost:${port}/`)).text();
-    assert(html.includes("app.js?v=239") && html.includes("styles.css?v=228"), "G: the served page carries the Round 244 pins");
+    assert(html.includes("app.js?v=240") && html.includes("styles.css?v=228"), "G: the served page carries the Round 244 pins — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
     assert(html.includes('id="hfGarmentFlip206"') && html.includes('id="hfAvatarCard244"') && !html.includes('id="hfPlayLine"'), "G: …with the price-row flip + avatar card in, and the hero block out");
   } finally { child.kill("SIGKILL"); }
 }

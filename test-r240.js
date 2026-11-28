@@ -49,7 +49,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
 
 // ---- B. statics ----
 // B1 (item 1): the clarifier + the relabeled skip.
@@ -71,7 +71,7 @@ assert(lbRender.includes("rankedAll.slice(0, 3)") && lbRender.includes("entries.
 assert(lbRender.includes("homeLbTailHtml243(rankedAll.length, ranked.length)") && lbRender.includes("homeLbTailHtml243(entries.length, shown240.length)"), "B2: the View-full link renders only while rows remain hidden (never on a short or empty board) — →243: both branches render their tail through homeLbTailHtml243, which returns the expand link when short and the new 'Show less' collapse when expanded (driven in test-r243)");
 assert(appJs.includes("View full leaderboard") && appJs.includes('onclick="homeLbMore240()"'), "B2: the link is 'View full leaderboard' and calls homeLbMore240");
 const moreFn = appJs.slice(appJs.indexOf("function homeLbMore240()"), appJs.indexOf("function renderHomeLb230"));
-assert(moreFn.includes("homeLbFull240 = true") && moreFn.includes('homeLbLanding232(homeLbTab230)'), "B2: the link lands through homeLbLanding232 — the existing full-board landing, on the current tab");
+assert(moreFn.includes("homeLbFull240 = true") && !moreFn.includes("homeLbLanding232(") && moreFn.includes("renderHomeLb230()"), "B2: the link lands through homeLbLanding232 — the existing full-board landing, on the current tab — →245: NO LONGER. Emil tapped the link standing AT the board and the landing's section-top scroll threw him up to More Highlights; the in-section link now expands in place (state + repaint via renderHomeLb230, re-anchored) and never calls the landing — the landing still serves arrivals from other surfaces (driven in test-r245)");
 const landingFn = appJs.slice(appJs.indexOf("function homeLbLanding232(tab)")); // the landing is app.js's last function
 assert(landingFn.includes("homeLbFull240 = true") && landingFn.includes("renderHomeLb230()"), "B2: EVERY full-board landing expands the section before repainting — fame/month links keep landing on the complete rankings");
 assert(css.includes(".hlb230-more240{"), "B2: the View-full link is styled (the battle skip's quiet text-button treatment)");
@@ -181,11 +181,12 @@ assert(rowCount(lb) === 3 && lb.indexOf('data-tile-id="75"') > -1 && lb.indexOf(
 assert(lb.includes("View full leaderboard") && lb.includes('onclick="homeLbMore240()"'), "D: the short render ends with the 'View full leaderboard' link");
 assert(run("homeLbFull240") === false, "D: nothing has expanded the section yet");
 assert($id("homeMoreGrid230").innerHTML.includes("homeOpenPlay232(50)"), "D: More Highlights tiles render as before alongside the short board");
+const scrollsBefore245 = $id("homeMore230").scrolls;
 run("homeLbMore240()");
 await wait(160);
 lb = $id("homeLbRows230").innerHTML;
 assert(run("homeLbFull240") === true && rowCount(lb) === 5 && !lb.includes("View full leaderboard"), "D: the link expands the SAME section to all 5 entries — the complete This Month rankings, no link left over");
-assert($id("homeMore230").scrolls >= 1, "D: the expansion lands like every full-board landing — the section scrolls into view");
+assert($id("homeMore230").scrolls === scrollsBefore245, "D: the expansion lands like every full-board landing — the section scrolls into view — →245: NO LONGER. The in-section link expands in place and the section does NOT scroll (the landing's section-top scroll threw Emil up to More Highlights on the live site); the landing + its scroll still serve arrivals from other surfaces (test-r245)");
 run("homeLbFull240 = false");
 sb.ALL_PLAYS = [P75, P201, P202, P71, P51, P50];
 run('homeLbTab230 = "fame"; renderHomeLb230()');
@@ -279,7 +280,7 @@ if (fs.existsSync(deployDir)) {
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3541/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=239"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 240 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+    assert(servedHome.includes('src="app.js?v=240"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 240 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
     assert(servedApp.includes("Today's official matchup — votes here decide today's winner.") && servedApp.includes("Try another battle →") && servedApp.includes("View full leaderboard"), "G: the served app.js carries the clarifier, the relabeled skip and the View-full link");
   } finally {
     child.kill();

@@ -47,7 +47,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + placement statics ----
 {
-  assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v237 / styles v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+  assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v237 / styles v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
   assert(appJs.includes("back: { left: 0.186, top: 0.2725, width: 0.637, height: 0.55 }"), "A: the Black BACK zone is the extended R242 zone (nearly seam to seam, top just under the hood tip)");
   assert(appJs.includes("back: { left: 0.188, top: 0.42, width: 0.624, height: 0.42 }"), "A: the Heather Gray BACK zone carries the same relative extension (in the 211 table — Gray has no 218 entry)");
   assert(appJs.includes("front: { left: 0.30, top: 0.315, width: 0.43, height: 0.29 }"), "A: the Black FRONT zone is unchanged");
@@ -233,7 +233,7 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
       try { servedHome = await (await fetch("http://127.0.0.1:3542/")).text(); } catch { await wait(250); }
     }
     servedCss = await (await fetch("http://127.0.0.1:3542/styles.css")).text();
-    assert(servedHome.includes('src="app.js?v=239"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 242 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+    assert(servedHome.includes('src="app.js?v=240"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 242 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
     const gAt = servedHome.indexOf('id="hfGarment206"'), sAt = servedHome.indexOf('id="hfImageStyles"'), pAt = servedHome.indexOf('id="hfRowPhoto215"');
     assert(gAt > -1 && sAt > gAt && sAt < pAt && (servedHome.match(/id="hfImageStyles"/g) || []).length === 1, "G: the served page carries exactly one artwork selector, inside the garment card");
     assert(servedCss.includes("#hfGarmentFlip206 button"), "G: the served stylesheet carries the slim flip sizing — →244: retargeted to the price-row group");

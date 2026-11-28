@@ -48,7 +48,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + statics ----
-assert(home.includes('src="app.js?v=239"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v238 (Round 243); styles keeps v227 (unchanged this round — the collapse control reuses .hlb230-more240) — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v238 (Round 243); styles keeps v227 (unchanged this round — the collapse control reuses .hlb230-more240) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
 const rowFn = appJs.slice(appJs.indexOf("function fameRowHtml134"), appJs.indexOf("function renderFame"));
 assert(rowFn.includes("homeLbOpenPlay243(${h.id})") && !rowFn.includes("opts.home232 ? `homeOpenPlay232"), "A: homepage leaderboard rows (opts.home232) call homeLbOpenPlay243 — the explicit-list opener, not homeOpenPlay232");
 const lbBlock = appJs.slice(appJs.indexOf("/* ---------------- Round 243"), appJs.indexOf("function renderHomeLb230"));
@@ -58,7 +58,7 @@ assert(opener.includes("homeLbIds243()") && opener.includes("window.openFeed189(
 assert(!opener.includes("feedHeroIds223") && !opener.includes("querySelector") && !opener.includes("#allBoard") && !opener.includes("#monthRows"), "A: the opener consults NO DOM — no #allBoard/#monthRows scavenging (the defect's mechanism is gone from this path)");
 assert(lbBlock.includes('onclick="homeLbLess243()">Show less</button>') && lbBlock.includes('class="hlb230-more240"'), "B: 'Show less' renders in the expand control's own style class (.hlb230-more240)");
 const lessFn = appJs.slice(appJs.indexOf("function homeLbLess243()"), appJs.indexOf("/* The tail control"));
-assert(lessFn.includes("homeLbFull240 = false") && lessFn.includes("renderHomeLb230()"), "B: homeLbLess243 collapses the state and repaints (no landing, no scroll — the tab and place are preserved)");
+assert(lessFn.includes("homeLbFull240 = false") && lessFn.includes("renderHomeLb230()"), "B: homeLbLess243 collapses the state and repaints (no landing, no scroll — the tab and place are preserved) — →245: the repaint is now followed by homeLbReanchor245, a RESTORING scroll only: the bare repaint left the scroll position numerically put while the rows' height vanished, carrying Emil past the board into the next section; the re-anchor holds the leaderboard head on screen (and settles it at the top when the collapse started from the board's tail) — driven for real in test-r245");
 const lbRender = appJs.slice(appJs.indexOf("function renderHomeLb230"), appJs.indexOf("function renderHomeMore230"));
 assert(lbRender.includes("homeLbTailHtml243(rankedAll.length, ranked.length)") && lbRender.includes("homeLbTailHtml243(entries.length, shown240.length)"), "B: BOTH tabs render their tail through homeLbTailHtml243 (expand when short, collapse when expanded)");
 assert(lbRender.includes("const rankedAll = homeLbFameRanked243();"), "A: the Fame rows render from homeLbFameRanked243 — the same computation that builds the feed list");
@@ -254,7 +254,7 @@ assert($id("homeLbRows230").innerHTML.includes("No plays yet") && !$id("homeLbRo
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3543/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=239"') && servedHome.includes('href="styles.css?v=228"'), "E: the served homepage carries the Round 243 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244)");
+    assert(servedHome.includes('src="app.js?v=240"') && servedHome.includes('href="styles.css?v=228"'), "E: the served homepage carries the Round 243 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
     assert(servedApp.includes("homeLbOpenPlay243") && servedApp.includes("homeLbIds243") && servedApp.includes("Show less"), "E: the served app.js carries the explicit leaderboard opener and the collapse control");
   } finally {
     child.kill();
