@@ -52,7 +52,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=240"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+assert(home.includes('href="styles.css?v=229"') && home.includes('src="app.js?v=241"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
 
 // ---- B. the unpin statics ----
 {
@@ -72,7 +72,7 @@ assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=
 {
   const prod = home.slice(home.indexOf('id="hfProduct215"'), home.indexOf('id="hfReview215"'));
   const at = (id) => prod.indexOf('id="' + id + '"');
-  assert(at("hfGarment206") > -1 && at("hfRowPhoto215") > at("hfGarment206") && at("hfPhotoPanel215") > at("hfRowPhoto215") && at("hfRowArtwork215") > at("hfPhotoPanel215") && at("hfArtworkPanel215") > at("hfRowArtwork215") && at("hfBuyCard215") > at("hfArtworkPanel215") && at("hfStickyBar215") > at("hfBuyCard215"), "C: the product page order is unchanged — garment → moment → artwork → buy card → Review bar, standing directly in the page (no wrapper between)");
+  assert(at("hfGarment206") > -1 && at("hfRowPhoto215") > at("hfGarment206") && at("hfPhotoPanel215") > at("hfRowPhoto215") && at("hfRowDesign246") > at("hfPhotoPanel215") && at("hfDesignPanel246") > at("hfRowDesign246") && at("hfBuyCard215") > at("hfDesignPanel246") && at("hfStickyBar215") > at("hfBuyCard215"), "C: the product page order is unchanged — garment → moment → artwork → buy card → Review bar, standing directly in the page (no wrapper between) — →246: the Artwork section is DELETED; the Design section stands in its slot (garment → moment → design → buy card → Review bar)");
   const card = prod.slice(at("hfGarment206"), at("hfRowPhoto215"));
   for (const id of ["hfGarmentStage206", "hfGarmentImg206", "hfGarmentPrintArea206", "hfGarmentPrint206", "hfGarmentShade211", "hfGarmentCrest211", "hfGarmentBackText206"]) {
     assert(card.includes('id="' + id + '"'), "C: the garment card still carries #" + id);
@@ -140,7 +140,7 @@ assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=
       await wait(400);
     }
     assert(served.length > 0, "E: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=240"') && served.includes('href="styles.css?v=228"'), "E: the served homepage carries the v234/v225 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+    assert(served.includes('src="app.js?v=241"') && served.includes('href="styles.css?v=229"'), "E: the served homepage carries the v234/v225 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
     assert(!served.includes('id="hfPinZone229"') && served.includes('id="hfGarment206"') && served.includes('id="hfFenceAuto229"'), "E: the served studio has no pin zone — and the garment card + fence block are served as ever");
     const servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
     const sAt = servedCss.indexOf("#hfProduct215 .hf-garment206{background:#101012");

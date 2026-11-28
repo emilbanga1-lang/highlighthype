@@ -95,7 +95,7 @@ const DH_REF51 = dhash(path.join(REF_DIR, "poster-51.jpg"));
 
 // ---- A. statics ----
 {
-  assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: client pins unchanged (v236 / v226) — Round 241 is server + tests only — →242: pins now v237 / v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+  assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: client pins unchanged (v236 / v226) — Round 241 is server + tests only — →242: pins now v237 / v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
   const fnAt = serverJs.indexOf("async function r241RepickPosters()");
   assert(fnAt > -1 && serverJs.includes("repick-r240") && serverJs.includes("R241_REPICKS"), "A: the r241 migration, its re-pick table and the repick-r240 marker ship in server.js");
   const callAt = serverJs.indexOf("r241RepickPosters();");

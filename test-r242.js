@@ -47,7 +47,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins + placement statics ----
 {
-  assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v237 / styles v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+  assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v237 / styles v227 (Round 242) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
   assert(appJs.includes("back: { left: 0.186, top: 0.2725, width: 0.637, height: 0.55 }"), "A: the Black BACK zone is the extended R242 zone (nearly seam to seam, top just under the hood tip)");
   assert(appJs.includes("back: { left: 0.188, top: 0.42, width: 0.624, height: 0.42 }"), "A: the Heather Gray BACK zone carries the same relative extension (in the 211 table — Gray has no 218 entry)");
   assert(appJs.includes("front: { left: 0.30, top: 0.315, width: 0.43, height: 0.29 }"), "A: the Black FRONT zone is unchanged");
@@ -187,10 +187,10 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
   assert(at("hfImageStyles") > at("hfGarment206") && at("hfImageStyles") < at("hfRowPhoto215"), "E: the selector lives inside the garment card, above Your moment");
   const card = home.slice(at("hfGarment206"), at("hfRowPhoto215"));
   assert(!card.includes("hf-garment-flip206") && card.indexOf('id="hfImageStyles"') > -1 && card.indexOf('id="hfAvatarCard244"') > card.indexOf('id="hfImageStyles"'), "E: …directly under the Front/Back flip — →244: the flip left the card for the price row; the selector now sits under the card caption, with the avatar status card directly beneath it");
-  const art = home.slice(at("hfArtworkPanel215"), at("hfBuyCard215"));
+  const art = home.slice(at("hfDesignPanel246"), at("hfBuyCard215")); // →246: the Artwork section is deleted; this slice now runs Design panel → buy card
   assert(!art.includes('id="hfImageStyles"'), "E: the selector is GONE from the Artwork section (no duplicate left behind)");
-  assert(art.includes('id="hfAvatarPanel206"') && art.includes('id="hfAvatarMake206"') && art.includes('id="hfLabel218"') && art.includes('id="hfSides"') && !art.includes('id="hfBackText197"'), "E: the Artwork section keeps its remaining content — avatar maker + entry, design label, print placement, name on design — →244: Name on design moved UP out of Artwork to follow Your moment (Emil's flow order), so it is absent here now");
-  assert(home.includes('id="hfRowArtwork215"') && home.includes('id="hfRowArtworkState215"'), "E: the Artwork section head + its state line survive (hfSyncRowStates215 still names the choice there)");
+  assert(!art.includes('id="hfAvatarPanel206"') && !art.includes('id="hfAvatarMake206"') && art.includes('id="hfLabel218"') && art.includes('id="hfSides"') && !art.includes('id="hfBackText197"'), "E: the Artwork section keeps its remaining content — avatar maker + entry, design label, print placement, name on design — →244: Name on design moved UP out of Artwork to follow Your moment (Emil's flow order), so it is absent here now — →246: the Artwork section is DELETED; its kept controls survive as their own sections (design label in #hfDesignPanel246, print placement in its panel) and the avatar maker is gone (the lifecycle lives in the preview card)");
+  assert(!home.includes('id="hfRowArtwork215"') && home.includes('id="hfRowDesign246"') && home.includes('id="hfRowDesignState246"'), "E: the Artwork section head + its state line survive (hfSyncRowStates215 still names the choice there) — →246: the head is the Design row now; hfSyncRowStates215 names the design LABEL on #hfRowDesignState246");
   assert(appJs.includes('$$("#hfImageStyles [data-hf-image-style]")') && appJs.includes("function hfPickImageStyle"), "E: the wiring is untouched — the click binding + hfPickImageStyle select by id, so they follow the control to its new home");
   assert(appJs.includes("function hfSyncAvatar206") && appJs.includes("function hfMakeAvatar206") && appJs.includes("function hfApplyAvatar206"), "E: the avatar flow's entry points stand (sync + maker + approval all still in app.js)");
 }
@@ -233,7 +233,7 @@ const baseState = (over) => ({ play: { id: 7, title: "Double" }, frozen: true, p
       try { servedHome = await (await fetch("http://127.0.0.1:3542/")).text(); } catch { await wait(250); }
     }
     servedCss = await (await fetch("http://127.0.0.1:3542/styles.css")).text();
-    assert(servedHome.includes('src="app.js?v=240"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 242 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+    assert(servedHome.includes('src="app.js?v=241"') && servedHome.includes('href="styles.css?v=229"'), "G: the served homepage carries the Round 242 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
     const gAt = servedHome.indexOf('id="hfGarment206"'), sAt = servedHome.indexOf('id="hfImageStyles"'), pAt = servedHome.indexOf('id="hfRowPhoto215"');
     assert(gAt > -1 && sAt > gAt && sAt < pAt && (servedHome.match(/id="hfImageStyles"/g) || []).length === 1, "G: the served page carries exactly one artwork selector, inside the garment card");
     assert(servedCss.includes("#hfGarmentFlip206 button"), "G: the served stylesheet carries the slim flip sizing — →244: retargeted to the price-row group");

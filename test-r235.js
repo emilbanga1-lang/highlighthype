@@ -96,7 +96,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=228"') && home.includes('src="app.js?v=240"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+assert(home.includes('href="styles.css?v=229"') && home.includes('src="app.js?v=241"'), "A: asset pins — app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
 
 // ---- B. Item A statics ----
 const captureBlock = appJs.slice(appJs.indexOf("function hfCapturePrint()"), appJs.indexOf("function freezeHfFrame()"));
@@ -230,7 +230,7 @@ assert(appJs.includes("That frame didn't come through — it may still be loadin
   const prod = home.slice(home.indexOf('id="hfProduct215"'), home.indexOf('id="hfReview215"'));
   const mom = prod.slice(prod.indexOf('id="hfPhotoPanel215"'), prod.indexOf('id="hfRowArtwork215"'));
   const at = (id) => mom.indexOf('id="' + id + '"');
-  assert(at("hfStripWrap") > -1 && at("hfClipRow211") > at("hfStripWrap") && at("hfClipArea211") > at("hfClipRow211") && at("hfUploadBtn222") > at("hfClipArea211") && at("hfFence222") > at("hfUploadBtn222") && at("hfPhotoMsg215") > at("hfFence222"), "D: the moment section renders filmstrip → Pick from video → Upload a photo → fence step → message (Emil, verbatim: 'Pick from video should be above upload from a photo')");
+  assert(at("hfStripWrap") > -1 && at("hfClipRow211") > at("hfStripWrap") && at("hfClipArea211") > at("hfClipRow211") && at("hfUploadBtn222") > at("hfClipArea211") && at("hfPhotoMsg215") > at("hfUploadBtn222") && at("hfFence222") === -1, "D: the moment section renders filmstrip → Pick from video → Upload a photo → fence step → message (Emil, verbatim: 'Pick from video should be above upload from a photo') — →246: the manual fence step is DELETED; the section runs filmstrip → Pick from video → Upload a photo → message (the auto-clean lives under the garment)");
   assert(mom.includes('aria-controls="hfClipArea211"') && mom.includes('id="hfUploadInput222" accept="image/*"') && mom.includes("📷 Upload a photo"), "D: pure ordering — the clip row's wiring, the upload input and the upload label are byte-identical");
 }
 
@@ -252,8 +252,8 @@ assert(appJs.includes("Checking your frame for a fence…"), "E: the live fence 
 
 // ---- G. Item D: the copy mapping (display only) ----
 assert(home.includes('data-hf-image-style="photo" aria-pressed="true">Frame</button>'), "G: the Artwork toggle reads 'Frame' — its data-hf-image-style state value stays 'photo'");
-assert(home.includes("<b>Frame</b> — your frozen frame, printed just as it is.") && !home.includes("printed as the photo it is"), "G: the explainer reads 'Frame — your frozen frame, printed just as it is.'");
-assert(appJs.includes('? "Avatar" : "Frame"') && !appJs.includes('? "Avatar" : "Photo"'), "G: the Artwork section state line renders 'Frame · Hype Frame'");
+assert(!home.includes("<b>Frame</b> — your frozen frame, printed just as it is.") && !home.includes("printed as the photo it is"), "G: the explainer reads 'Frame — your frozen frame, printed just as it is.' — →246: the Frame/Avatar explainer is DELETED with the Artwork section (Emil: customers must not know how the image is generated)");
+assert(!appJs.includes('? "Avatar" : "Frame"') && appJs.includes('$("#hfRowDesignState246")') && appJs.includes("hfDesignLabel218()"), "G: the Artwork section state line renders 'Frame · Hype Frame' — →246: the Artwork row + its state line are DELETED; the Design row's state line (#hfRowDesignState246) names the current design label (hfDesignLabel218)");
 assert(appJs.includes('"Frame — your frozen frame"') && !appJs.includes('"Real photo — your frozen frame"'), "G: the Review art line reads 'Frame — your frozen frame'");
 assert(home.includes("📷 Upload a photo") && home.includes("Upload a photo instead — it becomes the print.") && appJs.includes('imageStyle: "photo"'), "G: 'photo' survives ONLY where a real uploaded photograph is meant — the Upload a photo control + helper are untouched, and the state default is unchanged");
 

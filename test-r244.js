@@ -73,11 +73,11 @@ const at = (id) => prod.indexOf(`id="${id}"`);
 
 // ---- A. pins + page-top / flip statics ----
 {
-  assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v239 / styles v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+  assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v239 / styles v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
   // (5a) Back to the board is the first content of the studio view.
   const wrapOpen = studio.indexOf('<div class="wrap">');
   const firstBits = studio.slice(wrapOpen, wrapOpen + 220);
-  assert(firstBits.includes('data-panel-btn="plays"') && firstBits.includes("Back to the board"), "A: 'Back to the board' is the first content element of the studio view");
+  assert(firstBits.includes('id="hfBackBtn246"') && !firstBits.includes("data-panel-btn") && firstBits.includes("Back to the board"), "A: 'Back to the board' is the first content element of the studio view — →246: the button is #hfBackBtn246 and no longer carries data-panel-btn (hfBack246 returns to the entry view; the generic handler was the dump-to-Watch bug)");
   // (5b) the hero block is gone — eyebrow, headline, play line.
   assert(!studio.includes("sec-tag") && !studio.includes('<span class="lime">Your swag.</span>') && !studio.includes('id="hfPlayLine"'), "A: the studio hero block (eyebrow / 'Your moment. Your swag.' headline / #hfPlayLine) is removed");
   assert(!appJs.includes('$("#hfPlayLine")'), "A: app.js no longer writes to the removed #hfPlayLine");
@@ -101,11 +101,11 @@ const at = (id) => prod.indexOf(`id="${id}"`);
 
 // ---- B. section order statics (Emil's flow order) ----
 {
-  assert(at("hfPhotoPanel215") > -1 && at("hfRowBackText215") > at("hfPhotoPanel215") && at("hfBackTextPanel215") > at("hfRowBackText215") && at("hfRowArtwork215") > at("hfBackTextPanel215") && at("hfArtworkPanel215") > at("hfRowArtwork215") && at("hfBuyCard215") > at("hfArtworkPanel215"), "B: sections run Your moment → Name on design → Artwork → Color & size");
-  const art = prod.slice(at("hfArtworkPanel215"), at("hfBuyCard215"));
+  assert(at("hfPhotoPanel215") > -1 && at("hfRowBackText215") > at("hfPhotoPanel215") && at("hfBackTextPanel215") > at("hfRowBackText215") && at("hfRowDesign246") > at("hfBackTextPanel215") && at("hfDesignPanel246") > at("hfRowDesign246") && at("hfBuyCard215") > at("hfDesignPanel246"), "B: sections run Your moment → Name on design → Artwork → Color & size — →246: the Artwork section is DELETED; the Design label section stands in its slot");
+  const art = prod.slice(at("hfDesignPanel246"), at("hfBuyCard215")); // →246: the slice runs from the Design panel (the Artwork panel is deleted)
   assert(!art.includes('id="hfBackText197"') && !art.includes('id="hfName"'), "B: Name on design is OUT of the Artwork section");
-  assert(art.includes('id="hfAvatarPanel206"') && art.includes('id="hfLabel218"') && art.includes('id="hfRowPlacement215"') && art.includes('id="hfSides"'), "B: the Artwork section keeps the avatar maker, the design label and print placement");
-  const name = prod.slice(at("hfRowBackText215"), at("hfRowArtwork215"));
+  assert(!art.includes('id="hfAvatarPanel206"') && art.includes('id="hfLabel218"'), "B: the Artwork section keeps the avatar maker, the design label and print placement — →246: the Artwork section is DELETED — the avatar maker is gone (the lifecycle lives in the preview card), the design label is its own section, and print placement follows as its own section");
+  const name = prod.slice(at("hfRowBackText215"), at("hfRowDesign246")); // →246: the Name block now runs to the Design row
   assert(name.includes('id="hfBackText197"') && name.includes('id="hfName"') && name.includes('id="hfJerseyRow205"') && name.includes('id="hfRowBackTextState215"'), "B: the moved Name block is whole (modes, name field, jersey row, state line)");
 }
 
@@ -343,8 +343,8 @@ function driveFence() {
   await d.sb.hfFenceStatus222();
   await settle();
   assert(d.sb.hfState.fenceAutoBusy229 === false && d.sb.hfState.fenceAutoFailed229 === true, "F: a failed check resolves — busy clears, the failure is recorded");
-  assert((d.els["#hfFenceAutoNote229"].textContent || "").includes("didn't finish") && d.els["#hfFenceAutoRetry244"].hidden === false, "F: …the note says so in plain words and the retry is offered");
-  assert(d.els["#hfFence222"].hidden === false, "F: …and the manual fence step surfaces as the other fallback");
+  assert((d.els["#hfFenceAutoNote229"].textContent || "").includes("We couldn't clean this frame — try another frame.") && d.els["#hfFenceAutoRetry244"].hidden === false, "F: …the note says so in plain words and the retry is offered — →246: the failure copy is now the ONE plain line (no mechanics, no manual step to point at)");
+  assert(!d.els["#hfFence222"], "F: …and the manual fence step surfaces as the other fallback — →246: the manual step is DELETED; the plain line + retry are the whole fallback");
   d.setDetectBehavior("defer");
   d.sb.hfFenceAutoRetry229();
   await settle();
@@ -364,7 +364,7 @@ function driveFence() {
     for (let i = 0; i < 50 && !up; i++) { try { const r = await fetch(`http://localhost:${port}/api/health`); up = r.ok; } catch { await wait(200); } }
     assert(up, "G: the server boots");
     const html = await (await fetch(`http://localhost:${port}/`)).text();
-    assert(html.includes("app.js?v=240") && html.includes("styles.css?v=228"), "G: the served page carries the Round 244 pins — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+    assert(html.includes("app.js?v=241") && html.includes("styles.css?v=229"), "G: the served page carries the Round 244 pins — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
     assert(html.includes('id="hfGarmentFlip206"') && html.includes('id="hfAvatarCard244"') && !html.includes('id="hfPlayLine"'), "G: …with the price-row flip + avatar card in, and the hero block out");
   } finally { child.kill("SIGKILL"); }
 }

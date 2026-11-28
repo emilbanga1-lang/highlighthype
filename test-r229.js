@@ -62,13 +62,13 @@ const studio = home.slice(home.indexOf('id="hypeframe"'), home.indexOf('id="how"
 const prod = studio.slice(studio.indexOf('id="hfProduct215"'), studio.indexOf('id="hfReview215"'));
 
 // ---- A. pins + sticky statics ----
-assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v225 / styles v218 (Round 229) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
 {
   const garment = prod.indexOf('id="hfGarment206"');
-  const artwork = prod.indexOf('id="hfArtworkPanel215"');
+  const artwork = prod.indexOf('id="hfDesignPanel246"'); // →246: the Artwork panel is deleted; the Design panel stands in its order slot
   const buy = prod.indexOf('id="hfBuyCard215"');
   const bar = prod.indexOf('id="hfStickyBar215"');
-  assert(!prod.includes('id="hfPinZone229"') && !prod.includes("hf-pinzone229") && garment > -1 && artwork > garment && buy > artwork && bar > buy, "A: the pin zone wraps garment → moment → artwork and closes BEFORE Color & size; the buy card + Review bar live outside it — →238: the zone is GONE at Emil's word (the wrapper existed only to confine the pin); the sections stand directly in the product page in the same order — garment → artwork → buy card → bar, every id unchanged");
+  assert(!prod.includes('id="hfPinZone229"') && !prod.includes("hf-pinzone229") && garment > -1 && artwork > garment && buy > artwork && bar > buy, "A: the pin zone wraps garment → moment → artwork and closes BEFORE Color & size; the buy card + Review bar live outside it — →238: the zone is GONE at Emil's word (the wrapper existed only to confine the pin); the sections stand directly in the product page in the same order — garment → artwork → buy card → bar, every id unchanged — →246: the Artwork panel is DELETED; the Design panel (label) stands in its order slot (garment → design → buy card → bar)");
   assert(!css.includes("#hfProduct215 .hf-garment206{position:sticky") && !css.includes("#hfProduct215 .hf-garment206{position:fixed"), "A: the sticky rule itself is unchanged — confinement is structural (the parent), not a new position scheme — →238: the garment rule carries NO positioning at all now (Emil, three times on 2026-11-27, finally: 'I don't like the hoodie scroll on the hype frame order page. It's hard to use the page.') — a plain in-flow card that scrolls away with the page; test-r238 pins the unpin");
   assert(css.includes("#hfProduct215{max-width:560px;margin:0 auto;padding-bottom:12px}") && !css.includes("padding-bottom:118px") && css.includes(".hf-stickybar215{width:calc(100% - 24px);max-width:584px;margin:12px auto 0"), "A: the product page's bottom padding is normal (12px) and the bar sits in flow below the buy card — →235: the 96px reserve this round set is deleted (the fixed bar + reserve still read as a dead band in Emil's 15:06 shot; measured bar height ~81px vs 118px of stacked void) — →237: the bar is unpositioned entirely (the →235 sticky form floated over the size pills in Emil's 15:50 shot)");
   assert(css.includes(".hf-fence-auto229") && css.includes(".hf-fence-auto229[hidden]{display:none}"), "A: the auto fence block's styles + [hidden] guard ship");
@@ -161,7 +161,7 @@ const detect = (s, image) => s.j("/api/hype-frame/fence-detect", { method: "POST
   const st = await stubs(45325, 45326, true);
   const s = await boot(45304, { AI_VISION_API_KEY: "k", OPENAI_API_KEY: "k", AI_VISION_BASE_URL: st.visionUrl, HF_AVATAR_BASE_URL: st.openaiUrl, HH_NO_FENCE_AUTO: "1" });
   const stt = await s.j("/api/hype-frame/fence-status");
-  assert(stt.body.configured === true && stt.body.detect === true && stt.body.auto === false, "C: HH_NO_FENCE_AUTO=1 — detect stays true, auto reads false (manual step returns)");
+  assert(stt.body.configured === true && stt.body.detect === true && stt.body.auto === false, "C: HH_NO_FENCE_AUTO=1 — detect stays true, auto reads false (manual step returns) — →246: the manual step is deleted; auto:false now simply means no fence surface");
   const d = await detect(s);
   assert(d.status === 200 && d.body.auto === false && d.body.fence === false && st.calls.vision === 0, "C: with auto off, fence-detect answers fence:false WITHOUT calling the vision upstream");
   await s.stop(); st.close();
@@ -174,7 +174,7 @@ const detect = (s, image) => s.j("/api/hype-frame/fence-detect", { method: "POST
   await s1.stop();
   const s2 = await boot(45306, { OPENAI_API_KEY: "k" });
   const st2 = await s2.j("/api/hype-frame/fence-status");
-  assert(st2.body.configured === true && st2.body.detect === false && st2.body.auto === false, "C: OpenAI key but no vision key — the manual step is configured, detect/auto false (today's behavior)");
+  assert(st2.body.configured === true && st2.body.detect === false && st2.body.auto === false, "C: OpenAI key but no vision key — the manual step is configured, detect/auto false (today's behavior) — →246: the status words are unchanged server-side; the deleted manual step simply never renders");
   await s2.stop();
   const s3 = await boot(45307, { AI_VISION_API_KEY: "k", OPENAI_API_KEY: "k", HH_NO_FENCE: "1" });
   const st3 = await s3.j("/api/hype-frame/fence-status");
@@ -280,7 +280,7 @@ const settle = async () => { for (let i = 0; i < 30; i++) await wait(10); };
   assert(sb.hfState.fenceAutoClean229 === "data:image/png;base64,CLEANED", "D: the cleaned frame becomes the print source by default");
   assert(els["#hfFenceAutoOriginal229"].hidden === false, "D: the 'Use original' revert is offered");
   assert((els["#hfFenceAutoNote229"].textContent || "").includes("automatically"), "D: the inline note says the fence was removed automatically");
-  assert(els["#hfFence222"].hidden === true, "D: the manual panel stands down in auto mode");
+  assert(!els["#hfFence222"], "D: the manual panel stands down in auto mode — →246: the manual panel is DELETED (it is not in the page at all; the auto flow is the only fence surface)");
   assert(els["#hfFenceAuto229"].hidden === false, "D: the auto block (note + revert) is visible in auto mode — →235: the standing disclosure paragraph was removed from the block (Emil: it takes too much room); only the dynamic note + revert remain");
 
   // Re-pick the SAME frame: cache re-applies with zero new calls.
@@ -322,7 +322,7 @@ const settle = async () => { for (let i = 0; i < 30; i++) await wait(10); };
   sb.hfAutoFence229();
   await settle();
   assert(calls.detect === 0 && calls.remove === 0, "D: detection unconfigured — the auto flow makes NO calls");
-  assert(els["#hfFence222"].hidden === false, "D: …and the manual Remove-the-fence step shows exactly as in Round 222");
+  assert(!els["#hfFence222"], "D: …and the manual Remove-the-fence step shows exactly as in Round 222 — →246: the manual step is DELETED; with detection unconfigured there is no fence surface at all");
   assert(els["#hfFenceAuto229"].hidden === true, "D: …with no auto UI at all");
 }
 {
@@ -331,7 +331,7 @@ const settle = async () => { for (let i = 0; i < 30; i++) await wait(10); };
   await sb.hfFenceStatus222();
   await settle();
   assert(calls.detect === 1 && sb.hfState.fenceAutoFailed229 === true, "D: a failed auto attempt is recorded (fenceAutoFailed229)");
-  assert(els["#hfFence222"].hidden === false, "D: …and the manual step surfaces as the fallback");
+  assert(!els["#hfFence222"] && (els["#hfFenceAutoNote229"].textContent || "").includes("We couldn't clean this frame") && els["#hfFenceAutoRetry244"].hidden === false, "D: …and the manual step surfaces as the fallback — →246: the manual step is DELETED; the fallback is the ONE plain line + Retry in the auto block");
   sb.hfAutoFence229();
   await settle();
   assert(calls.detect === 1, "D: the failed frame is not retried in a loop (cached verdict)");

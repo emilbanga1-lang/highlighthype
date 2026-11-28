@@ -71,7 +71,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v219 / styles v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v219 / styles v213 (Round 221; both files changed) — →222: app.js now v220, styles now v214 (Round 222; both files changed) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
 
 // ---- B. Server prompt: composition lock added, R218 slots verbatim ----
 const stubCalls = [];
@@ -167,21 +167,14 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
     }
   }
 
-  // D1. The preview: frame shown, crop box at the default center.
-  sb.hfSyncAvatarCrop221();
-  const wrap = els["#hfAvatarCrop221"], box = els["#hfAvatarCropBox221"], dot = els["#hfAvatarCropDot221"], pimg = els["#hfAvatarCropImg221"];
-  const pct = (v) => parseFloat(v);
-  const near = (a, b) => Math.abs(a - b) < 1e-6;
-  assert(wrap.hidden === false, "D: with a frozen frame the crop preview shows");
-  assert(String(pimg.src).includes("FAKE_288x512"), "D: the preview renders the frame itself (512-capped: 288×512 for a 720×1280 frame)");
-  assert(near(pct(box.style.left), 22.5) && near(pct(box.style.top), 30.703125) && near(pct(box.style.width), 55) && near(pct(box.style.height), 38.671875), "D: the crop box marks exactly the default crop (left 22.5%, top 30.703125%, 55% × 38.671875%) — →222: the athlete-dominant 55% box (was 17.5% / 27.1875% / 65% × 45.703125% in R221)");
-  assert(dot.style.left === "50%" && dot.style.top === "50%", "D: the focus marker starts at the frame's center");
-
-  // D2. Taps re-center.
-  sb.hfAvatarCropTap221({ clientX: 0, clientY: 0 });
-  assert(S.avatarFocus221.x === 0 && S.avatarFocus221.y === 0 && box.style.left === "0%" && box.style.top === "0%", "D: a tap at the corner moves the focus there and the crop follows (clamped)");
-  sb.hfAvatarCropTap221({ clientX: 200, clientY: 355 });
-  assert(S.avatarFocus221.x === 1 && S.avatarFocus221.y === 1 && near(pct(box.style.left), 45) && near(pct(box.style.top), 61.328125), "D: a tap at the far corner re-centers the crop on it (box at 45% / 61.328125%) — →222: follows the 55% crop (was 35% / 54.296875%)");
+  // D1/D2. →246 RETIRED: the crop-preview UI (the "what the
+  // artist sees" crop-centering control — preview, crop box,
+  // focus dot, tap-to-recenter) is DELETED with the Artwork
+  // section (Emil: customers must not know how the image is
+  // generated). The crop MATH (hfAvatarCrop221, §C) survives —
+  // the make flow below still posts the centered crop; the
+  // focus is simply always the default center now.
+  assert(typeof sb.hfSyncAvatarCrop221 === "undefined" && typeof sb.hfAvatarCropTap221 === "undefined" && typeof sb.hfAvatarCrop221 === "function", "D: →246: the crop-centering UI functions are deleted; the crop math survives for the make flow");
 
   // D3. Make posts the CROP.
   S.avatarFocus221 = { x: 0, y: 0.5 };
@@ -217,13 +210,15 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
 
 // ---- F. Markup + CSS ----
 {
-  const panel = home.slice(home.indexOf('id="hfAvatarPanel206"'), home.indexOf('id="hfLabel218"'));
-  for (const id of ["hfAvatarCrop221", "hfAvatarCropStage221", "hfAvatarCropImg221", "hfAvatarCropBox221", "hfAvatarCropDot221"]) {
-    assert(panel.includes(`id="${id}"`), "F: the avatar panel carries #" + id);
+  // →246: the avatar panel (and with it the crop preview, its
+  // caption and the consent line) is DELETED — the whole
+  // "what the artist sees" control went with the Artwork
+  // section. The crop styles are retired with it.
+  for (const id of ["hfAvatarPanel206", "hfAvatarCrop221", "hfAvatarCropStage221", "hfAvatarCropImg221", "hfAvatarCropBox221", "hfAvatarCropDot221", "hfAvatarConsent206", "hfAvatarMake206"]) {
+    assert(!home.includes(`id="${id}"`), "F: →246: the deleted avatar panel's #" + id + " is gone from the page");
   }
-  assert(panel.includes("This is what the artist sees — tap the photo to center on your athlete."), "F: the crop caption ships verbatim");
-  assert(panel.indexOf('id="hfAvatarConsent206"') < panel.indexOf('id="hfAvatarCrop221"') && panel.indexOf('id="hfAvatarCrop221"') < panel.indexOf('id="hfAvatarMake206"'), "F: the crop preview sits between the consent line and the Make button");
-  assert(css.includes(".hf-avatar-crop-stage221{") && css.includes(".hf-avatar-crop-box221{") && css.includes(".hf-avatar-crop-dot221{"), "F: the crop styles ship (stage, box, focus dot)");
+  assert(!home.includes("This is what the artist sees"), "F: the crop caption ships verbatim — →246: the caption is deleted with the panel (no generation mechanics in customer copy)");
+  assert(!css.includes(".hf-avatar-crop-stage221{") && !css.includes(".hf-avatar-crop-box221{") && !css.includes(".hf-avatar-crop-dot221{"), "F: the crop styles ship (stage, box, focus dot) — →246: retired with the deleted control (the rules were removed from styles.css)");
 }
 
 // ---- G. Served ----
@@ -231,11 +226,11 @@ assert(serverJs.includes("function hfAvatarPrompt218"), "B: the prompt is still 
   const s = await boot(45222);
   try {
     const served = await (await fetch(s.base + "/")).text();
-    assert(served.includes('src="app.js?v=240"') && served.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 221 pins — →222: now the Round 222 pins (app.js v220 / styles v214) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+    assert(served.includes('src="app.js?v=241"') && served.includes('href="styles.css?v=229"'), "G: the served homepage carries the Round 221 pins — →222: now the Round 222 pins (app.js v220 / styles v214) — →224: app.js now v221 (Round 224); styles keeps v214 (unchanged this round) — →223: app.js now v222 (Round 223); styles now v215 (Round 223) — →226: app.js now v223 (Round 226); styles now v216 (Round 226) — →227: app.js now v224 (Round 227); styles now v217 (Round 227) — →229: app.js now v225 (Round 229); styles now v218 (Round 229) — →230: app.js now v226 (Round 230); styles now v219 (Round 230) — →231: app.js now v227 (Round 231); styles keeps v219 (unchanged this round) — →232: app.js now v228 (Round 232); styles now v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
     const servedApp = await (await fetch(s.base + "/app.js")).text();
     assert(servedApp.includes("function hfAvatarCrop221") && servedApp.includes("hfAvatarCrop221(src.width, src.height, hfState.avatarFocus221)"), "G: the served app.js carries the crop math + the Make-flow crop");
     const servedCss = await (await fetch(s.base + "/styles.css")).text();
-    assert(servedCss.includes(".hf-avatar-crop221{"), "G: the served styles.css carries the crop rules");
+    assert(!servedCss.includes(".hf-avatar-crop221{"), "G: the served styles.css carries the crop rules — →246: the crop rules are retired with the deleted crop control");
   } finally { s.stop(); }
 }
 

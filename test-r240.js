@@ -49,7 +49,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round) — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
 
 // ---- B. statics ----
 // B1 (item 1): the clarifier + the relabeled skip.
@@ -280,7 +280,7 @@ if (fs.existsSync(deployDir)) {
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3541/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=240"') && servedHome.includes('href="styles.css?v=228"'), "G: the served homepage carries the Round 240 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round)");
+    assert(servedHome.includes('src="app.js?v=241"') && servedHome.includes('href="styles.css?v=229"'), "G: the served homepage carries the Round 240 pins — →244: app.js now v239 (Round 244); styles now v228 (Round 244) — →245: app.js now v240 (Round 245); styles keeps v228 (unchanged this round) — →246: app.js now v241 (Round 246); styles now v229 (Round 246)");
     assert(servedApp.includes("Today's official matchup — votes here decide today's winner.") && servedApp.includes("Try another battle →") && servedApp.includes("View full leaderboard"), "G: the served app.js carries the clarifier, the relabeled skip and the View-full link");
   } finally {
     child.kill();

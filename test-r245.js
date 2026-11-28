@@ -60,7 +60,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const slice = (a, b) => appJs.slice(appJs.indexOf(a), b ? appJs.indexOf(b) : undefined);
 
 // ---- A. statics ----
-assert(home.includes('src="app.js?v=240"') && home.includes('href="styles.css?v=228"'), "A: asset pins — app.js v240 / styles v228 (Round 245; styles unchanged this round)");
+assert(home.includes('src="app.js?v=241"') && home.includes('href="styles.css?v=229"'), "A: asset pins — app.js v240 / styles v228 (Round 245; styles unchanged this round) — →246: app.js now v241 / styles now v229 (Round 246)");
 const moreFn = slice("function homeLbMore240()", "function renderHomeLb230");
 assert(moreFn.includes("homeLbFull240 = true") && moreFn.includes("renderHomeLb230()") && !moreFn.includes("homeLbLanding232("), "A: the in-section expand sets the state and repaints WITHOUT the landing helper (the defect-1 mechanism is out of this path)");
 assert(moreFn.includes("homeLbReanchor245(topBefore245, false)"), "A: the expand re-anchors in place (growth downward, no courtesy scroll)");
