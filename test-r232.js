@@ -101,7 +101,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=237"'), "A: asset pins — app.js v228 / styles v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242)");
+assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js v228 / styles v220 (Round 232) — →233: app.js now v229 (Round 233); styles now v221 (Round 233) — →234: app.js now v230 (Round 234); styles keeps v221 (unchanged this round) — →235: app.js now v231 (Round 235); styles now v222 (Round 235) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
 
 // ---- B. statics ----
 // B1 (item 5): the board's Month view shed + what stays.
@@ -125,12 +125,12 @@ const battleCard = appJs.slice(appJs.indexOf("function homeBattleCard230"), appJ
 assert(battleCard.includes('homePosterMedia230(p, \' fetchpriority="high" decoding="async"\')') && battleCard.includes("homeTeamDupAthlete232(p)") && battleCard.includes("homeOpenPlay232(${p.id})") && !battleCard.includes("openPlayDetail"), "B3: the battle card — fetchpriority poster, deduped meta, feed tap (no openPlayDetail)");
 const featRender = appJs.slice(appJs.indexOf("function renderHomeFeatured230"), appJs.indexOf("function homeMoreTile230"));
 assert(featRender.includes("homeOpenPlay232(${h.id})") && featRender.includes('fetchpriority="high"') && !featRender.includes("openPlayDetail"), "B3: the featured card's media — fetchpriority poster, feed tap");
-const tileFn = appJs.slice(appJs.indexOf("function homeMoreTile230"), appJs.indexOf("function renderHomeLb230"));
-assert(tileFn.includes("homeOpenPlay232(${h.id})") && !tileFn.includes("openPlayDetail"), "B3: More Highlights tiles tap into the feed");
+const tileFn = appJs.slice(appJs.indexOf("function homeMoreTile230"), appJs.indexOf("function homeLbMoreHtml240"));
+assert(tileFn.includes("homeOpenPlay232(${h.id})") && !tileFn.includes("openPlayDetail"), "B3: More Highlights tiles tap into the feed — →243: the slice now ends at homeLbMoreHtml240 (the Round 243 block sits between the tile and renderHomeLb230 and legitimately names openPlayDetail as the leaderboard opener's fallback; the tile's own code is unchanged)");
 const lbRender = appJs.slice(appJs.indexOf("function renderHomeLb230"), appJs.indexOf("function renderHomeMore230"));
 assert((lbRender.match(/\{ home232: true \}/g) || []).length === 2, "B3: BOTH homepage leaderboard tabs render their rows with opts.home232");
 const rowFn = appJs.slice(appJs.indexOf("function fameRowHtml134"), appJs.indexOf("function renderFame"));
-assert(rowFn.includes("opts.home232") && rowFn.includes("homeOpenPlay232(${h.id})"), "B3: fameRowHtml134 routes opts.home232 rows to the feed opener (board rows keep feed189 / goToPlayCard)");
+assert(rowFn.includes("opts.home232") && rowFn.includes("homeLbOpenPlay243(${h.id})"), "B3: fameRowHtml134 routes opts.home232 rows to the feed opener (board rows keep feed189 / goToPlayCard) — →243: the homepage rows call homeLbOpenPlay243, which supplies the leaderboard's OWN ordered ids explicitly; homeOpenPlay232's feedHeroIds223 DOM read could not see the leaderboard's list (the R243 defect)");
 // B4 (items 3+5): crown hardening + the one-line eyebrow.
 const crownRule = css.slice(css.indexOf(".crown-ic227{"), css.indexOf("}", css.indexOf(".crown-ic227{")) + 1);
 assert(crownRule.includes("display:inline-block") && crownRule.includes("width:1em!important") && crownRule.includes("height:1em!important") && crownRule.includes("max-width:1em!important") && crownRule.includes("max-height:1em!important"), "B4: .crown-ic227 is bulletproof — inline-block with !important 1em caps, so no host layout rule (e.g. .tile-media img 100%x100%) can blow it up in any context");
@@ -244,10 +244,10 @@ run("renderHomeMore230()");
 const grid = $id("homeMoreGrid230").innerHTML;
 assert(grid.includes("homeOpenPlay232(50)") && grid.includes("homeOpenPlay232(77)") && !grid.includes("openPlayDetail("), "C5: More Highlights tiles tap into the feed");
 const lbMonth = $id("homeLbRows230").innerHTML;
-assert(lbMonth.includes("homeOpenPlay232(75)") && !lbMonth.includes("goToPlayCard(75)") && !lbMonth.includes("openPlay189(75"), "C5: This Month rows route to homeOpenPlay232 (not goToPlayCard, not the board-host openPlay189)");
+assert(lbMonth.includes("homeLbOpenPlay243(75)") && !lbMonth.includes("goToPlayCard(75)") && !lbMonth.includes("openPlay189(75"), "C5: This Month rows route to the feed opener (not goToPlayCard, not the board-host openPlay189) — →243: the opener is homeLbOpenPlay243 (explicit leaderboard ids), not homeOpenPlay232");
 run('homeLbTab230 = "fame"; renderHomeLb230()');
 const lbFame = $id("homeLbRows230").innerHTML;
-assert(lbFame.includes("homeOpenPlay232(75)") && !lbFame.includes("goToPlayCard(75)"), "C5: Hall of Fame rows route to homeOpenPlay232 too");
+assert(lbFame.includes("homeLbOpenPlay243(75)") && !lbFame.includes("goToPlayCard(75)"), "C5: Hall of Fame rows route to the feed opener too — →243: homeLbOpenPlay243, as on the Month tab");
 // C6 (item 4): the opener itself — feed first, right start, detail fallback.
 run("homeOpenPlay232(71)");
 assert(feedCalls.length === 1 && JSON.stringify(feedCalls[0][0]) === JSON.stringify([75, 71, 50, 77, 78, 51]) && feedCalls[0][1] === 71 && feedCalls[0][2] === null && detailCalls.length === 0, "C6: homeOpenPlay232 opens the feed in board order STARTING at the tapped play, battle = null");
@@ -259,7 +259,7 @@ assert(feedCalls.length === 1 && JSON.stringify(detailCalls) === JSON.stringify(
 // C7 (item 5): the homepage leaderboard landing.
 REG.get("homeMore230").hidden = false;
 run('homeLbLanding232("fame")');
-assert(run("homeLbTab230") === "fame" && $id("homeLbRows230").innerHTML.includes("homeOpenPlay232(75)"), "C7: homeLbLanding232('fame') paints the Hall of Fame tab");
+assert(run("homeLbTab230") === "fame" && $id("homeLbRows230").innerHTML.includes("homeLbOpenPlay243(75)"), "C7: homeLbLanding232('fame') paints the Hall of Fame tab — →243: its rows carry the homeLbOpenPlay243 tap");
 await wait(150);
 assert(REG.get("homeMore230").scrolls >= 1, "C7: the landing scrolls the More Highlights section into view");
 

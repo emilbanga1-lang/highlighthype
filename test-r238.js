@@ -52,7 +52,7 @@ const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=237"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242)");
+assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
 
 // ---- B. the unpin statics ----
 {
@@ -140,7 +140,7 @@ assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=
       await wait(400);
     }
     assert(served.length > 0, "E: the server serves the homepage from a scratch DATA_DIR");
-    assert(served.includes('src="app.js?v=237"') && served.includes('href="styles.css?v=227"'), "E: the served homepage carries the v234/v225 pins");
+    assert(served.includes('src="app.js?v=238"') && served.includes('href="styles.css?v=227"'), "E: the served homepage carries the v234/v225 pins");
     assert(!served.includes('id="hfPinZone229"') && served.includes('id="hfGarment206"') && served.includes('id="hfFenceAuto229"'), "E: the served studio has no pin zone — and the garment card + fence block are served as ever");
     const servedCss = await (await fetch(`http://127.0.0.1:${port}/styles.css`)).text();
     const sAt = servedCss.indexOf("#hfProduct215 .hf-garment206{background:#101012");

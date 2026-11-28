@@ -49,7 +49,7 @@ const css = fs.readFileSync(path.join(ROOT, "public/styles.css"), "utf8");
 const serverJs = fs.readFileSync(path.join(ROOT, "server.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('src="app.js?v=237"') && home.includes('href="styles.css?v=227"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242)");
+assert(home.includes('src="app.js?v=238"') && home.includes('href="styles.css?v=227"'), "A: asset pins — app.js v236 / styles v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
 
 // ---- B. statics ----
 // B1 (item 1): the clarifier + the relabeled skip.
@@ -68,7 +68,7 @@ assert(officialRule.includes("text-align:center") && officialRule.includes("font
 // B2 (item 3): the short render + the link + the landing expansion.
 const lbRender = appJs.slice(appJs.indexOf("function renderHomeLb230"), appJs.indexOf("function renderHomeMore230"));
 assert(lbRender.includes("rankedAll.slice(0, 3)") && lbRender.includes("entries.slice(0, 3)"), "B2: BOTH homepage tabs render short — top 3 rows (Hall of Fame from its top-10 ranking; This Month from the entries)");
-assert(lbRender.includes("homeLbMoreHtml240(rankedAll.length > ranked.length)") && lbRender.includes("homeLbMoreHtml240(entries.length > shown240.length)"), "B2: the View-full link renders only while rows remain hidden (never on a short or empty board)");
+assert(lbRender.includes("homeLbTailHtml243(rankedAll.length, ranked.length)") && lbRender.includes("homeLbTailHtml243(entries.length, shown240.length)"), "B2: the View-full link renders only while rows remain hidden (never on a short or empty board) — →243: both branches render their tail through homeLbTailHtml243, which returns the expand link when short and the new 'Show less' collapse when expanded (driven in test-r243)");
 assert(appJs.includes("View full leaderboard") && appJs.includes('onclick="homeLbMore240()"'), "B2: the link is 'View full leaderboard' and calls homeLbMore240");
 const moreFn = appJs.slice(appJs.indexOf("function homeLbMore240()"), appJs.indexOf("function renderHomeLb230"));
 assert(moreFn.includes("homeLbFull240 = true") && moreFn.includes('homeLbLanding232(homeLbTab230)'), "B2: the link lands through homeLbLanding232 — the existing full-board landing, on the current tab");
@@ -279,7 +279,7 @@ if (fs.existsSync(deployDir)) {
       } catch { await wait(250); }
     }
     servedApp = await (await fetch("http://127.0.0.1:3541/app.js")).text();
-    assert(servedHome.includes('src="app.js?v=237"') && servedHome.includes('href="styles.css?v=227"'), "G: the served homepage carries the Round 240 pins");
+    assert(servedHome.includes('src="app.js?v=238"') && servedHome.includes('href="styles.css?v=227"'), "G: the served homepage carries the Round 240 pins");
     assert(servedApp.includes("Today's official matchup — votes here decide today's winner.") && servedApp.includes("Try another battle →") && servedApp.includes("View full leaderboard"), "G: the served app.js carries the clarifier, the relabeled skip and the View-full link");
   } finally {
     child.kill();

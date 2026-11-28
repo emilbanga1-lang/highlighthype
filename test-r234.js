@@ -66,7 +66,7 @@ const home = fs.readFileSync(path.join(ROOT, "public/index.html"), "utf8");
 const appJs = fs.readFileSync(path.join(ROOT, "public/app.js"), "utf8");
 
 // ---- A. pins ----
-assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=237"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242)");
+assert(home.includes('href="styles.css?v=227"') && home.includes('src="app.js?v=238"'), "A: asset pins — app.js v230 / styles v221 (Round 234; styles unchanged) — →236: app.js now v232 (Round 236); styles now v223 (Round 236) — →237: app.js now v233 (Round 237); styles now v224 (Round 237) — →238: app.js now v234 (Round 238); styles now v225 (Round 238) — →239: app.js now v235 (Round 239); styles keeps v225 (unchanged this round) — →240: app.js now v236 (Round 240); styles now v226 (Round 240) — →242: app.js now v237 (Round 242); styles now v227 (Round 242) — →243: app.js now v238 (Round 243); styles keeps v227 (unchanged this round)");
 
 // ---- B. statics ----
 // B1: the emitter census — exactly one gated template, one threading site.
@@ -79,7 +79,7 @@ const renderHomeFn = appJs.slice(appJs.indexOf("function renderHome230()"), appJ
 assert(renderHomeFn.includes("bindTileGate233();"), "B2: renderHome230 ends with the document-wide gate bind — the homepage render funnel establishes coverage too");
 assert(appJs.includes('rootMargin: "400px 0px 400px 0px"') && appJs.includes("tileGateObs233.disconnect()"), "B2: R233 hygiene intact — one shared observer, 400px rootMargin, disconnect before rebind");
 // B3: the More still is eager now; taps unchanged.
-const moreTileFn = appJs.slice(appJs.indexOf("function homeMoreTile230"), appJs.indexOf("function renderHomeLb230"));
+const moreTileFn = appJs.slice(appJs.indexOf("function homeMoreTile230"), appJs.indexOf("function homeLbMoreHtml240")); // →243: slice ends at homeLbMoreHtml240 — the Round 243 block sits between the tile and renderHomeLb230 and legitimately names openPlayDetail( as the leaderboard opener's fallback; the tile's own code is unchanged
 const moreTileCode = moreTileFn.replace(/\/\*[\s\S]*?\*\//g, ""); // the R234 comment itself quotes the retired attribute — assert on the code
 assert(!moreTileCode.includes('loading="lazy"') && moreTileCode.includes("homePosterMedia230(h, ' decoding=\"async\"')"), "B3: More Highlights stills fetch with the render (decoding=\"async\") — no loading=\"lazy\" deferral");
 assert(moreTileFn.includes("homeOpenPlay232(${h.id})") && !moreTileFn.includes("openPlayDetail("), "B3: More tiles keep their R232 tap — the swipe feed via homeOpenPlay232");
