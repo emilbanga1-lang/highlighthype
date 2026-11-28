@@ -4428,3 +4428,40 @@ body.plays-view236 .float-submit{display:none}
 #hypeframe .hf-backrow246{margin:4px 0 0}
 #hfStudio{margin-top:14px}
 .feed189-frame246{width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.4);background:rgba(0,0,0,.55);color:#fff;font-size:19px;cursor:pointer}
+
+/* ================================================================
+   Round 247 (2026-11-28, Emil): "Go through each page and make
+   sure each section is separated by the same length." ONE
+   standard — --sec-gap: 40px of content-to-content separation
+   between consecutive major sections — applied at every stacked
+   section boundary that doesn't already measure it. 40px is the
+   value the site's best-kept boundaries already used (Featured →
+   More Highlights, Shop by Sport → grid; the R230 homepage trio
+   clustered at 38–40). Page-top offsets (incl. the R246 studio
+   top: 14/14), intra-section spacing, card internals, row gaps
+   and form-field spacing are NOT section separation and are
+   untouched. Full-bleed bands (hero, .final, .trust, footer)
+   keep their designed band padding — recorded as exceptions in
+   R247-NOTES.md, with the full before/after measurement table.
+   ================================================================ */
+:root{--sec-gap:40px}
+/* Homepage stacked sections */
+.home-battle230{padding-top:var(--sec-gap)}
+.home-feat230{padding-top:calc(var(--sec-gap) - 4px)}
+.home-more230{padding-top:calc(var(--sec-gap) - 4px);padding-bottom:30px}
+.merch-teaser125{padding-top:var(--sec-gap)}
+/* Athlete page blocks */
+#athlete .athlete-head{margin-bottom:var(--sec-gap)}
+#athlete .board-note{margin-top:var(--sec-gap)}
+/* My Plays blocks (margins collapse: the token margin wins) */
+#mine .mine-note{margin-top:24px}
+#mineFind{margin-top:var(--sec-gap)}
+#mine .mine-points{margin-top:var(--sec-gap)}
+/* Studio internal section boundaries (page-top stays R246's) */
+.hf-sec-head222:not(.hf-sec-in-card222){margin-top:var(--sec-gap)}
+#hfBuyCard215{margin-top:var(--sec-gap)}
+#hfStickyBar215{margin-top:var(--sec-gap)}
+/* Shop stacked blocks */
+#shop .hs-hero{margin-bottom:var(--sec-gap)}
+#shop .hs-grid{margin-bottom:var(--sec-gap)}
+#shop .hs-hf{margin-bottom:var(--sec-gap)}
